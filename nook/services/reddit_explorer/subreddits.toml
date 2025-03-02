@@ -1,0 +1,31 @@
+# サブレディット設定
+
+# 技術関連
+tech = [
+    "programming",
+    "Python",
+    "javascript",
+    "webdev",
+    "MachineLearning",
+    "datascience",
+    "artificial",
+    "compsci",
+    "coding",
+    "learnprogramming"
+]
+
+# ニュース
+news = [
+    "technology",
+    "science",
+    "Futurology",
+    "tech"
+]
+
+# 趣味
+hobby = [
+    "gamedev",
+    "DIY",
+    "howto",
+    "selfhosted"
+] 

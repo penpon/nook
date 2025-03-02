@@ -12,5 +12,11 @@ cdk.out
 node_modules/
 
 .env
+venv/
 
 .DS_Store
+
+.cursorrules
+.cursorignore
+
+data/

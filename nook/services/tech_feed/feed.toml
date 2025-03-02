@@ -1,0 +1,31 @@
+# フィード設定
+
+# 技術ブログ
+tech_blogs = [
+    "https://engineering.atspotify.com/feed/",
+    "https://netflixtechblog.com/feed",
+    "https://blog.cloudflare.com/rss/",
+    "https://blog.google/technology/developers/rss/",
+    "https://aws.amazon.com/blogs/aws/feed/",
+    "https://devblogs.microsoft.com/python/feed/",
+    "https://blog.twitter.com/engineering/en_us/blog.rss",
+    "https://medium.com/feed/airbnb-engineering"
+]
+
+# AI/ML関連
+ai_ml = [
+    "https://ai.googleblog.com/feeds/posts/default",
+    "https://openai.com/blog/rss/",
+    "https://blog.tensorflow.org/feeds/posts/default",
+    "https://pytorch.org/blog/feed.xml",
+    "https://huggingface.co/blog/feed.xml"
+]
+
+# プログラミング言語
+programming = [
+    "https://blog.rust-lang.org/feed.xml",
+    "https://blog.python.org/feeds/posts/default",
+    "https://go.dev/blog/feed.atom",
+    "https://blog.jetbrains.com/kotlin/feed/",
+    "https://blog.typescriptlang.org/feed/feed.xml"
+] 
