@@ -59,13 +59,13 @@ class TwitterPoster:
         #GitHub Trending
         self._post_github_trending(date_str)
         
-        # Hacker News
+        # # Hacker News
         self._post_hacker_news(date_str)
         
-        # arXiv論文
+        # # arXiv論文
         self._post_arxiv_papers(date_str)
         
-        # Reddit記事
+        # # Reddit記事
         self._post_reddit_articles(date_str)
     
     def _post_github_trending(self, date_str: str) -> None:
@@ -91,7 +91,6 @@ class TwitterPoster:
             content = f.read()
         
         # 「すべての言語」セクションを抽出
-        # 修正: セクション抽出方法を改善
         all_languages_section = ""
         sections = re.split(r"## ", content)
         for section in sections:
@@ -121,6 +120,8 @@ class TwitterPoster:
         
         for i, repo in enumerate(repositories[:5], 1):  # 上位5つのみ
             tweet_text += f"{i}. {repo['name']} ⭐{repo['stars']}\n"
+            if repo.get('description'):  # 説明文があれば追加
+                tweet_text += f"   {repo['description']}\n"
             tweet_text += f"   {repo['link']}\n"
         
         tweet_text += "\n#GitHub #Trending #開発"
@@ -317,16 +318,31 @@ class TwitterPoster:
             name = match.group(1)
             link = match.group(2)
             
-            # スター数を抽出
+            # スター数と説明文を抽出
             stars_pattern = r"⭐ スター数: (\d+)"
-            stars_match = re.search(stars_pattern, section[match.end():section.find("---", match.end()) if "---" in section[match.end():] else len(section)])
+            section_end = section.find("---", match.end()) if "---" in section[match.end():] else len(section)
+            repo_section = section[match.end():section_end]
             
+            stars_match = re.search(stars_pattern, repo_section)
             stars = stars_match.group(1) if stars_match else "N/A"
+            
+            # 説明文を抽出 - スター数の行の後の最初の非空行
+            description = ""
+            lines = repo_section.split('\n')
+            for i, line in enumerate(lines):
+                if stars_match and line.strip().startswith("⭐ スター数:"):
+                    # スター数の行の次の非空行を探す
+                    for next_line in lines[i+1:]:
+                        if next_line.strip() and not next_line.strip().startswith("---"):
+                            description = next_line.strip()
+                            break
+                    break
             
             repositories.append({
                 "name": name,
                 "link": link,
-                "stars": stars
+                "stars": stars,
+                "description": description
             })
         
         return repositories
@@ -348,7 +364,6 @@ class TwitterPoster:
         repositories = []
         
         # 別のパターンでリポジトリを抽出
-        # 例: ## [リポジトリ名](URL)
         repo_pattern = r"## \[(.*?)\]\((https://github\.com/.*?)\)"
         repo_matches = re.finditer(repo_pattern, content)
         
@@ -356,21 +371,32 @@ class TwitterPoster:
             name = match.group(1)
             link = match.group(2)
             
-            # スター数を抽出（別パターン）
-            stars_pattern = r"スター数: (\d+)"
+            # スター数と説明文を抽出
             section_end = content.find("##", match.end())
             if section_end == -1:
                 section_end = len(content)
             
             section = content[match.end():section_end]
-            stars_match = re.search(stars_pattern, section)
             
+            # スター数を抽出
+            stars_pattern = r"スター数: (\d+)"
+            stars_match = re.search(stars_pattern, section)
             stars = stars_match.group(1) if stars_match else "N/A"
+            
+            # 説明文を抽出 - 最初の非空行
+            description = ""
+            lines = section.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("スター数:") and not line.startswith("---"):
+                    description = line
+                    break
             
             repositories.append({
                 "name": name,
                 "link": link,
-                "stars": stars
+                "stars": stars,
+                "description": description
             })
         
         return repositories
