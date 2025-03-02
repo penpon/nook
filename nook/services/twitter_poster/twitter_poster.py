@@ -56,7 +56,7 @@ class TwitterPoster:
         today = datetime.now()
         date_str = today.strftime("%Y-%m-%d")
         
-        # GitHub Trending
+        #GitHub Trending
         self._post_github_trending(date_str)
         
         # Hacker News
@@ -64,6 +64,9 @@ class TwitterPoster:
         
         # arXiv論文
         self._post_arxiv_papers(date_str)
+        
+        # Reddit記事
+        self._post_reddit_articles(date_str)
     
     def _post_github_trending(self, date_str: str) -> None:
         """
@@ -210,6 +213,55 @@ class TwitterPoster:
         
         # ツイート投稿
         self._post_tweet(tweet_text)
+    
+    def _post_reddit_articles(self, date_str: str) -> None:
+        """
+        Reddit記事の情報をポストします。
+        
+        Parameters
+        ----------
+        date_str : str
+            日付文字列。
+        """
+        logging.info("Reddit記事の情報をポストします...")
+        
+        # ファイルパス
+        file_path = Path(self.storage.base_dir) / "reddit_explorer" / f"{date_str}.md"
+        
+        if not file_path.exists():
+            logging.warning(f"Reddit記事のファイルが見つかりません: {file_path}")
+            return
+        
+        # ファイルを読み込む
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # カテゴリごとの記事を抽出
+        categories = self._extract_reddit_categories(content)
+        
+        if not categories:
+            logging.warning("Reddit記事情報が抽出できませんでした")
+            return
+        
+        # カテゴリごとにツイートを作成
+        for category, articles in categories.items():
+            if not articles:
+                continue
+            
+            # ツイート文を生成
+            tweet_text = f"【ニュース速報：Reddit {category}】{date_str}\n\n"
+            
+            for i, article in enumerate(articles[:5], 1):  # 上位5つのみ
+                tweet_text += f"{i}. {article['title']}\n"
+                if article['link']:
+                    tweet_text += f"   {article['link']}\n"
+                if article['summary']:
+                    tweet_text += f"   {article['summary']}\n\n"
+            
+            tweet_text += f"#Reddit #{category} #ニュース"
+            
+            # ツイート投稿
+            self._post_tweet(tweet_text)
     
     def _extract_section(self, content: str, section_start: str, section_end: str) -> str:
         """
@@ -432,6 +484,95 @@ class TwitterPoster:
             })
         
         return papers
+    
+    def _extract_reddit_categories(self, content: str) -> Dict[str, List[Dict[str, str]]]:
+        """
+        Redditのカテゴリと記事情報を抽出します。
+        
+        Parameters
+        ----------
+        content : str
+            コンテンツ。
+            
+        Returns
+        -------
+        Dict[str, List[Dict[str, str]]]
+            カテゴリごとの記事情報のリスト。
+        """
+        categories = {}
+        
+        # カテゴリを抽出
+        category_pattern = r"^## (.+?)$"
+        category_matches = re.finditer(category_pattern, content, re.MULTILINE)
+        
+        for category_match in category_matches:
+            category_name = category_match.group(1).strip()
+            category_start = category_match.end()
+            
+            # 次のカテゴリまたはファイル終端を見つける
+            next_category = re.search(r"^## ", content[category_start:], re.MULTILINE)
+            if next_category:
+                category_end = category_start + next_category.start()
+            else:
+                category_end = len(content)
+            
+            category_content = content[category_start:category_end]
+            
+            # サブレディットを抽出
+            subreddit_pattern = r"^### (r/.+?)$"
+            subreddit_matches = re.finditer(subreddit_pattern, category_content, re.MULTILINE)
+            
+            articles = []
+            
+            for subreddit_match in subreddit_matches:
+                subreddit_name = subreddit_match.group(1).strip()
+                subreddit_start = subreddit_match.end()
+                
+                # 次のサブレディットまたはカテゴリ終端を見つける
+                next_subreddit = re.search(r"^### ", category_content[subreddit_start:], re.MULTILINE)
+                if next_subreddit:
+                    subreddit_end = subreddit_start + next_subreddit.start()
+                else:
+                    subreddit_end = len(category_content)
+                
+                subreddit_content = category_content[subreddit_start:subreddit_end]
+                
+                # 記事を抽出
+                article_pattern = r"^#### \[(.*?)\]\((.*?)\)"
+                article_matches = re.finditer(article_pattern, subreddit_content, re.MULTILINE)
+                
+                for article_match in article_matches:
+                    title = article_match.group(1).strip()
+                    link = article_match.group(2).strip()
+                    article_start = article_match.end()
+                    
+                    # 次の記事または終端を見つける
+                    next_article = re.search(r"^#### ", subreddit_content[article_start:], re.MULTILINE)
+                    if next_article:
+                        article_end = article_start + next_article.start()
+                    else:
+                        article_end = len(subreddit_content)
+                    
+                    article_content = subreddit_content[article_start:article_end]
+                    
+                    # 投稿の主な内容を抽出
+                    summary = ""
+                    summary_pattern = r"\*\*要約\*\*:[\s\S]*?1\. 投稿の主な内容(?:\（1-2文\）)?:[\s\S]*?(.*?)(?:\n\n|\n2\.)"
+                    summary_match = re.search(summary_pattern, article_content, re.DOTALL)
+                    
+                    if summary_match:
+                        summary = summary_match.group(1).strip()
+                    
+                    articles.append({
+                        "title": title,
+                        "link": link,
+                        "summary": summary,
+                        "subreddit": subreddit_name
+                    })
+            
+            categories[category_name] = articles
+        
+        return categories
     
     def _post_tweet(self, tweet_text: str) -> None:
         """
