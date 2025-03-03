@@ -112,6 +112,90 @@ def run_twitter_poster():
     except Exception as e:
         print(f"Xへの投稿中にエラーが発生しました: {str(e)}")
 
+def run_twitter_github():
+    """
+    GitHub Trendingの情報をXにポストします。
+    """
+    print("GitHub Trendingの情報をXにポストしています...")
+    try:
+        # Twitter APIキーの確認
+        required_keys = ["CONSUMER_KEY", "CONSUMER_SECRET", "BEARER_TOKEN", "ACCESS_TOKEN", "ACCESS_SECRET"]
+        missing_keys = [key for key in required_keys if not os.environ.get(key)]
+        
+        if missing_keys:
+            print(f"警告: 以下のTwitter API環境変数が設定されていません: {', '.join(missing_keys)}")
+            print("Twitter APIを使用するには、これらの環境変数を設定してください。")
+            return
+            
+        twitter_poster = TwitterPoster()
+        twitter_poster.post_github_trending()
+        print("GitHub Trendingの情報のポストが完了しました。")
+    except Exception as e:
+        print(f"Xへの投稿中にエラーが発生しました: {str(e)}")
+
+def run_twitter_hackernews():
+    """
+    Hacker Newsの情報をXにポストします。
+    """
+    print("Hacker Newsの情報をXにポストしています...")
+    try:
+        # Twitter APIキーの確認
+        required_keys = ["CONSUMER_KEY", "CONSUMER_SECRET", "BEARER_TOKEN", "ACCESS_TOKEN", "ACCESS_SECRET"]
+        missing_keys = [key for key in required_keys if not os.environ.get(key)]
+        
+        if missing_keys:
+            print(f"警告: 以下のTwitter API環境変数が設定されていません: {', '.join(missing_keys)}")
+            print("Twitter APIを使用するには、これらの環境変数を設定してください。")
+            return
+            
+        twitter_poster = TwitterPoster()
+        twitter_poster.post_hacker_news()
+        print("Hacker Newsの情報のポストが完了しました。")
+    except Exception as e:
+        print(f"Xへの投稿中にエラーが発生しました: {str(e)}")
+
+def run_twitter_arxiv():
+    """
+    arXiv論文の情報をXにポストします。
+    """
+    print("arXiv論文の情報をXにポストしています...")
+    try:
+        # Twitter APIキーの確認
+        required_keys = ["CONSUMER_KEY", "CONSUMER_SECRET", "BEARER_TOKEN", "ACCESS_TOKEN", "ACCESS_SECRET"]
+        missing_keys = [key for key in required_keys if not os.environ.get(key)]
+        
+        if missing_keys:
+            print(f"警告: 以下のTwitter API環境変数が設定されていません: {', '.join(missing_keys)}")
+            print("Twitter APIを使用するには、これらの環境変数を設定してください。")
+            return
+            
+        twitter_poster = TwitterPoster()
+        twitter_poster.post_arxiv_papers()
+        print("arXiv論文の情報のポストが完了しました。")
+    except Exception as e:
+        print(f"Xへの投稿中にエラーが発生しました: {str(e)}")
+
+def run_twitter_reddit():
+    """
+    Reddit記事の情報をXにポストします。
+    """
+    print("Reddit記事の情報をXにポストしています...")
+    try:
+        # Twitter APIキーの確認
+        required_keys = ["CONSUMER_KEY", "CONSUMER_SECRET", "BEARER_TOKEN", "ACCESS_TOKEN", "ACCESS_SECRET"]
+        missing_keys = [key for key in required_keys if not os.environ.get(key)]
+        
+        if missing_keys:
+            print(f"警告: 以下のTwitter API環境変数が設定されていません: {', '.join(missing_keys)}")
+            print("Twitter APIを使用するには、これらの環境変数を設定してください。")
+            return
+            
+        twitter_poster = TwitterPoster()
+        twitter_poster.post_reddit_articles()
+        print("Reddit記事の情報のポストが完了しました。")
+    except Exception as e:
+        print(f"Xへの投稿中にエラーが発生しました: {str(e)}")
+
 def main():
     """
     コマンドライン引数に基づいて、指定されたサービスを実行します。
@@ -120,7 +204,8 @@ def main():
     parser.add_argument(
         "--service", 
         type=str,
-        choices=["all", "github", "hackernews", "reddit", "techfeed", "paper", "twitter"],
+        choices=["all", "github", "hackernews", "reddit", "techfeed", "paper", "twitter", 
+                "twitter_github", "twitter_hackernews", "twitter_arxiv", "twitter_reddit"],
         default="all",
         help="実行するサービス (デフォルト: all)"
     )
@@ -144,6 +229,19 @@ def main():
     
     if args.service == "all" or args.service == "twitter":
         run_twitter_poster()
+    
+    # 個別のTwitter投稿オプション
+    if args.service == "twitter_github":
+        run_twitter_github()
+    
+    if args.service == "twitter_hackernews":
+        run_twitter_hackernews()
+    
+    if args.service == "twitter_arxiv":
+        run_twitter_arxiv()
+    
+    if args.service == "twitter_reddit":
+        run_twitter_reddit()
 
 if __name__ == "__main__":
     main() 

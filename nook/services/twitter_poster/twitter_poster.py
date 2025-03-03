@@ -56,16 +56,48 @@ class TwitterPoster:
         today = datetime.now()
         date_str = today.strftime("%Y-%m-%d")
         
-        #GitHub Trending
+        # GitHub Trending
+        self.post_github_trending()
+        
+        # Hacker News
+        self.post_hacker_news()
+        
+        # arXiv論文
+        self.post_arxiv_papers()
+        
+        # Reddit記事
+        self.post_reddit_articles()
+    
+    def post_github_trending(self) -> None:
+        """
+        GitHub Trendingの情報をポストします。
+        """
+        today = datetime.now()
+        date_str = today.strftime("%Y-%m-%d")
         self._post_github_trending(date_str)
-        
-        # # Hacker News
+    
+    def post_hacker_news(self) -> None:
+        """
+        Hacker Newsの情報をポストします。
+        """
+        today = datetime.now()
+        date_str = today.strftime("%Y-%m-%d")
         self._post_hacker_news(date_str)
-        
-        # # arXiv論文
+    
+    def post_arxiv_papers(self) -> None:
+        """
+        arXiv論文の情報をポストします。
+        """
+        today = datetime.now()
+        date_str = today.strftime("%Y-%m-%d")
         self._post_arxiv_papers(date_str)
-        
-        # # Reddit記事
+    
+    def post_reddit_articles(self) -> None:
+        """
+        Reddit記事の情報をポストします。
+        """
+        today = datetime.now()
+        date_str = today.strftime("%Y-%m-%d")
         self._post_reddit_articles(date_str)
     
     def _post_github_trending(self, date_str: str) -> None:
