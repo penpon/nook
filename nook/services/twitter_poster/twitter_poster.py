@@ -67,6 +67,9 @@ class TwitterPoster:
         
         # Reddit記事
         self.post_reddit_articles()
+        
+        # 技術ブログ記事
+        self.post_tech_feed()
     
     def post_github_trending(self) -> None:
         """
@@ -99,6 +102,14 @@ class TwitterPoster:
         today = datetime.now()
         date_str = today.strftime("%Y-%m-%d")
         self._post_reddit_articles(date_str)
+    
+    def post_tech_feed(self) -> None:
+        """
+        技術ブログ記事の情報をポストします。
+        """
+        today = datetime.now()
+        date_str = today.strftime("%Y-%m-%d")
+        self._post_tech_feed(date_str)
     
     def _post_github_trending(self, date_str: str) -> None:
         """
@@ -292,6 +303,55 @@ class TwitterPoster:
                     tweet_text += f"   {article['summary']}\n\n"
             
             tweet_text += f"#Reddit #{category} #ニュース"
+            
+            # ツイート投稿
+            self._post_tweet(tweet_text)
+    
+    def _post_tech_feed(self, date_str: str) -> None:
+        """
+        技術ブログ記事の情報をポストします。
+        
+        Parameters
+        ----------
+        date_str : str
+            日付文字列。
+        """
+        logging.info("技術ブログ記事の情報をポストします...")
+        
+        # ファイルパス
+        file_path = Path(self.storage.base_dir) / "tech_feed" / f"{date_str}.md"
+        
+        if not file_path.exists():
+            logging.warning(f"技術ブログ記事のファイルが見つかりません: {file_path}")
+            return
+        
+        # ファイルを読み込む
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # フィードごとの記事を抽出
+        feeds = self._extract_tech_feed_articles(content)
+        
+        if not feeds:
+            logging.warning("技術ブログ記事情報が抽出できませんでした")
+            return
+        
+        # フィードごとにツイートを作成
+        for feed_name, articles in feeds.items():
+            if not articles:
+                continue
+            
+            # ツイート文を生成
+            tweet_text = f"【ニュース速報：{feed_name}】{date_str}\n\n"
+            
+            for i, article in enumerate(articles[:5], 1):  # 上位5つのみ
+                tweet_text += f"{i}. {article['title']}\n"
+                if article['url']:
+                    tweet_text += f"   {article['url']}\n"
+                if article['summary']:
+                    tweet_text += f"   {article['summary']}\n\n"
+            
+            tweet_text += f"#TechFeed #{feed_name} #開発"
             
             # ツイート投稿
             self._post_tweet(tweet_text)
@@ -631,6 +691,86 @@ class TwitterPoster:
             categories[category_name] = articles
         
         return categories
+    
+    def _extract_tech_feed_articles(self, content: str) -> Dict[str, List[Dict[str, str]]]:
+        """
+        技術ブログ記事の情報を抽出します。
+        
+        Parameters
+        ----------
+        content : str
+            コンテンツ。
+            
+        Returns
+        -------
+        Dict[str, List[Dict[str, str]]]
+            フィードごとの記事情報のリスト。
+        """
+        feeds = {}
+        
+        # フィードを抽出
+        feed_pattern = r"^## (.+?)$"
+        feed_matches = re.finditer(feed_pattern, content, re.MULTILINE)
+        
+        for feed_match in feed_matches:
+            feed_name = feed_match.group(1).strip()
+            feed_start = feed_match.end()
+            
+            # 次のフィードまたはファイル終端を見つける
+            next_feed = re.search(r"^## ", content[feed_start:], re.MULTILINE)
+            if next_feed:
+                feed_end = feed_start + next_feed.start()
+            else:
+                feed_end = len(content)
+            
+            feed_content = content[feed_start:feed_end]
+            
+            # 記事を抽出
+            article_pattern = r"^### \[(.*?)\]\((.*?)\)"
+            article_matches = re.finditer(article_pattern, feed_content, re.MULTILINE)
+            
+            articles = []
+            
+            for article_match in article_matches:
+                title = article_match.group(1).strip()
+                url = article_match.group(2).strip()
+                article_start = article_match.end()
+                
+                # 次の記事または終端を見つける
+                next_article = re.search(r"^### ", feed_content[article_start:], re.MULTILINE)
+                if next_article:
+                    article_end = article_start + next_article.start()
+                else:
+                    article_end = len(feed_content)
+                
+                article_content = feed_content[article_start:article_end]
+                
+                # フィード情報を抽出
+                feed_info = ""
+                feed_info_pattern = r"\*\*フィード\*\*: (.*?)$"
+                feed_info_match = re.search(feed_info_pattern, article_content, re.MULTILINE)
+                
+                if feed_info_match:
+                    feed_info = feed_info_match.group(1).strip()
+                
+                # 記事の主な内容を抽出
+                summary = ""
+                summary_pattern = r"1\. 記事の主な内容(?:\（1-2文\）)?:(.*?)(?:\n\n|\n2\.)"
+                summary_match = re.search(summary_pattern, article_content, re.DOTALL)
+                
+                if summary_match:
+                    summary = summary_match.group(1).strip()
+                
+                articles.append({
+                    "title": title,
+                    "url": url,
+                    "feed_info": feed_info,
+                    "summary": summary
+                })
+            
+            feeds[feed_name] = articles
+        
+        return feeds
     
     def _post_tweet(self, tweet_text: str) -> None:
         """

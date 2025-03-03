@@ -28,4 +28,12 @@ programming = [
     "https://go.dev/blog/feed.atom",
     "https://blog.jetbrains.com/kotlin/feed/",
     "https://blog.typescriptlang.org/feed/feed.xml"
-] 
+]
+
+zenn = [
+    "https://zenn.dev/topics/cursor/feed",
+    "https://zenn.dev/topics/cline/feed",
+    "https://zenn.dev/topics/langchain/feed",
+    "https://zenn.dev/topics/mcp/feed",
+    "https://zenn.dev/topics/ai駆動開発/feed"
+]
