@@ -37,3 +37,13 @@ zenn = [
     "https://zenn.dev/topics/mcp/feed",
     "https://zenn.dev/topics/ai駆動開発/feed"
 ]
+
+qitta = [
+    "http://qiita.com/tags/AI/feed.atom",
+    "http://qiita.com/tags/Cursor/feed.atom",
+    "http://qiita.com/tags/LangChain/feed.atom",
+    "http://qiita.com/tags/Cline/feed.atom",
+    "http://qiita.com/tags/LLM/feed.atom",
+    "http://qiita.com/tags/AI駆動開発/feed.atom",
+    "http://qiita.com/tags/mcp/feed.atom"
+]
