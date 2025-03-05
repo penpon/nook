@@ -32,8 +32,6 @@ Discus0434氏の[Nook](https://github.com/discus0434/nook)をベースに、
   - 技術ブログのRSSフィード
   - arXiv論文
 - 日付ごとのコンテンツフィルタリング
-- 天気情報の表示
-- コンテンツに関するチャット機能
 
 ## アーキテクチャ
 
@@ -41,13 +39,10 @@ Nookは以下のコンポーネントで構成されています：
 
 1. **バックエンド（FastAPI）**
    - コンテンツAPI
-   - 天気API
-   - チャットAPI
 
 2. **フロントエンド（React + Vite）**
    - サイドバー（ソース選択、日付選択、天気表示）
    - コンテンツビューア
-   - チャットインターフェース
 
 3. **サービス**
    - Reddit Explorer：Redditの人気投稿を収集・要約
@@ -66,8 +61,7 @@ Nookは以下のコンポーネントで構成されています：
 - Node.js 18以上
 - npm または yarn
 - 以下のAPIキー：
-  - OpenWeatherMap APIキー（天気機能用）
-  - Grok3 APIキー（チャット・要約機能用）
+  - Grok APIキー（チャット・要約機能用）
   - Reddit API認証情報（Reddit Explorer用）
 
 ### インストール
