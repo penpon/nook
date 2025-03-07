@@ -53,7 +53,53 @@ Nookは以下のコンポーネントで構成されています：
    - ローカルストレージ：収集したデータの保存
    - Grok3 APIクライアント：テキスト生成・要約
 
-## セットアップ
+## Dockerを使用したセットアップ
+
+### 前提条件
+
+- Docker
+- Docker Compose
+
+### 環境変数の設定
+
+```bash
+# .envファイルの作成
+cp .env.example .env
+
+# .envファイルを編集して必要なAPIキーを設定
+```
+
+### Dockerでの実行（本番環境）
+
+```bash
+# コンテナのビルドと起動
+docker-compose up -d
+
+# フロントエンドは http://localhost:5173 でアクセス可能
+# バックエンドは http://localhost:8000 でアクセス可能
+```
+
+### Dockerでの実行（開発環境）
+
+```bash
+# 開発用コンテナのビルドと起動
+docker-compose -f docker-compose.dev.yaml up -d
+
+# フロントエンドは http://localhost:5173 でアクセス可能
+# バックエンドは http://localhost:8000 でアクセス可能
+```
+
+### コンテナの停止
+
+```bash
+# 本番環境
+docker-compose down
+
+# 開発環境
+docker-compose -f docker-compose.dev.yaml down
+```
+
+## 通常のセットアップ
 
 ### 前提条件
 
