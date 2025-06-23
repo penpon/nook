@@ -170,7 +170,7 @@ function App() {
       {/* Main Content */}
       <div className="flex-1">
         {currentPage === 'usage-dashboard' ? (
-          <UsageDashboard />
+          <UsageDashboard darkMode={darkMode} />
         ) : (
           <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-8">

@@ -58,7 +58,11 @@ interface DailyUsage {
   totalCost: number;
 }
 
-const UsageDashboard: React.FC = () => {
+interface UsageDashboardProps {
+  darkMode?: boolean;
+}
+
+const UsageDashboard: React.FC<UsageDashboardProps> = ({ darkMode = false }) => {
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [serviceUsage, setServiceUsage] = useState<ServiceUsage[]>([]);
   const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
@@ -173,11 +177,18 @@ const UsageDashboard: React.FC = () => {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       {/* ヘッダー */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" sx={{ color: theme.palette.text.primary }}>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          className={darkMode ? 'text-white' : 'text-gray-900'}
+        >
           LLM API 使用状況ダッシュボード
         </Typography>
         <Box display="flex" alignItems="center" gap={2}>
-          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+          <Typography 
+            variant="body2" 
+            className={darkMode ? 'text-gray-300' : 'text-gray-600'}
+          >
             最終更新: {lastUpdated.toLocaleTimeString('ja-JP')}
           </Typography>
           <IconButton onClick={fetchData} disabled={loading}>
