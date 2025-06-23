@@ -173,11 +173,11 @@ const UsageDashboard: React.FC = () => {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       {/* ヘッダー */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" sx={{ color: '#1a1a1a' }}>
+        <Typography variant="h4" component="h1" sx={{ color: theme.palette.text.primary }}>
           LLM API 使用状況ダッシュボード
         </Typography>
         <Box display="flex" alignItems="center" gap={2}>
-          <Typography variant="body2" sx={{ color: '#4a4a4a' }}>
+          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
             最終更新: {lastUpdated.toLocaleTimeString('ja-JP')}
           </Typography>
           <IconButton onClick={fetchData} disabled={loading}>

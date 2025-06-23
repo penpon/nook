@@ -10,6 +10,9 @@
 !/claude/work/checklists/
 !/claude/work/scratchpads/
 
+# Git worktrees
+worktrees/
+
 # Python
 __pycache__/
 *.py[cod]
