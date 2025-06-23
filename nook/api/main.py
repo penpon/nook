@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from nook.api.routers import content, weather, chat
+from nook.api.routers import content, weather, chat, usage
 
 # 環境変数の読み込み
 load_dotenv()
@@ -33,6 +33,7 @@ app.add_middleware(
 app.include_router(content.router, prefix="/api")
 app.include_router(weather.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
 
 @app.get("/")
 async def root():
