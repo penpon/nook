@@ -4,6 +4,15 @@
 tech = [
     "StableDiffusion",
     "artificial",
+    "ClaudeAI",
+    "OpenAI",
+    "GoogleGemini",
+    "cursor",
+    "MachineLearning",
+    "LocalLLaMA",
+    "singularity",
+    "AgentGPT",
+    "AutoGPT",
 ]
 
 # ニュース

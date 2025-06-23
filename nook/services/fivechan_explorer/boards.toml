@@ -8,12 +8,9 @@
 "tech" = "技術"
 "software" = "ソフトウェア"
 "ai" = "人工知能"
-"mmo" = "ネットゲーム"
+"esite" = "ネットサービス"  # ChatGPT/Claude総合スレッドがある最重要板
 "apple" = "Apple"
 "android" = "Android"
-"akiba" = "秋葉原"
-"gogame" = "囲碁"
-"iga" = "アニメ"
 "gamedev" = "ゲーム制作技術"
 "db" = "データベース"
 "tis" = "通信技術"
@@ -21,3 +18,6 @@
 "hack" = "ハッキング"
 "sns" = "ソーシャルネット"
 "scienceplus" = "科学ニュース+"
+"newsplus" = "ニュース速報+"  # AI関連ニュースが頻繁に立つ
+"news" = "ニュース速報"
+"poverty" = "ニュー速(嫌儲)"  # AI関連の議論が活発

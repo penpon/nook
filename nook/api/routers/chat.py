@@ -40,11 +40,11 @@ async def chat(request: ChatRequest) -> ChatResponse:
         APIキーが設定されていない場合や、APIリクエストに失敗した場合
     """
     # APIキーの確認
-    api_key = os.environ.get("GROK_API_KEY")
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         # デモモード: APIキーがない場合はダミーレスポンスを返す
         return ChatResponse(
-            response="申し訳ありませんが、GROK_API_KEYが設定されていないため、実際の応答ができません。環境変数を設定してください。"
+            response="申し訳ありませんが、OPENAI_API_KEYが設定されていないため、実際の応答ができません。環境変数を設定してください。"
         )
     
     try:

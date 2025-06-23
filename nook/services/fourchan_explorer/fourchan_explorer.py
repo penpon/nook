@@ -11,6 +11,7 @@ import time
 
 import requests
 from bs4 import BeautifulSoup
+import tomli
 
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
@@ -68,8 +69,8 @@ class FourChanExplorer:
         self.storage = LocalStorage(storage_dir)
         self.gpt_client = GPTClient()
         
-        # 対象となるボード
-        self.target_boards = ["g", "sci", "biz", "pol"]
+        # 対象となるボードを設定ファイルから読み込む
+        self.target_boards = self._load_boards()
         
         # AIに関連するキーワード
         self.ai_keywords = [
@@ -80,6 +81,34 @@ class FourChanExplorer:
         
         # APIリクエスト間の遅延（4chanのAPI利用規約を遵守するため）
         self.request_delay = 1  # 秒
+    
+    def _load_boards(self) -> List[str]:
+        """
+        対象となるボードの設定を読み込みます。
+        
+        Returns
+        -------
+        List[str]
+            ボードIDのリスト
+        """
+        script_dir = Path(__file__).parent
+        boards_file = script_dir / "boards.toml"
+        
+        # boards.tomlが存在しない場合はデフォルト値を使用
+        if not boards_file.exists():
+            print(f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。")
+            return ["g", "sci", "biz", "pol"]
+        
+        try:
+            with open(boards_file, "rb") as f:
+                config = tomli.load(f)
+                boards_dict = config.get("boards", {})
+                # ボードIDのリストを返す
+                return list(boards_dict.keys())
+        except Exception as e:
+            print(f"エラー: boards.tomlの読み込みに失敗しました: {e}")
+            print("デフォルトのボードを使用します。")
+            return ["g", "sci", "biz", "pol"]
     
     def run(self, thread_limit: int = 5) -> None:
         """

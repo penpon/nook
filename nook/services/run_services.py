@@ -6,10 +6,13 @@ Nookの各サービスを実行するスクリプト。
 import os
 import argparse
 from datetime import datetime
-from dotenv import load_dotenv
 
-# 環境変数の読み込み
-load_dotenv()
+# dotenvの読み込みを試みる（オプショナル）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenvがインストールされていない場合は無視
 
 # GitHubトレンドサービス
 from nook.services.github_trending.github_trending import GithubTrending
@@ -156,10 +159,10 @@ def run_paper_summarizer():
     """
     print("arXiv論文を収集・要約しています...")
     try:
-        # Grok APIキーの確認
-        if not os.environ.get("GROK_API_KEY"):
-            print("警告: GROK_API_KEY が設定されていません。")
-            print("論文要約には Grok API が必要です。")
+        # OpenAI APIキーの確認
+        if not os.environ.get("OPENAI_API_KEY"):
+            print("警告: OPENAI_API_KEY が設定されていません。")
+            print("論文要約には OpenAI API (GPT-4.1-nano) が必要です。")
             return
             
         paper_summarizer = PaperSummarizer()

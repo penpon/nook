@@ -1,6 +1,6 @@
 # フィード設定
 
-qitta = [
+qiita = [
     "https://qiita.com/popular-items/feed.atom",
     "https://qiita.com/tags/openai/feed.atom",
     "https://qiita.com/tags/chatgpt/feed.atom",
@@ -9,9 +9,28 @@ qitta = [
     "https://qiita.com/tags/claudecode/feed.atom",
     "https://qiita.com/tags/mcp/feed.atom",
     "https://qiita.com/tags/cursor/feed.atom",
+    # AI駆動開発関連の追加
+    "https://qiita.com/tags/githubcopilot/feed.atom",
+    "https://qiita.com/tags/v0/feed.atom",
+    "https://qiita.com/tags/replit/feed.atom",
+    "https://qiita.com/tags/windsurf/feed.atom",
+    "https://qiita.com/tags/codeium/feed.atom",
+    "https://qiita.com/tags/codewhisperer/feed.atom",
+    # 画像生成AI関連
     "https://qiita.com/tags/stablediffusion/feed.atom",
     "https://qiita.com/tags/画像生成/feed.atom",
+    "https://qiita.com/tags/midjourney/feed.atom",
+    "https://qiita.com/tags/comfyui/feed.atom",
+    "https://qiita.com/tags/flux/feed.atom",
+    "https://qiita.com/tags/dalle/feed.atom",
+    "https://qiita.com/tags/firefly/feed.atom",
+    # 一般AI関連
     "https://qiita.com/tags/生成ai/feed.atom",
     "https://qiita.com/tags/ai/feed.atom",
     "https://qiita.com/tags/llm/feed.atom",
+    # 追加: Gemini, Codex, A2A関連
+    "https://qiita.com/tags/gemini/feed.atom",
+    "https://qiita.com/tags/googleai/feed.atom",
+    "https://qiita.com/tags/codex/feed.atom",
+    "https://qiita.com/tags/agent/feed.atom",
 ]
