@@ -11,6 +11,11 @@ tech_blogs = [
     "https://blog.twitter.com/engineering/en_us/blog.rss",
     "https://medium.com/feed/airbnb-engineering",
     "https://www.techno-edge.net/rss20/index.rdf",
+    # 日本語技術メディア
+    "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml",
+    "https://ascii.jp/cate/1283/rss.xml",
+    "https://gigazine.net/news/rss_2.0/",
+    "https://forest.watch.impress.co.jp/data/rss/1.0/wf/feed.rdf",
 ]
 
 # はてなブックマーク
@@ -27,7 +32,15 @@ ai_ml = [
     "https://openai.com/blog/rss/",
     "https://blog.tensorflow.org/feeds/posts/default",
     "https://pytorch.org/blog/feed.xml",
-    "https://huggingface.co/blog/feed.xml"
+    "https://huggingface.co/blog/feed.xml",
+    # 画像生成AI関連
+    "https://stability.ai/blog/rss.xml",
+    "https://www.midjourney.com/blog/rss",
+    # AI駆動開発関連
+    "https://www.anthropic.com/blog/rss.xml",
+    "https://devblogs.microsoft.com/semantic-kernel/feed/",
+    "https://github.blog/category/ai-and-ml/feed/",
+    "https://vercel.com/atom",
 ]
 
 # プログラミング言語
@@ -37,4 +50,17 @@ programming = [
     # "https://go.dev/blog/feed.atom",
     # "https://blog.jetbrains.com/kotlin/feed/",
     # "https://blog.typescriptlang.org/feed/feed.xml"
+]
+
+# AI駆動開発ツール
+ai_driven_dev = [
+    # コーディングエージェント
+    "https://cursor.sh/blog/rss.xml",
+    "https://dev.to/feed/tag/ai",
+    "https://dev.to/feed/tag/ai-development",
+    "https://dev.to/feed/tag/claude",
+    "https://dev.to/feed/tag/cursor",
+    "https://dev.to/feed/tag/copilot",
+    # プロンプトエンジニアリング
+    "https://dev.to/feed/tag/prompt-engineering",
 ]

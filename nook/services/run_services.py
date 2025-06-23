@@ -186,7 +186,7 @@ def main():
     if args.service == "all" or args.service == "github":
         run_github_trending()
     
-    if args.service == "all" or args.service == "hackernews":
+    if args.service == "all" or args.service == "hacker_news":
         run_hacker_news()
     
     if args.service == "all" or args.service == "reddit":
@@ -201,10 +201,10 @@ def main():
     if args.service == "all" or args.service == "note":
         run_note_explorer()
     
-    if args.service == "all" or args.service == "techfeed":
+    if args.service == "all" or args.service == "tech_news":
         run_tech_feed()
 
-    if args.service == "all" or args.service == "businessfeed":
+    if args.service == "all" or args.service == "business_news":
         run_business_feed()
     
     if args.service == "all" or args.service == "paper":

@@ -1,22 +1,11 @@
-*.swp
-package-lock.json
-__pycache__
-.pytest_cache
-.venv
-*.egg-info
+# Claude shared components (symlinks)
+/claude/work/scripts
+/claude/work/agents/roles
+/claude/templates
+/CLAUDE.md
 
-# CDK asset staging directory
-.cdk.staging
-cdk.out
-
-node_modules/
-
-.env
-venv
-
-.DS_Store
-
-.cursorrules
-.cursorignore
-
-data
+# Project-specific data (keep in git)
+!/claude/work/agents/handoffs/
+!/claude/work/agents/shared/
+!/claude/work/checklists/
+!/claude/work/scratchpads/
