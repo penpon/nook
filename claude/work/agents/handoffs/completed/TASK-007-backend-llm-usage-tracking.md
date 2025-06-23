@@ -1,4 +1,8 @@
-# TASK-001: LLM API使用量追跡機能の実装
+# TASK-007: LLM API使用量追跡機能の実装
+
+## Worktree情報
+- Worktree: `worktrees/TASK-007-backend`
+- Branch: `feature/llm-api-usage-tracking`
 
 ## タスク概要
 GPT-4.1-nano APIの使用量とコストを追跡するシステムを実装する。

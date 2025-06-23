@@ -1,5 +1,94 @@
 # 開発ログ
 
+## 2025年06月23日 - TASK-005: サービスクラスのリファクタリング
+
+### 作業概要
+主要なサービスクラスをBaseServiceを継承するようにリファクタリングし、非同期処理とコードの標準化を実現。
+
+### 背景と課題
+- サービスクラスが独自の実装でコードの重複が多い
+- 同期的なHTTP通信とGPT呼び出しがパフォーマンスボトルネック
+- エラーハンドリングとロギングの不統一
+- BaseServiceの機能が活用されていない
+
+### 設計判断
+- **BaseService継承**: 初期化処理、ロギング、エラーハンドリングの標準化
+- **非同期化**: AsyncHTTPClientとgenerate_asyncメソッドの活用
+- **後方互換性維持**: runメソッドを残してasyncio.run(collect())を呼び出す
+- **並行処理の活用**: gather_with_errorsで複数タスクを並行実行
+
+### 実装詳細
+- `GPTClient`: generate_asyncメソッド追加（run_in_executorで同期版をラップ）
+- `GitHubTrending`: requests→AsyncHTTPClient、並行翻訳処理
+- `HackerNewsRetriever`: ストーリー取得と要約の並行処理、BaseService継承
+- `PaperSummarizer`: 論文取得と要約の並行処理、arxivライブラリの非同期ラップ
+
+### 関連機能との連携
+- TASK-001の基底クラスと共通モジュールを完全活用
+- TASK-002のエラーハンドリングデコレータを使用
+- TASK-003のAsyncHTTPClientと非同期ユーティリティを活用
+- 既存のrun_services.pyとの互換性維持
+
+### 今後の拡張時の注意点
+- 新規サービスは最初から非同期版のcollectメソッドで実装
+- 同期ライブラリはrun_in_executorでラップして使用
+- レート制限のためrate_limit()を適切に呼び出す
+- gather_with_errorsで部分的失敗に対応
+
+### トラブルシューティング
+- "event loop is already running"エラーの場合はasyncio.runではなくawaitを使用
+- HTTPクライアントのタイムアウトはBaseConfigで設定
+- GPT呼び出し後は必ずrate_limit()を呼ぶ
+
+### 変更ファイル一覧
+- nook/common/gpt_client.py (generate_asyncメソッド追加)
+- nook/common/storage.py (既存の非同期メソッドを活用)
+- nook/common/base_service.py (既存のユーティリティメソッドを活用)
+- nook/services/github_trending/github_trending.py (完全リファクタリング)
+- nook/services/hacker_news/hacker_news.py (完全リファクタリング)
+- nook/services/paper_summarizer/paper_summarizer.py (完全リファクタリング)
+
+## 2025年06月23日 - TASK-003: 非同期処理への移行
+
+### 作業概要
+同期的な処理を非同期処理に移行し、並行処理を活用してパフォーマンスを向上。
+
+### 背景と課題
+- requestsライブラリによる同期的なHTTP通信がボトルネック
+- 複数のAPIを順次呼び出しているため、I/O待機時間が無駄
+- run_services.pyが各サービスを順番に実行し、全体の実行時間が長い
+
+### 設計判断
+- **httpx採用**: HTTP/2対応、コネクションプーリング、非同期ネイティブ
+- **トークンバケット方式**: 柔軟なレート制限とバースト対応
+- **セマフォによる並行数制御**: リソース枯渇を防ぎつつ最大限の並行性
+- **既存サービスとの互換性**: 同期版を別スレッドで実行し段階的移行
+
+### 実装詳細
+- `AsyncHTTPClient`: シングルトンパターン、自動リトライ、構造化ロギング
+- `RateLimiter`: ドメイン別設定可能、待機時間の動的計算
+- `gather_with_errors`: エラーを含めて全結果を収集、部分的失敗に対応
+- `AsyncTaskManager`: タスクの動的管理、状態追跡、タイムアウト対応
+- `run_services.py`: 11サービスの並行実行、進捗レポート、シグナルハンドリング
+
+### 関連機能との連携
+- TASK-001の基底クラスとデコレータを活用
+- TASK-002のエラーハンドリングと統合
+- 既存のロギングシステムと連携
+
+### 今後の拡張時の注意点
+- 新規サービスは最初から非同期で実装
+- HTTPクライアントの適切なクローズを忘れない
+- デッドロックを避けるため、async withを活用
+- メモリリーク防止のため、大量データは逐次処理
+
+### 変更ファイル一覧
+- nook/common/http_client.py (新規)
+- nook/common/rate_limiter.py (新規)
+- nook/common/async_utils.py (新規)
+- nook/services/run_services.py (大幅修正)
+- nook/services/run_services_sync.py (バックアップ)
+
 ## 2025年06月23日 - TASK-002: エラーハンドリングシステムの構築
 
 ### 作業概要
@@ -464,3 +553,56 @@ fourchan_explorer.pyでハードコードされていたボードリストをboa
 ### 変更ファイル一覧
 - `/Users/nana/workspace/nook/nook/services/run_services.py` - GROK_API_KEY参照の修正、dotenvエラーハンドリング追加
 - `/Users/nana/workspace/nook/nook/api/routers/chat.py` - GROK_API_KEY参照の修正
+
+## 2025年06月23日 - LLM API使用量追跡機能の実装計画
+
+### 作業概要
+LLM API（gpt-4.1-nano）の使用量とコストを追跡・可視化するシステムの実装を計画。
+
+### 背景と課題
+- 各サービスがLLM APIを使用してテキスト要約を生成している
+- APIの使用量とコストが不明で、予算管理が困難
+- サービスごとの使用状況を把握できない
+- 料金体系：入力$0.20/100万トークン、出力$0.80/100万トークン
+
+### 設計判断
+- トークン数計算にtiktokenライブラリを使用（正確性のため）
+- JSON Lines形式でログ記録（大量データの効率的な処理）
+- GPTClientクラスを拡張（既存コードへの影響を最小化）
+- リアルタイムログ記録（後からの集計では情報が失われる）
+
+### 実装計画
+1. **バックエンド（TASK-007）**
+   - GPTClientクラスにトークンカウント機能追加
+   - 料金計算ロジック実装（入力$0.20、出力$0.80/100万トークン）
+   - ログファイル出力機能（data/api_usage/llm_usage_log.jsonl）
+
+2. **フロントエンド（TASK-008）**
+   - 使用状況ダッシュボード
+   - サービス別使用量表示
+   - 時系列グラフ（過去30日間のコスト推移）
+
+3. **API（TASK-009）**
+   - 使用量データ提供エンドポイント（/api/usage/*）
+   - 集計処理とキャッシング
+
+### 関連機能との連携
+- 既存のGPTClientを使用するすべてのサービスに影響
+- 新規のログディレクトリ（data/api_usage/）の作成が必要
+- tiktoken依存関係の追加
+
+### 今後の拡張時の注意点
+- 異なるモデルや料金体系への対応
+- キャッシュされた入力トークンの識別方法
+- ログファイルのローテーション機能
+- 累計コストの正確な計算
+
+### トラブルシューティング
+- トークン数計算にはgpt-4用のエンコーディングを使用
+- ログ記録の失敗がAPI呼び出しを妨げないよう例外処理を実装
+- サービス名の特定にはスタックトレースを使用
+
+### タスク詳細
+- TASK-007-backend-llm-usage-tracking.md（worktrees/TASK-007-backend）
+- TASK-008-frontend-usage-dashboard.md（worktrees/TASK-008-frontend）
+- TASK-009-backend-usage-api.md（worktrees/TASK-009-backend-api）

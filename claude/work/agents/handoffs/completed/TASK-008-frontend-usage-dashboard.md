@@ -1,4 +1,8 @@
-# TASK-002: LLM API使用状況ダッシュボードの実装
+# TASK-008: LLM API使用状況ダッシュボードの実装
+
+## Worktree情報
+- Worktree: `worktrees/TASK-008-frontend`
+- Branch: `feature/usage-dashboard-frontend`
 
 ## タスク概要
 LLM APIの使用量とコストを可視化するダッシュボード画面を実装する。

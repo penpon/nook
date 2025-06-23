@@ -1,4 +1,8 @@
-# TASK-003: 使用量API エンドポイントの実装
+# TASK-009: 使用量API エンドポイントの実装
+
+## Worktree情報
+- Worktree: `worktrees/TASK-009-backend-api`
+- Branch: `feature/usage-api-endpoints`
 
 ## タスク概要
 LLM API使用量データを提供するRESTful APIエンドポイントを実装する。
