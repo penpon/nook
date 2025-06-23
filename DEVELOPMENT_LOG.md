@@ -620,3 +620,9 @@ TASK-012: Paperサービスのファイル保存先とファイル名形式の�
 - BaseServiceでLocalStorageの初期化時に"data/{service_name}"形式にパスを修正
 - paper_summarizer.pyでファイル名から"paper_summarizer_"プレフィックスを削除
 - 注意: この変更により全サービスのファイル保存先がdata/配下に統一される
+
+## 2025年6月24日
+TASK-013: ダッシュボードの文字色を再修正
+- 固定色（#1a1a1a、#4a4a4a）からMUIテーマ色に変更
+- theme.palette.text.primary/secondaryを使用してダーク/ライトモード自動対応
+- 注意: MUIのテーマシステムに準拠した実装で視認性を確保
