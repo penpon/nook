@@ -1,5 +1,37 @@
 # 開発ログ
 
+## 2025年06月23日 - business_feedへのRSSフィード追加
+
+### 作業概要
+business_feedサービスに主要ビジネスメディアのRSSフィードを追加
+
+### 背景と課題
+- 既存のbusiness_feedには一部のビジネスメディアしか含まれていなかった
+- 東洋経済オンライン、現代ビジネス、JBpressなどの主要メディアが不足
+- feed.tomlに「bussiness」というタイポがあった
+
+### 実装詳細
+1. **feed.tomlの修正**
+   - 「bussiness」を「business」に修正（タイポ修正）
+   - 以下のRSSフィードを追加：
+     - 東洋経済オンライン: `http://toyokeizai.net/list/feed/rss`
+     - 現代ビジネス（講談社）: `https://gendai.media/list/feed/rss`
+     - JBpress（日本ビジネスプレス）: `https://jbpress.ismedia.jp/list/feed/rss`
+
+### 関連機能との連携
+- business_feed.pyはtomliライブラリを使用してfeed.tomlを読み込むため、変数名変更の影響なし
+- 既存の処理フローで新しいフィードも自動的に処理される
+
+### 今後の拡張時の注意点
+- ダイヤモンド・オンライン、プレジデントオンラインは統合RSSフィードのURLが不明
+- Forbes JAPANはRSS提供の有無が要確認
+- NewsPicksは有料会員向けコンテンツが多いため要検討
+
+### 変更ファイル一覧
+- `/Users/nana/workspace/nook/nook/services/business_feed/feed.toml` - タイポ修正とRSSフィード追加
+
+# 開発ログ
+
 ## 2025年06月23日 - セッションID修正
 
 ### 作業概要

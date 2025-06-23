@@ -1,7 +1,13 @@
 # フィード設定
-bussiness = [
+business = [
+    # 既存のビジネスメディア
     "https://business.nikkei.com/rss/sns/nb.rdf",
     "https://www.businessinsider.jp/feed/index.xml",
     "https://xtech.nikkei.com/rss/xtech-it.rdf",
     "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml",
- ]
+    
+    # 追加：主要ビジネスメディア
+    "http://toyokeizai.net/list/feed/rss",           # 東洋経済オンライン
+    "https://gendai.media/list/feed/rss",            # 現代ビジネス（講談社）
+    "https://jbpress.ismedia.jp/list/feed/rss",      # JBpress（日本ビジネスプレス）
+]
