@@ -253,7 +253,8 @@ class PaperSummarizer(BaseService):
             translated_text = await self.gpt_client.generate_async(
                 prompt=prompt,
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=1000,
+                service_name=self.service_name
             )
             
             await self.rate_limit()
@@ -323,7 +324,8 @@ class PaperSummarizer(BaseService):
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=1000,
+                service_name=self.service_name
             )
             paper_info.summary = summary
             await self.rate_limit()

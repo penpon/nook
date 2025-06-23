@@ -83,8 +83,20 @@ class GPTClient:
             while frame:
                 frame = frame.f_back
                 if frame and frame.f_code.co_filename:
-                    filename = Path(frame.f_code.co_filename).name
-                    if filename not in ['gpt_client.py', 'openai.py', 'tenacity.py'] and not filename.startswith('_'):
+                    filepath = Path(frame.f_code.co_filename)
+                    # services/ディレクトリ内のファイルを検出
+                    if 'services' in filepath.parts:
+                        # services/の次のディレクトリ名をサービス名として使用
+                        service_idx = filepath.parts.index('services')
+                        if service_idx + 1 < len(filepath.parts):
+                            service_name = filepath.parts[service_idx + 1]
+                            # 特殊ケースの処理
+                            if service_name == 'run_services.py':
+                                continue
+                            return service_name
+                    
+                    filename = filepath.name
+                    if filename not in ['gpt_client.py', 'openai.py', 'tenacity.py', 'thread.py'] and not filename.startswith('_'):
                         return filename.replace('.py', '')
             return 'unknown'
         except Exception:
@@ -134,7 +146,8 @@ class GPTClient:
         prompt: str, 
         system_instruction: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 1000
+        max_tokens: int = 1000,
+        service_name: Optional[str] = None
     ) -> str:
         """
         テキストを生成します。
@@ -163,7 +176,7 @@ class GPTClient:
         messages.append({"role": "user", "content": prompt})
         
         # トークン数の計算
-        service = self._get_calling_service()
+        service = service_name or self._get_calling_service()
         input_text = ""
         for msg in messages:
             input_text += msg["content"] + " "
@@ -191,7 +204,8 @@ class GPTClient:
         prompt: str, 
         system_instruction: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 1000
+        max_tokens: int = 1000,
+        service_name: Optional[str] = None
     ) -> str:
         """
         非同期でテキストを生成します。
@@ -220,7 +234,8 @@ class GPTClient:
             prompt,
             system_instruction,
             temperature,
-            max_tokens
+            max_tokens,
+            service_name
         )
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
