@@ -1,5 +1,91 @@
 # 開発ログ
 
+## 2025年06月23日 - TASK-002: エラーハンドリングシステムの構築
+
+### 作業概要
+統一されたエラーハンドリングシステムを構築し、アプリケーション全体でのエラー処理を標準化。
+
+### 背景と課題
+- エラーハンドリングが各サービスでバラバラ
+- 例外の種類が不明確で一貫性がない
+- エラーログの形式が統一されていない
+- APIレスポンスのエラー形式が標準化されていない
+
+### 設計判断
+- **ミドルウェア方式**: FastAPIのミドルウェアでグローバルにエラーをキャッチ
+- **エラー分類**: NookException階層に基づいた適切なHTTPステータスコード変換
+- **構造化エラーレスポンス**: error_id、timestamp、詳細情報を含む統一形式
+- **メトリクス収集**: エラー発生頻度を追跡し、モニタリング可能に
+
+### 実装詳細
+- `error_handler_middleware`: すべての例外をキャッチしてJSON形式で返却
+- `ErrorResponse`: Pydanticモデルによる型安全なエラーレスポンス
+- `NookHTTPException`: 用途別のHTTP例外（NotFound、Authentication、RateLimit等）
+- `ServiceErrorHandler`: サービス層でのAPI呼び出しとデータ処理のエラーをラップ
+- `ErrorMetrics`: スライディングウィンドウ方式でエラー統計を収集
+
+### 関連機能との連携
+- TASK-001で作成した例外クラスを活用
+- FastAPIのexception_handlerと統合
+- ロギングシステムと連携してエラー詳細を記録
+
+### 今後の拡張時の注意点
+- 新しい例外タイプは必ずNookExceptionを継承
+- エラーレスポンスに機密情報を含めない
+- 本番環境では詳細なスタックトレースを隠蔽
+- rate_limit_errorではRetry-Afterヘッダーを必ず設定
+
+### 変更ファイル一覧
+- nook/api/middleware/error_handler.py (新規)
+- nook/api/models/errors.py (新規)
+- nook/api/exceptions.py (新規)
+- nook/common/service_errors.py (新規)
+- nook/common/error_metrics.py (新規)
+- nook/api/main.py (修正)
+
+## 2025年06月23日 - TASK-001: 基底クラスと共通モジュールの作成
+
+### 作業概要
+すべてのサービスクラスが継承する基底クラスと共通モジュールを作成し、コードの重複を削減。
+
+### 背景と課題
+- 各サービスクラスで初期化処理、データ保存、エラーハンドリング、ログ出力が重複
+- 統一されたエラーハンドリングとロギング体系の欠如
+- 非同期処理への移行準備が必要
+
+### 設計判断
+- **基底クラス採用**: 共通処理を一元化し、各サービスは`collect()`メソッドの実装に集中
+- **pydantic採用**: 型安全な設定管理と環境変数のバリデーション
+- **JSON形式ログ**: 構造化ログで将来のログ分析を容易に
+- **デコレータパターン**: エラーハンドリングとリトライを横断的に適用
+
+### 実装詳細
+- `BaseService`: 非同期対応の基底クラス、storage/gpt_client/loggerの自動初期化
+- `BaseConfig`: pydantic-settingsベースの設定管理
+- `JSONFormatter`: 構造化ログ出力、カスタムフィールド対応
+- `handle_errors`: 指数バックオフ付きリトライ、非同期/同期両対応
+- 階層的例外: NookException → ServiceException → APIException等
+
+### 関連機能との連携
+- LocalStorageに非同期saveメソッド追加
+- GitHubTrendingサービスをBaseService継承に変更（パイロット実装）
+- 既存のGPTClient、Storageとの統合
+
+### 今後の拡張時の注意点
+- 新規サービスは必ずBaseServiceを継承
+- collectメソッドは非同期で実装必須
+- エラーは適切な例外クラスを使用
+- 設定は環境変数経由でpydanticクラスに
+
+### 変更ファイル一覧
+- nook/common/base_service.py (新規)
+- nook/common/config.py (新規)
+- nook/common/decorators.py (新規)
+- nook/common/exceptions.py (新規)
+- nook/common/logging.py (新規)
+- nook/common/storage.py (修正)
+- nook/services/github_trending/github_trending.py (修正)
+
 ## 2025年06月23日 - business_feedへのRSSフィード追加
 
 ### 作業概要
@@ -341,3 +427,40 @@ fourchan_explorer.pyでハードコードされていたボードリストをboa
 ### 変更ファイル一覧
 - `/Users/nana/workspace/nook/nook/services/fourchan_explorer/fourchan_explorer.py` - ボードリスト外部化の実装
 - `/Users/nana/workspace/nook/nook/services/fourchan_explorer/boards.toml` - コメント更新
+
+## 2025年06月23日 - GROK_API_KEY参照のOPENAI_API_KEY移行
+
+### 作業概要
+残存していたGROK_API_KEY参照をOPENAI_API_KEYに修正し、API移行を完了
+
+### 背景と課題
+- プロジェクトは2025年6月23日にGrok APIからGPT-4.1-nano APIへ移行済み
+- しかし一部のファイルにGROK_API_KEYへの参照が残っていた
+- これによりpaper_summarizerが「GROK_API_KEYが設定されていません」エラーを出す状態だった
+
+### 実装詳細
+1. **run_services.py（行160-163）の修正**
+   - GROK_API_KEY → OPENAI_API_KEY
+   - エラーメッセージも「Grok API」から「OpenAI API (GPT-4.1-nano)」に更新
+   - dotenvインポートエラーのハンドリングも追加（副次的修正）
+
+2. **chat.py（行43-48）の修正**
+   - GROK_API_KEY → OPENAI_API_KEY
+   - エラーメッセージも同様に更新
+
+### 関連機能との連携
+- GPTClientはAPI_KEY変数名に依存しないため、環境変数名の変更のみで対応完了
+- 他のサービスは既にOPENAI_API_KEYを使用しているため影響なし
+
+### 今後の拡張時の注意点
+- 新しいAPIを追加する際は、環境変数名の一貫性に注意
+- エラーメッセージは具体的なAPI名とバージョンを含めること
+- dotenvなどのオプショナルな依存関係は適切にハンドリングすること
+
+### トラブルシューティング
+- OPENAI_API_KEYが設定されていない場合、適切なエラーメッセージが表示される
+- paper_summarizerサービスは環境変数チェックで早期リターンするため、API未設定でもクラッシュしない
+
+### 変更ファイル一覧
+- `/Users/nana/workspace/nook/nook/services/run_services.py` - GROK_API_KEY参照の修正、dotenvエラーハンドリング追加
+- `/Users/nana/workspace/nook/nook/api/routers/chat.py` - GROK_API_KEY参照の修正
