@@ -12,7 +12,7 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from nook.common.grok_client import Grok3Client
+from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
 
@@ -60,7 +60,7 @@ class PaperSummarizer:
             ストレージディレクトリのパス。
         """
         self.storage = LocalStorage(storage_dir)
-        self.grok_client = Grok3Client()
+        self.gpt_client = GPTClient()
     
     def run(self, limit: int = 5) -> None:
         """
@@ -236,7 +236,7 @@ class PaperSummarizer:
         try:
             prompt = f"以下の英語の学術論文のテキストを自然な日本語に翻訳してください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。\n\n{text}"
             
-            translated_text = self.grok_client.generate_content(
+            translated_text = self.gpt_client.generate_content(
                 prompt=prompt,
                 temperature=0.3,
                 max_tokens=1000
@@ -295,7 +295,7 @@ class PaperSummarizer:
         """
         
         try:
-            summary = self.grok_client.generate_content(
+            summary = self.gpt_client.generate_content(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,

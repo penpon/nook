@@ -10,7 +10,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from nook.common.grok_client import Grok3Client
+from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
 
@@ -64,7 +64,7 @@ class FiveChanExplorer:
             ストレージディレクトリのパス。
         """
         self.storage = LocalStorage(storage_dir)
-        self.grok_client = Grok3Client()
+        self.gpt_client = GPTClient()
         
         # 対象となる板
         self.target_boards = self._load_boards()
@@ -539,7 +539,7 @@ class FiveChanExplorer:
         """
         
         try:
-            summary = self.grok_client.generate_content(
+            summary = self.gpt_client.generate_content(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,

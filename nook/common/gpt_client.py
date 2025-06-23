@@ -1,4 +1,4 @@
-"""Grok3 API（OpenAI互換）クライアント。"""
+"""GPT-4.1-nano API（OpenAI）クライアント。"""
 
 import os
 from typing import Dict, List, Optional, Union, Any
@@ -11,35 +11,31 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class Grok3Client:
+class GPTClient:
     """
-    Grok3 API（OpenAI互換）との通信を担当するクライアントクラス。
+    GPT-4.1-nano API（OpenAI）との通信を担当するクライアントクラス。
     
     Parameters
     ----------
     api_key : str, optional
-        Grok3 APIキー。指定しない場合は環境変数から取得。
+        OpenAI APIキー。指定しない場合は環境変数から取得。
     """
     
     def __init__(self, api_key: Optional[str] = None):
         """
-        Grok3Clientを初期化します。
+        GPTClientを初期化します。
         
         Parameters
         ----------
         api_key : str, optional
-            Grok3 APIキー。指定しない場合は環境変数から取得。
+            OpenAI APIキー。指定しない場合は環境変数から取得。
         """
-        self.api_key = api_key or os.environ.get("GROK_API_KEY")
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError("GROK_API_KEY must be provided or set as an environment variable")
+            raise ValueError("OPENAI_API_KEY must be provided or set as an environment variable")
         
-        # X.AI APIの設定
-        self.base_url = 'https://api.x.ai/v1'
-        # openai.api_key = self.api_key
-        # openai.api_base = self.base_url
-
-        self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
+        # OpenAI APIの設定
+        self.client = openai.OpenAI(api_key=self.api_key)
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def generate_content(
         self, 
@@ -77,7 +73,7 @@ class Grok3Client:
         # 新しいOpenAI APIの使用方法
         
         response = self.client.chat.completions.create(
-            model="grok-2-latest",
+            model="gpt-4.1-nano",
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
@@ -140,7 +136,7 @@ class Grok3Client:
         chat_session["messages"].append({"role": "user", "content": message})
         
         response = self.client.chat.completions.create(
-            model="grok-2-latest",
+            model="gpt-4.1-nano",
             messages=chat_session["messages"],
             temperature=temperature,
             max_tokens=max_tokens
@@ -194,7 +190,7 @@ class Grok3Client:
         messages.append({"role": "user", "content": f"コンテキスト: {context}\n\n質問: {message}"})
         
         response = self.client.chat.completions.create(
-            model="grok-2-latest",
+            model="gpt-4.1-nano",
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
@@ -236,7 +232,7 @@ class Grok3Client:
         all_messages.extend(messages)
         
         response = self.client.chat.completions.create(
-            model="grok-2-latest",
+            model="gpt-4.1-nano",
             messages=all_messages,
             temperature=temperature,
             max_tokens=max_tokens

@@ -9,7 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from nook.common.storage import LocalStorage
-from nook.common.grok_client import Grok3Client
+from nook.common.gpt_client import GPTClient
 
 
 @dataclass
@@ -55,7 +55,7 @@ class HackerNewsRetriever:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        self.grok_client = Grok3Client()
+        self.gpt_client = GPTClient()
         self.storage = LocalStorage(storage_dir)
         self.base_url = "https://hacker-news.firebaseio.com/v0"
     
@@ -187,7 +187,7 @@ class HackerNewsRetriever:
         """
 
         try:
-            summary = self.grok_client.generate_content(
+            summary = self.gpt_client.generate_content(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,

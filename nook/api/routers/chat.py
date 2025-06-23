@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from dotenv import load_dotenv
 
 from nook.api.models.schemas import ChatRequest, ChatResponse
-from nook.common.grok_client import Grok3Client
+from nook.common.gpt_client import GPTClient
 
 # 環境変数の読み込み
 load_dotenv()
@@ -48,8 +48,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
         )
     
     try:
-        # Grok3クライアントの初期化
-        client = Grok3Client(api_key=api_key)
+        # GPTクライアントの初期化
+        client = GPTClient(api_key=api_key)
         
         # チャット履歴の整形
         formatted_history = []
@@ -64,7 +64,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         if request.markdown:
             system_prompt += f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"
         
-        # Grok3 APIを呼び出し
+        # GPT APIを呼び出し
         response = client.chat(
             messages=formatted_history,
             system=system_prompt,

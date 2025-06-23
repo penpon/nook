@@ -10,7 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from nook.common.storage import LocalStorage
-from nook.common.grok_client import Grok3Client
+from nook.common.gpt_client import GPTClient
 
 
 @dataclass
@@ -166,7 +166,7 @@ class GithubTrending:
         """
         try:
             # Grok APIクライアントの初期化
-            grok_client = Grok3Client()
+            gpt_client = GPTClient()
 
             for language, repositories in repositories_by_language:
                 for repo in repositories:
@@ -180,7 +180,7 @@ class GithubTrending:
                         {repo.description}
                         """
                         try:
-                            repo.description = grok_client.generate_content(
+                            repo.description = gpt_client.generate_content(
                                 prompt=prompt,
                                 temperature=0.3,
                                 max_tokens=1000  # max_tokensを追加
