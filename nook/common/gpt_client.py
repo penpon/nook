@@ -1,14 +1,26 @@
 """GPT-4.1-nano API（OpenAI）クライアント。"""
 
 import os
+import json
+import inspect
+from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
+from pathlib import Path
 
 import openai
+import tiktoken
 from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
 
 # 環境変数の読み込み
 load_dotenv()
+
+# 料金設定（USD per 1M tokens）
+PRICING = {
+    "input": 0.20,
+    "cached_input": 0.05,
+    "output": 0.80
+}
 
 
 class GPTClient:
@@ -36,6 +48,85 @@ class GPTClient:
         
         # OpenAI APIの設定
         self.client = openai.OpenAI(api_key=self.api_key)
+        
+        # トークンエンコーダーの初期化
+        try:
+            self.encoding = tiktoken.encoding_for_model("gpt-4")
+        except KeyError:
+            self.encoding = tiktoken.get_encoding("cl100k_base")
+        
+        # ログファイルパスの設定
+        self.log_file = Path("data/api_usage/llm_usage_log.jsonl")
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 累計コストの管理
+        self.cumulative_cost = self._load_cumulative_cost()
+    
+    def _count_tokens(self, text: str) -> int:
+        """テキストのトークン数を計算します。"""
+        try:
+            return len(self.encoding.encode(text))
+        except Exception:
+            return 0
+    
+    def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
+        """料金を計算します。"""
+        input_cost = (input_tokens / 1_000_000) * PRICING["input"]
+        output_cost = (output_tokens / 1_000_000) * PRICING["output"]
+        return input_cost + output_cost
+    
+    def _get_calling_service(self) -> str:
+        """呼び出し元のサービス名を取得します。"""
+        try:
+            frame = inspect.currentframe()
+            while frame:
+                frame = frame.f_back
+                if frame and frame.f_code.co_filename:
+                    filename = Path(frame.f_code.co_filename).name
+                    if filename not in ['gpt_client.py', 'openai.py', 'tenacity.py'] and not filename.startswith('_'):
+                        return filename.replace('.py', '')
+            return 'unknown'
+        except Exception:
+            return 'unknown'
+    
+    def _load_cumulative_cost(self) -> float:
+        """累計コストを読み込みます。"""
+        if not self.log_file.exists():
+            return 0.0
+        
+        try:
+            with open(self.log_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                if lines:
+                    last_line = lines[-1].strip()
+                    if last_line:
+                        last_record = json.loads(last_line)
+                        return last_record.get('cumulative_cost_usd', 0.0)
+        except Exception:
+            pass
+        
+        return 0.0
+    
+    def _log_usage(self, service: str, model: str, input_tokens: int, output_tokens: int, cost: float):
+        """使用量をログに記録します。"""
+        try:
+            self.cumulative_cost += cost
+            
+            log_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "service": service,
+                "model": model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cost_usd": cost,
+                "cumulative_cost_usd": self.cumulative_cost
+            }
+            
+            with open(self.log_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+        except Exception as e:
+            print(f"Warning: Failed to log API usage: {e}")
+    
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def generate_content(
         self, 
@@ -70,7 +161,12 @@ class GPTClient:
         
         messages.append({"role": "user", "content": prompt})
         
-        # 新しいOpenAI APIの使用方法
+        # トークン数の計算
+        service = self._get_calling_service()
+        input_text = ""
+        for msg in messages:
+            input_text += msg["content"] + " "
+        input_tokens = self._count_tokens(input_text.strip())
         
         response = self.client.chat.completions.create(
             model="gpt-4.1-nano",
@@ -79,7 +175,15 @@ class GPTClient:
             max_tokens=max_tokens
         )
         
-        return response.choices[0].message.content
+        # 出力トークン数の計算
+        output_text = response.choices[0].message.content
+        output_tokens = self._count_tokens(output_text)
+        
+        # 料金計算とログ記録
+        cost = self._calculate_cost(input_tokens, output_tokens)
+        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        
+        return output_text
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def create_chat(
@@ -135,6 +239,13 @@ class GPTClient:
         """
         chat_session["messages"].append({"role": "user", "content": message})
         
+        # トークン数の計算
+        service = self._get_calling_service()
+        input_text = ""
+        for msg in chat_session["messages"]:
+            input_text += msg["content"] + " "
+        input_tokens = self._count_tokens(input_text.strip())
+        
         response = self.client.chat.completions.create(
             model="gpt-4.1-nano",
             messages=chat_session["messages"],
@@ -143,6 +254,12 @@ class GPTClient:
         )
         
         assistant_message = response.choices[0].message.content
+        output_tokens = self._count_tokens(assistant_message)
+        
+        # 料金計算とログ記録
+        cost = self._calculate_cost(input_tokens, output_tokens)
+        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        
         chat_session["messages"].append({"role": "assistant", "content": assistant_message})
         
         return assistant_message
@@ -189,6 +306,13 @@ class GPTClient:
         
         messages.append({"role": "user", "content": f"コンテキスト: {context}\n\n質問: {message}"})
         
+        # トークン数の計算
+        service = self._get_calling_service()
+        input_text = ""
+        for msg in messages:
+            input_text += msg["content"] + " "
+        input_tokens = self._count_tokens(input_text.strip())
+        
         response = self.client.chat.completions.create(
             model="gpt-4.1-nano",
             messages=messages,
@@ -196,7 +320,15 @@ class GPTClient:
             max_tokens=max_tokens
         )
         
-        return response.choices[0].message.content
+        # 出力トークン数の計算
+        output_text = response.choices[0].message.content
+        output_tokens = self._count_tokens(output_text)
+        
+        # 料金計算とログ記録
+        cost = self._calculate_cost(input_tokens, output_tokens)
+        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        
+        return output_text
         
     def chat(
         self,
@@ -231,6 +363,13 @@ class GPTClient:
         
         all_messages.extend(messages)
         
+        # トークン数の計算
+        service = self._get_calling_service()
+        input_text = ""
+        for msg in all_messages:
+            input_text += msg["content"] + " "
+        input_tokens = self._count_tokens(input_text.strip())
+        
         response = self.client.chat.completions.create(
             model="gpt-4.1-nano",
             messages=all_messages,
@@ -238,4 +377,12 @@ class GPTClient:
             max_tokens=max_tokens
         )
         
-        return response.choices[0].message.content 
+        # 出力トークン数の計算
+        output_text = response.choices[0].message.content
+        output_tokens = self._count_tokens(output_text)
+        
+        # 料金計算とログ記録
+        cost = self._calculate_cost(input_tokens, output_tokens)
+        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        
+        return output_text
