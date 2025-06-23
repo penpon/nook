@@ -606,3 +606,9 @@ LLM API（gpt-4.1-nano）の使用量とコストを追跡・可視化するシ�
 - TASK-007-backend-llm-usage-tracking.md（worktrees/TASK-007-backend）
 - TASK-008-frontend-usage-dashboard.md（worktrees/TASK-008-frontend）
 - TASK-009-backend-usage-api.md（worktrees/TASK-009-backend-api）
+
+## 2025年01月23日
+TASK-012: Paperサービスのファイル保存先とファイル名形式の修正
+- BaseServiceでLocalStorageの初期化時に"data/{service_name}"形式にパスを修正
+- paper_summarizer.pyでファイル名から"paper_summarizer_"プレフィックスを削除
+- 注意: この変更により全サービスのファイル保存先がdata/配下に統一される
