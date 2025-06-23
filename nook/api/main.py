@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from nook.api.routers import content, weather, chat
+from nook.api.routers import content, weather, chat, usage
 from nook.api.middleware.error_handler import error_handler_middleware, handle_exception
 from nook.api.exceptions import NookHTTPException
 from nook.api.models.errors import ErrorResponse
@@ -54,6 +54,7 @@ async def nook_exception_handler(request: Request, exc: NookHTTPException):
 app.include_router(content.router, prefix="/api")
 app.include_router(weather.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
 
 @app.get("/")
 async def root():
