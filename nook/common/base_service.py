@@ -18,7 +18,7 @@ class BaseService(ABC):
     def __init__(self, service_name: str, config: Optional[BaseConfig] = None):
         self.service_name = service_name
         self.config = config or BaseConfig()
-        self.storage = LocalStorage(service_name)
+        self.storage = LocalStorage(f"data/{service_name}")
         self.gpt_client = GPTClient()
         self.logger = setup_logger(service_name)
         self.request_delay = self.config.REQUEST_DELAY
