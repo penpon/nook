@@ -2,6 +2,14 @@
 
 zenn = [
     "https://zenn.dev/feed",
+    "https://zenn.dev/topics/ai駆動開発/feed"
+    "https://zenn.dev/topics/claudecode",
+    "https://zenn.dev/topics/claude",
+    "https://zenn.dev/topics/openai",
+    "https://zenn.dev/topics/cursor/feed",
+    "https://zenn.dev/topics/cline/feed",
+    "https://zenn.dev/topics/langchain/feed",
+    "https://zenn.dev/topics/mcp/feed",
     "https://zenn.dev/topics/stablediffusion/feed",
     "https://zenn.dev/topics/画像生成/feed",
     "https://zenn.dev/topics/生成ai/feed",

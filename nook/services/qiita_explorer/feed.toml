@@ -2,6 +2,13 @@
 
 qitta = [
     "https://qiita.com/popular-items/feed.atom",
+    "https://qiita.com/tags/openai/feed.atom",
+    "https://qiita.com/tags/chatgpt/feed.atom",
+    "https://qiita.com/tags/anthropic/feed.atom",
+    "https://qiita.com/tags/claude/feed.atom",
+    "https://qiita.com/tags/claudecode/feed.atom",
+    "https://qiita.com/tags/mcp/feed.atom",
+    "https://qiita.com/tags/cursor/feed.atom",
     "https://qiita.com/tags/stablediffusion/feed.atom",
     "https://qiita.com/tags/画像生成/feed.atom",
     "https://qiita.com/tags/生成ai/feed.atom",

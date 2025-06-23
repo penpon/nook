@@ -1,6 +1,13 @@
 # フィード設定
 
 note = [
+    "https://note.com/hashtag/Anthropic/rss",
+    "https://note.com/hashtag/OpenAI/rss",
+    "https://note.com/hashtag/Gemini/rss",
+    "https://note.com/hashtag/ClaudeCode/rss",
+    "https://note.com/hashtag/vibeCoding/rss",
+    "https://note.com/hashtag/Cursor/rss",
+    "https://note.com/hashtag/Claude/rss",
     "https://note.com/hashtag/stablediffusion/rss",
     "https://note.com/hashtag/画像生成/rss",
     "https://note.com/hashtag/生成ai/rss",
