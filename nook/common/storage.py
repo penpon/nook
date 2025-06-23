@@ -1,9 +1,11 @@
 """ローカルファイルシステムでのデータ操作ユーティリティ。"""
 
 import os
+import json
+import aiofiles
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any
 
 
 class LocalStorage:
@@ -116,4 +118,34 @@ class LocalStorage:
             except ValueError:
                 continue
         
-        return sorted(dates, reverse=True) 
+        return sorted(dates, reverse=True)
+    
+    async def save(self, data: Any, filename: str) -> Path:
+        """
+        データを非同期で保存します。
+        
+        Parameters
+        ----------
+        data : Any
+            保存するデータ（JSONシリアライズ可能）。
+        filename : str
+            保存するファイル名。
+            
+        Returns
+        -------
+        Path
+            保存されたファイルのパス。
+        """
+        file_path = self.base_dir / filename
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # JSONファイルの場合
+        if filename.endswith('.json'):
+            async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+                await f.write(json.dumps(data, ensure_ascii=False, indent=2))
+        # テキストファイルの場合
+        else:
+            async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+                await f.write(str(data))
+        
+        return file_path 
