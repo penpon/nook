@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { format, subDays } from 'date-fns';
-import { Layout, RefreshCw, Menu, Calendar, Sun, Moon } from 'lucide-react';
+import { Layout, Menu, Calendar, Sun, Moon } from 'lucide-react';
 import { ContentCard } from './components/ContentCard';
 import { WeatherWidget } from './components/WeatherWidget';
+import UsageDashboard from './components/UsageDashboard';
 import { getContent } from './api';
 
 const sources = ['paper', 'github', 'hacker news', 'tech news', 'business news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
 function App() {
   const [selectedSource, setSelectedSource] = useState('hacker news');
+  const [currentPage, setCurrentPage] = useState('content'); // 'content' or 'usage-dashboard'
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
@@ -34,6 +36,7 @@ function App() {
     () => getContent(selectedSource, format(selectedDate, 'yyyy-MM-dd')),
     {
       retry: 2,
+      enabled: currentPage === 'content', // Only fetch data when on content page
     }
   );
 
@@ -66,13 +69,34 @@ function App() {
         />
       </div>
       <nav className="flex-1 p-4">
-        <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Sources</div>
+        {/* Dashboard Section */}
+        <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Dashboard</div>
+        <button
+          onClick={() => {
+            setCurrentPage('usage-dashboard');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors ${
+            currentPage === 'usage-dashboard'
+              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+              : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30'
+          }`}
+        >
+          Usage Dashboard
+        </button>
+        
+        {/* Sources Section */}
+        <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400 mt-6">Sources</div>
         {sources.map((source) => (
           <button
             key={source}
-            onClick={() => setSelectedSource(source)}
+            onClick={() => {
+              setSelectedSource(source);
+              setCurrentPage('content');
+              setIsMobileMenuOpen(false);
+            }}
             className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors ${
-              selectedSource === source
+              selectedSource === source && currentPage === 'content'
                 ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                 : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30'
             }`}
@@ -145,48 +169,52 @@ function App() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {selectedSource.charAt(0).toUpperCase() + selectedSource.slice(1)} Feed
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {format(selectedDate, 'MMMM d, yyyy')}
-            </p>
-          </div>
+        {currentPage === 'usage-dashboard' ? (
+          <UsageDashboard />
+        ) : (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {selectedSource.charAt(0).toUpperCase() + selectedSource.slice(1)} Feed
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {format(selectedDate, 'MMMM d, yyyy')}
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 gap-6">
-            {isLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+            <div className="grid grid-cols-1 gap-6">
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+                    </div>
                   </div>
+                ))
+              ) : isError ? (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-red-600 dark:text-red-400 mb-4">Error loading content: {(error as Error)?.message || 'Unknown error occurred'}</p>
+                  <button
+                    onClick={() => refetch()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
+                  >
+                    Try Again
+                  </button>
                 </div>
-              ))
-            ) : isError ? (
-              <div className="col-span-full text-center py-8">
-                <p className="text-red-600 dark:text-red-400 mb-4">Error loading content: {(error as Error)?.message || 'Unknown error occurred'}</p>
-                <button
-                  onClick={() => refetch()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : data?.items && data.items.length > 0 ? (
-              data.items.map((item, index) => (
-                <ContentCard key={index} item={item} darkMode={darkMode} />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400">No content available for this source</p>
-              </div>
-            )}
+              ) : data?.items && data.items.length > 0 ? (
+                data.items.map((item, index) => (
+                  <ContentCard key={index} item={item} darkMode={darkMode} />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">No content available for this source</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
