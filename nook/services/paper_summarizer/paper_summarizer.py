@@ -6,14 +6,16 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+import asyncio
 
 import arxiv
-import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from nook.common.gpt_client import GPTClient
-from nook.common.storage import LocalStorage
+from nook.common.base_service import BaseService
+from nook.common.http_client import AsyncHTTPClient
+from nook.common.decorators import handle_errors
+from nook.common.exceptions import APIException
 
 
 @dataclass
@@ -40,7 +42,7 @@ class PaperInfo:
     summary: str = field(init=False)
 
 
-class PaperSummarizer:
+class PaperSummarizer(BaseService):
     """
     arXiv論文を収集・要約するクラス。
     
@@ -59,10 +61,10 @@ class PaperSummarizer:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        self.storage = LocalStorage(storage_dir)
-        self.gpt_client = GPTClient()
+        super().__init__("paper_summarizer")
+        self.http_client = AsyncHTTPClient()
     
-    def run(self, limit: int = 5) -> None:
+    async def collect(self, limit: int = 5) -> None:
         """
         arXiv論文を収集・要約して保存します。
         
@@ -72,24 +74,38 @@ class PaperSummarizer:
             取得する論文数。
         """
         # Hugging Faceでキュレーションされた論文IDを取得
-        paper_ids = self._get_curated_paper_ids(limit)
+        paper_ids = await self._get_curated_paper_ids(limit)
         
-        # 論文情報を取得
+        # 論文情報を並行して取得
+        tasks = []
+        for paper_id in paper_ids:
+            tasks.append(self._retrieve_paper_info(paper_id))
+        
+        paper_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
         papers = []
-        for paper_id in tqdm(paper_ids, desc="論文を処理中"):
-            paper_info = self._retrieve_paper_info(paper_id)
-            if paper_info:
-                # 論文を要約
-                self._summarize_paper_info(paper_info)
-                papers.append(paper_info)
+        for result in paper_results:
+            if isinstance(result, PaperInfo):
+                papers.append(result)
+            elif isinstance(result, Exception):
+                self.logger.error(f"Error retrieving paper: {result}")
+        
+        # 論文を並行して要約
+        await self._summarize_papers(papers)
         
         # 要約を保存
-        self._store_summaries(papers)
+        await self._store_summaries(papers)
         
         # 処理済みの論文IDを保存
-        self._save_processed_ids(paper_ids)
+        await self._save_processed_ids(paper_ids)
     
-    def _get_curated_paper_ids(self, limit: int) -> List[str]:
+    # 同期版の互換性のためのラッパー
+    def run(self, limit: int = 5) -> None:
+        """同期的に実行するためのラッパー"""
+        asyncio.run(self.collect(limit))
+    
+    @handle_errors(retries=3)
+    async def _get_curated_paper_ids(self, limit: int) -> List[str]:
         """
         Hugging Faceでキュレーションされた論文IDを取得します。
         
@@ -105,7 +121,7 @@ class PaperSummarizer:
         """
         # Hugging Faceの論文ページから最新の論文IDを取得
         url = "https://huggingface.co/papers"
-        response = requests.get(url)
+        response = await self.http_client.get(url)
         soup = BeautifulSoup(response.text, "html.parser")
         
         paper_ids = []
@@ -123,12 +139,12 @@ class PaperSummarizer:
                             break
         
         # 既に処理済みの論文IDを除外
-        processed_ids = self._get_processed_ids()
+        processed_ids = await self._get_processed_ids()
         paper_ids = [pid for pid in paper_ids if pid not in processed_ids]
         
         return paper_ids[:limit]
     
-    def _get_processed_ids(self) -> List[str]:
+    async def _get_processed_ids(self) -> List[str]:
         """
         既に処理済みの論文IDを取得します。
         
@@ -139,15 +155,15 @@ class PaperSummarizer:
         """
         today = datetime.now()
         date_str = today.strftime("%Y-%m-%d")
-        file_path = Path(self.storage.base_dir) / "paper_summarizer" / f"arxiv_ids-{date_str}.txt"
+        filename = f"arxiv_ids-{date_str}.txt"
         
-        if not file_path.exists():
+        content = await self.storage.load(filename)
+        if not content:
             return []
         
-        with open(file_path, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip()]
+        return [line.strip() for line in content.split('\n') if line.strip()]
     
-    def _save_processed_ids(self, paper_ids: List[str]) -> None:
+    async def _save_processed_ids(self, paper_ids: List[str]) -> None:
         """
         処理済みの論文IDを保存します。
         
@@ -158,26 +174,19 @@ class PaperSummarizer:
         """
         today = datetime.now()
         date_str = today.strftime("%Y-%m-%d")
-        dir_path = Path(self.storage.base_dir) / "paper_summarizer"
-        dir_path.mkdir(parents=True, exist_ok=True)
-        
-        file_path = dir_path / f"arxiv_ids-{date_str}.txt"
+        filename = f"arxiv_ids-{date_str}.txt"
         
         # 既存のIDを読み込む
-        existing_ids = []
-        if file_path.exists():
-            with open(file_path, "r", encoding="utf-8") as f:
-                existing_ids = [line.strip() for line in f if line.strip()]
+        existing_ids = await self._get_processed_ids()
         
         # 新しいIDを追加
         all_ids = existing_ids + paper_ids
         all_ids = list(dict.fromkeys(all_ids))  # 重複を削除
         
-        with open(file_path, "w", encoding="utf-8") as f:
-            for paper_id in all_ids:
-                f.write(f"{paper_id}\n")
+        content = '\n'.join(all_ids)
+        await self.save_data(content, filename)
     
-    def _retrieve_paper_info(self, paper_id: str) -> Optional[PaperInfo]:
+    async def _retrieve_paper_info(self, paper_id: str) -> Optional[PaperInfo]:
         """
         論文情報を取得します。
         
@@ -192,21 +201,26 @@ class PaperSummarizer:
             取得した論文情報。取得に失敗した場合はNone。
         """
         try:
-            client = arxiv.Client()
-            search = arxiv.Search(id_list=[paper_id])
-            results = list(client.results(search))
+            # arxivライブラリは同期的なので、別スレッドで実行
+            loop = asyncio.get_event_loop()
             
-            if not results:
+            def get_paper():
+                client = arxiv.Client()
+                search = arxiv.Search(id_list=[paper_id])
+                results = list(client.results(search))
+                return results[0] if results else None
+            
+            paper = await loop.run_in_executor(None, get_paper)
+            
+            if not paper:
                 return None
-            
-            paper = results[0]
             
             # PDFから本文を抽出
             contents = self._extract_body_text(paper)
             
             # タイトルとアブストラクトを日本語に翻訳
             title = paper.title
-            abstract_ja = self._translate_to_japanese(paper.summary)
+            abstract_ja = await self._translate_to_japanese(paper.summary)
             
             return PaperInfo(
                 title=title,
@@ -216,10 +230,10 @@ class PaperSummarizer:
             )
         
         except Exception as e:
-            print(f"Error retrieving paper {paper_id}: {str(e)}")
+            self.logger.error(f"Error retrieving paper {paper_id}: {str(e)}")
             return None
     
-    def _translate_to_japanese(self, text: str) -> str:
+    async def _translate_to_japanese(self, text: str) -> str:
         """
         テキストを日本語に翻訳します。
         
@@ -236,15 +250,17 @@ class PaperSummarizer:
         try:
             prompt = f"以下の英語の学術論文のテキストを自然な日本語に翻訳してください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。\n\n{text}"
             
-            translated_text = self.gpt_client.generate_content(
+            translated_text = await self.gpt_client.generate_async(
                 prompt=prompt,
                 temperature=0.3,
                 max_tokens=1000
             )
             
+            await self.rate_limit()
+            
             return translated_text
         except Exception as e:
-            print(f"Error translating text: {str(e)}")
+            self.logger.error(f"Error translating text: {str(e)}")
             return text  # 翻訳に失敗した場合は原文を返す
     
     def _extract_body_text(self, paper: arxiv.Result) -> str:
@@ -265,7 +281,15 @@ class PaperSummarizer:
         # 実際のPDF解析は複雑なため、ここでは省略
         return paper.summary
     
-    def _summarize_paper_info(self, paper_info: PaperInfo) -> None:
+    async def _summarize_papers(self, papers: List[PaperInfo]) -> None:
+        """複数の論文を並行して要約"""
+        tasks = []
+        for paper in papers:
+            tasks.append(self._summarize_paper_info(paper))
+        
+        await asyncio.gather(*tasks, return_exceptions=True)
+    
+    async def _summarize_paper_info(self, paper_info: PaperInfo) -> None:
         """
         論文を要約します。
         
@@ -295,17 +319,18 @@ class PaperSummarizer:
         """
         
         try:
-            summary = self.gpt_client.generate_content(
+            summary = await self.gpt_client.generate_async(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
                 max_tokens=1000
             )
             paper_info.summary = summary
+            await self.rate_limit()
         except Exception as e:
             paper_info.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
     
-    def _store_summaries(self, papers: List[PaperInfo]) -> None:
+    async def _store_summaries(self, papers: List[PaperInfo]) -> None:
         """
         要約を保存します。
         
@@ -327,4 +352,5 @@ class PaperSummarizer:
             content += "---\n\n"
         
         # 保存
-        self.storage.save_markdown(content, "paper_summarizer", today) 
+        filename = f"paper_summarizer_{today.strftime('%Y-%m-%d')}.md"
+        await self.save_markdown(content, filename)

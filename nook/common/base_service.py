@@ -3,6 +3,7 @@ from typing import Any, Optional, Dict, List
 import logging
 from datetime import datetime
 import asyncio
+from pathlib import Path
 
 from nook.common.storage import LocalStorage
 from nook.common.gpt_client import GPTClient
@@ -49,3 +50,35 @@ class BaseService(ABC):
     async def rate_limit(self) -> None:
         """レート制限のための待機"""
         await asyncio.sleep(self.request_delay)
+    
+    def get_config_path(self, filename: str) -> Path:
+        """サービス固有の設定ファイルパスを取得"""
+        return Path(f"nook/services/{self.service_name}/{filename}")
+    
+    async def save_json(self, data: Any, filename: str) -> None:
+        """JSONデータを保存"""
+        import json
+        json_str = json.dumps(data, ensure_ascii=False, indent=2)
+        await self.save_data(json_str, filename)
+    
+    async def load_json(self, filename: str) -> Any:
+        """JSONデータを読み込み"""
+        import json
+        content = await self.storage.load(filename)
+        return json.loads(content) if content else None
+    
+    async def save_with_backup(self, data: Any, filename: str, keep_backups: int = 3):
+        """バックアップ付きでデータを保存"""
+        # 既存ファイルをバックアップ
+        existing = await self.storage.exists(filename)
+        if existing:
+            for i in range(keep_backups - 1, 0, -1):
+                old_backup = f"{filename}.{i}"
+                new_backup = f"{filename}.{i + 1}"
+                if await self.storage.exists(old_backup):
+                    await self.storage.rename(old_backup, new_backup)
+            
+            await self.storage.rename(filename, f"{filename}.1")
+        
+        # 新しいデータを保存
+        await self.save_data(data, filename)

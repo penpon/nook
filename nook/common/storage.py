@@ -148,4 +148,25 @@ class LocalStorage:
             async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
                 await f.write(str(data))
         
-        return file_path 
+        return file_path
+    
+    async def load(self, filename: str) -> Optional[str]:
+        """ファイルの内容を非同期で読み込み"""
+        file_path = self.base_dir / filename
+        if not file_path.exists():
+            return None
+        
+        async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
+            return await f.read()
+    
+    async def exists(self, filename: str) -> bool:
+        """ファイルの存在を確認"""
+        file_path = self.base_dir / filename
+        return file_path.exists()
+    
+    async def rename(self, old_filename: str, new_filename: str) -> None:
+        """ファイル名を変更"""
+        old_path = self.base_dir / old_filename
+        new_path = self.base_dir / new_filename
+        if old_path.exists():
+            old_path.rename(new_path) 

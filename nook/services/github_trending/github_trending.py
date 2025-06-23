@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import List, Optional
 import asyncio
 
-import requests
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors, log_execution_time
 from nook.common.exceptions import APIException
+from nook.common.http_client import AsyncHTTPClient
 
 
 @dataclass
@@ -59,6 +59,7 @@ class GithubTrending(BaseService):
         """
         super().__init__("github_trending")
         self.base_url = "https://github.com/trending"
+        self.http_client = AsyncHTTPClient()
         
         # 言語の設定を読み込む
         script_dir = Path(__file__).parent
@@ -116,7 +117,7 @@ class GithubTrending(BaseService):
             url += f"/{language}"
         
         try:
-            response = requests.get(url)
+            response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
             
             repositories = []
@@ -182,7 +183,7 @@ class GithubTrending(BaseService):
                         {repo.description}
                         """
                         try:
-                            repo.description = self.gpt_client.generate_content(
+                            repo.description = await self.gpt_client.generate_async(
                                 prompt=prompt,
                                 temperature=0.3,
                                 max_tokens=1000  # max_tokensを追加

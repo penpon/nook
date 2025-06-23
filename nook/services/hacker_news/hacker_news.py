@@ -4,12 +4,14 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
+import asyncio
 
-import requests
 from bs4 import BeautifulSoup
 
-from nook.common.storage import LocalStorage
-from nook.common.gpt_client import GPTClient
+from nook.common.base_service import BaseService
+from nook.common.http_client import AsyncHTTPClient
+from nook.common.decorators import handle_errors
+from nook.common.exceptions import APIException
 
 
 @dataclass
@@ -36,7 +38,7 @@ class Story:
 
 
 
-class HackerNewsRetriever:
+class HackerNewsRetriever(BaseService):
     """
     Hacker Newsの記事を収集するクラス。
     
@@ -55,11 +57,11 @@ class HackerNewsRetriever:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        self.gpt_client = GPTClient()
-        self.storage = LocalStorage(storage_dir)
+        super().__init__("hacker_news")
         self.base_url = "https://hacker-news.firebaseio.com/v0"
+        self.http_client = AsyncHTTPClient()
     
-    def run(self, limit: int = 30) -> None:
+    async def collect(self, limit: int = 30) -> None:
         """
         Hacker Newsの記事を収集して保存します。
         
@@ -68,10 +70,16 @@ class HackerNewsRetriever:
         limit : int, default=30
             取得する記事数。
         """
-        stories = self._get_top_stories(limit)
-        self._store_summaries(stories)
+        stories = await self._get_top_stories(limit)
+        await self._store_summaries(stories)
     
-    def _get_top_stories(self, limit: int) -> List[Story]:
+    # 同期版の互換性のためのラッパー
+    def run(self, limit: int = 30) -> None:
+        """同期的に実行するためのラッパー"""
+        asyncio.run(self.collect(limit))
+    
+    @handle_errors(retries=3)
+    async def _get_top_stories(self, limit: int) -> List[Story]:
         """
         トップ記事を取得します。
         
@@ -86,17 +94,37 @@ class HackerNewsRetriever:
             取得した記事のリスト。
         """
         # トップストーリーのIDを取得
-        response = requests.get(f"{self.base_url}/topstories.json")
+        response = await self.http_client.get(f"{self.base_url}/topstories.json")
         story_ids = response.json()[:limit]
         
         stories = []
+        
+        # 並行してストーリーを取得
+        tasks = []
         for story_id in story_ids:
-            # 記事の詳細を取得
-            response = requests.get(f"{self.base_url}/item/{story_id}.json")
+            tasks.append(self._fetch_story(story_id))
+        
+        story_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for result in story_results:
+            if isinstance(result, Story):
+                stories.append(result)
+            elif isinstance(result, Exception):
+                self.logger.error(f"Error fetching story: {result}")
+        
+        # 要約を並行して生成
+        await self._summarize_stories(stories)
+        
+        return stories
+    
+    async def _fetch_story(self, story_id: int) -> Optional[Story]:
+        """個別のストーリーを取得"""
+        try:
+            response = await self.http_client.get(f"{self.base_url}/item/{story_id}.json")
             item = response.json()
             
             if "title" not in item:
-                continue
+                return None
             
             story = Story(
                 title=item.get("title", ""),
@@ -107,53 +135,63 @@ class HackerNewsRetriever:
             
             # URLがある場合は記事の内容を取得
             if story.url and not story.text:
-                try:
-                    # ユーザーエージェントを設定してアクセス制限を回避
-                    headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                    }
-                    response = requests.get(story.url, headers=headers, timeout=10)
-                    
-                    if response.status_code == 200:
-                        soup = BeautifulSoup(response.text, "html.parser")
-                        
-                        # メタディスクリプションを取得
-                        meta_desc = soup.find("meta", attrs={"name": "description"})
-                        if not meta_desc:
-                            # Open Graphのdescriptionも試す
-                            meta_desc = soup.find("meta", attrs={"property": "og:description"})
-                        
-                        if meta_desc and meta_desc.get("content"):
-                            story.text = meta_desc.get("content")
-                        else:
-                            # 本文の最初の段落を取得（より多くの段落を試す）
-                            paragraphs = soup.find_all("p")
-                            if paragraphs:
-                                # 最初の3つの段落を結合（短すぎる段落は除外）
-                                meaningful_paragraphs = [p.get_text().strip() for p in paragraphs[:5] 
-                                                        if len(p.get_text().strip()) > 50]
-                                if meaningful_paragraphs:
-                                    story.text = " ".join(meaningful_paragraphs[:3])
-                                else:
-                                    # 意味のある段落がない場合は最初の段落を使用
-                                    story.text = paragraphs[0].get_text().strip()
-                            
-                            # 本文が取得できない場合は、article要素を探す
-                            if not story.text:
-                                article = soup.find("article")
-                                if article:
-                                    story.text = article.get_text()[:500]
-                except Exception as e:
-                    print(f"Error fetching content for {story.url}: {str(e)}")
+                await self._fetch_story_content(story)
             
-            stories.append(story)
-        
-        for story in stories:
-            self._summarize_story(story)
-        
-        return stories
+            return story
+        except Exception as e:
+            self.logger.error(f"Error fetching story {story_id}: {e}")
+            return None
     
-    def _summarize_story(self, story: Story) -> None:
+    async def _fetch_story_content(self, story: Story) -> None:
+        """記事の内容を取得"""
+        try:
+            # ユーザーエージェントを設定してアクセス制限を回避
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = await self.http_client.get(story.url, headers=headers)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, "html.parser")
+                
+                # メタディスクリプションを取得
+                meta_desc = soup.find("meta", attrs={"name": "description"})
+                if not meta_desc:
+                    # Open Graphのdescriptionも試す
+                    meta_desc = soup.find("meta", attrs={"property": "og:description"})
+                
+                if meta_desc and meta_desc.get("content"):
+                    story.text = meta_desc.get("content")
+                else:
+                    # 本文の最初の段落を取得（より多くの段落を試す）
+                    paragraphs = soup.find_all("p")
+                    if paragraphs:
+                        # 最初の3つの段落を結合（短すぎる段落は除外）
+                        meaningful_paragraphs = [p.get_text().strip() for p in paragraphs[:5] 
+                                                if len(p.get_text().strip()) > 50]
+                        if meaningful_paragraphs:
+                            story.text = " ".join(meaningful_paragraphs[:3])
+                        else:
+                            # 意味のある段落がない場合は最初の段落を使用
+                            story.text = paragraphs[0].get_text().strip()
+                    
+                    # 本文が取得できない場合は、article要素を探す
+                    if not story.text:
+                        article = soup.find("article")
+                        if article:
+                            story.text = article.get_text()[:500]
+        except Exception as e:
+            self.logger.error(f"Error fetching content for {story.url}: {str(e)}")
+    
+    async def _summarize_stories(self, stories: List[Story]) -> None:
+        """複数のストーリーを並行して要約"""
+        tasks = []
+        for story in stories:
+            tasks.append(self._summarize_story(story))
+        
+        await asyncio.gather(*tasks, return_exceptions=True)
+    
+    async def _summarize_story(self, story: Story) -> None:
         """
         Hacker News記事を要約します。
 
@@ -187,17 +225,18 @@ class HackerNewsRetriever:
         """
 
         try:
-            summary = self.gpt_client.generate_content(
+            summary = await self.gpt_client.generate_async(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
                 max_tokens=1000
             )
             story.summary = summary
+            await self.rate_limit()  # API呼び出し後のレート制限
         except Exception as e:
             story.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    def _store_summaries(self, stories: List[Story]) -> None:
+    async def _store_summaries(self, stories: List[Story]) -> None:
         """
         記事情報を保存します。
         
@@ -223,4 +262,5 @@ class HackerNewsRetriever:
             content += "---\n\n"
         
         # 保存
-        self.storage.save_markdown(content, "hacker_news", today)
+        filename = f"hacker_news_{today.strftime('%Y-%m-%d')}.md"
+        await self.save_markdown(content, filename)
