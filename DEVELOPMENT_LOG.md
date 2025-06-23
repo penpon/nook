@@ -626,3 +626,10 @@ TASK-013: ダッシュボードの文字色を再修正
 - 固定色（#1a1a1a、#4a4a4a）からMUIテーマ色に変更
 - theme.palette.text.primary/secondaryを使用してダーク/ライトモード自動対応
 - 注意: MUIのテーマシステムに準拠した実装で視認性を確保
+
+## 2025年6月24日
+ダッシュボードにダークモード対応を追加
+- MUIテーマが適用されていなかったため、Tailwind CSSのクラスベースに変更
+- App.tsxからdarkMode propを渡してTailwindクラスで条件分岐
+- タイトル: darkMode時は'text-white'、ライト時は'text-gray-900'
+- 最終更新: darkMode時は'text-gray-300'、ライト時は'text-gray-600'
