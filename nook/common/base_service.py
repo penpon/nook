@@ -1,0 +1,84 @@
+from abc import ABC, abstractmethod
+from typing import Any, Optional, Dict, List
+import logging
+from datetime import datetime
+import asyncio
+from pathlib import Path
+
+from nook.common.storage import LocalStorage
+from nook.common.gpt_client import GPTClient
+from nook.common.logging import setup_logger
+from nook.common.config import BaseConfig
+from nook.common.decorators import handle_errors
+
+
+class BaseService(ABC):
+    """すべてのサービスの基底クラス"""
+    
+    def __init__(self, service_name: str, config: Optional[BaseConfig] = None):
+        self.service_name = service_name
+        self.config = config or BaseConfig()
+        self.storage = LocalStorage(service_name)
+        self.gpt_client = GPTClient()
+        self.logger = setup_logger(service_name)
+        self.request_delay = self.config.REQUEST_DELAY
+        
+    @abstractmethod
+    async def collect(self) -> None:
+        """データ収集のメイン処理（各サービスで実装）"""
+        pass
+    
+    async def save_data(self, data: Any, filename: str) -> None:
+        """共通のデータ保存処理"""
+        try:
+            await self.storage.save(data, filename)
+            self.logger.info(f"Data saved successfully: {filename}")
+        except Exception as e:
+            self.logger.error(f"Failed to save data {filename}: {e}")
+            raise
+    
+    async def save_markdown(self, content: str, filename: str) -> None:
+        """Markdownファイルの保存"""
+        await self.save_data(content, filename)
+    
+    @handle_errors(retries=3)
+    async def fetch_with_retry(self, url: str) -> str:
+        """リトライ機能付きのHTTP取得"""
+        # AsyncHTTPClientを使用（後で実装）
+        pass
+    
+    async def rate_limit(self) -> None:
+        """レート制限のための待機"""
+        await asyncio.sleep(self.request_delay)
+    
+    def get_config_path(self, filename: str) -> Path:
+        """サービス固有の設定ファイルパスを取得"""
+        return Path(f"nook/services/{self.service_name}/{filename}")
+    
+    async def save_json(self, data: Any, filename: str) -> None:
+        """JSONデータを保存"""
+        import json
+        json_str = json.dumps(data, ensure_ascii=False, indent=2)
+        await self.save_data(json_str, filename)
+    
+    async def load_json(self, filename: str) -> Any:
+        """JSONデータを読み込み"""
+        import json
+        content = await self.storage.load(filename)
+        return json.loads(content) if content else None
+    
+    async def save_with_backup(self, data: Any, filename: str, keep_backups: int = 3):
+        """バックアップ付きでデータを保存"""
+        # 既存ファイルをバックアップ
+        existing = await self.storage.exists(filename)
+        if existing:
+            for i in range(keep_backups - 1, 0, -1):
+                old_backup = f"{filename}.{i}"
+                new_backup = f"{filename}.{i + 1}"
+                if await self.storage.exists(old_backup):
+                    await self.storage.rename(old_backup, new_backup)
+            
+            await self.storage.rename(filename, f"{filename}.1")
+        
+        # 新しいデータを保存
+        await self.save_data(data, filename)

@@ -1,223 +1,260 @@
 """
-Nookの各サービスを実行するスクリプト。
-情報を収集し、ローカルストレージに保存します。
+Nookの各サービスを非同期で実行するスクリプト。
+情報を並行収集し、ローカルストレージに保存します。
 """
 
-import os
-import argparse
+import asyncio
+import logging
+from typing import List, Optional
 from datetime import datetime
+import signal
+import sys
+import os
+from dotenv import load_dotenv
 
-# dotenvの読み込みを試みる（オプショナル）
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass  # dotenvがインストールされていない場合は無視
+from nook.common.async_utils import AsyncTaskManager, gather_with_errors
+from nook.common.logging import setup_logger
+from nook.common.http_client import close_http_client
 
-# GitHubトレンドサービス
-from nook.services.github_trending.github_trending import GithubTrending
+# 環境変数の読み込み
+load_dotenv()
 
-# 他のサービスをインポート（クラス名を修正）
-from nook.services.hacker_news.hacker_news import HackerNewsRetriever
-from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
-from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
-from nook.services.note_explorer.note_explorer import NoteExplorer
-from nook.services.tech_feed.tech_feed import TechFeed
-from nook.services.business_feed.business_feed import BusinessFeed
-from nook.services.paper_summarizer.paper_summarizer import PaperSummarizer
-from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
-from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+logger = setup_logger("service_runner")
 
-def run_fivechan_explorer():
-    """
-    5chanからのAI関連スレッド収集サービスを実行します。
-    """
-    print("5chanからAI関連スレッドを収集しています...")
-    try:
-        fivechan_explorer = FiveChanExplorer()
-        fivechan_explorer.run()
-        print("5chanからのAI関連スレッド収集が完了しました。")
-    except Exception as e:
-        print(f"5chanからのAI関連スレッド収集中にエラーが発生しました: {str(e)}")
 
-def run_fourchan_explorer():
-    """
-    4chanからのAI関連スレッド収集サービスを実行します。
-    """
-    print("4chanからAI関連スレッドを収集しています...")
-    try:
-        fourchan_explorer = FourChanExplorer()
-        fourchan_explorer.run()
-        print("4chanからのAI関連スレッド収集が完了しました。")
-    except Exception as e:
-        print(f"4chanからのAI関連スレッド収集中にエラーが発生しました: {str(e)}")
-
-def run_github_trending():
-    """
-    GitHubトレンドサービスを実行します。
-    """
-    print("GitHubトレンドリポジトリを収集しています...")
-    github_trending = GithubTrending()
-    github_trending.run()
-    print("GitHubトレンドリポジトリの収集が完了しました。")
-
-def run_hacker_news():
-    """
-    Hacker Newsサービスを実行します。
-    """
-    print("Hacker News記事を収集しています...")
-    try:
-        # クラス名を修正
-        hacker_news = HackerNewsRetriever()
-        hacker_news.run()
-        print("Hacker News記事の収集が完了しました。")
-    except Exception as e:
-        print(f"Hacker News記事の収集中にエラーが発生しました: {str(e)}")
-
-def run_note_explorer():
-    """
-    Noteエクスプローラーサービスを実行します。
-    """
-    print("Note投稿を収集しています...")
-    try:
-        note_explorer = NoteExplorer()
-        note_explorer.run()
-        print("Note投稿の収集が完了しました。")
-    except Exception as e:
-        print(f"Note投稿の収集中にエラーが発生しました: {str(e)}")
-
-def run_zenn_explorer():
-    """
-    Zennエクスプローラーサービスを実行します。
-    """
-    print("Zenn投稿を収集しています...")
-    try:
-        zenn_explorer = ZennExplorer()
-        zenn_explorer.run()
-        print("zenn投稿の収集が完了しました。")
-    except Exception as e:
-        print(f"zenn投稿の収集中にエラーが発生しました: {str(e)}")
-
-def run_qiita_explorer():
-    """
-    Qiitaエクスプローラーサービスを実行します。
-    """
-    print("Qiita投稿を収集しています...")
-    try:
-        qiita_explorer = QiitaExplorer()
-        qiita_explorer.run()
-        print("qiita投稿の収集が完了しました。")
-    except Exception as e:
-        print(f"qiita投稿の収集中にエラーが発生しました: {str(e)}")
-
-def run_reddit_explorer():
-    """
-    Redditエクスプローラーサービスを実行します。
-    """
-    print("Reddit投稿を収集しています...")
-    try:
-        # APIキーの確認
-        if not os.environ.get("REDDIT_CLIENT_ID") or not os.environ.get("REDDIT_CLIENT_SECRET"):
-            print("警告: REDDIT_CLIENT_ID または REDDIT_CLIENT_SECRET が設定されていません。")
-            print("Reddit APIを使用するには、これらの環境変数を設定してください。")
-            return
+class ServiceRunner:
+    """サービス実行マネージャー"""
+    
+    def __init__(self):
+        # 既存のサービスをインポート（同期版として残す）
+        from nook.services.github_trending.github_trending import GithubTrending
+        from nook.services.hacker_news.hacker_news import HackerNewsRetriever
+        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+        from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
+        from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
+        from nook.services.note_explorer.note_explorer import NoteExplorer
+        from nook.services.tech_feed.tech_feed import TechFeed
+        from nook.services.business_feed.business_feed import BusinessFeed
+        from nook.services.paper_summarizer.paper_summarizer import PaperSummarizer
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+        
+        # サービスインスタンスを保持
+        self.sync_services = {
+            "github_trending": GithubTrending(),
+            "hacker_news": HackerNewsRetriever(),
+            "reddit": RedditExplorer(),
+            "zenn": ZennExplorer(),
+            "qiita": QiitaExplorer(),
+            "note": NoteExplorer(),
+            "tech_news": TechFeed(),
+            "business_news": BusinessFeed(),
+            "paper": PaperSummarizer(),
+            "4chan": FourChanExplorer(),
+            "5chan": FiveChanExplorer(),
+        }
+        
+        self.task_manager = AsyncTaskManager(max_concurrent=5)
+        self.running = False
+    
+    async def _run_sync_service(self, service_name: str, service):
+        """同期サービスを非同期で実行"""
+        try:
+            logger.info(f"Starting service: {service_name}")
+            # 同期関数を別スレッドで実行
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, service.run)
+            logger.info(f"Service {service_name} completed successfully")
+        except Exception as e:
+            logger.error(f"Service {service_name} failed: {e}", exc_info=True)
+            raise
+    
+    async def run_all(self) -> None:
+        """すべてのサービスを並行実行"""
+        self.running = True
+        start_time = datetime.now()
+        
+        logger.info(f"Starting {len(self.sync_services)} services")
+        
+        try:
+            # 各サービスを並行実行
+            service_tasks = [
+                self._run_sync_service(name, service) 
+                for name, service in self.sync_services.items()
+            ]
             
-        reddit_explorer = RedditExplorer()
-        reddit_explorer.run()
-        print("Reddit投稿の収集が完了しました。")
-    except Exception as e:
-        print(f"Reddit投稿の収集中にエラーが発生しました: {str(e)}")
-
-def run_tech_feed():
-    """
-    技術フィードサービスを実行します。
-    """
-    print("技術ブログのフィードを収集しています...")
-    try:
-        tech_feed = TechFeed()
-        tech_feed.run()
-        print("技術ブログのフィードの収集が完了しました。")
-    except Exception as e:
-        print(f"技術ブログのフィード収集中にエラーが発生しました: {str(e)}")
-
-def run_business_feed():
-    """
-    ビジネスフィードサービスを実行します。
-    """
-    print("ビジネス記事のフィードを収集しています...")
-    try:
-        business_feed = BusinessFeed()
-        business_feed.run()
-        print("ビジネス記事のフィードの収集が完了しました。")
-    except Exception as e:
-        print(f"ビジネス記事のフィード収集中にエラーが発生しました: {str(e)}")
-
-def run_paper_summarizer():
-    """
-    論文要約サービスを実行します。
-    """
-    print("arXiv論文を収集・要約しています...")
-    try:
-        # OpenAI APIキーの確認
-        if not os.environ.get("OPENAI_API_KEY"):
-            print("警告: OPENAI_API_KEY が設定されていません。")
-            print("論文要約には OpenAI API (GPT-4.1-nano) が必要です。")
-            return
+            results = await gather_with_errors(
+                *service_tasks,
+                task_names=list(self.sync_services.keys())
+            )
             
-        paper_summarizer = PaperSummarizer()
-        paper_summarizer.run()
-        print("論文の収集・要約が完了しました。")
-    except Exception as e:
-        print(f"論文の収集・要約中にエラーが発生しました: {str(e)}")
+            # 結果をレポート
+            successful = sum(1 for r in results if r.success)
+            failed = sum(1 for r in results if not r.success)
+            
+            duration = (datetime.now() - start_time).total_seconds()
+            
+            logger.info(
+                f"Service run completed in {duration:.2f} seconds",
+                extra={
+                    "successful": successful,
+                    "failed": failed,
+                    "total": len(self.sync_services)
+                }
+            )
+            
+            # エラーの詳細をログ
+            for result in results:
+                if not result.success:
+                    logger.error(
+                        f"Service {result.name} failed",
+                        extra={"error": str(result.error)}
+                    )
+            
+        except Exception as e:
+            logger.error(f"Service runner failed: {e}", exc_info=True)
+            raise
+        finally:
+            self.running = False
+            # HTTPクライアントをクリーンアップ
+            await close_http_client()
+    
+    async def run_service(self, service_name: str) -> None:
+        """特定のサービスを実行"""
+        if service_name not in self.sync_services:
+            raise ValueError(f"Service {service_name} not found")
+        
+        logger.info(f"Running service: {service_name}")
+        
+        try:
+            await self._run_sync_service(service_name, self.sync_services[service_name])
+        except Exception as e:
+            logger.error(f"Service {service_name} failed: {e}", exc_info=True)
+            raise
+    
+    async def run_continuous(self, interval_seconds: int = 3600) -> None:
+        """定期的にサービスを実行"""
+        logger.info(f"Starting continuous run with interval: {interval_seconds}s")
+        
+        while self.running:
+            try:
+                await self.run_all()
+            except Exception as e:
+                logger.error(f"Run failed: {e}", exc_info=True)
+            
+            # 次の実行まで待機
+            logger.info(f"Waiting {interval_seconds} seconds until next run")
+            await asyncio.sleep(interval_seconds)
+    
+    def stop(self):
+        """実行を停止"""
+        logger.info("Stopping service runner")
+        self.running = False
 
-def main():
-    """
-    コマンドライン引数に基づいて、指定されたサービスを実行します。
-    """
+
+def run_service_sync(service_name: str):
+    """特定のサービスを同期的に実行（後方互換性のため）"""
+    runner = ServiceRunner()
+    if service_name in runner.sync_services:
+        print(f"{service_name}を実行しています...")
+        try:
+            runner.sync_services[service_name].run()
+            print(f"{service_name}の実行が完了しました。")
+        except Exception as e:
+            print(f"{service_name}の実行中にエラーが発生しました: {str(e)}")
+    else:
+        print(f"サービス '{service_name}' が見つかりません。")
+
+
+async def main():
+    """メイン実行関数"""
+    import argparse
+    
     parser = argparse.ArgumentParser(description="Nookサービスを実行します")
     parser.add_argument(
-        "--service", 
-        type=str,
-        choices=["all", "paper", "github", "hacker_news", "tech_news", "business_news", "zenn", "qiita", "note", "reddit", "4chan", "5chan"],
+        "--service",
+        choices=["all", "github_trending", "hacker_news", "reddit", "zenn", "qiita", 
+                "note", "tech_news", "business_news", "paper", "4chan", "5chan"],
         default="all",
-        help="実行するサービス (デフォルト: all)"
+        help="実行するサービスを指定します"
+    )
+    parser.add_argument(
+        "--continuous",
+        action="store_true",
+        help="サービスを定期的に実行します"
+    )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=3600,
+        help="連続実行時の間隔（秒）"
     )
     
     args = parser.parse_args()
     
-    if args.service == "all" or args.service == "github":
-        run_github_trending()
+    runner = ServiceRunner()
     
-    if args.service == "all" or args.service == "hacker_news":
-        run_hacker_news()
+    # シグナルハンドラーの設定
+    def signal_handler(sig, frame):
+        logger.info(f"Received signal {sig}, shutting down...")
+        runner.stop()
+        sys.exit(0)
     
-    if args.service == "all" or args.service == "reddit":
-        run_reddit_explorer()
-
-    if args.service == "all" or args.service == "qiita":
-        run_qiita_explorer()
-
-    if args.service == "all" or args.service == "zenn":
-        run_zenn_explorer()
-
-    if args.service == "all" or args.service == "note":
-        run_note_explorer()
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     
-    if args.service == "all" or args.service == "tech_news":
-        run_tech_feed()
+    try:
+        if args.continuous:
+            await runner.run_continuous(args.interval)
+        elif args.service == "all":
+            await runner.run_all()
+        else:
+            await runner.run_service(args.service)
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
+        sys.exit(1)
 
-    if args.service == "all" or args.service == "business_news":
-        run_business_feed()
-    
-    if args.service == "all" or args.service == "paper":
-        run_paper_summarizer()
-    
-    if args.service == "all" or args.service == "4chan":
-        run_fourchan_explorer()
 
-    if args.service == "all" or args.service == "5chan":
-        run_fivechan_explorer()
+# 後方互換性のための関数（同期版）
+def run_github_trending():
+    run_service_sync("github_trending")
+
+def run_hacker_news():
+    run_service_sync("hacker_news")
+
+def run_reddit_explorer():
+    run_service_sync("reddit")
+
+def run_zenn_explorer():
+    run_service_sync("zenn")
+
+def run_qiita_explorer():
+    run_service_sync("qiita")
+
+def run_note_explorer():
+    run_service_sync("note")
+
+def run_tech_feed():
+    run_service_sync("tech_news")
+
+def run_business_feed():
+    run_service_sync("business_news")
+
+def run_paper_summarizer():
+    run_service_sync("paper")
+
+def run_fourchan_explorer():
+    run_service_sync("4chan")
+
+def run_fivechan_explorer():
+    run_service_sync("5chan")
+
+def run_all_services():
+    """すべてのサービスを実行（同期版）"""
+    asyncio.run(ServiceRunner().run_all())
+
 
 if __name__ == "__main__":
-    main() 
+    asyncio.run(main())

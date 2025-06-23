@@ -5,12 +5,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+import asyncio
 
-import requests
 from bs4 import BeautifulSoup
 
-from nook.common.storage import LocalStorage
-from nook.common.gpt_client import GPTClient
+from nook.common.base_service import BaseService
+from nook.common.decorators import handle_errors, log_execution_time
+from nook.common.exceptions import APIException
+from nook.common.http_client import AsyncHTTPClient
 
 
 @dataclass
@@ -36,7 +38,7 @@ class Repository:
     stars: int
 
 
-class GithubTrending:
+class GithubTrending(BaseService):
     """
     GitHubのトレンドリポジトリを収集するクラス。
     
@@ -55,15 +57,16 @@ class GithubTrending:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        self.storage = LocalStorage(storage_dir)
+        super().__init__("github_trending")
         self.base_url = "https://github.com/trending"
+        self.http_client = AsyncHTTPClient()
         
         # 言語の設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "languages.toml", "rb") as f:
             self.languages_config = tomli.load(f)
     
-    def run(self, limit: int = 10) -> None:
+    async def collect(self, limit: int = 10) -> None:
         """
         GitHubのトレンドリポジトリを収集して保存します。
         
@@ -76,21 +79,24 @@ class GithubTrending:
         
         # 一般的な言語のリポジトリを取得
         for language in self.languages_config["general"]:
-            repositories = self._retrieve_repositories(language, limit)
+            repositories = await self._retrieve_repositories(language, limit)
             all_repositories.append((language or "all", repositories))
+            await self.rate_limit()  # レート制限を遵守
         
         # 特定の言語のリポジトリを取得（少なめに）
         for language in self.languages_config["specific"]:
-            repositories = self._retrieve_repositories(language, limit // 2)
+            repositories = await self._retrieve_repositories(language, limit // 2)
             all_repositories.append((language, repositories))
+            await self.rate_limit()  # レート制限を遵守
         
         # 翻訳処理
-        all_repositories = self._translate_repositories(all_repositories)
+        all_repositories = await self._translate_repositories(all_repositories)
         
         # 保存
-        self._store_summaries(all_repositories)
+        await self._store_summaries(all_repositories)
     
-    def _retrieve_repositories(self, language: str, limit: int) -> List[Repository]:
+    @handle_errors(retries=3)
+    async def _retrieve_repositories(self, language: str, limit: int) -> List[Repository]:
         """
         特定の言語のトレンドリポジトリを取得します。
         
@@ -111,7 +117,7 @@ class GithubTrending:
             url += f"/{language}"
         
         try:
-            response = requests.get(url)
+            response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
             
             repositories = []
@@ -147,10 +153,10 @@ class GithubTrending:
             return repositories
         
         except Exception as e:
-            print(f"Error retrieving repositories for language {language}: {str(e)}")
-            return []
+            self.logger.error(f"Error retrieving repositories for language {language}: {str(e)}")
+            raise APIException(f"Failed to retrieve repositories for {language}") from e
 
-    def _translate_repositories(self, repositories_by_language: List[tuple[str, List[Repository]]]) -> List[tuple[str, List[Repository]]]:
+    async def _translate_repositories(self, repositories_by_language: List[tuple[str, List[Repository]]]) -> List[tuple[str, List[Repository]]]:
         """
         リポジトリの説明を日本語に翻訳します。
 
@@ -165,9 +171,6 @@ class GithubTrending:
             翻訳されたリポジトリリスト。
         """
         try:
-            # Grok APIクライアントの初期化
-            gpt_client = GPTClient()
-
             for language, repositories in repositories_by_language:
                 for repo in repositories:
                     if repo.description:
@@ -180,20 +183,21 @@ class GithubTrending:
                         {repo.description}
                         """
                         try:
-                            repo.description = gpt_client.generate_content(
+                            repo.description = await self.gpt_client.generate_async(
                                 prompt=prompt,
                                 temperature=0.3,
                                 max_tokens=1000  # max_tokensを追加
                             )
+                            await self.rate_limit()  # API呼び出し後のレート制限
                         except Exception as e:
-                            print(f"Error translating description for {repo.name}: {str(e)}")
+                            self.logger.error(f"Error translating description for {repo.name}: {str(e)}")
 
         except Exception as e:
-            print(f"Error in translation process: {str(e)}")
+            self.logger.error(f"Error in translation process: {str(e)}")
 
         return repositories_by_language
     
-    def _store_summaries(self, repositories_by_language: List[tuple[str, List[Repository]]]) -> None:
+    async def _store_summaries(self, repositories_by_language: List[tuple[str, List[Repository]]]) -> None:
         """
         リポジトリ情報を保存します。
         
@@ -222,4 +226,5 @@ class GithubTrending:
                 content += "---\n\n"
         
         # 保存
-        self.storage.save_markdown(content, "github_trending", today) 
+        filename = f"github_trending_{today.strftime('%Y-%m-%d')}.md"
+        await self.save_markdown(content, filename) 

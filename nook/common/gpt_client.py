@@ -2,6 +2,7 @@
 
 import os
 from typing import Dict, List, Optional, Union, Any
+import asyncio
 
 import openai
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -80,6 +81,43 @@ class GPTClient:
         )
         
         return response.choices[0].message.content
+    
+    async def generate_async(
+        self, 
+        prompt: str, 
+        system_instruction: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 1000
+    ) -> str:
+        """
+        非同期でテキストを生成します。
+        
+        Parameters
+        ----------
+        prompt : str
+            生成のためのプロンプト。
+        system_instruction : str, optional
+            システム指示。
+        temperature : float, default=0.7
+            生成の多様性を制御するパラメータ。
+        max_tokens : int, default=1000
+            生成するトークンの最大数。
+            
+        Returns
+        -------
+        str
+            生成されたテキスト。
+        """
+        # 同期メソッドを非同期で実行
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            self.generate_content,
+            prompt,
+            system_instruction,
+            temperature,
+            max_tokens
+        )
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def create_chat(
