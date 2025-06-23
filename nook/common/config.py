@@ -28,6 +28,7 @@ class BaseConfig(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"  # 余分な環境変数を無視
 
 
 class RedditConfig(BaseConfig):

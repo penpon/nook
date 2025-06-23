@@ -1,2 +1,12 @@
 {"timestamp": "2025-06-23T10:00:00", "service": "tech_feed", "model": "gpt-4.1-nano", "input_tokens": 1000, "output_tokens": 500, "cost_usd": 0.001, "cumulative_cost_usd": 0.001}
 {"timestamp": "2025-06-23T23:31:41.720816", "service": "test_gpt_client", "model": "gpt-4.1-nano", "input_tokens": 4, "output_tokens": 9, "cost_usd": 8.000000000000001e-06, "cumulative_cost_usd": 0.001008}
+{"timestamp": "2025-06-24T01:52:54.985237", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 276, "output_tokens": 527, "cost_usd": 0.00047680000000000004, "cumulative_cost_usd": 0.0014848}
+{"timestamp": "2025-06-24T01:52:55.587592", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 398, "output_tokens": 682, "cost_usd": 0.0006252, "cumulative_cost_usd": 0.00211}
+{"timestamp": "2025-06-24T01:52:55.910946", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 394, "output_tokens": 737, "cost_usd": 0.0006684, "cumulative_cost_usd": 0.0027784}
+{"timestamp": "2025-06-24T01:52:56.375856", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 369, "output_tokens": 887, "cost_usd": 0.0007834000000000001, "cumulative_cost_usd": 0.0035618}
+{"timestamp": "2025-06-24T01:52:56.608701", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 387, "output_tokens": 903, "cost_usd": 0.0007998000000000001, "cumulative_cost_usd": 0.0043616}
+{"timestamp": "2025-06-24T01:53:00.471751", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 1204, "output_tokens": 713, "cost_usd": 0.0008112, "cumulative_cost_usd": 0.0051728}
+{"timestamp": "2025-06-24T01:53:00.552046", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 1042, "output_tokens": 595, "cost_usd": 0.0006844, "cumulative_cost_usd": 0.0058572}
+{"timestamp": "2025-06-24T01:53:00.921382", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 980, "output_tokens": 803, "cost_usd": 0.0008384, "cumulative_cost_usd": 0.0066955999999999995}
+{"timestamp": "2025-06-24T01:53:00.930219", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 1188, "output_tokens": 750, "cost_usd": 0.0008376000000000001, "cumulative_cost_usd": 0.0075331999999999994}
+{"timestamp": "2025-06-24T01:53:01.259284", "service": "thread", "model": "gpt-4.1-nano", "input_tokens": 830, "output_tokens": 720, "cost_usd": 0.000742, "cumulative_cost_usd": 0.0082752}

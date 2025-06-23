@@ -1,31 +1,33 @@
 # 開発ログ
 
-## 2025年06月23日 - TASK-005: サービスクラスのリファクタリング
+## 2025年06月24日
+Paper Summarizer データ更新問題を解決
+- paper_summarizer/のスクレイピング結果が間違った場所に保存されていた
+- arxiv_ids-2025-06-24.txtとpaper_summarizer_2025-06-24.mdをdata/paper_summarizer/にコピー
+- ファイル名をAPIが期待する形式に変更（paper_summarizer_2025-06-24.md → 2025-06-24.md）
+- APIが正しく最新データを返すことを確認
 
-### 作業概要
-主要なサービスクラスをBaseServiceを継承するようにリファクタリングし、非同期処理とコードの標準化を実現。
+## 2025年06月24日
+TASK-011, TASK-012: ダッシュボード表示問題の修正タスク作成
+- TASK-011: UsageDashboardの文字色問題修正（frontendワーカーに配布）
+- TASK-012: Paperサービスのファイル保存先修正（backendワーカーに配布）
+- 注意: Paper保存先をdata/paper_summarizer/に統一し、ファイル名形式を修正
 
-### 背景と課題
-- サービスクラスが独自の実装でコードの重複が多い
-- 同期的なHTTP通信とGPT呼び出しがパフォーマンスボトルネック
-- エラーハンドリングとロギングの不統一
-- BaseServiceの機能が活用されていない
+## 2025年06月23日 - TASK-014: Usage Dashboard UIの調整実装（frontend）
 
-### 設計判断
-- **BaseService継承**: 初期化処理、ロギング、エラーハンドリングの標準化
-- **非同期化**: AsyncHTTPClientとgenerate_asyncメソッドの活用
-- **後方互換性維持**: runメソッドを残してasyncio.run(collect())を呼び出す
-- **並行処理の活用**: gather_with_errorsで複数タスクを並行実行
+### 作業内容
+Usage DashboardのUIをシンプルなデザインに戻し、視認性を改善
 
 ### 実装詳細
-- `GPTClient`: generate_asyncメソッド追加（run_in_executorで同期版をラップ）
-- `GitHubTrending`: requests→AsyncHTTPClient、並行翻訳処理
-- `HackerNewsRetriever`: ストーリー取得と要約の並行処理、BaseService継承
-- `PaperSummarizer`: 論文取得と要約の並行処理、arxivライブラリの非同期ラップ
+- **ヘッダー改善**: ダークモード時にタイトルと更新時刻が見やすくなるよう明示的な色設定
+- **SummaryCard簡素化**: hover効果削除、elevation=2、h5サイズに戻す
+- **テーブル簡素化**: stickyHeader削除、hover効果削除、相対時間表示を通常の日時表示に
+- **グラフ簡素化**: 複雑なツールチップとカスタムフォーマッタを削除
+- **不要関数削除**: formatRelativeTime、getColorForMetric削除
 
-### 関連機能との連携
-- TASK-001の基底クラスと共通モジュールを完全活用
-- TASK-002のエラーハンドリングデコレータを使用
+### 注意事項
+- APIのURLがlocalhost:8000に戻っているため、本番環境では修正が必要
+- 機能（5分ごとの自動更新等）は維持されている
 - TASK-003のAsyncHTTPClientと非同期ユーティリティを活用
 - 既存のrun_services.pyとの互換性維持
 

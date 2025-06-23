@@ -74,9 +74,9 @@ const UsageDashboard: React.FC = () => {
       setLoading(true);
       
       const [summaryResponse, serviceResponse, dailyResponse] = await Promise.all([
-        axios.get('/api/usage/summary'),
-        axios.get('/api/usage/by-service'),
-        axios.get('/api/usage/daily?days=30')
+        axios.get('http://localhost:8000/api/usage/summary'),
+        axios.get('http://localhost:8000/api/usage/by-service'),
+        axios.get('http://localhost:8000/api/usage/daily?days=30')
       ]);
 
       setSummary(summaryResponse.data);
@@ -137,62 +137,25 @@ const UsageDashboard: React.FC = () => {
     return new Date(dateString).toLocaleString('ja-JP');
   };
 
-  const formatRelativeTime = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
-    if (diffHours < 1) {
-      const diffMins = Math.floor(diffMs / (1000 * 60));
-      return `${diffMins}分前`;
-    } else if (diffHours < 24) {
-      return `${diffHours}時間前`;
-    } else {
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays}日前`;
-    }
-  };
-
-  const getColorForMetric = (type: string) => {
-    switch(type) {
-      case 'cost': return theme.palette.warning.main;
-      case 'tokens': return theme.palette.info.main;
-      case 'calls': return theme.palette.success.main;
-      default: return theme.palette.primary.main;
-    }
-  };
 
   const SummaryCard: React.FC<{ 
     title: string; 
     value: string; 
     icon: React.ReactNode; 
     color: string;
-    type: string;
-  }> = ({ title, value, icon, color, type }) => (
-    <Card 
-      elevation={3}
-      sx={{
-        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: theme.shadows[6]
-        }
-      }}
-    >
+  }> = ({ title, value, icon, color }) => (
+    <Card elevation={2}>
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box>
             <Typography color="textSecondary" gutterBottom variant="body2">
               {title}
             </Typography>
-            <Typography variant="h3" component="div" color={getColorForMetric(type)} fontWeight="bold">
+            <Typography variant="h5" component="div" color={color}>
               {value}
             </Typography>
           </Box>
-          <Box color={getColorForMetric(type)} sx={{ fontSize: '40px' }}>
-            {icon}
-          </Box>
+          <Box color={color}>{icon}</Box>
         </Box>
       </CardContent>
     </Card>
@@ -231,7 +194,6 @@ const UsageDashboard: React.FC = () => {
             value={formatNumber(summary?.todayTokens || 0)}
             icon={<ApiIcon />}
             color="primary.main"
-            type="tokens"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -240,7 +202,6 @@ const UsageDashboard: React.FC = () => {
             value={formatCurrency(summary?.todayCost || 0)}
             icon={<AttachMoneyIcon />}
             color="success.main"
-            type="cost"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -249,7 +210,6 @@ const UsageDashboard: React.FC = () => {
             value={formatCurrency(summary?.monthCost || 0)}
             icon={<CalendarTodayIcon />}
             color="warning.main"
-            type="cost"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -258,61 +218,43 @@ const UsageDashboard: React.FC = () => {
             value={formatNumber(summary?.totalCalls || 0)}
             icon={<TrendingUpIcon />}
             color="info.main"
-            type="calls"
           />
         </Grid>
       </Grid>
 
       {/* サービス別使用量テーブル */}
-      <Card elevation={3} sx={{ mb: 4 }}>
+      <Card elevation={2} sx={{ mb: 4 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             サービス別使用量
           </Typography>
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table stickyHeader>
+            <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>サービス名</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>呼び出し回数</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>入力トークン</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>出力トークン</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>コスト</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>最終呼び出し</TableCell>
+                  <TableCell>サービス名</TableCell>
+                  <TableCell align="right">呼び出し回数</TableCell>
+                  <TableCell align="right">入力トークン</TableCell>
+                  <TableCell align="right">出力トークン</TableCell>
+                  <TableCell align="right">コスト</TableCell>
+                  <TableCell align="right">最終呼び出し</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {serviceUsage.map((service) => (
-                  <TableRow 
-                    key={service.service}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: theme.palette.action.hover
-                      },
-                      transition: 'background-color 0.2s ease'
-                    }}
-                  >
-                    <TableCell sx={{ py: 2 }}>
+                  <TableRow key={service.service}>
+                    <TableCell>
                       <Chip 
                         label={service.service} 
                         variant="outlined" 
                         size="small"
-                        color="primary"
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ py: 2 }}>{formatNumber(service.calls)}</TableCell>
-                    <TableCell align="right" sx={{ py: 2 }}>{formatNumber(service.inputTokens)}</TableCell>
-                    <TableCell align="right" sx={{ py: 2 }}>{formatNumber(service.outputTokens)}</TableCell>
-                    <TableCell align="right" sx={{ py: 2 }}>
-                      <Typography color={getColorForMetric('cost')} fontWeight="medium">
-                        {formatCurrency(service.cost)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ py: 2 }}>
-                      <Typography variant="body2" color="textSecondary">
-                        {formatRelativeTime(service.lastCalled)}
-                      </Typography>
-                    </TableCell>
+                    <TableCell align="right">{formatNumber(service.calls)}</TableCell>
+                    <TableCell align="right">{formatNumber(service.inputTokens)}</TableCell>
+                    <TableCell align="right">{formatNumber(service.outputTokens)}</TableCell>
+                    <TableCell align="right">{formatCurrency(service.cost)}</TableCell>
+                    <TableCell align="right">{formatDate(service.lastCalled)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -322,46 +264,30 @@ const UsageDashboard: React.FC = () => {
       </Card>
 
       {/* 時系列グラフ */}
-      <Card elevation={3}>
+      <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             日別コスト推移（過去30日）
           </Typography>
-          <Box sx={{ width: '100%', height: 400 }}>
+          <Box sx={{ width: '100%', height: isMediumScreen ? 300 : 400 }}>
             <ResponsiveContainer>
               <BarChart data={dailyUsage}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="date" 
                   tick={{ fontSize: 12 }}
-                  interval={'preserveStartEnd'}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                  }}
+                  interval={isMediumScreen ? 'preserveStartEnd' : 0}
                 />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => formatCurrency(value)}
-                />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip 
                   formatter={(value: number) => [formatCurrency(value), 'コスト']}
-                  labelFormatter={(label) => {
-                    const date = new Date(label);
-                    return `日付: ${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-                  }}
-                  contentStyle={{
-                    backgroundColor: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 8
-                  }}
+                  labelFormatter={(label) => `日付: ${label}`}
                 />
                 <Legend />
                 <Bar 
                   dataKey="totalCost" 
-                  fill={getColorForMetric('cost')}
+                  fill={theme.palette.primary.main}
                   name="総コスト"
-                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
