@@ -614,3 +614,9 @@ TASK-011: ダッシュボードの文字表示問題を修正
 - UsageDashboard.tsxのタイトルと最終更新テキストの文字色を固定値に変更
 - MUIテーマ依存の条件分岐を削除し、確実に視認できる色を設定
 - 注意: ダークモード対応は行わず、固定色での実装
+
+## 2025年6月23日
+TASK-012: Paperサービスのファイル保存先とファイル名形式の修正
+- BaseServiceでLocalStorageの初期化時に"data/{service_name}"形式にパスを修正
+- paper_summarizer.pyでファイル名から"paper_summarizer_"プレフィックスを削除
+- 注意: この変更により全サービスのファイル保存先がdata/配下に統一される
