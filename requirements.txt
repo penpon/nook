@@ -5,7 +5,7 @@ streamlit>=1.22.0
 
 # HTTP/APIクライアント
 requests>=2.28.2
-httpx>=0.24.0
+httpx[http2]>=0.24.0
 
 # データ処理
 pydantic>=1.10.7

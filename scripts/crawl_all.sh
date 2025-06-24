@@ -16,9 +16,13 @@ fi
 
 # 環境変数を読み込む（本番環境優先）
 if [ -f ".env.production" ]; then
-    export $(cat .env.production | grep -v '^#' | xargs)
+    set -a
+    source .env.production
+    set +a
 elif [ -f ".env" ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    set -a
+    source .env
+    set +a
 fi
 
 echo "Starting data collection services..."
