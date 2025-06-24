@@ -23,10 +23,6 @@ data/api_usage/llm_usage_log.jsonl
 # BASIC認証ファイル（セキュリティ）
 nginx/.htpasswd
 
-# Generated data files (except specific dates)
-data/*
-
-
 # Temporary files
 *.tmp
 *.temp
