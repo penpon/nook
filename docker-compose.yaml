@@ -1,32 +1,54 @@
+version: '3.8'
+
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: nook-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - frontend-dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - nook-network
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: nook-backend
     restart: always
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./data:/app/data
+      - ./nook:/app/nook:ro
+      - ./logs:/app/logs
     env_file:
-      - .env
+      - .env.production
     networks:
       - nook-network
+    user: "1000:1000"
+    command: python -m nook.api.run --host 0.0.0.0 --port 8000
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: nook-frontend
-    restart: always
-    ports:
-      - "5173:5173"
-    depends_on:
-      - backend
+    container_name: nook-frontend-builder
+    volumes:
+      - frontend-dist:/app/dist
     networks:
       - nook-network
 
 networks:
   nook-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  frontend-dist:

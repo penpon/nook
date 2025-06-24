@@ -1,21 +1,41 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# 依存関係のインストール
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# uvのインストール
+RUN apt-get update && apt-get install -y \
+    curl \
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && apt-get remove -y curl \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# アプリケーションのコピー
-COPY . .
+# uvをPATHに追加
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# 非rootユーザーの作成
+RUN useradd -m -u 1000 appuser
+
+# requirements.txtをコピー（キャッシュ効率化）
+COPY requirements.txt .
+RUN uv pip install --system --no-cache -r requirements.txt
+
+# アプリケーションコードをコピー
+COPY nook ./nook
+COPY data ./data
+
+# ディレクトリの所有権を変更
+RUN chown -R appuser:appuser /app
+
+# 非rootユーザーに切り替え
+USER appuser
 
 # 環境変数の設定
 ENV PYTHONPATH=/app
-ENV HOST=0.0.0.0
-ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
 
-# ポートの公開
+# ポート公開
 EXPOSE 8000
 
-# アプリケーションの実行
-CMD ["python", "-m", "nook.api.run", "--host", "0.0.0.0", "--port", "8000"] 
+# デフォルトコマンド
+CMD ["python", "-m", "nook.api.run", "--host", "0.0.0.0", "--port", "8000"]
