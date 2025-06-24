@@ -42,8 +42,8 @@ nginx/.htpasswd
 # Environment files
 .env
 .env.*
-.env.production
 !.env.example
+!.env.production
 
 # Database files
 *.db
