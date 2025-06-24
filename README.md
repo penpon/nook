@@ -1,21 +1,17 @@
 # Nook - パーソナル情報ハブ
 
-Nookは、さまざまな情報ソース（Reddit、Hacker News、GitHub Trending、Tech Feed、arXiv論文）からコンテンツを収集し、
-一元的に表示するパーソナル情報ハブです。
+Nookは、さまざまな情報ソース（Reddit、Hacker News、GitHub Trending、技術ブログ、arXiv論文、ニュースサイト、掲示板）からコンテンツを収集し、一元的に表示するパーソナル情報ハブです。
 
-Discus0434氏の[Nook](https://github.com/discus0434/nook)をベースに、
-以下の変更を行っています。
-- 完全にローカルで動作するように変更(AWS/S3は使用していません)
-- 取得した記事をローカルストレージの~/nook/data/に保存
-- 生成AIのAPIを変更(GeminiからGrok3 APIに変更)
-- 天気APIを追加(OpenWeatherMap API)
-- フロントエンドを追加(React + Vite)
-- バックエンドを追加(FastAPI)
-- サービスを追加(GitHub Trending、Hacker News、Tech Feed、arXiv論文)
-- 取得した記事をすべて日本語に変換
+Discus0434氏の[Nook](https://github.com/discus0434/nook)をベースに、大幅な機能拡張と改良を行っています。
 
-*注意事項*
-- チャット機能は実装されていません。
+## 主な特徴
+
+- **11種類の情報ソース**から最新情報を自動収集
+- すべてのコンテンツを**日本語に自動翻訳・要約**
+- **LLM API使用量追跡**機能とダッシュボード
+- **ダークモード対応**（システム設定連動）
+- **Docker本番環境構成**（BASIC認証、nginx対応）
+- 完全に**ローカルで動作**（AWS/S3不要）
 
 ## 画面イメージ
 ### ダークモード
@@ -23,208 +19,236 @@ Discus0434氏の[Nook](https://github.com/discus0434/nook)をベースに、
 ### ライトモード
 ![画面イメージ](assets/screenshots/white-screenshot.png)
 
-## 機能
+## 対応サービス（11種類）
 
-- 複数の情報ソースからのコンテンツ収集と表示
-  - Reddit人気投稿
-  - Hacker News記事
-  - GitHub Trendingリポジトリ
-  - 技術ブログのRSSフィード
-  - arXiv論文
-- 日付ごとのコンテンツフィルタリング
+1. **Reddit Explorer** - 人気subredditの投稿を収集・要約
+2. **Hacker News Retriever** - 技術ニュースとディスカッション
+3. **Paper Summarizer** - arXiv論文の要約
+4. **GitHub Trending** - 人気急上昇リポジトリ
+5. **Tech Feed** - 技術ブログのRSSフィード
+6. **Business Feed** 📍 - ビジネスニュースRSSフィード
+7. **Zenn Explorer** 📍 - Zennの技術記事
+8. **Qiita Explorer** 📍 - Qiitaの技術記事
+9. **Note Explorer** 📍 - noteの技術記事
+10. **4chan Explorer** 📍 - 4chanの技術系スレッド
+11. **5chan Explorer** 📍 - 5chの技術系スレッド
 
-## アーキテクチャ
+📍 = 新規追加サービス
 
-Nookは以下のコンポーネントで構成されています：
+## 技術スタック
 
-1. **バックエンド（FastAPI）**
-   - コンテンツAPI
+### バックエンド
+- **Python 3.12** + **FastAPI**
+- **OpenAI API** (GPT-4互換) - テキスト生成・要約
+- **uv** - 高速パッケージマネージャー
+- **非同期処理** - httpx, asyncio
+- **エラーハンドリング** - 統一的な例外処理システム
 
-2. **フロントエンド（React + Vite）**
-   - サイドバー（ソース選択、日付選択、天気表示）
-   - コンテンツビューア
+### フロントエンド
+- **React 18** + **TypeScript** + **Vite**
+- **Material-UI** (@mui/material) - UIコンポーネント
+- **Tailwind CSS** - スタイリング（ダークモード対応）
+- **Recharts** - 使用量グラフ表示
 
-3. **サービス**
-   - Reddit Explorer：Redditの人気投稿を収集・要約
-   - Hacker News Retriever：Hacker Newsの記事を収集
-   - GitHub Trending：GitHubのトレンドリポジトリを収集
-   - Tech Feed：技術ブログのRSSフィードを監視・収集・要約
-   - Paper Summarizer：arXiv論文を収集・要約
-   - ローカルストレージ：収集したデータの保存
-   - Grok3 APIクライアント：テキスト生成・要約
+### インフラ
+- **Docker** + **Docker Compose**
+- **nginx** - リバースプロキシ、BASIC認証
+- **GitHub Actions** - CI/CD（予定）
 
-## Dockerを使用したセットアップ
-
-### 前提条件
-
-- Docker
-- Docker Compose
-
-### 環境変数の設定
-
-```bash
-# .envファイルの作成
-cp .env.example .env
-
-# .envファイルを編集して必要なAPIキーを設定
-```
-
-### Dockerでの実行（本番環境）
-
-```bash
-# コンテナのビルドと起動
-docker-compose up -d
-
-# フロントエンドは http://localhost:5173 でアクセス可能
-# バックエンドは http://localhost:8000 でアクセス可能
-```
-
-### Dockerでの実行（開発環境）
-
-```bash
-# 開発用コンテナのビルドと起動
-docker-compose -f docker-compose.dev.yaml up -d
-
-# フロントエンドは http://localhost:5173 でアクセス可能
-# バックエンドは http://localhost:8000 でアクセス可能
-```
-
-### コンテナの停止
-
-```bash
-# 本番環境
-docker-compose down
-
-# 開発環境
-docker-compose -f docker-compose.dev.yaml down
-```
-
-## 通常のセットアップ
+## セットアップ
 
 ### 前提条件
 
-- Python 3.10以上
-- Node.js 18以上
-- npm または yarn
-- 以下のAPIキー：
-  - Grok APIキー（チャット・要約機能用）
-  - Reddit API認証情報（Reddit Explorer用）
+- Docker & Docker Compose
+- Python 3.12以上（ローカル開発時）
+- Node.js 18以上（ローカル開発時）
 
-### インストール
+### 必要なAPIキー
+
+- **OPENAI_API_KEY** - OpenAI API (旧: GROK_API_KEY)
+- **REDDIT_CLIENT_ID** / **REDDIT_CLIENT_SECRET**
+- **OPENWEATHERMAP_API_KEY**
+
+### Docker本番環境セットアップ
 
 ```bash
 # リポジトリのクローン
 git clone https://github.com/Tomatio13/nook.git
 cd nook
 
-# バックエンド依存関係のインストール
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+# 初期設定スクリプトの実行
+chmod +x setup.sh
+./setup.sh
 
-# フロントエンド依存関係のインストール
+# .env.productionの編集
+# APIキーを設定してください
+vim .env.production
+
+# Docker Composeで起動
+docker-compose up -d
+
+# アクセス
+# http://localhost (ポート80)
+# BASIC認証のユーザー名・パスワードはsetup.sh実行時に設定
+```
+
+### ローカル開発環境セットアップ
+
+```bash
+# Python環境（uvを使用）
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+
+# フロントエンド
 cd nook/frontend
 npm install
-# または
-yarn install
 
 # 環境変数の設定
 cp .env.example .env
+# .envファイルを編集してAPIキーを設定
 
-# .envファイルの環境変数を設定
-export OPENWEATHERMAP_API_KEY=your_api_key
-export GROK_API_KEY=your_api_key
-export REDDIT_CLIENT_ID=your_client_id
-export REDDIT_CLIENT_SECRET=your_client_secret
-export REDDIT_USER_AGENT=your_user_agent
-```
-
-### 実行
-
-```bash
-# バックエンドの起動
+# バックエンド起動
 python -m nook.api.run
 
-# または直接uvicornを使用
-uvicorn nook.api.main:app --reload
-
-# フロントエンドの起動（別ターミナルで）
+# フロントエンド起動（別ターミナル）
 cd nook/frontend
 npm run dev
-# または
-yarn dev
 ```
 
-フロントエンドは通常 http://localhost:5173 で実行されます。
+## 使用方法
 
-## 情報の取得手順
-
-各情報ソースからデータを収集するには、以下のコマンドを使用します：
+### データ収集の実行
 
 ```bash
 # すべてのサービスを実行
-python -m nook.services.run_services --service all
+./scripts/crawl_all.sh
 
-# 特定のサービスのみ実行
+# または個別に実行
+python -m nook.services.run_services --service all
 python -m nook.services.run_services --service reddit
-python -m nook.services.run_services --service hackernews
-python -m nook.services.run_services --service github
-python -m nook.services.run_services --service techfeed
-python -m nook.services.run_services --service paper
+python -m nook.services.run_services --service hacker_news
+python -m nook.services.run_services --service github_trending
+python -m nook.services.run_services --service paper_summarizer
+python -m nook.services.run_services --service tech_feed
+python -m nook.services.run_services --service business_feed
+python -m nook.services.run_services --service zenn
+python -m nook.services.run_services --service qiita
+python -m nook.services.run_services --service note
+python -m nook.services.run_services --service 4chan
+python -m nook.services.run_services --service 5chan
 ```
 
 ### データの保存場所
 
-収集されたデータは `data/` ディレクトリに保存されます：
-
 ```
 data/
-├── github_trending/     # GitHub Trendingデータ
+├── reddit_explorer/      # Reddit投稿
 ├── hacker_news/         # Hacker Newsデータ
-├── paper_summarizer/    # arXiv論文データ
-├── reddit_explorer/     # Redditデータ
-└── tech_feed/           # 技術ブログフィードデータ
+├── paper_summarizer/    # arXiv論文
+├── github_trending/     # GitHubトレンド
+├── tech_feed/          # 技術ブログ
+├── business_feed/      # ビジネスニュース
+├── zenn_explorer/      # Zenn記事
+├── qiita_explorer/     # Qiita記事
+├── note_explorer/      # note記事
+├── fourchan_explorer/  # 4chanスレッド
+├── fivechan_explorer/  # 5chスレッド
+└── api_usage/          # LLM使用量ログ
 ```
 
-各サービスは日付ごとにファイルを作成します（例：`2023-04-15.md`）。
+## APIエンドポイント
 
-## 開発
+### コンテンツ取得
+- `GET /api/content/{source}?date={YYYY-MM-DD}`
+  - source: 上記サービス名のいずれか
+  - date: 取得したい日付（省略時は最新）
 
-### プロジェクト構造
+### LLM使用量
+- `GET /api/usage` - 全体の使用量統計
+- `GET /api/usage/by-service` - サービス別統計
+- `GET /api/usage/daily` - 日別統計
+- `GET /api/usage/history` - 使用履歴（過去30日）
+
+### その他
+- `GET /health` - ヘルスチェック
+
+## 新機能
+
+### LLM API使用量追跡
+- リアルタイムでAPI使用量とコストを記録
+- サービス別・日別の詳細統計
+- 使用量ダッシュボード（グラフ表示）
+
+### エラーハンドリングシステム
+- 統一的なエラー処理
+- 構造化エラーレスポンス
+- エラーメトリクスの収集
+
+### ダークモード対応
+- システム設定に連動
+- Tailwind CSSベースの実装
+- すべてのコンポーネントで対応
+
+## ディレクトリ構造
 
 ```
 nook/
-├── api/                  # FastAPI バックエンド
-│   ├── models/           # データモデル
-│   └── routers/          # APIルーター
-├── common/               # 共通ユーティリティ
-│   ├── storage.py        # ローカルストレージ
-│   └── grok_client.py    # Grok3 APIクライアント
-├── frontend/             # React + Vite フロントエンド
-│   ├── src/              # ソースコード
-│   │   ├── components/   # UIコンポーネント
-│   │   └── api/          # APIクライアント
-│   └── public/           # 静的ファイル
-└── services/             # サービス
-    ├── github_trending/  # GitHub Trendingサービス
-    ├── hacker_news/      # Hacker Newsサービス
-    ├── paper_summarizer/ # 論文要約サービス
-    ├── reddit_explorer/  # Redditエクスプローラー
-    └── tech_feed/        # 技術フィードサービス
+├── nook/
+│   ├── api/             # FastAPI バックエンド
+│   ├── common/          # 共通モジュール
+│   ├── services/        # 各種サービス実装
+│   └── frontend/        # React フロントエンド
+├── data/                # 収集データ保存
+├── logs/                # アプリケーションログ
+├── nginx/               # nginx設定
+├── claude/work/         # タスク管理
+├── worktrees/          # Git worktree
+├── scripts/            # ユーティリティスクリプト
+├── docker-compose.yaml # 本番環境構成
+├── Dockerfile.backend  # バックエンド用
+├── Dockerfile.frontend # フロントエンド用
+├── setup.sh           # セットアップスクリプト
+├── CLAUDE.md          # 開発ガイドライン
+└── DEVELOPMENT_LOG.md # 開発履歴
 ```
+
+## 開発ガイドライン
+
+詳細な開発ガイドラインは[CLAUDE.md](./CLAUDE.md)を参照してください。
+
+- ロールシステム（Boss/Worker/Researcher）
+- タスク管理フロー
+- Git worktreeを使った並行開発
+- コミット規約
+
+開発履歴は[DEVELOPMENT_LOG.md](./DEVELOPMENT_LOG.md)に記録されています。
+
+## トラブルシューティング
+
+### よくある問題
+
+1. **APIキーエラー**
+   - `.env`または`.env.production`にAPIキーが正しく設定されているか確認
+
+2. **Docker起動エラー**
+   - ポート80が使用中でないか確認
+   - `docker-compose logs`でエラーログを確認
+
+3. **データ取得エラー**
+   - APIレート制限に達していないか確認
+   - ネットワーク接続を確認
 
 ## ライセンス
 
 GNU AFFERO GENERAL PUBLIC LICENSE
 
 ## 謝辞
-- [Nook](https://github.com/discus0434/nook)
+
+- [Nook (Original)](https://github.com/discus0434/nook)
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [React](https://reactjs.org/)
 - [Vite](https://vitejs.dev/)
-- [OpenWeatherMap](https://openweathermap.org/)
-- [Grok](https://grok.ai/)
-- [Reddit API](https://www.reddit.com/dev/api/)
-- [Hacker News API](https://github.com/HackerNews/API)
-- [GitHub](https://github.com/)
-- [arXiv](https://arxiv.org/)
+- [Material-UI](https://mui.com/)
+- [OpenAI](https://openai.com/)
+- その他すべてのオープンソースプロジェクト
