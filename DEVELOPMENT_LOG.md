@@ -123,6 +123,18 @@ GitHubサービス名を修正（github → github_trending）
 - スクリプトの正常動作を復旧
 - エラーメッセージの解消
 
+### TASK-019: サービス名検出ロジック修正
+gpt_client.pyの_get_calling_service()メソッドを改善
+- services/ディレクトリ内のサービスのみをサービス名として認識
+- thread.pyなどの誤検出を防止
+- LLM使用量ログの正確性向上
+
+### TASK-020: 既存LLMログ修正
+llm_usage_log.jsonlの誤ったサービス名を修正
+- service: "thread" → "chan_explorer"に変更
+- 修正スクリプトでバックアップを作成
+- ダッシュボードでのサービス名表示を正常化
+
 ## 今後の課題
 1. **ログファイルの肥大化対策**
    - 定期的なローテーション機能の実装が必要
