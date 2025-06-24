@@ -262,5 +262,5 @@ class HackerNewsRetriever(BaseService):
             content += "---\n\n"
         
         # 保存
-        filename = f"hacker_news_{today.strftime('%Y-%m-%d')}.md"
+        filename = f"{today.strftime('%Y-%m-%d')}.md"
         await self.save_markdown(content, filename)

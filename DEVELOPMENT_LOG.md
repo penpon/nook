@@ -128,3 +128,13 @@ TASK-018: CLAUDE.md改善
 - Workerの責任にworktree作業の明確な指示を追加
 - よくある間違いセクション（10）を新設
 - 注意: worktree未使用による問題を防ぐための改善
+
+AuthenticationError問題の修正
+- 原因: .envファイルのOPENAI_API_KEYが二重引用符で囲まれていた
+- 影響: 24日の記事がすべて「RetryError[AuthenticationError]」となっていた
+- 解決: 引用符を削除し、実行中のAPIサーバーを再起動する必要がある
+
+ファイル名プレフィックスの統一
+- HackerNewsとGitHub Trendingサービスがプレフィックス付きファイル名を使用していた
+- すべてのサービスでプレフィックスなしの形式（YYYY-MM-DD.md）に統一
+- 既存のプレフィックス付きファイルもリネーム済み
