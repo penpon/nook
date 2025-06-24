@@ -13,6 +13,9 @@ CLAUDE.md
 # Git worktrees
 worktrees/
 
+# data
+data/
+
 # Logs - 一時的なログファイル
 logs/*.log
 *.log
