@@ -2,7 +2,7 @@
 /claude/work/scripts
 /claude/work/agents/roles
 /claude/templates
-/CLAUDE.md
+CLAUDE.md
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/
@@ -86,3 +86,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Python virtual environment
+venv/
+.venv/
