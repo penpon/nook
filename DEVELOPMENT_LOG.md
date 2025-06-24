@@ -633,3 +633,10 @@ TASK-013: ダッシュボードの文字色を再修正
 - App.tsxからdarkMode propを渡してTailwindクラスで条件分岐
 - タイトル: darkMode時は'text-white'、ライト時は'text-gray-900'
 - 最終更新: darkMode時は'text-gray-300'、ライト時は'text-gray-600'
+
+## 2025年6月24日
+プロジェクト全体の異常チェックと修正
+- crawl_all.sh: .env読み込みエラーを修正（export構文からsource方式に変更）
+- HTTP 403エラー: 多数のサイトでアクセス拒否（User-Agent未設定が原因）
+- 5chanエラー: スレッド404エラーのハンドリング改善が必要
+- 作成タスク: TASK-015（HTTP 403修正）、TASK-016（5chanエラー処理改善）
