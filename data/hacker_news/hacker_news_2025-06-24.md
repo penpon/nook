@@ -2,532 +2,271 @@
 
 ## [Vera C. Rubin Observatory first images](https://rubinobservatory.org/news/rubin-first-look/cosmic-treasure-chest)
 
-スコア: 346
+スコア: 404
 
 **要約**:
-1. Vera C. Rubin Observatory（ルビン天文台）の最初の画像が公開され、宇宙の新たな観測の幕開けを示しています。  
-2. 重要なポイント  
-- ルビン天文台は、広範囲の天体観測を行うための次世代望遠鏡です。  
-- 最初の画像は、宇宙の構造や天体の詳細な観測に役立つ貴重なデータを提供します。  
-- この観測所は、ダークマターやダークエネルギーの研究に重要な役割を果たすと期待されています。  
-- 画像公開により、天文学界や一般の関心が高まっています。  
-3. この記事が注目を集めた理由  
-- ルビン天文台は、宇宙の深淵を解明するための重要なツールであり、その最初の画像公開は天文学の進展を示すマイルストーンだからです。
-
----
-
-## [Excalidraw+ Is Now SoC 2 Certified](https://plus.excalidraw.com/blog/excalidraw-soc2)
-
-スコア: 59
-
-**要約**:
-1. Excalidraw+が正式にSOC 2タイプI（System and Organization Controls 2 Type I）認証を取得したことを発表し、その取得過程や学びについて説明している。
-
-2. 重要なポイント
-- SOC 2タイプI認証は、セキュリティとプライバシー管理の信頼性を示す重要な認証である。
-- 認証取得のために使用したツールや導入したポリシー、インフラの変更について詳細に解説している。
-- 認証取得の過程で得た教訓や改善点を共有している。
-- この認証により、ユーザーやパートナーからの信頼性が向上すると期待される。
-
-3. この記事が注目を集めた理由
-- セキュリティ認証の取得は企業の信頼性向上に直結するため、注目されている。
-- オープンソースの図表作成ツールであるExcalidraw+が、セキュリティ面でも高い基準を満たしたことが話題となっている。
-- 技術的な取り組みと運用改善の具体的な事例として関心を集めている。
-
----
-
-## [Backyard Coffee and Jazz in Kyoto](https://thedeletedscenes.substack.com/p/backyard-coffee-and-jazz-in-kyoto)
-
-スコア: 441
-
-**要約**:
-1. 京都の庭園の中でコーヒーとジャズを楽しむユニークな体験を紹介し、人々が情熱を追求することの素晴らしさを伝えている。
-
-2. 重要なポイント
-- 京都の静かな庭園で行われるコーヒーとジャズのイベント
-- 「魔法のような」体験と表現される特別な雰囲気
-- 人々が自分の情熱や趣味を追求することの価値を強調
-- 地域の文化と音楽、コーヒー文化の融合
-- 参加者から高い評価と感動の声が寄せられている
-
-3. この記事が注目を集めた理由
-- 京都という歴史と文化の街でのユニークな体験
-- 音楽とコーヒーという普遍的な趣味を通じて人々の情熱を紹介
-- 「魔法のような」と表現される特別な体験の魅力
-
----
-
-## [Is Mathematics Mostly Chaos or Mostly Order?](https://www.quantamagazine.org/is-mathematics-mostly-chaos-or-mostly-order-20250620/)
-
-スコア: 23
-
-**要約**:
-1. 数学における無限の新たな概念が、従来の数学的宇宙（マスマティカル・ユニバース）の定義に挑戦している。  
-2. 重要なポイント  
-   - これらの新しい無限の概念は、従来の無限の階層や性質とは異なる性質を持つ。  
-   - これにより、数学の基礎や無限の理解に新たな視点がもたらされる可能性がある。  
-   - 長年の計画だった数学的宇宙の定義に対して、根本的な見直しや再考を促している。  
-3. この記事が注目を集めた理由  
-   - 無限に関する基本的な理解を覆す可能性があり、数学の根幹に関わる重要な発見と考えられているため。
-
----
-
-## ['Dragon prince' dinosaur discovery 'rewrites' T.rex family tree](https://www.bbc.com/news/articles/cy8dzv3vp5jo)
-
-スコア: 26
-
-**要約**:
-1. モンゴルの博物館コレクションから発見された恐竜の化石は、「ドラゴンプリンス」と呼ばれ、巨大なティラノサウルス（T.rex）の祖先であることが判明し、恐竜の系統樹を書き換える発見となった。
-
-2. 重要なポイント
-- 発見された恐竜は、新種の恐竜「ドラゴンプリンス」と命名された。
-- この恐竜は、ティラノサウルス科（Tyrannosauridae）の進化の初期段階に位置づけられる。
-- 化石はモンゴルの古代地層から見つかり、長い間未発見だった系統の一部を明らかにした。
-- この発見により、ティラノサウルスの祖先と進化の過程についての理解が深まった。
-
-3. この記事が注目を集めた理由
-- 恐竜の進化系統に関する従来の知識を大きく更新する可能性があるため。
-- 発見された化石が長い間未解明だった恐竜の系統の一端を示している点。
-- 「ドラゴンプリンス」という新種の恐竜の発見が、一般の関心を引く魅力的な内容であるため。
-
----
-
-## [The FPGA turns 40](https://www.adiuvoengineering.com/post/the-fpga-turns-40)
-
-スコア: 65
-
-**要約**:
-1. FPGA（フィールドプログラマブルゲートアレイ）の誕生から40周年を迎え、その進化と技術的進歩が紹介されている。  
-2. 重要なポイント：  
-- 最初の商用FPGAは1985年のXilinx XC2064で、64の構成可能なロジックブロックを備えていた。  
-- 現在の最大のAMD（Xilinxの後継）FPGAは8.9百万のシステムロジックセルを持ち、8.2百万のフリップフロップと4百万のロジック要素を搭載している。  
-- FPGAは電子工学において重要な役割を果たし、進化し続けている。  
-3. この記事が注目を集めた理由は、FPGAの歴史と技術的進歩を振り返り、その重要性と未来の可能性について理解を深めることができる点にある。
-
----
-
-## [How I use my terminal](https://jyn.dev/how-i-use-my-terminal/)
-
-スコア: 320
-
-**要約**:
-1. 著者は、Visual Studio Code（VSCode）のすべての機能を再現しようと工夫しながら、ターミナルの使い方を工夫していることを紹介している。
-
-2. 重要なポイント
-- VSCodeの機能をできるだけターミナルで再現しようとしている
-- ターミナルのカスタマイズやスクリプトを駆使して効率化を図っている
-- コマンドラインツールや設定を駆使して、IDEの機能に近づけている
-- 自分の作業環境を最適化し、効率的な開発を目指している
-
-3. この記事が注目を集めた理由
-- 開発者が自分の作業環境を徹底的にカスタマイズし、効率化を追求している点
-- VSCodeのような統合開発環境（IDE）をターミナルだけで再現しようとする工夫が興味深い
-
----
-
-## [Fairphone 6 is switching to a new design that's even more sustainable](https://www.androidcentral.com/phones/fairphone-6-official-render-leaks-showcase-its-sustainable-design)
-
-スコア: 168
-
-**要約**:
-1. Fairphone 6は、新しいデザインに切り替わり、より持続可能性を重視したモデルとなることが示唆されています。リークされたレンダリング画像から、修理容易性へのこだわりが伺えます。
-
-2. 重要なポイント
-- Fairphone 6は、従来よりも修理しやすい設計に進化
-- 新デザインは環境負荷を低減し、長寿命化を目指している
-- 画像リークにより、外観や内部構造の詳細な情報が明らかに
-- 持続可能性と修理性を両立させたスマートフォンの新たな方向性を示唆
-
-3. この記事が注目を集めた理由
-- 持続可能な電子機器の開発に対する関心の高まり
-- Fairphoneの修理しやすさと環境配慮の取り組みが注目されたため
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1133969c0 state=finished raised AuthenticationError>]
 
 ---
 
 ## [Can your terminal do emojis? How big?](https://dgl.cx/2025/06/can-your-terminal-do-emojis)
 
-スコア: 9
+スコア: 57
 
 **要約**:
-1.  
-この記事は、ターミナル（特にVT100）で絵文字や大きな文字を表示する方法について説明しています。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113383650 state=finished raised AuthenticationError>]
 
-2.  
-- 絵文字はスクリプトの出力を目立たせるのに便利である。  
-- VT100は「DECDHL（DECダブルハイトライン）」エスケープシーケンスを使って、行全体のスタイルや大きさを変更できる。  
-- 大きな文字は、上下に分割された2行の組み合わせで表示される。  
-- 実際には、フォントのスケーリングによって大きく見せている可能性がある。
+---
 
-3.  
-古典的なターミナルの機能と、その拡張性に興味を持つ技術者や、レトロな技術を活用した表現に関心のある読者の注目を集めている。
+## [Touring the Zig•EM code-scape (2024)](https://zigem.openem.org/post-003/)
+
+スコア: 6
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x112c37b60 state=finished raised AuthenticationError>]
+
+---
+
+## [Backyard Coffee and Jazz in Kyoto](https://thedeletedscenes.substack.com/p/backyard-coffee-and-jazz-in-kyoto)
+
+スコア: 471
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113381cd0 state=finished raised AuthenticationError>]
+
+---
+
+## [Excalidraw+ Is Now SoC 2 Certified](https://plus.excalidraw.com/blog/excalidraw-soc2)
+
+スコア: 150
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x112be5610 state=finished raised AuthenticationError>]
+
+---
+
+## [Fairphone 6 is switching to a new design that's even more sustainable](https://www.androidcentral.com/phones/fairphone-6-official-render-leaks-showcase-its-sustainable-design)
+
+スコア: 227
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113396ed0 state=finished raised AuthenticationError>]
+
+---
+
+## [How I use my terminal](https://jyn.dev/how-i-use-my-terminal/)
+
+スコア: 367
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113312e10 state=finished raised AuthenticationError>]
+
+---
+
+## ['Dragon prince' dinosaur discovery 'rewrites' T.rex family tree](https://www.bbc.com/news/articles/cy8dzv3vp5jo)
+
+スコア: 46
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1136ff9e0 state=finished raised AuthenticationError>]
+
+---
+
+## [The FPGA turns 40](https://www.adiuvoengineering.com/post/the-fpga-turns-40)
+
+スコア: 87
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113383d10 state=finished raised AuthenticationError>]
+
+---
+
+## [Is Mathematics Mostly Chaos or Mostly Order?](https://www.quantamagazine.org/is-mathematics-mostly-chaos-or-mostly-order-20250620/)
+
+スコア: 44
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113338d70 state=finished raised AuthenticationError>]
 
 ---
 
 ## [A Deep Dive into Solid Queue for Ruby on Rails](https://blog.appsignal.com/2025/06/18/a-deep-dive-into-solid-queue-for-ruby-on-rails.html)
 
-スコア: 74
+スコア: 93
 
 **要約**:
-1. 記事の主な内容  
-Ruby on Rails向けのキューシステム「Solid Queue」の高度な機能について詳しく解説している。
-
-2. 重要なポイント  
-- Solid Queueの非同期処理やジョブ管理の仕組みを深掘りしている。  
-- 高度な設定やカスタマイズ方法について具体例を交えて説明している。  
-- パフォーマンス最適化やエラー処理のベストプラクティスも紹介している。  
-- Railsアプリケーションにおける実践的な適用例を示している。  
-
-3. この記事が注目を集めた理由  
-Ruby on Railsの開発者やエンジニアにとって、実用的なキュー管理の高度な知識や最新の技術動向を得られる内容であるため。
-
----
-
-## [Marble Blast](https://marbleblast.vaniverse.io/)
-
-スコア: 33
-
-**要約**:
-1. この記事は、Marble Blast GoldおよびPlatinumのウェブ版ポートであり、ブラウザやモバイルデバイスでプレイできる3Dプラットフォームゲームの紹介です。  
-2.  
-- 4100以上の多彩なレベルを収録している。  
-- プレイヤーはマーブルを操作してできるだけ早くゴールを目指す。  
-- オリジナルのゲーム体験をオンラインで手軽に楽しめる。  
-- ゲームの移植により、従来のダウンロード不要でアクセス可能。  
-3. このゲームのウェブ版化は、クラシックゲームの手軽さとアクセス性の向上に注目を集めているためです。
-
----
-
-## [2025 Iberia Blackout Report [pdf]](https://media.licdn.com/dms/document/media/v2/D4D1FAQGcyyYYrelkNg/feedshare-document-pdf-analyzed/B4DZeBtlohGsAk-/0/1750227910090?e=1750896000&v=beta&t=uEftse3BPsTjdLQ3DmjoVkadhUGqf7-MfYj_6UnSS28)
-
-スコア: 143
-
-**要約**:
-要約の生成中にエラーが発生しました: RetryError[<Future at 0x10c75b020 state=finished raised RateLimitError>]
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x11333a630 state=finished raised AuthenticationError>]
 
 ---
 
 ## [Show HN: Comparator - I built a free, open-source app to compare job offers](https://comparator-one.vercel.app/)
 
-スコア: 15
+スコア: 27
 
 **要約**:
 本文情報がないため要約できません。
 
 ---
 
-## [Ocarina of Time Randomizer](https://ootrandomizer.com/)
+## [2025 Iberia Blackout Report [pdf]](https://media.licdn.com/dms/document/media/v2/D4D1FAQGcyyYYrelkNg/feedshare-document-pdf-analyzed/B4DZeBtlohGsAk-/0/1750227910090?e=1750896000&v=beta&t=uEftse3BPsTjdLQ3DmjoVkadhUGqf7-MfYj_6UnSS28)
 
-スコア: 127
-
-**要約**:
-1. 『ゼルダの伝説 時のオカリナ（Ocarina of Time）』のアイテムランダマイザー（Randomizer）ツールを使うことで、全く新しいハイラルの体験が可能になることを紹介しています。
-
-2. 重要なポイント
-- アイテムの配置をランダムに変更し、異なるゲームプレイ体験を提供。
-- 生成されたシード（Seed）を使ってプレイを開始できる。
-- ZSR（Zelda SpeedRuns）の技術を活用している。
-- リプレイ性と挑戦性を高めるためのツールとして人気。
-- コミュニティやプレイヤーから高い関心を集めている。
-
-3. この記事が注目を集めた理由
-- 人気の高いクラシックゲーム『ゼルダの伝説 時のオカリナ』の新しい遊び方を提案している点。
-- ゲームのリプレイ性を大幅に向上させるツールとして注目されている点。
-- ゲーム改造やコミュニティの活動に関心がある読者の関心を引いている。
-
----
-
-## [First methane-powered sea spiders found crawling on the ocean floor](https://www.cnn.com/2025/06/17/science/spiders-deep-sea-methane-new-species)
-
-スコア: 87
+スコア: 162
 
 **要約**:
-1. 米西海岸の科学者たちが、海底を這うメタン（温室効果ガス）を餌とする新種の深海クモの仲間である海蜘蛛（シースパイダー）を3種発見した。  
-2. 重要なポイント：  
-- これらの海蜘蛛は、メタンをエネルギー源とする稀少な例である。  
-- 発見されたのは、従来知られていなかった深海の新種。  
-- これにより、深海生態系やメタンの役割についての理解が深まる可能性がある。  
-- 研究は、気候変動や海洋環境の新たな側面を示唆している。  
-3. この記事が注目を集めた理由は、温室効果ガスであるメタンを食べる新種の海洋生物の発見が、気候変動や海洋生態系の理解に新たな視点をもたらすためです。
-
----
-
-## [GitHub CEO: manual coding remains key despite AI boom](https://www.techinasia.com/news/github-ceo-manual-coding-remains-key-despite-ai-boom)
-
-スコア: 199
-
-**要約**:
-1. GitHubのCEOは、AI技術の進展にもかかわらず、手動によるコーディング（manual coding）が依然として重要であると述べている。
-
-2. 重要なポイント
-- AIはコード生成や補助に役立つが、完全な自動化には限界がある。
-- 開発者の創造性や問題解決能力は、AIでは代替できない重要なスキル。
-- 手動コーディングは、コードの理解や品質管理において不可欠。
-- AIと人間のコーディングは補完的な関係にあると強調。
-
-3. この記事が注目を集めた理由
-- AI技術の急速な発展と普及にもかかわらず、基本的なコーディングの重要性を再認識させる内容であるため。
-
----
-
-## [I ported pigz from Unix to Windows](https://blog.kowalczyk.info/article/4/how-i-ported-pigz-from-unix-to-windows.html)
-
-スコア: 57
-
-**要約**:
-1. Unix向けの圧縮ツール「pigz」をWindowsに移植したことを報告しています。
-
-2. 重要なポイント
-- pigzは並列圧縮を行う高速なgzip（GNU zip）ツールです。
-- Windows環境でも利用できるように移植作業を行った。
-- ユーザからのフィードバックや改善点についての意見募集が行われている。
-- 移植により、Windowsユーザも高性能な圧縮ツールを利用可能に。
-
-3. この記事が注目を集めた理由
-- 高速圧縮ツールのWindows対応は、多くのユーザにとって有用であり関心を引いた。
-- オープンソースソフトウェアのクロスプラットフォーム化の事例として注目された。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1137379b0 state=finished raised AuthenticationError>]
 
 ---
 
 ## [I Solved a 7-Day Calculation Problem in a Weekend](https://medium.com/@jithinsankar.nk/how-i-solved-a-7-day-calculation-problem-in-a-weekend-3fb1a54f2518)
 
-スコア: 5
+スコア: 15
 
 **要約**:
-1. 記事の主な内容  
-著者は、週末を利用して7日間の計算問題を解決し、効率的なソリューションを見つけた経験を紹介しています。
-
-2. 重要なポイント  
-- 以前のプロジェクトでSaaS（Software as a Service）アプリケーションを開発中だった。  
-- アプリには価格設定用のスライダー（$0.00から$10.00まで）があり、操作に応じて価格を表示していた。  
-- 複雑な計算やロジックの最適化に時間を要したが、週末を使って解決策を見つけた。  
-- 問題解決の過程で効率的なアルゴリズムやコーディング手法を採用した。  
-- この経験から、短期間で難題を解決できるスキルと工夫の重要性を示している。
-
-3. この記事が注目を集めた理由  
-短期間で複雑な問題を解決した経験談と、その過程で得た知見が、多くのエンジニアや開発者にとって参考になる点にあります。また、週末だけで問題を解決したエピソードが、効率的な働き方や問題解決の工夫を示しているためです。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x112be68d0 state=finished raised AuthenticationError>]
 
 ---
 
-## [Minimal Boolean Formulas](https://research.swtch.com/boolean)
+## [QuEra Quantum System Leverages Neutral Atoms to Compute](https://www.nextplatform.com/2025/06/20/quera-quantum-system-leverages-neutral-atoms-to-compute/)
 
-スコア: 89
+スコア: 9
 
 **要約**:
-1. 記事の主な内容  
-この研究は、5変数のブール関数を表現するのに必要な最小のANDやOR演算子の数を求め、その計算方法や効率化の工夫について詳述している。
-
-2. 重要なポイント  
-- 5変数の任意のブール関数を表現するのに必要な最小のANDまたはOR演算子の数は28であることを2010年に計算で明らかにした。  
-- 2〜4変数の関数についても最難関の関数（パリティ関数）の必要演算数を示し、パリティが常に最難関かどうかなどの疑問に触れている。  
-- 計算には類似の問題を解くためのフロイド・ワーシャルアルゴリズムを応用した反復的なプログラムを用いた。  
-- 計算の効率化のため、関数の対称性や入力の置換・反転の性質を利用した最適化手法を導入。  
-- XOR演算を含めることで最小演算数がさらに少なくなることも示し、計算時間の短縮と結果の検証を行った。
-
-3. この記事が注目を集めた理由  
-- ブール関数の最小表現の複雑さに関する基本的な事実を初めて明らかにした点。  
-- 計算手法の工夫と大規模な計算を駆使した実証例を詳細に解説し、計算理論や論理設計の研究に貢献している点。  
-- Knuthの著作と比較しながら、効率的なアルゴリズムの改良や最適化技術を紹介している点。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1133943e0 state=finished raised AuthenticationError>]
 
 ---
 
-## [Resurrecting flip phone typing as a Linux driver](https://github.com/FoxMoss/libt9)
+## [Making TRAMP faster](https://coredumped.dev/2025/06/18/making-tramp-go-brrrr./)
 
-スコア: 81
+スコア: 181
 
 **要約**:
-1. この記事は、Linux用のT9（携帯電話の古典的な文字入力方式）タイピングシステムを作成するためのCライブラリ「libt9」の開発について紹介しています。
-
-2. 重要なポイント
-- 「libt9」は、古いフィルムフォン（折りたたみ式携帯電話）のタイピングを再現するためのオープンソースライブラリ。
-- GitHub上で公開されており、誰でも貢献や利用が可能。
-- T9入力システムの再現により、レトロな携帯電話の操作感をLinux環境で体験できる。
-- このプロジェクトは、レトロ技術の復活や、携帯電話の入力方式の研究・再現に役立つ。
-
-3. この記事が注目を集めた理由
-- レトロな携帯電話の技術を現代のLinux環境で再現しようとするユニークな試み。
-- オープンソースコミュニティによる新たなツールの開発と貢献の可能性。
-- 旧式の入力方式に対する興味や、技術の再利用・再発見に関心が高まっている点。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113709880 state=finished raised AuthenticationError>]
 
 ---
 
-## Launch HN: Reducto Studio (YC W24) – Build accurate document pipelines, fast
+## [Marble Blast](https://marbleblast.vaniverse.io/)
 
-スコア: 68
+スコア: 52
 
 **要約**:
-1.  
-Reductoは、非構造化されたドキュメント（PDFやスプレッドシートなど）を構造化データに変換するツールを提供し、AIや検索に活用できるようにするプラットフォームをリリースしました。
-
-2.  
-- Reductoは高精度のドキュメント解析APIを提供し、ユーザーがエンドツーエンドのパイプラインを構築・評価できるWebプラットフォーム「Reducto Studio」を公開した。  
-- ユーザーはファイル一式をアップロードし、各フィールドやドキュメントごとの精度スコアを確認できる。  
-- 自動的に抽出スキーマを生成・最適化し、繰り返し改善が可能。  
-- 非エンジニアも使いやすく、試用は無料で行える。
-
-3.  
-未構造化データの処理において高精度な解析と使いやすいインターフェースを提供する点が注目を集めており、AIやデータ分析の現場での需要の高まりに応えているため。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113396b40 state=finished raised AuthenticationError>]
 
 ---
 
-## [Rocknix is an immutable Linux distribution for handheld gaming devices](https://rocknix.org/)
+## [First methane-powered sea spiders found crawling on the ocean floor](https://www.cnn.com/2025/06/17/science/spiders-deep-sea-methane-new-species)
 
-スコア: 135
+スコア: 102
 
 **要約**:
-1. Rocknixは、レトロゲームのエミュレーションに特化した、変更不可（イミュータブル）なLinuxディストリビューションで、ハンドヘルドゲームデバイス向けに開発されています。
-
-2. 重要なポイント
-- 小規模な愛好者コミュニティによって開発されている
-- 必要な機能を備えたカスタマイズ可能なOSを目指している
-- Discordを通じてコミュニティが活発に交流している
-- 多くのオープンソースコンポーネントを使用し、ライセンスに従って提供されている
-- 非商用利用のみのコンポーネントも含まれている
-
-3. この記事が注目を集めた理由
-- レトロゲーム愛好者やハンドヘルドゲームデバイスユーザーにとって魅力的なカスタムOSの紹介
-- オープンソースコミュニティによる開発と、その独自性や趣味性が関心を引いている
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113396480 state=finished raised AuthenticationError>]
 
 ---
 
-## [uv: An extremely fast Python package and project manager, written in Rust](https://github.com/astral-sh/uv)
+## [Developing a Retro-Roguelike Game for Multiple Platforms in C](https://retrogamecoders.com/roguelike-multiplatform/)
 
-スコア: 552
-
-**要約**:
-1. この記事は、Rustで書かれた非常に高速なPythonのパッケージおよびプロジェクト管理ツール「uv」について紹介しています。
-
-2. 重要なポイント
-- 「uv」はRustの性能を活かし、Pythonのパッケージ管理やプロジェクト管理を高速化。
-- Pythonの従来のツールと比較して、処理速度や効率性の向上が期待される。
-- オープンソースのプロジェクトであり、astral-sh/uvとしてGitHubで公開されている。
-- RustとPythonの連携により、パフォーマンスと使いやすさを両立。
-- コミュニティからの関心と期待が高まっている。
-
-3. この記事が注目を集めた理由
-- Rustの高速性を活かしたPythonツールの登場により、Pythonエコシステムのパフォーマンス向上が期待される点。
-- Pythonのパッケージ管理やプロジェクト管理の効率化に関心が集まっているため。
-
----
-
-## [The Last of Us Part II – Seattle Locations Tour](https://docs.google.com/document/d/1gfFoe2xVoS9GzmmcbGUjTVVtss1Jwh4Yi-73C6Trn-I/edit?usp=sharing)
-
-スコア: 70
-
-**要約**:
-1.  
-「The Last of Us Part II」の舞台となったシアトルの建物やロケーションを巡るウォーキングツアーの紹介と、ゲーム内の出来事や建物の解説を行う内容です。
-
-2.  
-- ゲームに登場するシアトルの建築物や場所を実際に訪れるツアーであること  
-- ゲームのストーリーやイベントに焦点を当てていること  
-- ツアーはほぼすべての認識可能な建物を巡ることを目的としていること  
-- ゲームの世界観と実際のロケーションの比較や解説も含まれること
-
-3.  
-ゲームの舞台設定に関心のあるファンや、実在のロケーションとゲーム内の描写の関係に興味を持つ読者の注目を集めたためです。
-
----
-
-## [BYOK – Bring Your Own Keyboard](https://byok.io)
-
-スコア: 43
-
-**要約**:
-1. 記事の主な内容  
-BYOK（Bring Your Own Keyboard）は、集中して文章や計画を行うための直感的なスペースを提供し、ユーザーの創造的なフローに適応するツールです。
-
-2. 重要なポイント  
-- ユーザーが自分のキーボードを持ち込むことで、快適な作業環境を作れる  
-- 書き物やプランニングに特化したシンプルで使いやすいインターフェース  
-- 創造的な作業を促進し、集中力を高める設計  
-- カスタマイズ性や柔軟性を重視している  
-
-3. この記事が注目を集めた理由  
-ユーザーの作業スタイルに合わせてカスタマイズ可能な点や、個人の創造性をサポートする新しいツールとして関心を集めているため
-
----
-
-## [Breakthrough cancer test predicts whether chemotherapy will work](https://www.telegraph.co.uk/news/2025/06/23/cancer-test-predicts-whether-chemotherapy-will-work/)
-
-スコア: 18
+スコア: 23
 
 **要約**:
 本文情報がないため要約できません。
 
 ---
 
-## [Making TRAMP go Brrrr](https://coredumped.dev/2025/06/18/making-tramp-go-brrrr./)
+## [Resurrecting flip phone typing as a Linux driver](https://github.com/FoxMoss/libt9)
 
-スコア: 167
+スコア: 89
 
 **要約**:
-1. 新しい仕事でリモートマシン上の作業が増えたため、EmacsのTRAMP（Transparent Remote access, Multiple Protocol）を利用してリモートホストをローカルのように扱う方法について述べている。ただし、以前使用した際には遅さが気になったと記している。
-
-2. 重要なポイント
-- TRAMPはEmacsのパッケージで、リモートホストをローカルのように操作できるツール
-- VSCodeのRemote Development Extensionと類似したリモートアクセス機能を提供
-- 以前はTRAMPの動作速度が遅いと感じていた
-- 新しい環境での利用により、TRAMPの性能や使い勝手について再評価している可能性
-
-3. この記事が注目を集めた理由
-- Emacsユーザーにとって便利なリモート作業ツールの紹介と、その性能改善や工夫に関心が集まったため
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1132df1d0 state=finished raised AuthenticationError>]
 
 ---
 
-## [Judge denies creating “mass surveillance program” harming all ChatGPT users](https://arstechnica.com/tech-policy/2025/06/judge-rejects-claim-that-forcing-openai-to-keep-chatgpt-logs-is-mass-surveillance/)
+## [I ported pigz from Unix to Windows](https://blog.kowalczyk.info/article/4/how-i-ported-pigz-from-unix-to-windows.html)
 
-スコア: 207
+スコア: 67
 
 **要約**:
-1. 米国の裁判所は、OpenAIがすべてのChatGPTのログを保持し続ける命令を拒否し、OpenAIはこれに対して異議を唱える意向を示している。  
-2. 重要なポイント：  
-- 裁判所は「大量監視プログラム」の構築に関与したとされる疑惑に対し、OpenAIのログ保持命令を拒否した。  
-- OpenAIはユーザープライバシー保護の観点から、ログの保存に反対している。  
-- これにより、ChatGPTのユーザーデータのプライバシーと監視問題が浮き彫りになった。  
-- 裁判所の決定は、AIサービスのデータ管理とプライバシー保護の重要な議論を促進している。  
-3. この記事が注目を集めた理由：  
-- ChatGPTを含むAIチャットサービスのプライバシーと監視の問題が社会的関心を集めているため。  
-- 大規模な監視プログラムの疑惑と、それに対する裁判所の判断が、AI業界やユーザーの信頼に影響を与える可能性があるため。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x11370b710 state=finished raised AuthenticationError>]
 
 ---
 
-## [Cataphract: Medieval-fantasy roleplaying wargame, in the Black-Sea C. 1300](https://samsorensen.blot.im/cataphracts-design-diary-1)
+## [Ocarina of Time Randomizer](https://ootrandomizer.com/)
 
-スコア: 166
+スコア: 140
 
 **要約**:
-1. 記事の主な内容  
-中世ファンタジーのロールプレイングウォーゲーム「Cataphract（カタフラクト）」の概要と背景について述べられているが、具体的な情報や詳細な内容は提供されていない。
-
-2. 重要なポイント  
-- 「Cataphract」は黒海周辺の1300年頃を舞台とした中世ファンタジーの戦略ゲームである。  
-- 記事には具体的なゲームプレイや特徴についての詳細な情報は含まれていない。  
-- 著者は軍事に関するシリーズを再読しており、その中でこのゲームに触れている。  
-- 投稿には実質的な情報やアクション可能な内容はなく、読み進めることを推奨している。  
-- スコアは166点で、一定の関心を集めている。
-
-3. この記事が注目を集めた理由  
-ゲームの詳細情報は少ないものの、歴史的背景と中世ファンタジーの設定に興味を持つ読者の関心を引き、議論や関心を呼んでいる点。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x11370a330 state=finished raised AuthenticationError>]
 
 ---
 
-## [Show HN: Pickaxe – A TypeScript library for building AI agents](https://github.com/hatchet-dev/pickaxe)
+## [Rocknix is an immutable Linux distribution for handheld gaming devices](https://rocknix.org/)
 
-スコア: 51
+スコア: 146
 
 **要約**:
-1.  
-HatchetのGabeとAlexanderが、スケーラブルでフォールトトレラントなAIエージェントを構築できるTypeScriptライブラリ「Pickaxe」をリリースしました。
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1137355b0 state=finished raised AuthenticationError>]
 
-2.  
-- Pickaxeはエージェントの状態を自動的にチェックポイントし、一時停止や再開を可能にする耐久性のある実行（durable execution）をサポートします。  
-- フレームワークではなく、観測性と信頼性を向上させるためのシンプルなAPIを提供します。  
-- 長時間実行や状態管理、外部データアクセスの課題を解決する設計です。  
-- `waitFor`機能を用いて外部イベントや人間のレビューを待つ処理を耐久的に管理します。  
-- 実行履歴はPostgreSQLのリニアイベントログに保存され、失敗時も再実行可能です。
+---
 
-3.  
-AIエージェントの長時間運用や状態管理、外部データ連携の課題に対処するためのシンプルかつ実用的なツールとして注目を集めている点。
+## Launch HN: Reducto Studio (YC W24) – Build accurate document pipelines, fast
+
+スコア: 73
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113106ba0 state=finished raised AuthenticationError>]
+
+---
+
+## [Minimal Boolean Formulas (2011)](https://research.swtch.com/boolean)
+
+スコア: 95
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113734530 state=finished raised AuthenticationError>]
+
+---
+
+## [uv: An extremely fast Python package and project manager, written in Rust](https://github.com/astral-sh/uv)
+
+スコア: 608
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113736990 state=finished raised AuthenticationError>]
+
+---
+
+## [Breakthrough cancer test predicts whether chemotherapy will work](https://www.telegraph.co.uk/news/2025/06/23/cancer-test-predicts-whether-chemotherapy-will-work/)
+
+スコア: 41
+
+**要約**:
+本文情報がないため要約できません。
+
+---
+
+## [GitHub CEO: manual coding remains key despite AI boom](https://www.techinasia.com/news/github-ceo-manual-coding-remains-key-despite-ai-boom)
+
+スコア: 247
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1137363f0 state=finished raised AuthenticationError>]
+
+---
+
+## [Microsoft confirms Windows 11 automatic deletions of System Restore points](https://www.forbes.com/sites/davidphelan/2025/06/23/microsoft-confirms-windows-11-automatic-deletions-take-action-now-to-protect-yourself/)
+
+スコア: 11
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x1131060c0 state=finished raised AuthenticationError>]
+
+---
+
+## [The Last of Us Part II – Seattle Locations Tour](https://docs.google.com/document/d/1gfFoe2xVoS9GzmmcbGUjTVVtss1Jwh4Yi-73C6Trn-I/edit?usp=sharing)
+
+スコア: 80
+
+**要約**:
+要約の生成中にエラーが発生しました: RetryError[<Future at 0x113735d90 state=finished raised AuthenticationError>]
 
 ---
 
