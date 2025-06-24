@@ -19,23 +19,12 @@ logs/*.log
 
 # Data files - APIレスポンスやクロールデータ
 data/api_usage/llm_usage_log.jsonl
-data/paper_summarizer/*.md
-data/paper_summarizer/*.txt
-data/*/2025-*.md
 
 # BASIC認証ファイル（セキュリティ）
 nginx/.htpasswd
 
 # Generated data files (except specific dates)
-data/business_feed/*
-data/fivechan_explorer/*
-data/fourchan_explorer/*
-data/hacker_news/*
-data/note_explorer/*
-data/qiita_explorer/*
-data/reddit_explorer/*
-data/tech_feed/*
-data/zenn_explorer/*
+data/*
 
 
 # Temporary files
