@@ -5,6 +5,13 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
+# 環境変数を読み込む
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+fi
+
 # Python仮想環境をアクティベート
 if [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
@@ -14,19 +21,16 @@ else
     exit 1
 fi
 
-# 環境変数を読み込む（本番環境優先）
-if [ -f ".env.production" ]; then
-    set -a
-    source .env.production
-    set +a
-elif [ -f ".env" ]; then
-    set -a
-    source .env
-    set +a
-fi
-
 echo "Starting data collection services..."
 echo "Date: $(date)"
+
+# デバッグ: 環境変数の確認
+echo "DEBUG: Checking OPENAI_API_KEY..."
+if [ -n "$OPENAI_API_KEY" ]; then
+    echo "DEBUG: OPENAI_API_KEY is set (length: ${#OPENAI_API_KEY})"
+else
+    echo "DEBUG: OPENAI_API_KEY is NOT set"
+fi
 
 # 各サービスを実行（エラーが発生しても続行）
 echo "Collecting Hacker News..."
