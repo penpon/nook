@@ -17,10 +17,6 @@ worktrees/
 logs/*.log
 *.log
 
-# API usage logs - APIログ
-data/api_usage/llm_usage_log.jsonl
-data/api_usage/*.jsonl
-
 # Generated data files (except specific dates)
 data/business_feed/*
 data/fivechan_explorer/*
