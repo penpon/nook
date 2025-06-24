@@ -13,6 +13,65 @@
 # Git worktrees
 worktrees/
 
+# Logs - 一時的なログファイル
+logs/*.log
+*.log
+
+# API usage logs - APIログ
+data/api_usage/llm_usage_log.jsonl
+data/api_usage/*.jsonl
+
+# Generated data files (except specific dates)
+data/business_feed/*
+data/fivechan_explorer/*
+data/fourchan_explorer/*
+data/hacker_news/*
+data/note_explorer/*
+data/qiita_explorer/*
+data/reddit_explorer/*
+data/tech_feed/*
+data/zenn_explorer/*
+
+# But keep specific date files that we want to track
+!data/*/2025-06-24.md
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+__pycache__/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old
+
 # Python
 __pycache__/
 *.py[cod]
