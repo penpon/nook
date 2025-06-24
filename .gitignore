@@ -22,7 +22,6 @@ data/api_usage/llm_usage_log.jsonl
 data/paper_summarizer/*.md
 data/paper_summarizer/*.txt
 data/*/2025-*.md
-!data/*/2025-06-24.md
 
 # BASIC認証ファイル（セキュリティ）
 nginx/.htpasswd
@@ -38,8 +37,6 @@ data/reddit_explorer/*
 data/tech_feed/*
 data/zenn_explorer/*
 
-# But keep specific date files that we want to track
-!data/*/2025-06-24.md
 
 # Temporary files
 *.tmp
