@@ -91,13 +91,13 @@ class GPTClient:
                         if service_idx + 1 < len(filepath.parts):
                             service_name = filepath.parts[service_idx + 1]
                             # 特殊ケースの処理
-                            if service_name == 'run_services.py':
+                            if service_name in ['run_services.py', 'run_services_sync.py']:
+                                continue
+                            # __pycache__や.pyファイルを除外
+                            if service_name.startswith('__') or service_name.endswith('.py'):
                                 continue
                             return service_name
-                    
-                    filename = filepath.name
-                    if filename not in ['gpt_client.py', 'openai.py', 'tenacity.py', 'thread.py'] and not filename.startswith('_'):
-                        return filename.replace('.py', '')
+            # services/ディレクトリ内でない場合はunknownを返す
             return 'unknown'
         except Exception:
             return 'unknown'
