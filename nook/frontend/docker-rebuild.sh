@@ -11,7 +11,7 @@ echo "3. フロントエンドイメージを削除..."
 docker images | grep nook | awk '{print $3}' | xargs -r docker rmi -f
 
 echo "4. 新しいイメージをビルド（キャッシュなし）..."
-docker-compose build --no-cache frontend
+docker-compose build --no-cache
 
 echo "5. コンテナを起動..."
 docker-compose up -d
