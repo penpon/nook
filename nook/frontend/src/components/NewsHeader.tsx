@@ -1,5 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+import { sourceDisplayInfo, defaultSourceDisplayInfo } from '../config/sourceDisplayInfo';
 
 interface NewsHeaderProps {
   selectedSource: string;
@@ -8,22 +10,17 @@ interface NewsHeaderProps {
 }
 
 export const NewsHeader: React.FC<NewsHeaderProps> = ({ selectedSource, selectedDate, darkMode }) => {
-  const isHackerNews = selectedSource === 'hacker news';
-  const dateFormatted = format(selectedDate, 'yyyy-MM-dd');
+  const sourceInfo = sourceDisplayInfo[selectedSource] || defaultSourceDisplayInfo;
   
-  const formatSourceTitle = (source: string): string => {
-    if (isHackerNews) {
-      return `Hacker News - ${dateFormatted}`;
+  // 日付フォーマット（日本語ロケール対応）
+  const formatDate = (date: Date, formatStr: string): string => {
+    if (formatStr.includes('年')) {
+      return format(date, formatStr, { locale: ja });
     }
-    return `${source.charAt(0).toUpperCase() + source.slice(1)} Feed`;
+    return format(date, formatStr);
   };
 
-  const formatSubtitle = (source: string, date: Date): string => {
-    if (isHackerNews) {
-      return `Hacker News トップ記事 (${dateFormatted})`;
-    }
-    return format(date, 'MMMM d, yyyy');
-  };
+  const dateFormatted = formatDate(selectedDate, sourceInfo.dateFormat);
 
   return (
     <div className="mb-8">
@@ -31,20 +28,20 @@ export const NewsHeader: React.FC<NewsHeaderProps> = ({ selectedSource, selected
         rounded-xl shadow-lg p-8
         ${darkMode 
           ? 'bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700' 
-          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200'}
+          : `bg-gradient-to-r ${sourceInfo.gradientFrom || 'from-blue-50'} ${sourceInfo.gradientTo || 'to-indigo-50'} border ${sourceInfo.borderColor || 'border-blue-200'}`}
         transition-all duration-300 hover:shadow-xl
       `}>
         <h1 className={`
           text-4xl sm:text-5xl lg:text-6xl font-bold text-center mb-3
           ${darkMode ? 'text-white' : 'text-gray-900'}
         `}>
-          {formatSourceTitle(selectedSource)}
+          {sourceInfo.title}
         </h1>
         <p className={`
           text-lg sm:text-xl text-center
           ${darkMode ? 'text-gray-300' : 'text-gray-600'}
         `}>
-          {formatSubtitle(selectedSource, selectedDate)}
+          {sourceInfo.subtitle} ({dateFormatted})
         </p>
       </div>
     </div>

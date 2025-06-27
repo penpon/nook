@@ -7,6 +7,7 @@ import { NewsHeader } from './components/NewsHeader';
 import { WeatherWidget } from './components/WeatherWidget';
 import UsageDashboard from './components/UsageDashboard';
 import { getContent } from './api';
+import { sourceDisplayInfo, defaultSourceDisplayInfo } from './config/sourceDisplayInfo';
 
 const sources = ['paper', 'github', 'hacker news', 'tech news', 'business news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
@@ -88,23 +89,26 @@ function App() {
         
         {/* Sources Section */}
         <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400 mt-6">Sources</div>
-        {sources.map((source) => (
-          <button
-            key={source}
-            onClick={() => {
-              setSelectedSource(source);
-              setCurrentPage('content');
-              setIsMobileMenuOpen(false);
-            }}
-            className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors ${
-              selectedSource === source && currentPage === 'content'
-                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30'
-            }`}
-          >
-            {source.charAt(0).toUpperCase() + source.slice(1)}
-          </button>
-        ))}
+        {sources.map((source) => {
+          const sourceInfo = sourceDisplayInfo[source] || defaultSourceDisplayInfo;
+          return (
+            <button
+              key={source}
+              onClick={() => {
+                setSelectedSource(source);
+                setCurrentPage('content');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors ${
+                selectedSource === source && currentPage === 'content'
+                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30'
+              }`}
+            >
+              {sourceInfo.title}
+            </button>
+          );
+        })}
         
         {/* テーマ切り替えボタン */}
         <div className="mt-6">
