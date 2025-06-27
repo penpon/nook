@@ -61,9 +61,8 @@ class ServiceRunner:
         """同期サービスを非同期で実行"""
         try:
             logger.info(f"Starting service: {service_name}")
-            # 同期関数を別スレッドで実行
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, service.run)
+            # collectメソッドを呼び出す（非同期メソッド）
+            await service.collect()
             logger.info(f"Service {service_name} completed successfully")
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)

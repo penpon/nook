@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from nook.api.models.schemas import ContentResponse, ContentItem
 from nook.common.storage import LocalStorage
@@ -27,7 +27,7 @@ SOURCE_MAPPING = {
 
 
 @router.get("/content/{source}", response_model=ContentResponse)
-async def get_content(source: str, date: Optional[str] = None) -> ContentResponse:
+async def get_content(source: str, date: Optional[str] = None, response: Response = None) -> ContentResponse:
     """
     特定のソースのコンテンツを取得します。
     
@@ -50,6 +50,12 @@ async def get_content(source: str, date: Optional[str] = None) -> ContentRespons
     """
     if source not in SOURCE_MAPPING and source != "all":
         raise HTTPException(status_code=404, detail=f"Source '{source}' not found")
+    
+    # キャッシュ制御ヘッダーを設定（キャッシュを無効化）
+    if response:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     
     # 日付の処理
     target_date = None
