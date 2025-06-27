@@ -8,16 +8,19 @@ interface NewsHeaderProps {
 }
 
 export const NewsHeader: React.FC<NewsHeaderProps> = ({ selectedSource, selectedDate, darkMode }) => {
+  const isHackerNews = selectedSource === 'hacker news';
+  const dateFormatted = format(selectedDate, 'yyyy-MM-dd');
+  
   const formatSourceTitle = (source: string): string => {
-    if (source === 'hacker news') {
-      return `Hacker News - ${format(selectedDate, 'yyyy-MM-dd')}`;
+    if (isHackerNews) {
+      return `Hacker News - ${dateFormatted}`;
     }
     return `${source.charAt(0).toUpperCase() + source.slice(1)} Feed`;
   };
 
   const formatSubtitle = (source: string, date: Date): string => {
-    if (source === 'hacker news') {
-      return `Hacker News トップ記事 (${format(date, 'yyyy-MM-dd')})`;
+    if (isHackerNews) {
+      return `Hacker News トップ記事 (${dateFormatted})`;
     }
     return format(date, 'MMMM d, yyyy');
   };
