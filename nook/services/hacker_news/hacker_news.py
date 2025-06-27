@@ -246,6 +246,24 @@ class HackerNewsRetriever(BaseService):
             保存する記事のリスト。
         """
         today = datetime.now()
+        
+        # JSONでも保存（APIでの個別記事取得用）
+        stories_data = []
+        for story in stories:
+            story_data = {
+                "title": story.title,
+                "score": story.score,
+                "url": story.url,
+                "text": story.text,
+                "summary": story.summary
+            }
+            stories_data.append(story_data)
+        
+        # JSON形式で保存
+        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
+        await self.save_json(stories_data, filename_json)
+        
+        # 従来のMarkdown形式も保存（互換性のため）
         content = f"# Hacker News トップ記事 ({today.strftime('%Y-%m-%d')})\n\n"
         
         for story in stories:

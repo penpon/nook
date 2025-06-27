@@ -57,9 +57,7 @@ class BaseService(ABC):
     
     async def save_json(self, data: Any, filename: str) -> None:
         """JSONデータを保存"""
-        import json
-        json_str = json.dumps(data, ensure_ascii=False, indent=2)
-        await self.save_data(json_str, filename)
+        await self.storage.save(data, filename)
     
     async def load_json(self, filename: str) -> Any:
         """JSONデータを読み込み"""

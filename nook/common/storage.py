@@ -169,4 +169,32 @@ class LocalStorage:
         old_path = self.base_dir / old_filename
         new_path = self.base_dir / new_filename
         if old_path.exists():
-            old_path.rename(new_path) 
+            old_path.rename(new_path)
+    
+    def load_json(self, service_name: str, date: Optional[datetime] = None) -> Optional[List[Any]]:
+        """
+        JSONコンテンツを読み込みます。
+        
+        Parameters
+        ----------
+        service_name : str
+            サービス名（ディレクトリ名）。
+        date : datetime, optional
+            日付。指定しない場合は現在の日付。
+            
+        Returns
+        -------
+        List[Any] or None
+            読み込まれたJSONコンテンツ。ファイルが存在しない場合はNone。
+        """
+        if date is None:
+            date = datetime.now()
+        
+        date_str = date.strftime("%Y-%m-%d")
+        file_path = self.base_dir / service_name / f"{date_str}.json"
+        
+        if not file_path.exists():
+            return None
+        
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f) 

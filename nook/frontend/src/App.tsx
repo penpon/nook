@@ -205,7 +205,7 @@ function App() {
                 </div>
               ) : data?.items && data.items.length > 0 ? (
                 data.items.map((item, index) => (
-                  <ContentCard key={index} item={item} darkMode={darkMode} />
+                  <ContentCard key={index} item={item} darkMode={darkMode} index={index} />
                 ))
               ) : (
                 <div className="col-span-full text-center py-8">

@@ -7,13 +7,21 @@ import { ContentItem } from '../types';
 interface ContentCardProps {
   item: ContentItem;
   darkMode: boolean;
+  index?: number;
 }
 
-export const ContentCard: React.FC<ContentCardProps> = ({ item, darkMode }) => {
+export const ContentCard: React.FC<ContentCardProps> = ({ item, darkMode, index }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow w-full">
       <div className="flex items-start justify-between mb-4">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex-1">{item.title}</h3>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex-1">
+          {index !== undefined && (
+            <span className="inline-block bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-sm font-medium px-2 py-1 rounded-full mr-3">
+              {index + 1}
+            </span>
+          )}
+          {item.title}
+        </h3>
         {item.url && (
           <a
             href={item.url}

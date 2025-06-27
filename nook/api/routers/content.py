@@ -66,25 +66,70 @@ async def get_content(source: str, date: Optional[str] = None) -> ContentRespons
     # 特定のソースからコンテンツを取得
     if source != "all":
         service_name = SOURCE_MAPPING[source]
-        content = storage.load_markdown(service_name, target_date)
         
-        if content:
-            # マークダウンからContentItemを作成
-            items.append(ContentItem(
-                title=f"{_get_source_display_name(source)} - {target_date.strftime('%Y-%m-%d')}",
-                content=content,
-                source=source
-            ))
+        # Hacker Newsの場合はJSONから個別記事を取得
+        if source == "hacker news":
+            stories_data = storage.load_json(service_name, target_date)
+            if stories_data:
+                for i, story in enumerate(stories_data):
+                    # 要約があれば要約を、なければ本文を使用
+                    content = ""
+                    if story.get("summary"):
+                        content = f"**要約**:\n{story['summary']}\n\n"
+                    elif story.get("text"):
+                        content = f"{story['text'][:500]}{'...' if len(story['text']) > 500 else ''}\n\n"
+                    
+                    content += f"スコア: {story['score']}"
+                    
+                    items.append(ContentItem(
+                        title=story["title"],
+                        content=content,
+                        url=story.get("url"),
+                        source=source
+                    ))
+        else:
+            # 他のソースは従来通りMarkdownから取得
+            content = storage.load_markdown(service_name, target_date)
+            
+            if content:
+                # マークダウンからContentItemを作成
+                items.append(ContentItem(
+                    title=f"{_get_source_display_name(source)} - {target_date.strftime('%Y-%m-%d')}",
+                    content=content,
+                    source=source
+                ))
     else:
         # すべてのソースからコンテンツを取得
         for src, service_name in SOURCE_MAPPING.items():
-            content = storage.load_markdown(service_name, target_date)
-            if content:
-                items.append(ContentItem(
-                    title=f"{_get_source_display_name(src)} - {target_date.strftime('%Y-%m-%d')}",
-                    content=content,
-                    source=src
-                ))
+            if src == "hacker news":
+                # Hacker Newsは個別記事として追加
+                stories_data = storage.load_json(service_name, target_date)
+                if stories_data:
+                    for i, story in enumerate(stories_data):
+                        # 要約があれば要約を、なければ本文を使用
+                        content = ""
+                        if story.get("summary"):
+                            content = f"**要約**:\n{story['summary']}\n\n"
+                        elif story.get("text"):
+                            content = f"{story['text'][:500]}{'...' if len(story['text']) > 500 else ''}\n\n"
+                        
+                        content += f"スコア: {story['score']}"
+                        
+                        items.append(ContentItem(
+                            title=story["title"],
+                            content=content,
+                            url=story.get("url"),
+                            source=src
+                        ))
+            else:
+                # 他のソースは従来通りMarkdownから取得
+                content = storage.load_markdown(service_name, target_date)
+                if content:
+                    items.append(ContentItem(
+                        title=f"{_get_source_display_name(src)} - {target_date.strftime('%Y-%m-%d')}",
+                        content=content,
+                        source=src
+                    ))
     
     if not items:
         # 利用可能な日付を確認
