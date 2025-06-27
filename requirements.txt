@@ -22,7 +22,7 @@ praw>=7.7.0
 arxiv>=1.4.7
 
 # OpenAI API互換クライアント
-openai>=0.27.0
+openai>=1.0.0
 
 # ユーティリティ
 tqdm>=4.65.0

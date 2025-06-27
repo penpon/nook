@@ -181,7 +181,12 @@ class HackerNewsRetriever(BaseService):
                         if article:
                             story.text = article.get_text()[:500]
         except Exception as e:
-            self.logger.error(f"Error fetching content for {story.url}: {str(e)}")
+            # 403エラーなどのアクセス拒否エラーは頻繁に発生するため、ログレベルを下げる
+            if "403" in str(e) or "Forbidden" in str(e):
+                self.logger.warning(f"Access denied for {story.url}: {str(e)}")
+                story.text = "アクセス制限により記事の内容を取得できませんでした。"
+            else:
+                self.logger.error(f"Error fetching content for {story.url}: {str(e)}")
     
     async def _summarize_stories(self, stories: List[Story]) -> None:
         """複数のストーリーを並行して要約"""
