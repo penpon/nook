@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 import { format, subDays } from 'date-fns';
 import { Layout, Menu, Calendar, Sun, Moon } from 'lucide-react';
 import { ContentCard } from './components/ContentCard';
+import { NewsHeader } from './components/NewsHeader';
 import { WeatherWidget } from './components/WeatherWidget';
 import UsageDashboard from './components/UsageDashboard';
 import { getContent } from './api';
@@ -173,18 +174,11 @@ function App() {
           <UsageDashboard darkMode={darkMode} />
         ) : (
           <div className="p-4 sm:p-6 lg:p-8">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {selectedSource === 'hacker news' 
-                  ? `hacker news - ${format(selectedDate, 'yyyy-MM-dd')}`
-                  : `${selectedSource.charAt(0).toUpperCase() + selectedSource.slice(1)} Feed`}
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {selectedSource === 'hacker news'
-                  ? `Hacker News トップ記事 (${format(selectedDate, 'yyyy-MM-dd')})`
-                  : format(selectedDate, 'MMMM d, yyyy')}
-              </p>
-            </div>
+            <NewsHeader 
+              selectedSource={selectedSource}
+              selectedDate={selectedDate}
+              darkMode={darkMode}
+            />
 
             <div className="grid grid-cols-1 gap-6">
               {isLoading ? (
