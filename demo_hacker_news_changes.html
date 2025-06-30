@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker News 形式変更デモ - TASK-031</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 40px; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+        .demo-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(to right, #ff6600, #cc5200); color: white; padding: 30px; text-align: center; }
+        .category-header { 
+            background: linear-gradient(to right, #fff3cd, #ffeaa7); 
+            border-bottom: 2px solid #ff6600; 
+            padding: 12px 20px; 
+            margin: 20px 0 10px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #cc5200;
+        }
+        .article-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            border-left: 4px solid #ff6600;
+        }
+        .article-number {
+            display: inline-block;
+            background: #fff3cd;
+            color: #cc5200;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+        .score-badge {
+            display: inline-block;
+            background: #ff6600;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .source-tag {
+            display: inline-block;
+            background: #fff3cd;
+            color: #cc5200;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .old-format {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .new-format {
+            background: #fffbf0;
+            border: 1px solid #fed7aa;
+        }
+        .highlight-remove { background: #fee2e2; text-decoration: line-through; }
+        .highlight-add { background: #fff3cd; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="header">
+        <h1 class="text-3xl font-bold mb-4">Hacker News 形式変更デモ</h1>
+        <p class="text-lg">TASK-031: GitHub Trending形式への統一（スコア表示対応）</p>
+    </div>
+
+    <div class="container">
+        <!-- 変更概要 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎯 変更概要</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-2xl mb-2">❌</div>
+                        <h3 class="font-semibold text-red-800">削除</h3>
+                        <p class="text-sm text-red-600">日付付きタイトルを削除</p>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl mb-2">🔢</div>
+                        <h3 class="font-semibold text-blue-800">追加</h3>
+                        <p class="text-sm text-blue-600">記事に連番を付与</p>
+                    </div>
+                    <div class="text-center p-4 bg-orange-50 rounded-lg">
+                        <div class="text-2xl mb-2">⭐</div>
+                        <h3 class="font-semibold text-orange-800">表示</h3>
+                        <p class="text-sm text-orange-600">スコア情報を可視化</p>
+                    </div>
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-2xl mb-2">🎨</div>
+                        <h3 class="font-semibold text-yellow-800">統一</h3>
+                        <p class="text-sm text-yellow-600">GitHub Trending形式</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hacker Newsスコアシステムの説明 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">⭐ Hacker News特有のスコアシステム</h2>
+                <div class="bg-orange-50 p-4 rounded-lg">
+                    <p class="text-gray-700 mb-3">
+                        Hacker Newsでは記事の人気度を「スコア」で表示します。
+                        スコアが高い記事ほど注目度が高く、議論が活発な記事として認識されます。
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="bg-white p-3 rounded border-l-4 border-orange-500">
+                            <p class="text-sm">
+                                <strong>高スコア:</strong><br>
+                                <span class="text-orange-700 font-semibold">200+ ポイント</span><br>
+                                <span class="text-xs text-gray-600">トレンド記事</span>
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded border-l-4 border-orange-500">
+                            <p class="text-sm">
+                                <strong>中スコア:</strong><br>
+                                <span class="text-orange-700 font-semibold">50-200 ポイント</span><br>
+                                <span class="text-xs text-gray-600">注目記事</span>
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded border-l-4 border-orange-500">
+                            <p class="text-sm">
+                                <strong>低スコア:</strong><br>
+                                <span class="text-orange-700 font-semibold">20-50 ポイント</span><br>
+                                <span class="text-xs text-gray-600">新規記事</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After比較 -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📊 表示形式の比較</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式</h3>
+                    
+                    <div class="highlight-remove text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold">Hacker News - 2025-06-30 Hacker News トップ記事 (2025-06-30)</h1>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg">
+                        <div class="prose max-w-none">
+                            <h1 class="highlight-remove"># Hacker News トップ記事 (2025-06-30)</h1>
+                            
+                            <h2>## [AI革命：プログラミングの未来を変える新ツール](https://example.com)</h2>
+                            <p>スコア: 245</p>
+                            <p><strong>要約</strong>:</p>
+                            <ol>
+                                <li>新しいAI開発ツールが発表され、プログラミング作業を80%効率化</li>
+                                <li>主要な機能として自動コード生成、バグ検出、最適化提案が含まれる</li>
+                                <li>多くの開発者がこの技術に注目し、活発な議論が展開されている</li>
+                            </ol>
+                            <hr>
+                            
+                            <h2>## [量子コンピューティング実用化への道筋](https://example.com)</h2>
+                            <p>スコア: 167</p>
+                            <p><strong>要約</strong>:</p>
+                            <ol>
+                                <li>量子コンピューターの実用化に向けた最新の研究成果が報告された</li>
+                                <li>特に暗号技術とマシンラーニング分野での応用が期待される</li>
+                                <li>技術的な課題と実装への時間軸について専門家の意見が分かれている</li>
+                            </ol>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 単一のMarkdownで表示<br>
+                        • 日付情報が重複<br>
+                        • 番号付けなし<br>
+                        • スコア情報が読みにくい<br>
+                        • 記事の区別が困難
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 text-orange-800">🟢 新しい形式（TASK-031実装後）</h3>
+                    
+                    <div class="text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold highlight-add">Hacker News</h1>
+                        <p class="text-gray-600">2025年06月30日</p>
+                    </div>
+
+                    <!-- 記事カード1 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">1</span>
+                                <a href="https://example.com" class="text-orange-600 hover:underline">
+                                    AI革命：プログラミングの未来を変える新ツール
+                                </a>
+                                <span class="score-badge">⭐ 245</span>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>スコア</strong>: 245 ポイント（高注目記事）</p>
+                            <p><strong>要約</strong>: 新しいAI開発ツールが発表され、プログラミング作業を80%効率化することが判明。主要な機能として自動コード生成、バグ検出、最適化提案が含まれており、多くの開発者がこの技術に注目し、活発な議論が展開されている。業界への影響は計り知れず、開発者の働き方が根本的に変わる可能性がある。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">hackernews</span>
+                        </div>
+                    </div>
+
+                    <!-- 記事カード2 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">2</span>
+                                <a href="https://example.com" class="text-orange-600 hover:underline">
+                                    量子コンピューティング実用化への道筋
+                                </a>
+                                <span class="score-badge">⭐ 167</span>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>スコア</strong>: 167 ポイント（注目記事）</p>
+                            <p><strong>要約</strong>: 量子コンピューターの実用化に向けた最新の研究成果が報告された。特に暗号技術とマシンラーニング分野での応用が期待されており、技術的な課題と実装への時間軸について専門家の意見が分かれている。しかし確実に実用化に向けた歩みが進んでいることは間違いない。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">hackernews</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-orange-100 rounded text-sm text-orange-700">
+                        <strong>改善点:</strong><br>
+                        • 個別カード表示<br>
+                        • 記事に明確な連番付与<br>
+                        • スコア情報を見やすく表示<br>
+                        • GitHub Trendingと統一したUI<br>
+                        • 注目度による優先順位の明確化
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技術実装詳細 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔧 TASK-031技術実装詳細</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-orange-800">実装内容</h3>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span><code>parseHackerNewsMarkdown</code>関数の新規作成</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>記事（## [タイトル](URL)）の個別化</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>スコア情報（スコア: 123）の抽出</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>構造化要約の適切な処理</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>連番付与システムの実装</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-purple-800">データ構造</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre># Hacker News トップ記事 (2025-06-30)
+
+## [記事タイトル](URL)
+
+スコア: 245
+
+**要約**:
+1. 記事の主な内容
+2. 重要なポイント
+3. 注目を集めた理由
+
+---</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold mb-3 text-indigo-800">parseHackerNewsMarkdown関数の仕様</h3>
+                    <div class="bg-gray-100 p-4 rounded text-sm font-mono">
+                        <pre>// 機能：
+// 1. ## [タイトル](URL) 形式の記事を検出
+// 2. 次行の「スコア: 数値」を抽出
+// 3. **要約**: セクションのコンテンツを取得
+// 4. ContentItem形式に変換して返却
+
+function parseHackerNewsMarkdown(markdown: string): ContentItem[]</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 期待される効果 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎉 期待される効果</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-orange-50 rounded-lg">
+                        <div class="text-3xl mb-2">⭐</div>
+                        <h3 class="font-semibold text-orange-800 mb-2">スコア可視化</h3>
+                        <p class="text-sm text-orange-600">記事の注目度を一目で把握し、優先度を判断できる</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-3xl mb-2">🔍</div>
+                        <h3 class="font-semibold text-yellow-800 mb-2">効率的な情報収集</h3>
+                        <p class="text-sm text-yellow-600">連番とスコアにより重要な記事を効率的に確認可能</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎨</div>
+                        <h3 class="font-semibold text-gray-800 mb-2">統一UI体験</h3>
+                        <p class="text-sm text-gray-600">他のニュースソースと一貫したインターフェース</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GitHub Trendingとの類似性 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔗 GitHub Trendingとの統一性</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-green-800">GitHub Trending</h3>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-semibold mr-2">1</span>
+                                <span class="font-semibold">owner/repository</span>
+                                <span class="bg-green-600 text-white px-2 py-1 rounded text-xs ml-2">⭐ 1,234</span>
+                            </div>
+                            <p class="text-sm text-green-700">リポジトリの説明文...</p>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">github</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-orange-800">Hacker News（TASK-031後）</h3>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm font-semibold mr-2">1</span>
+                                <span class="font-semibold">記事タイトル</span>
+                                <span class="bg-orange-600 text-white px-2 py-1 rounded text-xs ml-2">⭐ 245</span>
+                            </div>
+                            <p class="text-sm text-orange-700">記事の要約内容...</p>
+                            <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">hackernews</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-blue-100 rounded text-sm text-blue-700">
+                    <strong>統一ポイント:</strong><br>
+                    • 連番表示システム<br>
+                    • スコア/スター数の⭐アイコン表示<br>
+                    • 個別カードレイアウト<br>
+                    • ソースタグによる識別<br>
+                    • 一貫したカラーテーマ
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-gray-800 text-white p-6 text-center">
+        <p>🤖 nook - Hacker News Format Unification Demo</p>
+        <p class="text-sm text-gray-400 mt-2">TASK-031 Implementation Preview (Score Display Support)</p>
+    </footer>
+</body>
+</html>

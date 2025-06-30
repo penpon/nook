@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit サブレディット直接カテゴリ化デモ - TASK-035</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 40px; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+        .demo-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(to right, #dc2626, #991b1b); color: white; padding: 30px; text-align: center; }
+        .category-header { 
+            background: linear-gradient(to right, #fee2e2, #fecaca); 
+            border-bottom: 2px solid #dc2626; 
+            padding: 12px 20px; 
+            margin: 20px 0 10px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #991b1b;
+        }
+        .subreddit-header {
+            background: linear-gradient(to right, #f3f4f6, #e5e7eb);
+            border-bottom: 1px solid #9ca3af;
+            padding: 8px 16px;
+            margin: 12px 0 8px 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .article-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            border-left: 4px solid #dc2626;
+        }
+        .article-number {
+            display: inline-block;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+        .source-tag {
+            display: inline-block;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .old-format {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .new-format {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+        .highlight-remove { background: #fee2e2; text-decoration: line-through; }
+        .highlight-add { background: #dcfce7; font-weight: bold; }
+        .upvote-badge {
+            display: inline-block;
+            background: #ff4500;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .reddit-dark {
+            background-color: #1a1a1b;
+            color: #d7dadc;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .subreddit-link {
+            color: #d7dadc;
+            text-decoration: none;
+            background: #272729;
+            padding: 12px 16px;
+            border-radius: 4px;
+            display: block;
+            margin: 8px 0;
+            border-left: 4px solid #ff4500;
+        }
+        .subreddit-tag {
+            background: #ff4500;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="header">
+        <h1 class="text-3xl font-bold mb-4">Reddit サブレディット直接カテゴリ化デモ</h1>
+        <p class="text-lg">TASK-035: 4階層から3階層への簡素化</p>
+    </div>
+
+    <div class="container">
+        <!-- 変更概要 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎯 階層簡素化の目的</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-2xl mb-2">🗂️</div>
+                        <h3 class="font-semibold text-red-800">現在の問題</h3>
+                        <p class="text-sm text-red-600">4階層構造で複雑な表示</p>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl mb-2">📋</div>
+                        <h3 class="font-semibold text-blue-800">解決策</h3>
+                        <p class="text-sm text-blue-600">サブレディット直接カテゴリ化</p>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl mb-2">⚡</div>
+                        <h3 class="font-semibold text-green-800">効果</h3>
+                        <p class="text-sm text-green-600">直感的なナビゲーション</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 現在の表示（画像再現） -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">📱 現在の表示状況</h2>
+                <p class="text-gray-700 mb-4">提供された画像の通り、現在は「Tech」カテゴリの下にサブレディットが階層表示されています。</p>
+                
+                <div class="reddit-dark">
+                    <h3 class="text-xl font-bold mb-4" style="color: #d7dadc;">Tech</h3>
+                    <div class="subreddit-link">
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold">r/StableDiffusion</span>
+                            <span class="subreddit-tag">reddit</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                    <strong>問題点:</strong><br>
+                    • 「Tech」という汎用カテゴリが不要<br>
+                    • サブレディットが埋もれている<br>
+                    • 4階層構造で複雑
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After比較 -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📊 階層構造の比較</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式（TASK-028）</h3>
+                    
+                    <div class="text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold">Reddit Posts</h1>
+                        <p class="text-gray-600">2025年06月30日</p>
+                    </div>
+
+                    <!-- 4階層構造の表示 -->
+                    <div class="category-header highlight-remove">
+                        Tech
+                    </div>
+                    
+                    <div class="subreddit-header">
+                        r/StableDiffusion
+                    </div>
+                    
+                    <div class="ml-8 space-y-3">
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">1 AIアート生成術：完全ガイド ⬆️ 1,234</h4>
+                            <p class="text-sm text-gray-600">Stable Diffusionを使った高品質な画像生成のテクニック...</p>
+                        </div>
+                        
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">2 プロンプト最適化の極意 ⬆️ 892</h4>
+                            <p class="text-sm text-gray-600">効果的なプロンプトエンジニアリングの手法...</p>
+                        </div>
+                    </div>
+
+                    <div class="subreddit-header">
+                        r/artificial
+                    </div>
+                    
+                    <div class="ml-8 space-y-3">
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">3 AGI最新動向レポート ⬆️ 567</h4>
+                            <p class="text-sm text-gray-600">汎用人工知能の開発における最新の進展...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 4階層構造（Title → Tech → Subreddit → Post）<br>
+                        • 「Tech」カテゴリが冗長<br>
+                        • サブレディットが見つけにくい
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 text-green-800">🟢 新しい形式（TASK-035実装後）</h3>
+                    
+                    <div class="text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold highlight-add">Reddit Posts</h1>
+                        <p class="text-gray-600">2025年06月30日</p>
+                    </div>
+
+                    <!-- 3階層構造の表示 -->
+                    <div class="category-header highlight-add">
+                        r/StableDiffusion
+                    </div>
+
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">1</span>
+                                <a href="https://example.com" class="text-red-600 hover:underline">
+                                    AIアート生成術：完全ガイド
+                                </a>
+                                <span class="upvote-badge">⬆️ 1,234</span>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>サブレディット</strong>: r/StableDiffusion</p>
+                            <p><strong>要約</strong>: Stable Diffusionを使った高品質な画像生成のテクニックを詳しく解説。重要なポイントとして、プロンプトの構造化、ネガティブプロンプトの活用、サンプリング手法の選択が含まれる。実際の作例を通じて実践的なアプローチを提供。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">reddit</span>
+                        </div>
+                    </div>
+
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">2</span>
+                                <a href="https://example.com" class="text-red-600 hover:underline">
+                                    プロンプト最適化の極意
+                                </a>
+                                <span class="upvote-badge">⬆️ 892</span>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>サブレディット</strong>: r/StableDiffusion</p>
+                            <p><strong>要約</strong>: 効果的なプロンプトエンジニアリングの手法を体系的に説明。重要なポイントとして、キーワードの重み付け、構文の最適化、スタイル指定の技術が含まれる。初心者から上級者まで対応した包括的なガイド。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">reddit</span>
+                        </div>
+                    </div>
+
+                    <div class="category-header highlight-add">
+                        r/artificial
+                    </div>
+
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">3</span>
+                                <a href="https://example.com" class="text-red-600 hover:underline">
+                                    AGI最新動向レポート
+                                </a>
+                                <span class="upvote-badge">⬆️ 567</span>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>サブレディット</strong>: r/artificial</p>
+                            <p><strong>要約</strong>: 汎用人工知能の開発における最新の進展を詳しく分析。重要なポイントとして、大規模言語モデルの進化、マルチモーダルAIの発展、安全性研究の現状が含まれる。業界の専門家による深い洞察と将来予測を提供。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">reddit</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-green-100 rounded text-sm text-green-700">
+                        <strong>改善点:</strong><br>
+                        • 3階層構造（Title → Subreddit → Post）<br>
+                        • サブレディットが直接カテゴリヘッダーに<br>
+                        • 直感的で分かりやすいナビゲーション
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技術実装詳細 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔧 TASK-035技術実装詳細</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-red-800">バックエンド変更</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre># 変更前
+for category, subreddits in categories.items():
+    content += f"## {category.capitalize()}\n\n"
+    for subreddit, posts in subreddits.items():
+        content += f"### r/{subreddit}\n\n"
+        
+# 変更後  
+for category, subreddits in categories.items():
+    # カテゴリ行を削除
+    for subreddit, posts in subreddits.items():
+        content += f"## r/{subreddit}\n\n"</pre>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-purple-800">フロントエンド変更</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre>// サブレディットを直接カテゴリヘッダーに
+if (line.startsWith('## r/')) {
+  const subreddit = line.substring(5).trim();
+  
+  items.push({
+    title: subreddit,
+    isCategoryHeader: true
+  });
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold mb-3 text-indigo-800">階層構造の変化</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-red-800 mb-2">変更前（4階層）</h4>
+                            <div class="text-sm text-red-700 space-y-1">
+                                <div>1. Reddit Posts (タイトル)</div>
+                                <div>2. Tech (カテゴリ)</div>
+                                <div>3. r/StableDiffusion (サブレディット)</div>
+                                <div>4. 投稿タイトル (投稿)</div>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-green-800 mb-2">変更後（3階層）</h4>
+                            <div class="text-sm text-green-700 space-y-1">
+                                <div>1. Reddit Posts (タイトル)</div>
+                                <div>2. r/StableDiffusion (サブレディット→カテゴリ)</div>
+                                <div>3. 投稿タイトル (投稿)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tech Newsとの統一性 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔗 Tech Newsとの統一性</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-orange-800">Tech News（参考）</h3>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <div class="category-header bg-orange-100 border-orange-300 text-orange-800 text-base">
+                                Tech Blogs
+                            </div>
+                            <div class="bg-white p-3 rounded border-l-4 border-orange-500 mb-2">
+                                <p class="font-semibold text-sm">記事1</p>
+                            </div>
+                            
+                            <div class="category-header bg-orange-100 border-orange-300 text-orange-800 text-base">
+                                Hatena
+                            </div>
+                            <div class="bg-white p-3 rounded border-l-4 border-orange-500">
+                                <p class="font-semibold text-sm">記事2</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-red-800">Reddit Posts（TASK-035後）</h3>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="category-header bg-red-100 border-red-300 text-red-800 text-base">
+                                r/StableDiffusion
+                            </div>
+                            <div class="bg-white p-3 rounded border-l-4 border-red-500 mb-2">
+                                <p class="font-semibold text-sm">投稿1</p>
+                            </div>
+                            
+                            <div class="category-header bg-red-100 border-red-300 text-red-800 text-base">
+                                r/artificial
+                            </div>
+                            <div class="bg-white p-3 rounded border-l-4 border-red-500">
+                                <p class="font-semibold text-sm">投稿2</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-blue-100 rounded text-sm text-blue-700">
+                    <strong>統一ポイント:</strong><br>
+                    • マルチカテゴリヘッダー方式の採用<br>
+                    • 各カテゴリ（サブレディット）の独立表示<br>
+                    • 統一された記事カードレイアウト<br>
+                    • 直感的なナビゲーション体験
+                </div>
+            </div>
+        </div>
+
+        <!-- 期待される効果 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎉 期待される効果</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎯</div>
+                        <h3 class="font-semibold text-red-800 mb-2">直感的なアクセス</h3>
+                        <p class="text-sm text-red-600">サブレディットが一目で分かり、直接アクセス可能</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-3xl mb-2">📋</div>
+                        <h3 class="font-semibold text-blue-800 mb-2">構造の簡素化</h3>
+                        <p class="text-sm text-blue-600">4階層から3階層への簡素化で理解しやすく</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎨</div>
+                        <h3 class="font-semibold text-purple-800 mb-2">統一UI体験</h3>
+                        <p class="text-sm text-purple-600">Tech Newsと一貫したマルチカテゴリ表示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-gray-800 text-white p-6 text-center">
+        <p>🤖 nook - Reddit Subreddit Direct Categorization Demo</p>
+        <p class="text-sm text-gray-400 mt-2">TASK-035 Implementation Preview</p>
+    </footer>
+</body>
+</html>

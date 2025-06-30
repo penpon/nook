@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>note Articles 形式変更デモ - TASK-027</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 40px; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+        .demo-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(to right, #f97316, #ea580c); color: white; padding: 30px; text-align: center; }
+        .category-header { 
+            background: linear-gradient(to right, #fed7aa, #fdba74); 
+            border-bottom: 2px solid #f97316; 
+            padding: 12px 20px; 
+            margin: 20px 0 10px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #c2410c;
+        }
+        .article-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            border-left: 4px solid #f97316;
+        }
+        .article-number {
+            display: inline-block;
+            background: #fed7aa;
+            color: #c2410c;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+        .source-tag {
+            display: inline-block;
+            background: #fed7aa;
+            color: #c2410c;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .old-format {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .new-format {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+        }
+        .highlight-remove { background: #fee2e2; text-decoration: line-through; }
+        .highlight-add { background: #fed7aa; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="header">
+        <h1 class="text-3xl font-bold mb-4">note Articles 形式変更デモ</h1>
+        <p class="text-lg">TASK-027: GitHub Trending形式への統一</p>
+    </div>
+
+    <div class="container">
+        <!-- 変更概要 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎯 変更概要</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-2xl mb-2">❌</div>
+                        <h3 class="font-semibold text-red-800">削除</h3>
+                        <p class="text-sm text-red-600">日付付きタイトルを削除</p>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl mb-2">🔢</div>
+                        <h3 class="font-semibold text-blue-800">追加</h3>
+                        <p class="text-sm text-blue-600">記事に連番を付与</p>
+                    </div>
+                    <div class="text-center p-4 bg-orange-50 rounded-lg">
+                        <div class="text-2xl mb-2">✍️</div>
+                        <h3 class="font-semibold text-orange-800">変更</h3>
+                        <p class="text-sm text-orange-600">noteカテゴリをタグ化</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After比較 -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📊 表示形式の比較</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式</h3>
+                    
+                    <div class="highlight-remove text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold">note - 2025-06-24 note記事 (2025-06-24)</h1>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg">
+                        <div class="prose max-w-none">
+                            <h1 class="highlight-remove"># note記事 (2025-06-24)</h1>
+                            
+                            <h2>## Note</h2>
+                            
+                            <h3>### [クリエイターのためのマーケティング戦略](https://example.com)</h3>
+                            <p><strong>フィード</strong>: note</p>
+                            <p><strong>要約</strong>: デジタル時代におけるクリエイターのマーケティング戦略について、SNS活用からコンテンツ制作まで...</p>
+                            <hr>
+                            
+                            <h3>### [フリーランスとして成功するための5つのポイント](https://example.com)</h3>
+                            <p><strong>フィード</strong>: note</p>
+                            <p><strong>要約</strong>: フリーランスとして独立し、持続可能なビジネスを構築するための実践的なアドバイス...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 単一のMarkdownで表示<br>
+                        • 日付情報が重複<br>
+                        • 番号付けなし<br>
+                        • カテゴリが埋もれている
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 text-orange-800">🟢 新しい形式（TASK-027実装後）</h3>
+                    
+                    <div class="text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold highlight-add">note Articles</h1>
+                        <p class="text-gray-600">2025年06月24日</p>
+                    </div>
+
+                    <!-- カテゴリヘッダー: Note -->
+                    <div class="category-header">
+                        Note
+                    </div>
+
+                    <!-- 記事カード1 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">1</span>
+                                <a href="https://example.com" class="text-orange-600 hover:underline">
+                                    クリエイターのためのマーケティング戦略
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>フィード</strong>: note</p>
+                            <p><strong>要約</strong>: デジタル時代におけるクリエイターのマーケティング戦略について、SNS活用からコンテンツ制作まで包括的に解説。重要なポイントとして、ターゲット層の明確化、継続的なコンテンツ発信、ファンとのエンゲージメント強化が挙げられる。筆者の視点として、長期的なブランド構築と短期的な収益化のバランスが成功の鍵となる。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">note</span>
+                        </div>
+                    </div>
+
+                    <!-- 記事カード2 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">2</span>
+                                <a href="https://example.com" class="text-orange-600 hover:underline">
+                                    フリーランスとして成功するための5つのポイント
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>フィード</strong>: note</p>
+                            <p><strong>要約</strong>: フリーランスとして独立し、持続可能なビジネスを構築するための実践的なアドバイスを提供。重要なポイントとして、スキルの特化、ネットワーキング、価格設定、継続的な学習、財務管理が含まれる。筆者の視点として、失敗から学ぶ姿勢と挑戦を続ける意志が長期的な成功につながるという洞察を提示している。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">note</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-orange-100 rounded text-sm text-orange-700">
+                        <strong>改善点:</strong><br>
+                        • 個別カード表示<br>
+                        • 明確な連番付与<br>
+                        • Noteカテゴリヘッダーで分類<br>
+                        • GitHub Trendingと統一したUI
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技術実装詳細 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔧 TASK-027技術実装詳細</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-orange-800">実装内容</h3>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span><code>parseNoteArticlesMarkdown</code>関数の新規作成</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>Noteカテゴリセクション（## Note）の検出</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>記事（### [タイトル](URL)）の個別化</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>連番付与システムの実装</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-orange-500 mr-2">✓</span>
+                                <span>筆者の視点・洞察情報の抽出</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-purple-800">データ形式</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre># note記事 (2025-06-24)
+
+## Note
+
+### [タイトル](URL)
+
+**フィード**: note
+
+**要約**:
+1. 記事の主な内容
+2. 重要なポイント
+3. 筆者の視点または洞察
+
+---</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 期待される効果 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎉 期待される効果</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-orange-50 rounded-lg">
+                        <div class="text-3xl mb-2">✍️</div>
+                        <h3 class="font-semibold text-orange-800 mb-2">クリエイティブ記事の整理</h3>
+                        <p class="text-sm text-orange-600">noteの多様な記事が体系的に整理され、発見しやすくなる</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-3xl mb-2">💡</div>
+                        <h3 class="font-semibold text-yellow-800 mb-2">効率的なインスピレーション収集</h3>
+                        <p class="text-sm text-yellow-600">連番により関心の高い記事を優先的に確認可能</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎨</div>
+                        <h3 class="font-semibold text-purple-800 mb-2">統一UI体験</h3>
+                        <p class="text-sm text-purple-600">他のニュースソースと一貫したインターフェース</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-gray-800 text-white p-6 text-center">
+        <p>🤖 nook - note Articles Format Unification Demo</p>
+        <p class="text-sm text-gray-400 mt-2">TASK-027 Implementation Preview</p>
+    </footer>
+</body>
+</html>

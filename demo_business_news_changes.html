@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business News 形式変更デモ - TASK-024</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 40px; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+        .demo-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(to right, #059669, #047857); color: white; padding: 30px; text-align: center; }
+        .category-header { 
+            background: linear-gradient(to right, #f3f4f6, #e5e7eb); 
+            border-bottom: 2px solid #d1d5db; 
+            padding: 12px 20px; 
+            margin: 20px 0 10px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #374151;
+        }
+        .article-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            border-left: 4px solid #059669;
+        }
+        .article-number {
+            display: inline-block;
+            background: #d1fae5;
+            color: #047857;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+        .source-tag {
+            display: inline-block;
+            background: #d1fae5;
+            color: #047857;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .old-format {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .new-format {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+        .highlight-remove { background: #fee2e2; text-decoration: line-through; }
+        .highlight-add { background: #dcfce7; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="header">
+        <h1 class="text-3xl font-bold mb-4">Business News 形式変更デモ</h1>
+        <p class="text-lg">TASK-024: GitHub Trending形式への統一</p>
+    </div>
+
+    <div class="container">
+        <!-- 変更概要 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎯 変更概要</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-2xl mb-2">❌</div>
+                        <h3 class="font-semibold text-red-800">削除</h3>
+                        <p class="text-sm text-red-600">日付付きタイトルを削除</p>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl mb-2">🔢</div>
+                        <h3 class="font-semibold text-blue-800">追加</h3>
+                        <p class="text-sm text-blue-600">記事に連番を付与</p>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl mb-2">💼</div>
+                        <h3 class="font-semibold text-green-800">変更</h3>
+                        <p class="text-sm text-green-600">ビジネスカテゴリをタグ化</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After比較 -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📊 表示形式の比較</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式</h3>
+                    
+                    <div class="highlight-remove text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold">business news - 2025-06-24 ビジネスニュース記事 (2025-06-24)</h1>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg">
+                        <div class="prose max-w-none">
+                            <h1 class="highlight-remove"># ビジネスニュース記事 (2025-06-24)</h1>
+                            
+                            <h2>## Business</h2>
+                            
+                            <h3>### [企業のDX推進における最新トレンドと課題](https://example.com)</h3>
+                            <p><strong>フィード</strong>: 日経ビジネス</p>
+                            <p><strong>要約</strong>: 企業のデジタルトランスフォーメーション（DX）推進において、AIとクラウド技術の活用が急速に進んでいる...</p>
+                            <hr>
+                            
+                            <h3>### [スタートアップ投資環境の変化と新しい資金調達手法](https://example.com)</h3>
+                            <p><strong>フィード</strong>: TechCrunch Japan</p>
+                            <p><strong>要約</strong>: スタートアップ企業の資金調達環境が大きく変化している...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 単一のMarkdownで表示<br>
+                        • 日付情報が重複<br>
+                        • 番号付けなし<br>
+                        • カテゴリが埋もれている
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 text-green-800">🟢 新しい形式（TASK-024実装後）</h3>
+                    
+                    <div class="text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold highlight-add">Business News</h1>
+                        <p class="text-gray-600">2025年06月24日</p>
+                    </div>
+
+                    <!-- カテゴリヘッダー: Business -->
+                    <div class="category-header">
+                        Business
+                    </div>
+
+                    <!-- 記事カード1 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">1</span>
+                                <a href="https://example.com" class="text-green-600 hover:underline">
+                                    企業のDX推進における最新トレンドと課題
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>フィード</strong>: 日経ビジネス</p>
+                            <p><strong>要約</strong>: 企業のデジタルトランスフォーメーション（DX）推進において、AIとクラウド技術の活用が急速に進んでいる。主要なポイントとして、業務効率化、顧客体験の向上、データ活用による意思決定の改善が挙げられる。ビジネスインパクトとしては、競争力強化と持続的成長の実現が期待される。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">business news</span>
+                        </div>
+                    </div>
+
+                    <!-- 記事カード2 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">2</span>
+                                <a href="https://example.com" class="text-green-600 hover:underline">
+                                    スタートアップ投資環境の変化と新しい資金調達手法
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>フィード</strong>: TechCrunch Japan</p>
+                            <p><strong>要約</strong>: スタートアップ企業の資金調達環境が大きく変化している。新しい投資手法の普及、ESG投資の重要性の高まり、グローバル市場への展開が主要トレンドとなっている。ビジネスインパクトとしては、多様な資金調達ルートの確保と成長戦略の柔軟性向上が実現される。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">business news</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-green-100 rounded text-sm text-green-700">
+                        <strong>改善点:</strong><br>
+                        • 個別カード表示<br>
+                        • 明確な連番付与<br>
+                        • Businessカテゴリヘッダーで分類<br>
+                        • GitHub Trendingと統一したUI
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技術実装詳細 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔧 TASK-024技術実装詳細</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-green-800">実装内容</h3>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span><code>parseBusinessNewsMarkdown</code>関数の新規作成</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ビジネスカテゴリセクション（## Business）の検出</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>記事（### [タイトル](URL)）の個別化</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>連番付与システムの実装</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ビジネスインパクト情報の抽出</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-blue-800">データ形式</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre># ビジネスニュース記事 (2025-06-24)
+
+## Business
+
+### [タイトル](URL)
+
+**フィード**: フィード名
+
+**要約**:
+1. 記事の主な内容
+2. 重要なポイント
+3. ビジネスインパクト
+
+---</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 期待される効果 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎉 期待される効果</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-3xl mb-2">💼</div>
+                        <h3 class="font-semibold text-green-800 mb-2">ビジネス情報の整理</h3>
+                        <p class="text-sm text-green-600">ビジネスニュースが体系的に整理され、検索しやすくなる</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-3xl mb-2">📈</div>
+                        <h3 class="font-semibold text-blue-800 mb-2">効率的な情報収集</h3>
+                        <p class="text-sm text-blue-600">連番により重要な記事を順序立てて確認可能</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎨</div>
+                        <h3 class="font-semibold text-purple-800 mb-2">統一UI体験</h3>
+                        <p class="text-sm text-purple-600">他のニュースソースと一貫したインターフェース</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-gray-800 text-white p-6 text-center">
+        <p>🤖 nook - Business News Format Unification Demo</p>
+        <p class="text-sm text-gray-400 mt-2">TASK-024 Implementation Preview</p>
+    </footer>
+</body>
+</html>

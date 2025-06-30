@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5ch Threads 形式変更デモ - TASK-030</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 40px; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+        .demo-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(to right, #4338ca, #3730a3); color: white; padding: 30px; text-align: center; }
+        .category-header { 
+            background: linear-gradient(to right, #e0e7ff, #c7d2fe); 
+            border-bottom: 2px solid #4338ca; 
+            padding: 12px 20px; 
+            margin: 20px 0 10px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3730a3;
+        }
+        .article-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            border-left: 4px solid #4338ca;
+        }
+        .article-number {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+        .thread-info-badge {
+            display: inline-block;
+            background: #1e1b4b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .source-tag {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .old-format {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .new-format {
+            background: #f8faff;
+            border: 1px solid #c7d2fe;
+        }
+        .highlight-remove { background: #fee2e2; text-decoration: line-through; }
+        .highlight-add { background: #e0e7ff; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="header">
+        <h1 class="text-3xl font-bold mb-4">5ch Threads 形式変更デモ</h1>
+        <p class="text-lg">TASK-030: GitHub Trending形式への統一（スレッド情報対応）</p>
+    </div>
+
+    <div class="container">
+        <!-- 変更概要 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎯 変更概要</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-2xl mb-2">❌</div>
+                        <h3 class="font-semibold text-red-800">削除</h3>
+                        <p class="text-sm text-red-600">日付付きタイトルを削除</p>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl mb-2">🔢</div>
+                        <h3 class="font-semibold text-blue-800">追加</h3>
+                        <p class="text-sm text-blue-600">スレッドに連番を付与</p>
+                    </div>
+                    <div class="text-center p-4 bg-indigo-50 rounded-lg">
+                        <div class="text-2xl mb-2">🏷️</div>
+                        <h3 class="font-semibold text-indigo-800">変更</h3>
+                        <p class="text-sm text-indigo-600">板名をタグ化</p>
+                    </div>
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-2xl mb-2">📊</div>
+                        <h3 class="font-semibold text-purple-800">表示</h3>
+                        <p class="text-sm text-purple-600">スレッド情報を表示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5chスレッド情報の説明 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">📊 5ch特有のスレッド情報機能</h2>
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                    <p class="text-gray-700 mb-3">
+                        5chでは<code>[番号: タイトル (レス数)]</code>形式でスレッド情報を管理しています。
+                        これらの情報を抽出して見やすく表示します。
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="bg-white p-3 rounded border-l-4 border-indigo-500">
+                            <p class="text-sm">
+                                <strong>スレッド番号:</strong><br>
+                                <span class="text-indigo-700 font-semibold">123</span>
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded border-l-4 border-indigo-500">
+                            <p class="text-sm">
+                                <strong>レス数:</strong><br>
+                                <span class="text-indigo-700 font-semibold">456レス</span>
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded border-l-4 border-indigo-500">
+                            <p class="text-sm">
+                                <strong>作成日時:</strong><br>
+                                <span class="text-indigo-700 font-semibold">2025-06-24 12:34:56</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After比較 -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📊 表示形式の比較</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式</h3>
+                    
+                    <div class="highlight-remove text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold">5chan - 2025-06-24 5chan AI関連スレッド (2025-06-24)</h1>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg">
+                        <div class="prose max-w-none">
+                            <h1 class="highlight-remove"># 5chan AI関連スレッド (2025-06-24)</h1>
+                            
+                            <h2>## CG (/cg/)</h2>
+                            
+                            <h3>### [123: AIが変えるプログラミングの未来 (456)](https://example.com)</h3>
+                            <p>作成日時: 2025-06-24 12:34:56</p>
+                            <p><strong>要約</strong>: AIがプログラミング業界に与える影響について議論...</p>
+                            <hr>
+                            
+                            <h3>### [789: 機械学習エンジニアのキャリアパス (234)](https://example.com)</h3>
+                            <p>作成日時: 2025-06-24 15:22:10</p>
+                            <p><strong>要約</strong>: 機械学習エンジニアとしてのキャリア構築について...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 単一のMarkdownで表示<br>
+                        • 日付情報が重複<br>
+                        • 番号付けなし<br>
+                        • スレッド情報が読みにくい<br>
+                        • 板名が埋もれている
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 text-indigo-800">🟢 新しい形式（TASK-030実装後）</h3>
+                    
+                    <div class="text-center p-4 mb-4 bg-white rounded">
+                        <h1 class="text-xl font-bold highlight-add">5ch Threads</h1>
+                        <p class="text-gray-600">2025年06月24日</p>
+                    </div>
+
+                    <!-- カテゴリヘッダー: CG (/cg/) -->
+                    <div class="category-header">
+                        CG (/cg/)
+                    </div>
+
+                    <!-- スレッドカード1 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">1</span>
+                                <a href="https://example.com" class="text-indigo-600 hover:underline">
+                                    AIが変えるプログラミングの未来
+                                </a>
+                                <span class="thread-info-badge">#123</span>
+                                <span class="thread-info-badge">456レス</span>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>板</strong>: CG (/cg/)</p>
+                            <p><strong>スレッド番号</strong>: 123</p>
+                            <p><strong>レス数</strong>: 456</p>
+                            <p><strong>作成日時</strong>: 2025年6月24日 12:34</p>
+                            <p><strong>要約</strong>: AIがプログラミング業界に与える影響について議論が展開されている。議論の主要ポイントとして、コード自動生成、品質向上、開発速度の向上が挙げられている。全体的な論調として、AI技術への期待が高い一方で、人間の創造性の重要性を強調する意見も多く見られる。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">5chan</span>
+                        </div>
+                    </div>
+
+                    <!-- スレッドカード2 -->
+                    <div class="article-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-900 flex-1">
+                                <span class="article-number">2</span>
+                                <a href="https://example.com" class="text-indigo-600 hover:underline">
+                                    機械学習エンジニアのキャリアパス
+                                </a>
+                                <span class="thread-info-badge">#789</span>
+                                <span class="thread-info-badge">234レス</span>
+                            </h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none mb-4">
+                            <p><strong>板</strong>: CG (/cg/)</p>
+                            <p><strong>スレッド番号</strong>: 789</p>
+                            <p><strong>レス数</strong>: 234</p>
+                            <p><strong>作成日時</strong>: 2025年6月24日 15:22</p>
+                            <p><strong>要約</strong>: 機械学習エンジニアとしてのキャリア構築について活発な議論が行われている。議論の主要ポイントとして、必要なスキルセット、転職戦略、給与水準の現実が含まれる。全体的な論調として、実務経験の重要性と継続的な学習の必要性が強調されている。</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="source-tag">5chan</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-indigo-100 rounded text-sm text-indigo-700">
+                        <strong>改善点:</strong><br>
+                        • 個別カード表示<br>
+                        • スレッドに明確な連番付与<br>
+                        • 板名を明確に表示<br>
+                        • スレッド番号・レス数を見やすく表示<br>
+                        • GitHub Trendingと統一したUI
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技術実装詳細 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔧 TASK-030技術実装詳細</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-indigo-800">特殊実装要件</h3>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-start">
+                                <span class="text-indigo-500 mr-2">✓</span>
+                                <span><code>parseFivechanThreadsMarkdown</code>関数の新規作成</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-indigo-500 mr-2">✓</span>
+                                <span>板名（## CG (/cg/)）の検出とタグ化</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-indigo-500 mr-2">✓</span>
+                                <span>スレッド番号・レス数の抽出処理</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-indigo-500 mr-2">✓</span>
+                                <span>作成日時の適切なフォーマット</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-indigo-500 mr-2">✓</span>
+                                <span>匿名掲示板特有の情報表示</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-purple-800">データ構造</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre># 5chan AI関連スレッド (2025-06-24)
+
+## CG (/cg/)
+
+### [123: スレッドタイトル (456)](URL)
+
+作成日時: 2025-06-24 12:34:56
+
+**要約**:
+1. スレッドの主な内容
+2. 議論の主要ポイント
+3. 全体的な論調
+
+---</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 期待される効果 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎉 期待される効果</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-indigo-50 rounded-lg">
+                        <div class="text-3xl mb-2">📊</div>
+                        <h3 class="font-semibold text-indigo-800 mb-2">スレッド情報の可視化</h3>
+                        <p class="text-sm text-indigo-600">スレッド番号・レス数により議論の活発さを一目で把握</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-3xl mb-2">🔍</div>
+                        <h3 class="font-semibold text-purple-800 mb-2">効率的な情報収集</h3>
+                        <p class="text-sm text-purple-600">連番により重要なスレッドを優先的に確認可能</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎨</div>
+                        <h3 class="font-semibold text-gray-800 mb-2">統一UI体験</h3>
+                        <p class="text-sm text-gray-600">他のニュースソースと一貫したインターフェース</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-gray-800 text-white p-6 text-center">
+        <p>🤖 nook - 5ch Threads Format Unification Demo</p>
+        <p class="text-sm text-gray-400 mt-2">TASK-030 Implementation Preview (Thread Info Support)</p>
+    </footer>
+</body>
+</html>

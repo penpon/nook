@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenn/Qiita/note フィード直接カテゴリ化デモ - TASK-036/037/038</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 40px; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+        .demo-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(to right, #6366f1, #4f46e5); color: white; padding: 30px; text-align: center; }
+        .category-header { 
+            background: linear-gradient(to right, #e0e7ff, #c7d2fe); 
+            border-bottom: 2px solid #6366f1; 
+            padding: 12px 20px; 
+            margin: 20px 0 10px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4338ca;
+        }
+        .article-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            border-left: 4px solid #6366f1;
+        }
+        .article-number {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+        .old-format {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .new-format {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+        }
+        .highlight-remove { background: #fee2e2; text-decoration: line-through; }
+        .highlight-add { background: #e0e7ff; font-weight: bold; }
+        .zenn-color { color: #3b82f6; border-color: #3b82f6; }
+        .qiita-color { color: #10b981; border-color: #10b981; }
+        .note-color { color: #f97316; border-color: #f97316; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="header">
+        <h1 class="text-3xl font-bold mb-4">Zenn/Qiita/note フィード直接カテゴリ化デモ</h1>
+        <p class="text-lg">TASK-036/037/038: 独自分類の廃止とフィード名直接使用</p>
+    </div>
+
+    <div class="container">
+        <!-- 変更概要 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎯 独自分類廃止の理由</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-2xl mb-2">🚫</div>
+                        <h3 class="font-semibold text-red-800">問題点</h3>
+                        <p class="text-sm text-red-600">独自カテゴリによる複雑化</p>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl mb-2">✨</div>
+                        <h3 class="font-semibold text-blue-800">解決策</h3>
+                        <p class="text-sm text-blue-600">フィード名を直接使用</p>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl mb-2">🎉</div>
+                        <h3 class="font-semibold text-green-800">効果</h3>
+                        <p class="text-sm text-green-600">シンプルで直感的な分類</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zenn Articles -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📘 Zenn Articles</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式（TASK-032）</h3>
+                    
+                    <div class="category-header highlight-remove">
+                        AI駆動開発ツール
+                    </div>
+                    <div class="ml-8 space-y-3">
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">1. Claude Code実践ガイド</h4>
+                            <p class="text-sm text-gray-600"><strong>フィード</strong>: Zennの「Claude Code」のフィード</p>
+                        </div>
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">2. Cursor活用術</h4>
+                            <p class="text-sm text-gray-600"><strong>フィード</strong>: Zennの「Cursor」のフィード</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 独自カテゴリによる分類<br>
+                        • 実際のフィード名と不一致
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 zenn-color">🟢 新しい形式（TASK-036実装後）</h3>
+                    
+                    <div class="category-header highlight-add zenn-color" style="background: linear-gradient(to right, #dbeafe, #bfdbfe); border-color: #3b82f6;">
+                        Claude Code
+                    </div>
+                    <div class="article-card" style="border-left-color: #3b82f6;">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <span class="article-number" style="background: #dbeafe; color: #1e40af;">1</span>
+                            Claude Code実践ガイド
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2"><strong>フィード</strong>: Zennの「Claude Code」のフィード</p>
+                    </div>
+
+                    <div class="category-header highlight-add zenn-color" style="background: linear-gradient(to right, #dbeafe, #bfdbfe); border-color: #3b82f6;">
+                        Cursor
+                    </div>
+                    <div class="article-card" style="border-left-color: #3b82f6;">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <span class="article-number" style="background: #dbeafe; color: #1e40af;">2</span>
+                            Cursor活用術
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2"><strong>フィード</strong>: Zennの「Cursor」のフィード</p>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-blue-100 rounded text-sm text-blue-700">
+                        <strong>改善点:</strong><br>
+                        • フィード名を直接カテゴリに<br>
+                        • シンプルで分かりやすい
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Qiita Articles -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📗 Qiita Articles</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式（TASK-033）</h3>
+                    
+                    <div class="category-header highlight-remove">
+                        Web開発
+                    </div>
+                    <div class="ml-8 space-y-3">
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">1. Vue.js 3の新機能</h4>
+                            <p class="text-sm text-gray-600"><strong>フィード</strong>: Vue.jsタグが付けられた新着記事 - Qiita</p>
+                        </div>
+                    </div>
+
+                    <div class="category-header highlight-remove">
+                        AI・機械学習
+                    </div>
+                    <div class="ml-8 space-y-3">
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">2. ChatGPT API活用法</h4>
+                            <p class="text-sm text-gray-600"><strong>フィード</strong>: ChatGPTタグが付けられた新着記事 - Qiita</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 独自カテゴリによる分類<br>
+                        • 実際のタグ名と不一致
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 qiita-color">🟢 新しい形式（TASK-037実装後）</h3>
+                    
+                    <div class="category-header highlight-add qiita-color" style="background: linear-gradient(to right, #d1fae5, #a7f3d0); border-color: #10b981;">
+                        Vue.js
+                    </div>
+                    <div class="article-card" style="border-left-color: #10b981;">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <span class="article-number" style="background: #d1fae5; color: #047857;">1</span>
+                            Vue.js 3の新機能
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2"><strong>フィード</strong>: Vue.jsタグが付けられた新着記事 - Qiita</p>
+                    </div>
+
+                    <div class="category-header highlight-add qiita-color" style="background: linear-gradient(to right, #d1fae5, #a7f3d0); border-color: #10b981;">
+                        ChatGPT
+                    </div>
+                    <div class="article-card" style="border-left-color: #10b981;">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <span class="article-number" style="background: #d1fae5; color: #047857;">2</span>
+                            ChatGPT API活用法
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2"><strong>フィード</strong>: ChatGPTタグが付けられた新着記事 - Qiita</p>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-green-100 rounded text-sm text-green-700">
+                        <strong>改善点:</strong><br>
+                        • タグ名を直接カテゴリに<br>
+                        • Qiitaの実際のタグと一致
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- note Articles -->
+        <div class="section">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📙 note Articles</h2>
+            <div class="comparison">
+                <!-- 現在の形式 -->
+                <div class="demo-card old-format">
+                    <h3 class="text-xl font-bold mb-4 text-red-800">🔴 現在の形式（TASK-034）</h3>
+                    
+                    <div class="category-header highlight-remove">
+                        AI・開発ツール
+                    </div>
+                    <div class="ml-8 space-y-3">
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">1. ClaudeCode実践記</h4>
+                            <p class="text-sm text-gray-600"><strong>フィード</strong>: #ClaudeCodeタグ</p>
+                        </div>
+                    </div>
+
+                    <div class="category-header highlight-remove">
+                        ビジネス・起業
+                    </div>
+                    <div class="ml-8 space-y-3">
+                        <div class="bg-white p-4 rounded border border-red-200">
+                            <h4 class="font-semibold mb-2">2. スタートアップ体験談</h4>
+                            <p class="text-sm text-gray-600"><strong>フィード</strong>: #スタートアップタグ</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-red-100 rounded text-sm text-red-700">
+                        <strong>問題点:</strong><br>
+                        • 独自カテゴリによる分類<br>
+                        • ハッシュタグと不一致
+                    </div>
+                </div>
+
+                <!-- 新しい形式 -->
+                <div class="demo-card new-format">
+                    <h3 class="text-xl font-bold mb-4 note-color">🟢 新しい形式（TASK-038実装後）</h3>
+                    
+                    <div class="category-header highlight-add note-color" style="background: linear-gradient(to right, #fed7aa, #fdba74); border-color: #f97316;">
+                        #ClaudeCode
+                    </div>
+                    <div class="article-card" style="border-left-color: #f97316;">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <span class="article-number" style="background: #fed7aa; color: #c2410c;">1</span>
+                            ClaudeCode実践記
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2"><strong>フィード</strong>: #ClaudeCodeタグ</p>
+                    </div>
+                    <div class="article-card" style="border-left-color: #f97316;">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <span class="article-number" style="background: #fed7aa; color: #c2410c;">2</span>
+                            ClaudeCodeで変わった開発体験
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2"><strong>フィード</strong>: #ClaudeCodeタグ</p>
+                    </div>
+
+                    <div class="category-header highlight-add note-color" style="background: linear-gradient(to right, #fed7aa, #fdba74); border-color: #f97316;">
+                        #スタートアップ
+                    </div>
+                    <div class="article-card" style="border-left-color: #f97316;">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <span class="article-number" style="background: #fed7aa; color: #c2410c;">3</span>
+                            スタートアップ体験談
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-2"><strong>フィード</strong>: #スタートアップタグ</p>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-orange-100 rounded text-sm text-orange-700">
+                        <strong>改善点:</strong><br>
+                        • ハッシュタグを直接カテゴリに<br>
+                        • #記号を含めて表示
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統一された実装詳細 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🔧 技術実装詳細</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 zenn-color">Zenn（TASK-036）</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre>// 'Zennの「Claude Code」のフィード'
+// → 'Claude Code'
+const match = feedInfo.match(
+  /Zennの「(.+?)」のフィード/
+);</pre>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 qiita-color">Qiita（TASK-037）</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre>// 'ChatGPTタグが付けられた新着記事'
+// → 'ChatGPT'
+const match = feedInfo.match(
+  /^(.+?)タグが付けられた/
+);</pre>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 note-color">note（TASK-038）</h3>
+                        <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                            <pre>// '#ClaudeCodeタグ'
+// → '#ClaudeCode'
+const match = feedInfo.match(
+  /^(#.+?)タグ$/
+);</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 期待される効果 -->
+        <div class="section">
+            <div class="demo-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">🎉 期待される効果</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎯</div>
+                        <h3 class="font-semibold text-blue-800 mb-2">シンプルな分類</h3>
+                        <p class="text-sm text-blue-600">フィード名をそのまま使用することで直感的な分類を実現</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-3xl mb-2">🔄</div>
+                        <h3 class="font-semibold text-green-800 mb-2">自動対応</h3>
+                        <p class="text-sm text-green-600">新しいフィード・タグ・ハッシュタグへの自動対応</p>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-3xl mb-2">🎨</div>
+                        <h3 class="font-semibold text-purple-800 mb-2">一貫性</h3>
+                        <p class="text-sm text-purple-600">各プラットフォームの実際の分類と一致</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-gray-800 text-white p-6 text-center">
+        <p>🤖 nook - Feed Direct Categorization Demo</p>
+        <p class="text-sm text-gray-400 mt-2">TASK-036/037/038 Implementation Preview</p>
+    </footer>
+</body>
+</html>
