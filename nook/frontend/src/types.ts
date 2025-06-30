@@ -3,6 +3,12 @@ export interface ContentItem {
   content: string;
   url?: string;
   source: string;
+  language?: string;
+  category?: string;
+  isLanguageHeader?: boolean;
+  isCategoryHeader?: boolean;
+  isRepository?: boolean;
+  isArticle?: boolean;
 }
 
 export interface ContentResponse {
