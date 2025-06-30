@@ -691,8 +691,8 @@ function parseAcademicPapersMarkdown(markdown: string): ContentItem[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // 論文タイトル行を検出（### [タイトル](URL)）
-    const titleMatch = line.match(/^###\s*\[([^\]]+)\]\(([^)]+)\)$/);
+    // 論文タイトル行を検出（## [タイトル](URL)）
+    const titleMatch = line.match(/^##\s*\[([^\]]+)\]\(([^)]+)\)$/);
     if (titleMatch) {
       const title = titleMatch[1];
       const url = titleMatch[2];
@@ -754,8 +754,8 @@ function parseHackerNewsMarkdown(markdown: string): ContentItem[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // 記事タイトル行を検出（### [タイトル](URL)）
-    const titleMatch = line.match(/^###\s*\[([^\]]+)\]\(([^)]+)\)$/);
+    // 記事タイトル行を検出（## [タイトル](URL)）
+    const titleMatch = line.match(/^##\s*\[([^\]]+)\]\(([^)]+)\)$/);
     if (titleMatch) {
       const title = titleMatch[1];
       const url = titleMatch[2];
