@@ -301,9 +301,21 @@ function App() {
                   </button>
                 </div>
               ) : processedItems && processedItems.length > 0 ? (
-                processedItems.map((item, index) => (
-                  <ContentCard key={index} item={item} darkMode={darkMode} index={index} />
-                ))
+                (() => {
+                  let repositoryCount = 0;
+                  return processedItems.map((item, index) => {
+                    const isRepository = (item as any).isRepository;
+                    const repositoryIndex = isRepository ? repositoryCount++ : undefined;
+                    return (
+                      <ContentCard 
+                        key={index} 
+                        item={item} 
+                        darkMode={darkMode} 
+                        index={repositoryIndex} 
+                      />
+                    );
+                  });
+                })()
               ) : (
                 <div className="col-span-full text-center py-8">
                   <p className="text-gray-500 dark:text-gray-400">No content available for this source</p>
