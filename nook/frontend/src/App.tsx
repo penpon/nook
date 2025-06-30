@@ -49,22 +49,25 @@ function parseGitHubTrendingMarkdown(markdown: string): any[] {
         let description = '';
         let stars = '';
         
-        // 説明を取得（次の行以降の空行でない行）
+        // 説明を取得（次の行以降）
         for (let j = i + 1; j < lines.length; j++) {
           const nextLine = lines[j].trim();
-          if (nextLine === '' || nextLine.startsWith('#')) {
+          
+          // 次のセクションまたは次のリポジトリに到達したら終了
+          if (nextLine.startsWith('#') || nextLine === '---') {
             break;
           }
+          
           if (nextLine.includes('⭐')) {
             // スター数の行
-            const starMatch = nextLine.match(/⭐\s*([0-9,]+)/);
+            const starMatch = nextLine.match(/⭐\s*スター数:\s*([0-9,]+)/);
             if (starMatch) {
               stars = starMatch[1];
             }
-          } else if (!nextLine.startsWith('###')) {
-            // 説明の行
-            if (description) {
-              description += ' ';
+          } else if (nextLine && !nextLine.startsWith('###')) {
+            // 説明の行（空行でない場合のみ）
+            if (description && nextLine) {
+              description += '\n\n';
             }
             description += nextLine;
           }
@@ -302,19 +305,32 @@ function App() {
                 </div>
               ) : processedItems && processedItems.length > 0 ? (
                 (() => {
-                  let repositoryCount = 0;
-                  return processedItems.map((item, index) => {
-                    const isRepository = (item as any).isRepository;
-                    const repositoryIndex = isRepository ? repositoryCount++ : undefined;
-                    return (
+                  // GitHub Trendingの場合は特別な番号付けロジック
+                  if (selectedSource === 'github') {
+                    let repositoryCount = 0;
+                    return processedItems.map((item, index) => {
+                      const isRepository = (item as any).isRepository;
+                      const repositoryIndex = isRepository ? repositoryCount++ : undefined;
+                      return (
+                        <ContentCard 
+                          key={index} 
+                          item={item} 
+                          darkMode={darkMode} 
+                          index={repositoryIndex} 
+                        />
+                      );
+                    });
+                  } else {
+                    // 他のソースは通常の番号付け
+                    return processedItems.map((item, index) => (
                       <ContentCard 
                         key={index} 
                         item={item} 
                         darkMode={darkMode} 
-                        index={repositoryIndex} 
+                        index={index} 
                       />
-                    );
-                  });
+                    ));
+                  }
                 })()
               ) : (
                 <div className="col-span-full text-center py-8">
