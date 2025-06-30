@@ -134,10 +134,13 @@ class HackerNewsRetriever(BaseService):
             
             filtered_stories.append(story)
         
-        # 5. フィルタリング後の上位記事を選択（limitで指定された数）
+        # 5. スコアで降順ソート
+        filtered_stories.sort(key=lambda story: story.score, reverse=True)
+        
+        # 6. フィルタリング後の上位記事を選択（limitで指定された数）
         selected_stories = filtered_stories[:limit]
         
-        # 6. ログに統計情報を出力
+        # 7. ログに統計情報を出力
         self.logger.info(
             f"Hacker News記事フィルタリング結果: "
             f"取得: {len(all_stories)}件, "
@@ -145,7 +148,7 @@ class HackerNewsRetriever(BaseService):
             f"選択: {len(selected_stories)}件"
         )
         
-        # 7. 要約を並行して生成
+        # 8. 要約を並行して生成
         await self._summarize_stories(selected_stories)
         
         return selected_stories
