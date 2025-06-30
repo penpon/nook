@@ -375,9 +375,10 @@ function parseZennArticlesMarkdown(markdown: string): ContentItem[] {
     for (const article of articles) {
       // 記事内容を構築
       let content = '';
-      if (article.feedInfo) {
-        content += `**フィード**: ${article.feedInfo}\n\n`;
-      }
+      // フィード情報は表示しない
+      // if (article.feedInfo) {
+      //   content += `**フィード**: ${article.feedInfo}\n\n`;
+      // }
       if (article.content) {
         content += `**要約**:\n${article.content}`;
       }
@@ -505,9 +506,10 @@ function parseQiitaArticlesMarkdown(markdown: string): ContentItem[] {
     for (const article of articles) {
       // 記事内容を構築
       let content = '';
-      if (article.feedInfo) {
-        content += `**フィード**: ${article.feedInfo}\n\n`;
-      }
+      // フィード情報は表示しない
+      // if (article.feedInfo) {
+      //   content += `**フィード**: ${article.feedInfo}\n\n`;
+      // }
       if (article.content) {
         content += `**要約**:\n${article.content}`;
       }
@@ -618,9 +620,10 @@ function parseNoteArticlesMarkdown(markdown: string): ContentItem[] {
       
       // 記事内容を構築
       let content = '';
-      if (feedInfo) {
-        content += `**フィード**: ${feedInfo}\n\n`;
-      }
+      // フィード情報は表示しない
+      // if (feedInfo) {
+      //   content += `**フィード**: ${feedInfo}\n\n`;
+      // }
       if (summary) {
         content += `**要約**:\n${summary}`;
       }
