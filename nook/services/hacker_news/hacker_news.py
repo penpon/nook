@@ -37,6 +37,12 @@ class Story:
     summary: str = ""
 
 
+# フィルタリング条件の定数
+SCORE_THRESHOLD = 20  # 最小スコア
+MIN_TEXT_LENGTH = 100  # 最小テキスト長
+MAX_TEXT_LENGTH = 10000  # 最大テキスト長
+FETCH_LIMIT = 100  # フィルタリング前に取得する記事数
+
 
 class HackerNewsRetriever(BaseService):
     """
@@ -93,29 +99,56 @@ class HackerNewsRetriever(BaseService):
         List[Story]
             取得した記事のリスト。
         """
-        # トップストーリーのIDを取得
+        # 1. topstoriesから多めに記事IDを取得（100件）
         response = await self.http_client.get(f"{self.base_url}/topstories.json")
-        story_ids = response.json()[:limit]
+        story_ids = response.json()[:FETCH_LIMIT]  # 100件取得
         
-        stories = []
-        
-        # 並行してストーリーを取得
+        # 2. 並行してストーリーを取得（既存の処理）
         tasks = []
         for story_id in story_ids:
             tasks.append(self._fetch_story(story_id))
         
         story_results = await asyncio.gather(*tasks, return_exceptions=True)
         
+        # 3. 有効なストーリーを収集
+        all_stories = []
         for result in story_results:
             if isinstance(result, Story):
-                stories.append(result)
+                all_stories.append(result)
             elif isinstance(result, Exception):
                 self.logger.error(f"Error fetching story: {result}")
         
-        # 要約を並行して生成
-        await self._summarize_stories(stories)
+        # 4. フィルタリング処理を追加
+        filtered_stories = []
+        for story in all_stories:
+            # スコアフィルタリング
+            if story.score < SCORE_THRESHOLD:
+                continue
+            
+            # テキスト長フィルタリング
+            text_content = story.text or ""
+            text_length = len(text_content)
+            
+            if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
+                continue
+            
+            filtered_stories.append(story)
         
-        return stories
+        # 5. フィルタリング後の上位記事を選択（limitで指定された数）
+        selected_stories = filtered_stories[:limit]
+        
+        # 6. ログに統計情報を出力
+        self.logger.info(
+            f"Hacker News記事フィルタリング結果: "
+            f"取得: {len(all_stories)}件, "
+            f"フィルタリング後: {len(filtered_stories)}件, "
+            f"選択: {len(selected_stories)}件"
+        )
+        
+        # 7. 要約を並行して生成
+        await self._summarize_stories(selected_stories)
+        
+        return selected_stories
     
     async def _fetch_story(self, story_id: int) -> Optional[Story]:
         """個別のストーリーを取得"""
