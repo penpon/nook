@@ -20,18 +20,20 @@ export const ContentCard: React.FC<ContentCardProps> = ({ item, darkMode, index 
               {index + 1}
             </span>
           )}
-          {item.title}
+          {item.url ? (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline inline-flex items-center"
+            >
+              {item.title}
+              <ExternalLink size={16} className="ml-1 inline-block flex-shrink-0" />
+            </a>
+          ) : (
+            <span>{item.title}</span>
+          )}
         </h3>
-        {item.url && (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ml-2 flex items-center"
-          >
-            <ExternalLink size={20} />
-          </a>
-        )}
       </div>
       <div className={`prose prose-lg max-w-none w-full overflow-x-auto ${darkMode ? 'prose-invert' : ''}`}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
