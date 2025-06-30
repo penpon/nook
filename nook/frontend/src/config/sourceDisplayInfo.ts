@@ -33,7 +33,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-gray-200'
   },
   'paper': {
-    title: 'Academic Papers',
+    title: 'ArXiv',
     subtitle: '学術論文・研究レポート',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-purple-50',
@@ -49,7 +49,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-gray-300'
   },
   'zenn': {
-    title: 'Zenn Articles',
+    title: 'Zenn',
     subtitle: 'Zenn 技術記事',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-sky-50',
@@ -57,7 +57,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-sky-200'
   },
   'qiita': {
-    title: 'Qiita Articles',
+    title: 'Qiita',
     subtitle: 'Qiita 技術記事',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-green-50',
@@ -65,7 +65,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-green-200'
   },
   'note': {
-    title: 'note Articles',
+    title: 'Note',
     subtitle: 'note 記事・コラム',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-teal-50',
@@ -73,7 +73,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-teal-200'
   },
   'reddit': {
-    title: 'Reddit Posts',
+    title: 'Reddit',
     subtitle: 'Reddit 人気投稿',
     dateFormat: 'MMM dd, yyyy',
     gradientFrom: 'from-red-50',
@@ -81,15 +81,15 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-red-200'
   },
   '4chan': {
-    title: '4chan Threads',
-    subtitle: '4chan スレッド',
+    title: '4ch',
+    subtitle: '4ちゃんねる スレッド',
     dateFormat: 'MM/dd/yyyy',
     gradientFrom: 'from-green-50',
     gradientTo: 'to-lime-50',
     borderColor: 'border-green-300'
   },
   '5chan': {
-    title: '5ch Threads',
+    title: '5ch',
     subtitle: '5ちゃんねる スレッド',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-amber-50',
