@@ -77,7 +77,9 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
         if source == "hacker news":
             stories_data = storage.load_json(service_name, target_date)
             if stories_data:
-                for i, story in enumerate(stories_data):
+                # スコアで降順ソート
+                sorted_stories = sorted(stories_data, key=lambda x: x.get('score', 0), reverse=True)
+                for i, story in enumerate(sorted_stories):
                     # 要約があれば要約を、なければ本文を使用
                     content = ""
                     if story.get("summary"):
@@ -111,7 +113,9 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
                 # Hacker Newsは個別記事として追加
                 stories_data = storage.load_json(service_name, target_date)
                 if stories_data:
-                    for i, story in enumerate(stories_data):
+                    # スコアで降順ソート
+                    sorted_stories = sorted(stories_data, key=lambda x: x.get('score', 0), reverse=True)
+                    for i, story in enumerate(sorted_stories):
                         # 要約があれば要約を、なければ本文を使用
                         content = ""
                         if story.get("summary"):
