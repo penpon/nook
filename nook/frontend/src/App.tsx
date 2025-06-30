@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { format, subDays } from 'date-fns';
 import { Layout, Menu, Calendar, Sun, Moon } from 'lucide-react';
@@ -9,7 +9,81 @@ import UsageDashboard from './components/UsageDashboard';
 import { getContent } from './api';
 import { sourceDisplayInfo, defaultSourceDisplayInfo } from './config/sourceDisplayInfo';
 
+interface ParsedRepository {
+  name: string;        // "owner/repo"
+  url: string;         // GitHub URL
+  description: string; // 日本語の説明
+  stars: string;       // スター数
+  language: string;    // 所属言語
+}
+
 const sources = ['paper', 'github', 'hacker news', 'tech news', 'business news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
+
+// GitHub TrendingのMarkdownをパースして個別のコンテンツアイテムに変換
+function parseGitHubTrendingMarkdown(markdown: string): any[] {
+  const lines = markdown.split('\n');
+  const contentItems: any[] = [];
+  let currentLanguage = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 言語セクション（## Python, ## Go, ## Rust）を検出
+    if (line.startsWith('## ') && line.length > 3) {
+      currentLanguage = line.substring(3).trim();
+      contentItems.push({
+        title: currentLanguage,
+        content: '',
+        source: 'github',
+        isLanguageHeader: true
+      });
+    }
+    // リポジトリ（### [owner/repo](url)）を検出
+    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (linkMatch) {
+        const repoName = linkMatch[1];
+        const repoUrl = linkMatch[2];
+        
+        // 次の行から説明とスター数を取得
+        let description = '';
+        let stars = '';
+        
+        // 説明を取得（次の行以降の空行でない行）
+        for (let j = i + 1; j < lines.length; j++) {
+          const nextLine = lines[j].trim();
+          if (nextLine === '' || nextLine.startsWith('#')) {
+            break;
+          }
+          if (nextLine.includes('⭐')) {
+            // スター数の行
+            const starMatch = nextLine.match(/⭐\s*([0-9,]+)/);
+            if (starMatch) {
+              stars = starMatch[1];
+            }
+          } else if (!nextLine.startsWith('###')) {
+            // 説明の行
+            if (description) {
+              description += ' ';
+            }
+            description += nextLine;
+          }
+        }
+        
+        contentItems.push({
+          title: repoName,
+          content: description + (stars ? `\n\n⭐ ${stars}` : ''),
+          url: repoUrl,
+          source: 'github',
+          language: currentLanguage,
+          isRepository: true
+        });
+      }
+    }
+  }
+  
+  return contentItems;
+}
 
 function App() {
   const [selectedSource, setSelectedSource] = useState('hacker news');
@@ -41,6 +115,27 @@ function App() {
       enabled: currentPage === 'content', // Only fetch data when on content page
     }
   );
+
+  // GitHub Trendingの場合のMarkdownパース処理
+  const processedItems = useMemo(() => {
+    if (!data?.items || data.items.length === 0) {
+      return [];
+    }
+
+    // GitHub Trendingの場合は特別な処理
+    if (selectedSource === 'github' && data.items[0]?.content) {
+      try {
+        return parseGitHubTrendingMarkdown(data.items[0].content);
+      } catch (error) {
+        console.error('GitHub Trending Markdown parsing error:', error);
+        // フォールバック: 元のアイテムをそのまま返す
+        return data.items;
+      }
+    }
+
+    // 他のソースは従来通り
+    return data.items;
+  }, [data, selectedSource]);
 
   const SidebarContent = () => (
     <>
@@ -205,8 +300,8 @@ function App() {
                     Try Again
                   </button>
                 </div>
-              ) : data?.items && data.items.length > 0 ? (
-                data.items.map((item, index) => (
+              ) : processedItems && processedItems.length > 0 ? (
+                processedItems.map((item, index) => (
                   <ContentCard key={index} item={item} darkMode={darkMode} index={index} />
                 ))
               ) : (
