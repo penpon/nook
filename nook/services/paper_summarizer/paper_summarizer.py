@@ -18,6 +18,39 @@ from nook.common.decorators import handle_errors
 from nook.common.exceptions import APIException
 
 
+def remove_tex_backticks(text: str) -> str:
+    r"""
+    文字列が TeX 形式、つまり
+      `$\ldots$`
+    の場合、外側のバッククォート (`) だけを削除して
+      $\ldots$
+    に変換します。
+    それ以外の場合は、文字列を変更しません。
+    """
+    pattern = r"^`(\$.*?\$)`$"
+    return re.sub(pattern, r"\1", text)
+
+
+def remove_outer_markdown_markers(text: str) -> str:
+    """
+    文章中の "```markdown" で始まるブロックについて、
+    最も遠くにある "```" を閉じマーカーとして認識し、
+    開始の "```markdown" とその閉じマーカー "```" のみを削除します。
+    """
+    pattern = r"```markdown(.*)```"
+    return re.sub(pattern, lambda m: m.group(1), text, flags=re.DOTALL)
+
+
+def remove_outer_singlequotes(text: str) -> str:
+    """
+    文章中の "'''" で始まるブロックについて、
+    最も遠くにある "'''" を閉じマーカーとして認識し、
+    開始の "'''" とその閉じマーカー "'''" のみを削除します。
+    """
+    pattern = r"'''(.*)'''"
+    return re.sub(pattern, lambda m: m.group(1), text, flags=re.DOTALL)
+
+
 @dataclass
 class PaperInfo:
     """
@@ -103,6 +136,23 @@ class PaperSummarizer(BaseService):
     def run(self, limit: int = 5) -> None:
         """同期的に実行するためのラッパー"""
         asyncio.run(self.collect(limit))
+
+    def _is_valid_body_line(self, line: str, min_length: int = 80):
+        """本文として妥当な行かを判断するための簡易ヒューリスティック。"""
+        if "@" in line:
+            return False
+        for kw in [
+            "university",
+            "lab",
+            "department",
+            "institute",
+            "corresponding author",
+        ]:
+            if kw in line.lower():
+                return False
+        if len(line) < min_length:
+            return False
+        return False if "." not in line else True
 
     @handle_errors(retries=3)
     async def _get_curated_paper_ids(self, limit: int) -> List[str]:
@@ -216,7 +266,10 @@ class PaperSummarizer(BaseService):
                 return None
 
             # PDFから本文を抽出
-            contents = self._extract_body_text(paper)
+            arxiv_id = paper.entry_id.split("/")[-1]  # URLからIDを抽出
+            contents = await self._extract_body_text(arxiv_id)
+            if not contents:  # HTML抽出に失敗した場合はアブストラクトを使用
+                contents = paper.summary
 
             # タイトルとアブストラクトを日本語に翻訳
             title = paper.title
@@ -261,23 +314,46 @@ class PaperSummarizer(BaseService):
             self.logger.error(f"Error translating text: {str(e)}")
             return text  # 翻訳に失敗した場合は原文を返す
 
-    def _extract_body_text(self, paper: arxiv.Result) -> str:
-        """
-        論文本文を抽出します。
+    async def _extract_body_text(self, arxiv_id: str, min_line_length: int = 40) -> str:
+        """ArXivのHTMLから本文を抽出"""
+        try:
+            response = await self.http_client.get(f"https://arxiv.org/html/{arxiv_id}")
+            soup = BeautifulSoup(response, "html.parser")
 
-        Parameters
-        ----------
-        paper : arxiv.Result
-            論文情報。
+            body = soup.body
+            if body:
+                for tag in body.find_all(["header", "nav", "footer", "script", "style"]):
+                    tag.decompose()
+                full_text = body.get_text(separator="\n", strip=True)
+            else:
+                full_text = ""
 
-        Returns
-        -------
-        str
-            抽出した本文。
-        """
-        # 簡易的な実装として、要約を返す
-        # 実際のPDF解析は複雑なため、ここでは省略
-        return paper.summary
+            lines = full_text.splitlines()
+
+            # ヒューリスティックにより、実際の論文本文の開始行を探す
+            start_index = 0
+            for i, line in enumerate(lines):
+                clean_line = line.strip()
+                # 先頭部分の空行や短すぎる行はスキップ
+                if len(clean_line) < min_line_length:
+                    continue
+                if self._is_valid_body_line(clean_line, min_length=100):
+                    start_index = i
+                    break
+
+            # 開始行以降を本文として抽出
+            body_lines = lines[start_index:]
+            # ノイズ除去: 短すぎる行は除外
+            filtered_lines = []
+            for line in body_lines:
+                if len(line.strip()) >= min_line_length:
+                    line = line.strip()
+                    line = line.replace("Â", " ")
+                    filtered_lines.append(line.strip())
+            return "\n".join(filtered_lines)
+        except Exception as e:
+            self.logger.error(f"Error extracting body text: {str(e)}")
+            return ""  # エラー時は空文字列を返す
 
     async def _summarize_papers(self, papers: List[PaperInfo]) -> None:
         """複数の論文を並行して要約"""
@@ -288,41 +364,57 @@ class PaperSummarizer(BaseService):
         await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _summarize_paper_info(self, paper_info: PaperInfo) -> None:
-        """
-        論文を要約します。
-
-        Parameters
-        ----------
-        paper_info : PaperInfo
-            要約する論文情報。
-        """
-        prompt = f"""
-        以下の論文を要約してください。
-
-        title: {paper_info.title}
-        abstract: {paper_info.abstract}
-        
-        要約は以下の形式で行い、日本語で回答してください:
-        1. 研究の目的と背景
-        2. 提案手法の概要
-        3. 主な結果と貢献
-        4. 将来の研究への示唆
-
+        """論文を要約します。"""
+        prompt = """
+        以下の8つの質問について、順を追って非常に詳細に、分かりやすく答えてください。
 
         1. 既存研究では何ができなかったのか
         2. どのようなアプローチでそれを解決しようとしたか
         3. 結果、何が達成できたのか
-        4. 技術的な詳細について。技術者が読むことを想定したトーンで
-        5. コストや物理的な詳細について。例えばトレーニングに使用したGPUの数や時間、データセット、モデルのサイズなど
-        6. 参考文献のうち、特に参照すべきもの
-        7. この論文を140字以内で要約すると？
+        4. Limitationや問題点は何か。本文で言及されているものの他、あなたが考えるものも含めて
+        5. 技術的な詳細について。技術者が読むことを想定したトーンで
+        6. コストや物理的な詳細について。例えばトレーニングに使用したGPUの数や時間、データセット、モデルのサイズなど
+        7. 参考文献のうち、特に参照すべきもの
+        8. この論文を140字以内で要約すると？
+
+        フォーマットは以下の通りで、markdown形式で回答してください。このフォーマットに沿った文言以外の出力は不要です。
+        なお、数式は表示が崩れがちで面倒なので、説明に数式を使うときは、代わりにPython風の疑似コードを書いてください。
+
+        ## 1. 既存研究では何ができなかったのか
+
+        ...
+
+        ## 2. どのようなアプローチでそれを解決しようとしたか
+
+        ...
+
+        （以下同様）
         """
 
-        system_instruction = """
-        あなたは論文の要約を行うアシスタントです。
-        与えられた論文を分析し、簡潔で情報量の多い要約を作成してください。
-        技術的な内容は正確に、一般的な内容は分かりやすく要約してください。
-        回答は必ず日本語で行ってください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。
+        system_instruction = f"""
+        以下のテキストは、ある論文のタイトルとURL、abstract、および本文のコンテンツです。
+        本文はhtmlから抽出されたもので、ノイズや不要な部分が含まれている可能性があります。
+        よく読んで、ユーザーの質問に答えてください。
+
+        title
+        '''
+        {paper_info.title}
+        '''
+
+        url
+        '''
+        {paper_info.url}
+        '''
+
+        abstract
+        '''
+        {paper_info.abstract}
+        '''
+
+        contents
+        '''
+        {paper_info.contents}
+        '''
         """
 
         try:
@@ -330,9 +422,15 @@ class PaperSummarizer(BaseService):
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
-                max_tokens=1000,
+                max_tokens=3000,  # 8つの質問に対応するため増量
                 service_name=self.service_name,
             )
+            
+            # 出力の整形
+            summary = remove_tex_backticks(summary)
+            summary = remove_outer_markdown_markers(summary)
+            summary = remove_outer_singlequotes(summary)
+            
             paper_info.summary = summary
             await self.rate_limit()
         except Exception as e:
