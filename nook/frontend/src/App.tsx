@@ -273,8 +273,9 @@ function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
 function parseZennArticlesMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
-  let currentCategory = '';
+  const feedGroups = new Map<string, { title: string; url: string; content: string; feedInfo: string }[]>();
   
+  // 記事の解析とフィード別グループ化
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
@@ -283,26 +284,15 @@ function parseZennArticlesMarkdown(markdown: string): ContentItem[] {
       continue;
     }
     
-    // カテゴリセクション（## Zenn等）を検出
-    if (line.startsWith('## ') && line.length > 3) {
-      currentCategory = line.substring(3).trim();
-      
-      contentItems.push({
-        title: currentCategory,
-        content: '',
-        source: 'zenn',
-        isCategoryHeader: true
-      });
-    }
-    // 記事（### [タイトル](URL)）を検出
-    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
-      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
-      if (linkMatch) {
-        const articleTitle = linkMatch[1];
-        const articleUrl = linkMatch[2];
+    // 記事タイトル行を検出（### [タイトル](URL)）
+    if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+      const titleMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (titleMatch) {
+        const title = titleMatch[1];
+        const url = titleMatch[2];
         
-        // 次の行からフィード情報と要約を取得
-        let feedName = '';
+        // フィード情報を抽出
+        let feedInfo = '';
         let summary = '';
         
         // フィード情報と要約を取得（次の行以降）
@@ -316,7 +306,7 @@ function parseZennArticlesMarkdown(markdown: string): ContentItem[] {
           
           if (nextLine.startsWith('**フィード**:')) {
             // フィード情報の行
-            feedName = nextLine.replace('**フィード**:', '').trim();
+            feedInfo = nextLine.replace('**フィード**:', '').trim();
           } else if (nextLine.startsWith('**要約**:')) {
             // 要約情報の開始
             summary = nextLine.replace('**要約**:', '').trim();
@@ -337,28 +327,76 @@ function parseZennArticlesMarkdown(markdown: string): ContentItem[] {
           }
         }
         
-        // 記事内容を構築
-        let content = '';
-        if (feedName) {
-          content += `**フィード**: ${feedName}\n\n`;
-        }
-        if (summary) {
-          content += `**要約**:\n${summary}`;
+        const feedName = extractZennFeedName(feedInfo);
+        
+        // フィード名でグループ化
+        if (!feedGroups.has(feedName)) {
+          feedGroups.set(feedName, []);
         }
         
-        contentItems.push({
-          title: articleTitle,
-          content: content,
-          url: articleUrl,
-          source: 'zenn',
-          category: currentCategory,
-          isArticle: true
+        feedGroups.get(feedName)!.push({
+          title,
+          url,
+          content: summary,
+          feedInfo
         });
       }
     }
   }
   
+  // フィード名をカテゴリヘッダーとして生成
+  for (const [feedName, articles] of feedGroups) {
+    // フィード名をそのままカテゴリヘッダーに
+    contentItems.push({
+      title: feedName,
+      content: '',
+      source: 'zenn',
+      isLanguageHeader: false,
+      isCategoryHeader: true,
+      isArticle: false
+    });
+    
+    // 記事を追加（カテゴリごとに番号をリセット）
+    let articleNumber = 1;
+    for (const article of articles) {
+      // 記事内容を構築
+      let content = '';
+      if (article.feedInfo) {
+        content += `**フィード**: ${article.feedInfo}\n\n`;
+      }
+      if (article.content) {
+        content += `**要約**:\n${article.content}`;
+      }
+      
+      contentItems.push({
+        title: article.title,
+        url: article.url,
+        content: content,
+        isLanguageHeader: false,
+        isCategoryHeader: false,
+        isArticle: true,
+        metadata: {
+          source: 'zenn',
+          feed: feedName,
+          articleNumber: articleNumber++
+        }
+      });
+    }
+  }
+  
   return contentItems;
+}
+
+// Zennフィード名を抽出
+function extractZennFeedName(feedInfo: string): string {
+  // 例: 'Zennの「Claude Code」のフィード' → 'Claude Code'
+  const match = feedInfo.match(/Zennの「(.+?)」のフィード/);
+  if (match) {
+    return match[1];
+  }
+  
+  // マッチしない場合はフィード情報全体を返す
+  return feedInfo;
 }
 
 // Qiita ArticlesのMarkdownをパースして個別のコンテンツアイテムに変換
@@ -1220,10 +1258,9 @@ function App() {
                   } 
                   // Zenn Articlesの場合も特別な番号付けロジック
                   else if (selectedSource === 'zenn') {
-                    let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
-                      const articleIndex = isArticle ? articleCount++ : undefined;
+                      const articleIndex = isArticle && item.metadata?.articleNumber ? item.metadata.articleNumber - 1 : undefined;
                       return (
                         <ContentCard 
                           key={index} 
