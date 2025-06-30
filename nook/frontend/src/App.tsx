@@ -549,8 +549,8 @@ function parseNoteArticlesMarkdown(markdown: string): ContentItem[] {
 function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
-  let currentCategory = '';
   let currentSubreddit = '';
+  let articleNumber = 1;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -560,40 +560,35 @@ function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
       continue;
     }
     
-    // カテゴリセクション（## Tech等）を検出
-    if (line.startsWith('## ') && line.length > 3) {
-      currentCategory = line.substring(3).trim();
-      
-      contentItems.push({
-        title: currentCategory,
-        content: '',
-        source: 'reddit',
-        isCategoryHeader: true
-      });
-    }
-    // サブレディット（### r/subreddit名）を検出
-    else if (line.startsWith('### r/')) {
-      currentSubreddit = line.substring(4).trim(); // "### " を除去
+    // サブレディットを直接カテゴリヘッダーとして検出（## r/xxx）
+    if (line.startsWith('## r/')) {
+      currentSubreddit = line.substring(5).trim(); // "## r/" を除去
+      articleNumber = 1; // カテゴリごとに番号をリセット
       
       contentItems.push({
         title: currentSubreddit,
         content: '',
         source: 'reddit',
-        category: currentCategory,
-        isSubredditHeader: true
+        isCategoryHeader: true,
+        isLanguageHeader: false,
+        isArticle: false,
+        metadata: {
+          source: 'reddit',
+          subreddit: currentSubreddit
+        }
       });
     }
-    // 投稿（#### [投稿タイトル](URL)）を検出
-    else if (line.startsWith('#### ') && line.includes('[') && line.includes('](')) {
-      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
-      if (linkMatch) {
-        const postTitle = linkMatch[1];
-        const postUrl = linkMatch[2];
+    // 投稿タイトル行を検出（### [タイトル](URL)）
+    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+      const titleMatch = line.match(/^###\s*\[([^\]]+)\]\(([^)]+)\)$/);
+      if (titleMatch && currentSubreddit) {
+        const title = titleMatch[1];
+        const url = titleMatch[2];
         
         // 次の行からリンク、本文、アップボート数、要約を取得
         let linkInfo = '';
         let bodyText = '';
-        let upvotes = '';
+        let score = '';
         let summary = '';
         
         for (let j = i + 1; j < lines.length; j++) {
@@ -608,8 +603,8 @@ function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
             linkInfo = nextLine.replace('リンク:', '').trim();
           } else if (nextLine.startsWith('本文:')) {
             bodyText = nextLine.replace('本文:', '').trim();
-          } else if (nextLine.startsWith('アップボート:')) {
-            upvotes = nextLine.replace('アップボート:', '').trim();
+          } else if (nextLine.startsWith('アップボート数:')) {
+            score = nextLine.replace('アップボート数:', '').trim();
           } else if (nextLine.startsWith('**要約**:')) {
             // 要約情報の開始
             summary = nextLine.replace('**要約**:', '').trim();
@@ -638,21 +633,26 @@ function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
         if (bodyText) {
           content += `**本文**: ${bodyText}\n\n`;
         }
-        if (upvotes) {
-          content += `**アップボート**: ${upvotes}\n\n`;
+        if (score) {
+          content += `**アップボート数**: ${score}\n\n`;
         }
         if (summary) {
           content += `**要約**:\n${summary}`;
         }
         
         contentItems.push({
-          title: postTitle,
+          title,
+          url,
           content: content,
-          url: postUrl,
-          source: 'reddit',
-          category: currentCategory,
-          subreddit: currentSubreddit,
-          isArticle: true
+          isLanguageHeader: false,
+          isCategoryHeader: false,
+          isArticle: true,
+          metadata: {
+            source: 'reddit',
+            subreddit: currentSubreddit,
+            score: score,
+            articleNumber: articleNumber++
+          }
         });
       }
     }
@@ -1268,10 +1268,9 @@ function App() {
                   } 
                   // Reddit Postsの場合も特別な番号付けロジック
                   else if (selectedSource === 'reddit') {
-                    let postCount = 0;
                     return processedItems.map((item, index) => {
                       const isPost = item.isArticle;
-                      const postIndex = isPost ? postCount++ : undefined;
+                      const postIndex = isPost && item.metadata?.articleNumber ? item.metadata.articleNumber - 1 : undefined;
                       return (
                         <ContentCard 
                           key={index} 

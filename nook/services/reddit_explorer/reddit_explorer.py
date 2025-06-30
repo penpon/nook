@@ -329,13 +329,13 @@ class RedditExplorer:
         
         # Markdownを生成
         for category, subreddits in categories.items():
-            content += f"## {category.capitalize()}\n\n"
+            # カテゴリ行を削除
             
             for subreddit, subreddit_posts in subreddits.items():
-                content += f"### r/{subreddit}\n\n"
+                content += f"## r/{subreddit}\n\n"
                 
                 for post in subreddit_posts:
-                    content += f"#### [{post.title}]({post.permalink})\n\n"
+                    content += f"### [{post.title}]({post.permalink})\n\n"
                     
                     if post.url and post.url != post.permalink:
                         content += f"リンク: {post.url}\n\n"
@@ -343,7 +343,7 @@ class RedditExplorer:
                     if post.text:
                         content += f"本文: {post.text[:200]}{'...' if len(post.text) > 200 else ''}\n\n"
                     
-                    content += f"アップボート: {post.upvotes}\n\n"
+                    content += f"アップボート数: {post.upvotes}\n\n"
                     content += f"**要約**:\n{post.summary}\n\n"
                     content += "---\n\n"
         
