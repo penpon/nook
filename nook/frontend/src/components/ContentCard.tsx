@@ -11,6 +11,17 @@ interface ContentCardProps {
 }
 
 export const ContentCard: React.FC<ContentCardProps> = ({ item, darkMode, index }) => {
+  // 言語セクションヘッダーの場合は特別なスタイルで表示
+  if ((item as any).isLanguageHeader) {
+    return (
+      <div className="w-full mt-8 first:mt-0 mb-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white border-b-2 border-gray-200 dark:border-gray-700 pb-2">
+          {item.title}
+        </h2>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow w-full">
       <div className="flex items-start justify-between mb-4">
