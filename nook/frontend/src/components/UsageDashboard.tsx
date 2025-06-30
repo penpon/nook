@@ -70,7 +70,7 @@ const UsageDashboard: React.FC<UsageDashboardProps> = ({ darkMode = false }) => 
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  // const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'));
 
   const fetchData = async () => {
