@@ -86,6 +86,7 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
   let currentCategory = '';
+  let articleNumber = 1;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -102,6 +103,8 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
       const categoryDisplayName = currentCategory
         .replace('_', ' ')
         .replace(/\b\w/g, l => l.toUpperCase());
+      
+      articleNumber = 1; // カテゴリごとに番号をリセット
       
       contentItems.push({
         title: categoryDisplayName,
@@ -168,7 +171,11 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
           url: articleUrl,
           source: 'tech news',
           category: currentCategory,
-          isArticle: true
+          isArticle: true,
+          metadata: {
+            source: 'tech news',
+            articleNumber: articleNumber++
+          }
         });
       }
     }
@@ -182,6 +189,7 @@ function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
   let currentCategory = '';
+  let articleNumber = 1;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -194,6 +202,8 @@ function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
     // カテゴリセクション（## Business等）を検出
     if (line.startsWith('## ') && line.length > 3) {
       currentCategory = line.substring(3).trim();
+      
+      articleNumber = 1; // カテゴリごとに番号をリセット
       
       contentItems.push({
         title: currentCategory,
@@ -260,7 +270,11 @@ function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
           url: articleUrl,
           source: 'business news',
           category: currentCategory,
-          isArticle: true
+          isArticle: true,
+          metadata: {
+            source: 'business news',
+            articleNumber: articleNumber++
+          }
         });
       }
     }
@@ -534,96 +548,257 @@ function extractQiitaTagName(feedInfo: string): string {
   return feedInfo.replace(' - Qiita', '').trim();
 }
 
+// noteハッシュタグを抽出
+function extractNoteHashtag(feedInfo: string): string {
+  // 例: '#ClaudeCodeタグ' → '#ClaudeCode'
+  const hashtagMatch = feedInfo.match(/^(#.+?)タグ$/);
+  if (hashtagMatch) {
+    return hashtagMatch[1];
+  }
+  
+  // マッチしない場合はフィード情報全体を返す
+  return feedInfo;
+}
+
 // note ArticlesのMarkdownをパースして個別のコンテンツアイテムに変換
 function parseNoteArticlesMarkdown(markdown: string): ContentItem[] {
+  const items: ContentItem[] = [];
   const lines = markdown.split('\n');
-  const contentItems: ContentItem[] = [];
-  let currentCategory = '';
+  const hashtagGroups = new Map<string, { title: string; url: string; content: string; feedInfo: string }[]>();
+  
+  // 記事の解析とハッシュタグ別グループ化
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 記事タイトル行を検出（### [タイトル](URL)）
+    const titleMatch = line.match(/^###\s*\[([^\]]+)\]\(([^)]+)\)$/);
+    if (titleMatch) {
+      const title = titleMatch[1];
+      const url = titleMatch[2];
+      
+      // フィード情報と要約を取得
+      let feedInfo = '';
+      let summary = '';
+      
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+        
+        // 次のセクションまたは次の記事に到達したら終了
+        if (nextLine.startsWith('#') || nextLine === '---') {
+          break;
+        }
+        
+        if (nextLine.startsWith('**フィード**:')) {
+          feedInfo = nextLine.replace('**フィード**:', '').trim();
+        } else if (nextLine.startsWith('**要約**:')) {
+          summary = nextLine.replace('**要約**:', '').trim();
+          
+          // 要約の続きがある場合は次の行も読み込み
+          for (let k = j + 1; k < lines.length; k++) {
+            const summaryLine = lines[k].trim();
+            
+            if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
+              break;
+            }
+            
+            if (summaryLine) {
+              summary += '\n\n' + summaryLine;
+            }
+          }
+        }
+      }
+      
+      // ハッシュタグを抽出
+      const hashtag = extractNoteHashtag(feedInfo);
+      
+      // ハッシュタグでグループ化
+      if (!hashtagGroups.has(hashtag)) {
+        hashtagGroups.set(hashtag, []);
+      }
+      
+      // 記事内容を構築
+      let content = '';
+      if (feedInfo) {
+        content += `**フィード**: ${feedInfo}\n\n`;
+      }
+      if (summary) {
+        content += `**要約**:\n${summary}`;
+      }
+      
+      hashtagGroups.get(hashtag)!.push({
+        title,
+        url,
+        content,
+        feedInfo
+      });
+    }
+  }
+  
+  // ハッシュタグをカテゴリヘッダーとして生成
+  for (const [hashtag, articles] of hashtagGroups) {
+    // ハッシュタグをそのままカテゴリヘッダーに
+    items.push({
+      title: hashtag,
+      url: '',
+      content: '',
+      isLanguageHeader: false,
+      isCategoryHeader: true,
+      isArticle: false
+    });
+    
+    // 記事を追加（カテゴリごとに番号をリセット）
+    let articleNumber = 1;
+    for (const article of articles) {
+      items.push({
+        title: article.title,
+        url: article.url,
+        content: article.content,
+        isLanguageHeader: false,
+        isCategoryHeader: false,
+        isArticle: true,
+        metadata: {
+          source: 'note',
+          feed: hashtag,
+          articleNumber: articleNumber++
+        }
+      });
+    }
+  }
+  
+  return items;
+}
+
+// Academic PapersのMarkdownをパースして個別のコンテンツアイテムに変換
+function parseAcademicPapersMarkdown(markdown: string): ContentItem[] {
+  const items: ContentItem[] = [];
+  const lines = markdown.split('\n');
+  
+  // 最初に「ArXiv」カテゴリヘッダーを追加
+  items.push({
+    title: 'ArXiv',
+    url: '',
+    content: '',
+    isLanguageHeader: false,
+    isCategoryHeader: true,
+    isArticle: false
+  });
+  
+  let articleNumber = 1;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // 日付付きタイトル（# note記事 (2025-06-24)）を無視
-    if (line.startsWith('# note記事')) {
-      continue;
-    }
-    
-    // カテゴリセクション（## Note等）を検出
-    if (line.startsWith('## ') && line.length > 3) {
-      currentCategory = line.substring(3).trim();
+    // 論文タイトル行を検出（### [タイトル](URL)）
+    const titleMatch = line.match(/^###\s*\[([^\]]+)\]\(([^)]+)\)$/);
+    if (titleMatch) {
+      const title = titleMatch[1];
+      const url = titleMatch[2];
       
-      contentItems.push({
-        title: currentCategory,
-        content: '',
-        source: 'note',
-        isCategoryHeader: true
-      });
-    }
-    // 記事（### [タイトル](URL)）を検出
-    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
-      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
-      if (linkMatch) {
-        const articleTitle = linkMatch[1];
-        const articleUrl = linkMatch[2];
+      // 要約を次の行から取得
+      let content = '';
+      
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
         
-        // 次の行からフィード情報と要約を取得
-        let feedName = '';
-        let summary = '';
+        // 次のセクションまたは次の論文に到達したら終了
+        if (nextLine.startsWith('#') || nextLine === '---') {
+          break;
+        }
         
-        // フィード情報と要約を取得（次の行以降）
-        for (let j = i + 1; j < lines.length; j++) {
-          const nextLine = lines[j].trim();
-          
-          // 次のセクションまたは次の記事に到達したら終了
-          if (nextLine.startsWith('#') || nextLine === '---') {
-            break;
+        if (nextLine) {
+          if (content) {
+            content += '\n\n';
           }
-          
-          if (nextLine.startsWith('**フィード**:')) {
-            // フィード情報の行
-            feedName = nextLine.replace('**フィード**:', '').trim();
-          } else if (nextLine.startsWith('**要約**:')) {
-            // 要約情報の開始
-            summary = nextLine.replace('**要約**:', '').trim();
-            
-            // 要約の続きがある場合は次の行も読み込み
-            for (let k = j + 1; k < lines.length; k++) {
-              const summaryLine = lines[k].trim();
-              
-              // 次のセクション、記事、または区切り線に到達したら終了
-              if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
-                break;
-              }
-              
-              if (summaryLine) {
-                summary += '\n\n' + summaryLine;
-              }
-            }
-          }
+          content += nextLine;
         }
-        
-        // 記事内容を構築
-        let content = '';
-        if (feedName) {
-          content += `**フィード**: ${feedName}\n\n`;
-        }
-        if (summary) {
-          content += `**要約**:\n${summary}`;
-        }
-        
-        contentItems.push({
-          title: articleTitle,
-          content: content,
-          url: articleUrl,
-          source: 'note',
-          category: currentCategory,
-          isArticle: true
-        });
       }
+      
+      items.push({
+        title: title,
+        url: url,
+        content: content,
+        isLanguageHeader: false,
+        isCategoryHeader: false,
+        isArticle: true,
+        metadata: {
+          source: 'arxiv',
+          articleNumber: articleNumber++
+        }
+      });
     }
   }
   
-  return contentItems;
+  return items;
+}
+
+// Hacker NewsのMarkdownをパースして個別のコンテンツアイテムに変換
+function parseHackerNewsMarkdown(markdown: string): ContentItem[] {
+  const items: ContentItem[] = [];
+  const lines = markdown.split('\n');
+  
+  // 最初に「Hacker News」カテゴリヘッダーを追加
+  items.push({
+    title: 'Hacker News',
+    url: '',
+    content: '',
+    isLanguageHeader: false,
+    isCategoryHeader: true,
+    isArticle: false
+  });
+  
+  let articleNumber = 1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 記事タイトル行を検出（### [タイトル](URL)）
+    const titleMatch = line.match(/^###\s*\[([^\]]+)\]\(([^)]+)\)$/);
+    if (titleMatch) {
+      const title = titleMatch[1];
+      const url = titleMatch[2];
+      
+      // スコア情報を次の行から抽出
+      let score = '';
+      let content = '';
+      
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+        
+        // 次のセクションまたは次の記事に到達したら終了
+        if (nextLine.startsWith('#') || nextLine === '---') {
+          break;
+        }
+        
+        // スコア情報を抽出（例: "⬆️ 1,234"）
+        const scoreMatch = nextLine.match(/⬆️\s*([\d,]+)/);
+        if (scoreMatch) {
+          score = scoreMatch[1];
+        } else if (nextLine) {
+          // その他の内容
+          if (content) {
+            content += '\n\n';
+          }
+          content += nextLine;
+        }
+      }
+      
+      items.push({
+        title: title,
+        url: url,
+        content: content,
+        isLanguageHeader: false,
+        isCategoryHeader: false,
+        isArticle: true,
+        metadata: {
+          source: 'hackernews',
+          score: score,
+          articleNumber: articleNumber++
+        }
+      });
+    }
+  }
+  
+  return items;
 }
 
 // Reddit PostsのMarkdownをパースして個別のコンテンツアイテムに変換
@@ -747,6 +922,7 @@ function parseFourchanThreadsMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
   let currentCategory = '';
+  let articleNumber = 1;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -759,6 +935,8 @@ function parseFourchanThreadsMarkdown(markdown: string): ContentItem[] {
     // カテゴリセクション（## /g/等）を検出
     if (line.startsWith('## /') && line.includes('/')) {
       currentCategory = line.substring(3).trim();
+      
+      articleNumber = 1; // カテゴリごとに番号をリセット
       
       contentItems.push({
         title: currentCategory,
@@ -825,7 +1003,11 @@ function parseFourchanThreadsMarkdown(markdown: string): ContentItem[] {
           source: '4chan',
           category: currentCategory,
           board: currentCategory,
-          isArticle: true
+          isArticle: true,
+          metadata: {
+            source: '4chan',
+            articleNumber: articleNumber++
+          }
         });
       }
     }
@@ -839,6 +1021,7 @@ function parseFivechanThreadsMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
   let currentCategory = '';
+  let articleNumber = 1;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -851,6 +1034,8 @@ function parseFivechanThreadsMarkdown(markdown: string): ContentItem[] {
     // カテゴリセクション（## 板名 (/板名/)）を検出
     if (line.startsWith('## ') && line.includes('(/') && line.includes('/)')) {
       currentCategory = line.substring(3).trim();
+      
+      articleNumber = 1; // カテゴリごとに番号をリセット
       
       contentItems.push({
         title: currentCategory,
@@ -937,7 +1122,11 @@ function parseFivechanThreadsMarkdown(markdown: string): ContentItem[] {
           board: currentCategory,
           threadNumber: threadNumber,
           replyCount: replyCount,
-          isArticle: true
+          isArticle: true,
+          metadata: {
+            source: '5chan',
+            articleNumber: articleNumber++
+          }
         });
       }
     }
@@ -1055,6 +1244,28 @@ function App() {
         return parseRedditPostsMarkdown(data.items[0].content);
       } catch (error) {
         console.error('Reddit Posts Markdown parsing error:', error);
+        // フォールバック: 元のアイテムをそのまま返す
+        return data.items;
+      }
+    }
+
+    // Hacker Newsの場合は特別な処理
+    if (selectedSource === 'hacker news' && data.items[0]?.content) {
+      try {
+        return parseHackerNewsMarkdown(data.items[0].content);
+      } catch (error) {
+        console.error('Hacker News Markdown parsing error:', error);
+        // フォールバック: 元のアイテムをそのまま返す
+        return data.items;
+      }
+    }
+
+    // Academic Papersの場合は特別な処理
+    if (selectedSource === 'paper' && data.items[0]?.content) {
+      try {
+        return parseAcademicPapersMarkdown(data.items[0].content);
+      } catch (error) {
+        console.error('Academic Papers Markdown parsing error:', error);
         // フォールバック: 元のアイテムをそのまま返す
         return data.items;
       }
