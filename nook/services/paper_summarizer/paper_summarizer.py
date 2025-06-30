@@ -352,8 +352,8 @@ class PaperSummarizer(BaseService):
 
         for paper in papers:
             content += f"## [{paper.title}]({paper.url})\n\n"
-            content += f"**アブストラクト**:\n{paper.abstract}\n\n"
-            content += f"**要約**:\n{paper.summary}\n\n"
+            content += f"**abstract**:\n{paper.abstract}\n\n"
+            content += f"**summary**:\n{paper.summary}\n\n"
             content += "---\n\n"
 
         # 保存
