@@ -177,6 +177,98 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
   return contentItems;
 }
 
+// Business NewsのMarkdownをパースして個別のコンテンツアイテムに変換
+function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
+  const lines = markdown.split('\n');
+  const contentItems: ContentItem[] = [];
+  let currentCategory = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 日付付きタイトル（# ビジネスニュース記事 (2025-06-24)）を無視
+    if (line.startsWith('# ビジネスニュース記事')) {
+      continue;
+    }
+    
+    // カテゴリセクション（## Business等）を検出
+    if (line.startsWith('## ') && line.length > 3) {
+      currentCategory = line.substring(3).trim();
+      
+      contentItems.push({
+        title: currentCategory,
+        content: '',
+        source: 'business news',
+        isCategoryHeader: true
+      });
+    }
+    // 記事（### [タイトル](URL)）を検出
+    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (linkMatch) {
+        const articleTitle = linkMatch[1];
+        const articleUrl = linkMatch[2];
+        
+        // 次の行からフィード情報と要約を取得
+        let feedName = '';
+        let summary = '';
+        
+        // フィード情報と要約を取得（次の行以降）
+        for (let j = i + 1; j < lines.length; j++) {
+          const nextLine = lines[j].trim();
+          
+          // 次のセクションまたは次の記事に到達したら終了
+          if (nextLine.startsWith('#') || nextLine === '---') {
+            break;
+          }
+          
+          if (nextLine.startsWith('**フィード**:')) {
+            // フィード情報の行
+            feedName = nextLine.replace('**フィード**:', '').trim();
+          } else if (nextLine.startsWith('**要約**:')) {
+            // 要約情報の開始
+            summary = nextLine.replace('**要約**:', '').trim();
+            
+            // 要約の続きがある場合は次の行も読み込み
+            for (let k = j + 1; k < lines.length; k++) {
+              const summaryLine = lines[k].trim();
+              
+              // 次のセクション、記事、または区切り線に到達したら終了
+              if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
+                break;
+              }
+              
+              if (summaryLine) {
+                summary += '\n\n' + summaryLine;
+              }
+            }
+          }
+        }
+        
+        // 記事内容を構築
+        let content = '';
+        if (feedName) {
+          content += `**フィード**: ${feedName}\n\n`;
+        }
+        if (summary) {
+          content += `**要約**:\n${summary}`;
+        }
+        
+        contentItems.push({
+          title: articleTitle,
+          content: content,
+          url: articleUrl,
+          source: 'business news',
+          category: currentCategory,
+          isArticle: true
+        });
+      }
+    }
+  }
+  
+  return contentItems;
+}
+
 function App() {
   const [selectedSource, setSelectedSource] = useState('hacker news');
   const [currentPage, setCurrentPage] = useState('content'); // 'content' or 'usage-dashboard'
@@ -231,6 +323,17 @@ function App() {
         return parseTechNewsMarkdown(data.items[0].content);
       } catch (error) {
         console.error('Tech News Markdown parsing error:', error);
+        // フォールバック: 元のアイテムをそのまま返す
+        return data.items;
+      }
+    }
+
+    // Business Newsの場合は特別な処理
+    if (selectedSource === 'business news' && data.items[0]?.content) {
+      try {
+        return parseBusinessNewsMarkdown(data.items[0].content);
+      } catch (error) {
+        console.error('Business News Markdown parsing error:', error);
         // フォールバック: 元のアイテムをそのまま返す
         return data.items;
       }
@@ -423,6 +526,22 @@ function App() {
                   } 
                   // Tech Newsの場合も特別な番号付けロジック
                   else if (selectedSource === 'tech news') {
+                    let articleCount = 0;
+                    return processedItems.map((item, index) => {
+                      const isArticle = item.isArticle;
+                      const articleIndex = isArticle ? articleCount++ : undefined;
+                      return (
+                        <ContentCard 
+                          key={index} 
+                          item={item} 
+                          darkMode={darkMode} 
+                          index={articleIndex} 
+                        />
+                      );
+                    });
+                  } 
+                  // Business Newsの場合も特別な番号付けロジック
+                  else if (selectedSource === 'business news') {
                     let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
