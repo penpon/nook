@@ -753,6 +753,118 @@ function parseFourchanThreadsMarkdown(markdown: string): ContentItem[] {
   return contentItems;
 }
 
+// 5ch ThreadsのMarkdownをパースして個別のコンテンツアイテムに変換
+function parseFivechanThreadsMarkdown(markdown: string): ContentItem[] {
+  const lines = markdown.split('\n');
+  const contentItems: ContentItem[] = [];
+  let currentCategory = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 日付付きタイトル（# 5chan AI関連スレッド (2025-06-24)）を無視
+    if (line.startsWith('# 5chan AI関連スレッド')) {
+      continue;
+    }
+    
+    // カテゴリセクション（## 板名 (/板名/)）を検出
+    if (line.startsWith('## ') && line.includes('(/') && line.includes('/)')) {
+      currentCategory = line.substring(3).trim();
+      
+      contentItems.push({
+        title: currentCategory,
+        content: '',
+        source: '5chan',
+        isCategoryHeader: true
+      });
+    }
+    // スレッド（### [番号: スレッドタイトル (レス数)](URL)）を検出
+    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (linkMatch) {
+        const threadInfo = linkMatch[1];
+        const threadUrl = linkMatch[2];
+        
+        // スレッド情報をパース（番号: タイトル (レス数)）
+        const threadInfoMatch = threadInfo.match(/^(\d+):\s*(.+?)\s*\((\d+)\)$/);
+        let threadNumber = '';
+        let threadTitle = threadInfo; // フォールバック
+        let replyCount = '';
+        
+        if (threadInfoMatch) {
+          threadNumber = threadInfoMatch[1];
+          threadTitle = threadInfoMatch[2];
+          replyCount = threadInfoMatch[3];
+        }
+        
+        // 次の行から作成日時と要約を取得
+        let createdAt = '';
+        let summary = '';
+        
+        for (let j = i + 1; j < lines.length; j++) {
+          const nextLine = lines[j].trim();
+          
+          // 次のセクションまたは次のスレッドに到達したら終了
+          if (nextLine.startsWith('#') || nextLine === '---') {
+            break;
+          }
+          
+          if (nextLine.startsWith('作成日時:')) {
+            // 作成日時情報の行
+            createdAt = nextLine.replace('作成日時:', '').trim();
+          } else if (nextLine.startsWith('**要約**:')) {
+            // 要約情報の開始
+            summary = nextLine.replace('**要約**:', '').trim();
+            
+            // 要約の続きがある場合は次の行も読み込み
+            for (let k = j + 1; k < lines.length; k++) {
+              const summaryLine = lines[k].trim();
+              
+              // 次のセクション、スレッド、または区切り線に到達したら終了
+              if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
+                break;
+              }
+              
+              if (summaryLine) {
+                summary += '\n\n' + summaryLine;
+              }
+            }
+          }
+        }
+        
+        // スレッド内容を構築
+        let content = '';
+        if (threadNumber) {
+          content += `**スレッド番号**: ${threadNumber}\n\n`;
+        }
+        if (replyCount) {
+          content += `**レス数**: ${replyCount}\n\n`;
+        }
+        if (createdAt) {
+          content += `**作成日時**: ${createdAt}\n\n`;
+        }
+        if (summary) {
+          content += `**要約**:\n${summary}`;
+        }
+        
+        contentItems.push({
+          title: threadTitle,
+          content: content,
+          url: threadUrl,
+          source: '5chan',
+          category: currentCategory,
+          board: currentCategory,
+          threadNumber: threadNumber,
+          replyCount: replyCount,
+          isArticle: true
+        });
+      }
+    }
+  }
+  
+  return contentItems;
+}
+
 function App() {
   const [selectedSource, setSelectedSource] = useState('hacker news');
   const [currentPage, setCurrentPage] = useState('content'); // 'content' or 'usage-dashboard'
@@ -873,6 +985,17 @@ function App() {
         return parseFourchanThreadsMarkdown(data.items[0].content);
       } catch (error) {
         console.error('4chan Threads Markdown parsing error:', error);
+        // フォールバック: 元のアイテムをそのまま返す
+        return data.items;
+      }
+    }
+
+    // 5ch Threadsの場合は特別な処理
+    if (selectedSource === '5chan' && data.items[0]?.content) {
+      try {
+        return parseFivechanThreadsMarkdown(data.items[0].content);
+      } catch (error) {
+        console.error('5ch Threads Markdown parsing error:', error);
         // フォールバック: 元のアイテムをそのまま返す
         return data.items;
       }
@@ -1161,6 +1284,22 @@ function App() {
                   } 
                   // 4chan Threadsの場合も特別な番号付けロジック
                   else if (selectedSource === '4chan') {
+                    let threadCount = 0;
+                    return processedItems.map((item, index) => {
+                      const isThread = item.isArticle;
+                      const threadIndex = isThread ? threadCount++ : undefined;
+                      return (
+                        <ContentCard 
+                          key={index} 
+                          item={item} 
+                          darkMode={darkMode} 
+                          index={threadIndex} 
+                        />
+                      );
+                    });
+                  } 
+                  // 5ch Threadsの場合も特別な番号付けロジック
+                  else if (selectedSource === '5chan') {
                     let threadCount = 0;
                     return processedItems.map((item, index) => {
                       const isThread = item.isArticle;
