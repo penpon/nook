@@ -8,21 +8,14 @@ import { WeatherWidget } from './components/WeatherWidget';
 import UsageDashboard from './components/UsageDashboard';
 import { getContent } from './api';
 import { sourceDisplayInfo, defaultSourceDisplayInfo } from './config/sourceDisplayInfo';
-
-interface ParsedRepository {
-  name: string;        // "owner/repo"
-  url: string;         // GitHub URL
-  description: string; // 日本語の説明
-  stars: string;       // スター数
-  language: string;    // 所属言語
-}
+import { ContentItem } from './types';
 
 const sources = ['paper', 'github', 'hacker news', 'tech news', 'business news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
 // GitHub TrendingのMarkdownをパースして個別のコンテンツアイテムに変換
-function parseGitHubTrendingMarkdown(markdown: string): any[] {
+function parseGitHubTrendingMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
-  const contentItems: any[] = [];
+  const contentItems: ContentItem[] = [];
   let currentLanguage = '';
   
   for (let i = 0; i < lines.length; i++) {
@@ -88,6 +81,102 @@ function parseGitHubTrendingMarkdown(markdown: string): any[] {
   return contentItems;
 }
 
+// Tech NewsのMarkdownをパースして個別のコンテンツアイテムに変換
+function parseTechNewsMarkdown(markdown: string): ContentItem[] {
+  const lines = markdown.split('\n');
+  const contentItems: ContentItem[] = [];
+  let currentCategory = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 日付付きタイトル（# 技術ニュース記事 (2025-06-24)）を無視
+    if (line.startsWith('# 技術ニュース記事')) {
+      continue;
+    }
+    
+    // カテゴリセクション（## Tech_blogs, ## Hatena等）を検出
+    if (line.startsWith('## ') && line.length > 3) {
+      currentCategory = line.substring(3).trim();
+      // カテゴリ名を読みやすい形式に変換
+      const categoryDisplayName = currentCategory
+        .replace('_', ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+      
+      contentItems.push({
+        title: categoryDisplayName,
+        content: '',
+        source: 'tech news',
+        isCategoryHeader: true
+      });
+    }
+    // 記事（### [タイトル](URL)）を検出
+    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (linkMatch) {
+        const articleTitle = linkMatch[1];
+        const articleUrl = linkMatch[2];
+        
+        // 次の行からフィード情報と要約を取得
+        let feedName = '';
+        let summary = '';
+        
+        // フィード情報と要約を取得（次の行以降）
+        for (let j = i + 1; j < lines.length; j++) {
+          const nextLine = lines[j].trim();
+          
+          // 次のセクションまたは次の記事に到達したら終了
+          if (nextLine.startsWith('#') || nextLine === '---') {
+            break;
+          }
+          
+          if (nextLine.startsWith('**フィード**:')) {
+            // フィード情報の行
+            feedName = nextLine.replace('**フィード**:', '').trim();
+          } else if (nextLine.startsWith('**要約**:')) {
+            // 要約情報の開始
+            summary = nextLine.replace('**要約**:', '').trim();
+            
+            // 要約の続きがある場合は次の行も読み込み
+            for (let k = j + 1; k < lines.length; k++) {
+              const summaryLine = lines[k].trim();
+              
+              // 次のセクション、記事、または区切り線に到達したら終了
+              if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
+                break;
+              }
+              
+              if (summaryLine) {
+                summary += '\n\n' + summaryLine;
+              }
+            }
+          }
+        }
+        
+        // 記事内容を構築
+        let content = '';
+        if (feedName) {
+          content += `**フィード**: ${feedName}\n\n`;
+        }
+        if (summary) {
+          content += `**要約**:\n${summary}`;
+        }
+        
+        contentItems.push({
+          title: articleTitle,
+          content: content,
+          url: articleUrl,
+          source: 'tech news',
+          category: currentCategory,
+          isArticle: true
+        });
+      }
+    }
+  }
+  
+  return contentItems;
+}
+
 function App() {
   const [selectedSource, setSelectedSource] = useState('hacker news');
   const [currentPage, setCurrentPage] = useState('content'); // 'content' or 'usage-dashboard'
@@ -119,7 +208,7 @@ function App() {
     }
   );
 
-  // GitHub Trendingの場合のMarkdownパース処理
+  // GitHub TrendingとTech NewsのMarkdownパース処理
   const processedItems = useMemo(() => {
     if (!data?.items || data.items.length === 0) {
       return [];
@@ -131,6 +220,17 @@ function App() {
         return parseGitHubTrendingMarkdown(data.items[0].content);
       } catch (error) {
         console.error('GitHub Trending Markdown parsing error:', error);
+        // フォールバック: 元のアイテムをそのまま返す
+        return data.items;
+      }
+    }
+
+    // Tech Newsの場合は特別な処理
+    if (selectedSource === 'tech news' && data.items[0]?.content) {
+      try {
+        return parseTechNewsMarkdown(data.items[0].content);
+      } catch (error) {
+        console.error('Tech News Markdown parsing error:', error);
         // フォールバック: 元のアイテムをそのまま返す
         return data.items;
       }
@@ -309,7 +409,7 @@ function App() {
                   if (selectedSource === 'github') {
                     let repositoryCount = 0;
                     return processedItems.map((item, index) => {
-                      const isRepository = (item as any).isRepository;
+                      const isRepository = item.isRepository;
                       const repositoryIndex = isRepository ? repositoryCount++ : undefined;
                       return (
                         <ContentCard 
@@ -317,6 +417,22 @@ function App() {
                           item={item} 
                           darkMode={darkMode} 
                           index={repositoryIndex} 
+                        />
+                      );
+                    });
+                  } 
+                  // Tech Newsの場合も特別な番号付けロジック
+                  else if (selectedSource === 'tech news') {
+                    let articleCount = 0;
+                    return processedItems.map((item, index) => {
+                      const isArticle = item.isArticle;
+                      const articleIndex = isArticle ? articleCount++ : undefined;
+                      return (
+                        <ContentCard 
+                          key={index} 
+                          item={item} 
+                          darkMode={darkMode} 
+                          index={articleIndex} 
                         />
                       );
                     });
