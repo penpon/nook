@@ -102,7 +102,7 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
             if content:
                 # マークダウンからContentItemを作成
                 items.append(ContentItem(
-                    title=f"{_get_source_display_name(source)} - {target_date.strftime('%Y-%m-%d')}",
+                    title="" if source == "github" else f"{_get_source_display_name(source)} - {target_date.strftime('%Y-%m-%d')}",
                     content=content,
                     source=source
                 ))
@@ -136,7 +136,7 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
                 content = storage.load_markdown(service_name, target_date)
                 if content:
                     items.append(ContentItem(
-                        title=f"{_get_source_display_name(src)} - {target_date.strftime('%Y-%m-%d')}",
+                        title="" if src == "github" else f"{_get_source_display_name(src)} - {target_date.strftime('%Y-%m-%d')}",
                         content=content,
                         source=src
                     ))
