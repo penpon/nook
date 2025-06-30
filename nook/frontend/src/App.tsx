@@ -545,6 +545,122 @@ function parseNoteArticlesMarkdown(markdown: string): ContentItem[] {
   return contentItems;
 }
 
+// Reddit PostsのMarkdownをパースして個別のコンテンツアイテムに変換
+function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
+  const lines = markdown.split('\n');
+  const contentItems: ContentItem[] = [];
+  let currentCategory = '';
+  let currentSubreddit = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 日付付きタイトル（# Reddit 人気投稿 (2025-06-24)）を無視
+    if (line.startsWith('# Reddit 人気投稿')) {
+      continue;
+    }
+    
+    // カテゴリセクション（## Tech等）を検出
+    if (line.startsWith('## ') && line.length > 3) {
+      currentCategory = line.substring(3).trim();
+      
+      contentItems.push({
+        title: currentCategory,
+        content: '',
+        source: 'reddit',
+        isCategoryHeader: true
+      });
+    }
+    // サブレディット（### r/subreddit名）を検出
+    else if (line.startsWith('### r/')) {
+      currentSubreddit = line.substring(4).trim(); // "### " を除去
+      
+      contentItems.push({
+        title: currentSubreddit,
+        content: '',
+        source: 'reddit',
+        category: currentCategory,
+        isSubredditHeader: true
+      });
+    }
+    // 投稿（#### [投稿タイトル](URL)）を検出
+    else if (line.startsWith('#### ') && line.includes('[') && line.includes('](')) {
+      const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (linkMatch) {
+        const postTitle = linkMatch[1];
+        const postUrl = linkMatch[2];
+        
+        // 次の行からリンク、本文、アップボート数、要約を取得
+        let linkInfo = '';
+        let bodyText = '';
+        let upvotes = '';
+        let summary = '';
+        
+        for (let j = i + 1; j < lines.length; j++) {
+          const nextLine = lines[j].trim();
+          
+          // 次のセクション、サブレディット、または投稿に到達したら終了
+          if (nextLine.startsWith('#') || nextLine === '---') {
+            break;
+          }
+          
+          if (nextLine.startsWith('リンク:')) {
+            linkInfo = nextLine.replace('リンク:', '').trim();
+          } else if (nextLine.startsWith('本文:')) {
+            bodyText = nextLine.replace('本文:', '').trim();
+          } else if (nextLine.startsWith('アップボート:')) {
+            upvotes = nextLine.replace('アップボート:', '').trim();
+          } else if (nextLine.startsWith('**要約**:')) {
+            // 要約情報の開始
+            summary = nextLine.replace('**要約**:', '').trim();
+            
+            // 要約の続きがある場合は次の行も読み込み
+            for (let k = j + 1; k < lines.length; k++) {
+              const summaryLine = lines[k].trim();
+              
+              // 次のセクション、投稿、または区切り線に到達したら終了
+              if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
+                break;
+              }
+              
+              if (summaryLine) {
+                summary += '\n\n' + summaryLine;
+              }
+            }
+          }
+        }
+        
+        // 投稿内容を構築
+        let content = '';
+        if (linkInfo) {
+          content += `**リンク**: ${linkInfo}\n\n`;
+        }
+        if (bodyText) {
+          content += `**本文**: ${bodyText}\n\n`;
+        }
+        if (upvotes) {
+          content += `**アップボート**: ${upvotes}\n\n`;
+        }
+        if (summary) {
+          content += `**要約**:\n${summary}`;
+        }
+        
+        contentItems.push({
+          title: postTitle,
+          content: content,
+          url: postUrl,
+          source: 'reddit',
+          category: currentCategory,
+          subreddit: currentSubreddit,
+          isArticle: true
+        });
+      }
+    }
+  }
+  
+  return contentItems;
+}
+
 function App() {
   const [selectedSource, setSelectedSource] = useState('hacker news');
   const [currentPage, setCurrentPage] = useState('content'); // 'content' or 'usage-dashboard'
@@ -643,6 +759,17 @@ function App() {
         return parseNoteArticlesMarkdown(data.items[0].content);
       } catch (error) {
         console.error('note Articles Markdown parsing error:', error);
+        // フォールバック: 元のアイテムをそのまま返す
+        return data.items;
+      }
+    }
+
+    // Reddit Postsの場合は特別な処理
+    if (selectedSource === 'reddit' && data.items[0]?.content) {
+      try {
+        return parseRedditPostsMarkdown(data.items[0].content);
+      } catch (error) {
+        console.error('Reddit Posts Markdown parsing error:', error);
         // フォールバック: 元のアイテムをそのまま返す
         return data.items;
       }
@@ -909,6 +1036,22 @@ function App() {
                           item={item} 
                           darkMode={darkMode} 
                           index={articleIndex} 
+                        />
+                      );
+                    });
+                  } 
+                  // Reddit Postsの場合も特別な番号付けロジック
+                  else if (selectedSource === 'reddit') {
+                    let postCount = 0;
+                    return processedItems.map((item, index) => {
+                      const isPost = item.isArticle;
+                      const postIndex = isPost ? postCount++ : undefined;
+                      return (
+                        <ContentCard 
+                          key={index} 
+                          item={item} 
+                          darkMode={darkMode} 
+                          index={postIndex} 
                         />
                       );
                     });
