@@ -1,15 +1,42 @@
 """コンテンツAPIルーター。"""
 
 from datetime import datetime
-from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException, Response
 
-from nook.api.models.schemas import ContentResponse, ContentItem
+from nook.api.models.schemas import ContentItem, ContentResponse
 from nook.common.storage import LocalStorage
 
 router = APIRouter()
 storage = LocalStorage("data")
+
+# 論文要約の質問文を読みやすいタイトルに変換するマッピング
+PAPER_SUMMARY_TITLE_MAPPING = {
+    "1. 既存研究では何ができなかったのか": "🔍 研究背景と課題",
+    "2. どのようなアプローチでそれを解決しようとしたか": "💡 提案手法",
+    "3. 結果、何が達成できたのか": "🎯 主要な成果",
+    "4. 制限や問題点は何ですか": "⚠️ 限界と今後の課題",
+    "5. 技術的な詳細について": "🔧 技術詳細",
+    "6. コストや物理的な詳細について": "💻 計算リソースと規模",
+    "7. 参考文献のうち、特に参照すべきもの": "📚 重要な関連研究",
+    "8. この論文を140字以内で要約すると": "📝 140字要約"
+}
+
+def convert_paper_summary_titles(content: str) -> str:
+    """論文要約の質問文を読みやすいタイトルに変換"""
+    result = content
+
+    # 各質問文を対応するタイトルに置換
+    for original_title in PAPER_SUMMARY_TITLE_MAPPING:
+        # 質問文の全体または一部にマッチするよう調整
+        # "4. 制限や問題点は何ですか。"のような質問文に対応
+        if original_title in result:
+            result = result.replace(
+                original_title,
+                PAPER_SUMMARY_TITLE_MAPPING[original_title]
+            )
+
+    return result
 
 SOURCE_MAPPING = {
     "paper": "paper_summarizer",
@@ -27,22 +54,26 @@ SOURCE_MAPPING = {
 
 
 @router.get("/content/{source}", response_model=ContentResponse)
-async def get_content(source: str, date: Optional[str] = None, response: Response = None) -> ContentResponse:
+async def get_content(
+    source: str,
+    date: str | None = None,
+    response: Response = None
+) -> ContentResponse:
     """
     特定のソースのコンテンツを取得します。
-    
+
     Parameters
     ----------
     source : str
         データソース（reddit, hackernews, github, techfeed, paper）。
     date : str, optional
         表示する日付（YYYY-MM-DD形式）。
-        
+
     Returns
     -------
     ContentResponse
         コンテンツレスポンス。
-        
+
     Raises
     ------
     HTTPException
@@ -50,45 +81,57 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
     """
     if source not in SOURCE_MAPPING and source != "all":
         raise HTTPException(status_code=404, detail=f"Source '{source}' not found")
-    
+
     # キャッシュ制御ヘッダーを設定（キャッシュを無効化）
     if response:
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
-    
+
     # 日付の処理
     target_date = None
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid date format: {date}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid date format: {date}"
+            ) from None
     else:
         target_date = datetime.now()
-    
+
     items = []
-    
+
     # 特定のソースからコンテンツを取得
     if source != "all":
         service_name = SOURCE_MAPPING[source]
-        
+
         # Hacker Newsの場合はJSONから個別記事を取得
         if source == "hacker news":
             stories_data = storage.load_json(service_name, target_date)
             if stories_data:
                 # スコアで降順ソート
-                sorted_stories = sorted(stories_data, key=lambda x: x.get('score', 0), reverse=True)
-                for i, story in enumerate(sorted_stories):
+                sorted_stories = sorted(
+                    stories_data,
+                    key=lambda x: x.get('score', 0),
+                    reverse=True
+                )
+                for story in sorted_stories:
                     # 要約があれば要約を、なければ本文を使用
                     content = ""
                     if story.get("summary"):
                         content = f"**要約**:\n{story['summary']}\n\n"
                     elif story.get("text"):
-                        content = f"{story['text'][:1000]}{'...' if len(story['text']) > 1000 else ''}\n\n"
-                    
+                        text_preview = story['text'][:1000]
+                        if len(story['text']) > 1000:
+                            text_preview += '...'
+                        content = f"{text_preview}\n\n"
+
                     content += f"スコア: {story['score']}"
-                    
+
                     items.append(ContentItem(
                         title=story["title"],
                         content=content,
@@ -98,11 +141,19 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
         else:
             # 他のソースは従来通りMarkdownから取得
             content = storage.load_markdown(service_name, target_date)
-            
+
             if content:
+                # 論文要約の場合はタイトルを変換
+                if source == "paper":
+                    content = convert_paper_summary_titles(content)
+
                 # マークダウンからContentItemを作成
                 items.append(ContentItem(
-                    title="" if source == "github" else f"{_get_source_display_name(source)} - {target_date.strftime('%Y-%m-%d')}",
+                    title=(
+                        "" if source == "github"
+                        else f"{_get_source_display_name(source)} - "
+                             f"{target_date.strftime('%Y-%m-%d')}"
+                    ),
                     content=content,
                     source=source
                 ))
@@ -114,17 +165,24 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
                 stories_data = storage.load_json(service_name, target_date)
                 if stories_data:
                     # スコアで降順ソート
-                    sorted_stories = sorted(stories_data, key=lambda x: x.get('score', 0), reverse=True)
-                    for i, story in enumerate(sorted_stories):
+                    sorted_stories = sorted(
+                    stories_data,
+                    key=lambda x: x.get('score', 0),
+                    reverse=True
+                )
+                    for story in sorted_stories:
                         # 要約があれば要約を、なければ本文を使用
                         content = ""
                         if story.get("summary"):
                             content = f"**要約**:\n{story['summary']}\n\n"
                         elif story.get("text"):
-                            content = f"{story['text'][:500]}{'...' if len(story['text']) > 500 else ''}\n\n"
-                        
+                            text_preview = story['text'][:500]
+                            if len(story['text']) > 500:
+                                text_preview += '...'
+                            content = f"{text_preview}\n\n"
+
                         content += f"スコア: {story['score']}"
-                        
+
                         items.append(ContentItem(
                             title=story["title"],
                             content=content,
@@ -135,12 +193,20 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
                 # 他のソースは従来通りMarkdownから取得
                 content = storage.load_markdown(service_name, target_date)
                 if content:
+                    # 論文要約の場合はタイトルを変換
+                    if src == "paper":
+                        content = convert_paper_summary_titles(content)
+
                     items.append(ContentItem(
-                        title="" if src == "github" else f"{_get_source_display_name(src)} - {target_date.strftime('%Y-%m-%d')}",
+                        title=(
+                            "" if src == "github"
+                            else f"{_get_source_display_name(src)} - "
+                                 f"{target_date.strftime('%Y-%m-%d')}"
+                        ),
                         content=content,
                         source=src
                     ))
-    
+
     if not items:
         # 利用可能な日付を確認
         available_dates = []
@@ -151,28 +217,28 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
             for service_name in SOURCE_MAPPING.values():
                 dates = storage.list_dates(service_name)
                 available_dates.extend(dates)
-        
+
         if not available_dates:
             raise HTTPException(
-                status_code=404, 
-                detail=f"No content available. Please run the services first."
+                status_code=404,
+                detail="No content available. Please run the services first."
             )
         else:
             # 最新の利用可能な日付のコンテンツを取得
             latest_date = max(available_dates)
             return await get_content(source, latest_date.strftime("%Y-%m-%d"))
-    
+
     return ContentResponse(items=items)
 
 def _get_source_display_name(source: str) -> str:
     """
     ソースの表示名を取得します。
-    
+
     Parameters
     ----------
     source : str
         データソース
-        
+
     Returns
     -------
     str
@@ -188,4 +254,4 @@ def _get_source_display_name(source: str) -> str:
         "4chan": "4chan",
         "5chan": "5ちゃんねる"
     }
-    return source_names.get(source, source) 
+    return source_names.get(source, source)
