@@ -35,7 +35,7 @@ class ServiceRunner:
         from nook.services.note_explorer.note_explorer import NoteExplorer
         from nook.services.tech_feed.tech_feed import TechFeed
         from nook.services.business_feed.business_feed import BusinessFeed
-        from nook.services.paper_summarizer.paper_summarizer import PaperSummarizer
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
         
@@ -49,7 +49,7 @@ class ServiceRunner:
             "note": NoteExplorer(),
             "tech_news": TechFeed(),
             "business_news": BusinessFeed(),
-            "paper": PaperSummarizer(),
+            "arxiv": ArxivSummarizer(),
             "4chan": FourChanExplorer(),
             "5chan": FiveChanExplorer(),
         }
@@ -241,8 +241,8 @@ def run_tech_feed():
 def run_business_feed():
     run_service_sync("business_news")
 
-def run_paper_summarizer():
-    run_service_sync("paper")
+def run_arxiv_summarizer():
+    run_service_sync("arxiv")
 
 def run_fourchan_explorer():
     run_service_sync("4chan")

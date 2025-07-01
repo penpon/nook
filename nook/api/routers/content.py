@@ -39,7 +39,7 @@ def convert_paper_summary_titles(content: str) -> str:
     return result
 
 SOURCE_MAPPING = {
-    "arxiv": "paper_summarizer",
+    "arxiv": "arxiv_summarizer",
     "github": "github_trending",
     "hacker-news": "hacker_news",
     "tech-news": "tech_feed",

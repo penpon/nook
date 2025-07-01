@@ -75,7 +75,7 @@ class PaperInfo:
     summary: str = field(init=False)
 
 
-class PaperSummarizer(BaseService):
+class ArxivSummarizer(BaseService):
     """
     arXiv論文を収集・要約するクラス。
 
@@ -87,14 +87,14 @@ class PaperSummarizer(BaseService):
 
     def __init__(self, storage_dir: str = "data"):
         """
-        PaperSummarizerを初期化します。
+        ArxivSummarizerを初期化します。
 
         Parameters
         ----------
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        super().__init__("paper_summarizer")
+        super().__init__("arxiv_summarizer")
         self.http_client = AsyncHTTPClient()
 
     async def collect(self, limit: int = 5) -> None:

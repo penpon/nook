@@ -40,7 +40,7 @@ echo "Collecting GitHub Trending..."
 python -m nook.services.run_services --service github_trending || echo "Failed to collect GitHub Trending"
 
 echo "Collecting Papers..."
-python -m nook.services.run_services --service paper || echo "Failed to collect Papers"
+python -m nook.services.run_services --service arxiv || echo "Failed to collect Papers"
 
 echo "Collecting Tech Feed..."
 python -m nook.services.run_services --service tech_news || echo "Failed to collect Tech Feed"
