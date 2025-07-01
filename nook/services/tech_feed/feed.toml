@@ -8,7 +8,6 @@ tech_blogs = [
     "https://blog.google/technology/developers/rss/",
     "https://aws.amazon.com/blogs/aws/feed/",
     "https://devblogs.microsoft.com/python/feed/",
-    "https://blog.twitter.com/engineering/en_us/blog.rss",
     "https://medium.com/feed/airbnb-engineering",
     "https://www.techno-edge.net/rss20/index.rdf",
     # 日本語技術メディア
