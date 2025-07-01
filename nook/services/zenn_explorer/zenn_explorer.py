@@ -339,7 +339,7 @@ class ZennExplorer(BaseService):
         # 保存
         self.logger.info(f"zenn_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
         try:
-            self.storage.save_markdown(content, "zenn_explorer", today)
+            self.storage.save_markdown(content, "", today)
             self.logger.info("保存が完了しました")
         except Exception as e:
             self.logger.error(f"保存中にエラーが発生しました: {str(e)}")
