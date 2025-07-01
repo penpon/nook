@@ -67,7 +67,7 @@ class HackerNewsRetriever(BaseService):
         """
         super().__init__("hacker_news")
         self.base_url = "https://hacker-news.firebaseio.com/v0"
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
         self.blocked_domains = self._load_blocked_domains()
     
     async def collect(self, limit: int = 30) -> None:
@@ -79,6 +79,10 @@ class HackerNewsRetriever(BaseService):
         limit : int, default=30
             取得する記事数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         stories = await self._get_top_stories(limit)
         await self._store_summaries(stories)
     
