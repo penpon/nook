@@ -1586,10 +1586,11 @@ function App() {
                   } 
                   // 4chan Threadsの場合も特別な番号付けロジック
                   else if (selectedSource === '4chan') {
-                    let threadCount = 0;
                     return processedItems.map((item, index) => {
-                      const isThread = item.isArticle;
-                      const threadIndex = isThread ? threadCount++ : undefined;
+                      const isArticle = item.isArticle;
+                      const threadIndex = isArticle && item.metadata?.articleNumber 
+                        ? item.metadata.articleNumber - 1 
+                        : undefined;
                       return (
                         <ContentCard 
                           key={index} 
