@@ -1,10 +1,10 @@
-# TASK-061: モバイルファーストアーキテクチャ全面転換
+# TASK-061: Viteベースモバイルファーストアーキテクチャ転換
 
 ## タスク概要
-デスクトップファーストからモバイルファーストアーキテクチャへの全面転換を実行する。CSS設計、コンポーネント設計、パフォーマンス最適化をモバイル優先で再構築し、2025年のモバイルUXスタンダードに準拠したアプリケーションを実現する。
+Vite環境のままで、デスクトップファーストからモバイルファーストアーキテクチャへの全面転換を実行する。CSS設計、コンポーネント設計、パフォーマンス最適化をモバイル優先で再構築し、2025年のモバイルUXスタンダードに準拠したアプリケーションを実現する。
 
 ## 変更予定ファイル
-- app/globals.css（モバイルファーストCSS完全書き換え）
+- src/index.css（モバイルファーストCSS完全書き換え）
 - tailwind.config.js（モバイルファースト設定）
 - src/components/ui/（全UIコンポーネント改修）
 - src/components/mobile/（モバイル専用コンポーネント作成）
@@ -12,11 +12,11 @@
 - src/hooks/useTouch.ts（新規作成）
 - src/hooks/useVibration.ts（新規作成）
 - src/utils/performance.ts（モバイルパフォーマンス最適化）
-- app/layout.tsx（モバイル最適化メタタグ）
-- next.config.js（モバイル最適化設定）
+- index.html（モバイル最適化メタタグ）
+- vite.config.ts（モバイル最適化ビルド設定）
 
 ## 前提タスク
-TASK-060（React Server Components移行完了後）
+TASK-060（Vite SSR実装完了後）
 
 ## worktree名
 worktrees/TASK-061-mobile-first-architecture
@@ -25,7 +25,7 @@ worktrees/TASK-061-mobile-first-architecture
 
 ### 1. モバイルファーストCSS基盤の再構築
 ```css
-/* app/globals.css - 完全書き換え */
+/* src/index.css - 完全書き換え */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -858,10 +858,8 @@ export function useVibration() {
 #### components/mobile/BottomNavigation.tsx
 ```typescript
 // src/components/mobile/BottomNavigation.tsx
-'use client';
-
 import React from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
   TrendingUp, 
@@ -938,11 +936,9 @@ export function BottomNavigation() {
 #### components/mobile/MobileHeader.tsx
 ```typescript
 // src/components/mobile/MobileHeader.tsx
-'use client';
-
 import React from 'react';
 import { ArrowLeft, Menu, Search, MoreVertical } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 
 interface MobileHeaderProps {
   title: string;
@@ -1154,11 +1150,15 @@ export function shouldReduceAnimations(): boolean {
 }
 ```
 
-### 6. Next.js設定の最適化
+### 6. Vite設定の最適化
 ```javascript
-// next.config.js に追加
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+// vite.config.ts に追加
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+import imagemin from 'vite-plugin-imagemin'
+
+export default defineConfig({
   // 既存の設定...
   
   // モバイル最適化
