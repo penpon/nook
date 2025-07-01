@@ -5,6 +5,7 @@ Nookの各サービスを実行するスクリプト。
 
 import os
 import argparse
+import asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -56,7 +57,7 @@ def run_github_trending():
     """
     print("GitHubトレンドリポジトリを収集しています...")
     github_trending = GithubTrending()
-    github_trending.run()
+    asyncio.run(github_trending.collect())
     print("GitHubトレンドリポジトリの収集が完了しました。")
 
 def run_hacker_news():
