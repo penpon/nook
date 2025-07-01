@@ -73,7 +73,7 @@ class BusinessFeed(BaseService):
         with open(script_dir / "feed.toml", "rb") as f:
             self.feed_config = tomli.load(f)
     
-    def run(self, days: int = 1, limit: int = 30) -> None:
+    def run(self, days: int = 1, limit: int = 5) -> None:
         """
         ビジネスニュースのRSSフィードを監視・収集・要約して保存します。
         
@@ -81,12 +81,12 @@ class BusinessFeed(BaseService):
         ----------
         days : int, default=1
             何日前までの記事を取得するか。
-        limit : int, default=3
+        limit : int, default=5
             各フィードから取得する記事数。
         """
         asyncio.run(self.collect(days, limit))
     
-    async def collect(self, days: int = 1, limit: int = 30) -> None:
+    async def collect(self, days: int = 1, limit: int = 5) -> None:
         """
         ビジネスニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
         
@@ -94,7 +94,7 @@ class BusinessFeed(BaseService):
         ----------
         days : int, default=1
             何日前までの記事を取得するか。
-        limit : int, default=30
+        limit : int, default=5
             各フィードから取得する記事数。
         """
         all_articles = []
