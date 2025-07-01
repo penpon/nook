@@ -15,9 +15,9 @@ export const ServiceUsageTable: React.FC<ServiceUsageTableProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+    <div className="dashboard-container bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+      <div className="cq-xs:p-4 cq-md:p-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="cq-xs:text-base cq-md:text-lg font-semibold text-gray-900 dark:text-white">
           サービス別使用量
         </h3>
       </div>
@@ -26,22 +26,22 @@ export const ServiceUsageTable: React.FC<ServiceUsageTableProps> = ({
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700/50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="cq-xs:px-3 cq-xs:py-2 cq-md:px-6 cq-md:py-3 text-left cq-xs:text-xs cq-md:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 サービス名
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                呼び出し回数
+              <th className="cq-xs:px-3 cq-xs:py-2 cq-md:px-6 cq-md:py-3 text-right cq-xs:text-xs cq-md:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                呼び出し
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+              <th className="cq-md:px-6 cq-md:py-3 text-right cq-xs:text-xs cq-md:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cq-xs:hidden cq-md:table-cell">
                 入力トークン
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+              <th className="cq-md:px-6 cq-md:py-3 text-right cq-xs:text-xs cq-md:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cq-xs:hidden cq-md:table-cell">
                 出力トークン
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="cq-xs:px-3 cq-xs:py-2 cq-md:px-6 cq-md:py-3 text-right cq-xs:text-xs cq-md:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 コスト
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
+              <th className="cq-lg:px-6 cq-lg:py-3 text-right cq-xs:text-xs cq-md:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cq-xs:hidden cq-lg:table-cell">
                 最終呼び出し
               </th>
             </tr>
@@ -49,24 +49,24 @@ export const ServiceUsageTable: React.FC<ServiceUsageTableProps> = ({
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {serviceUsage.map((service) => (
               <tr key={service.service} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                <td className="cq-xs:px-3 cq-xs:py-3 cq-md:px-6 cq-md:py-4 whitespace-nowrap">
+                  <span className="inline-flex items-center cq-xs:px-2 cq-xs:py-0.5 cq-md:px-2.5 cq-md:py-0.5 rounded-full cq-xs:text-xs cq-md:text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                     {service.service}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white font-medium">
+                <td className="cq-xs:px-3 cq-xs:py-3 cq-md:px-6 cq-md:py-4 whitespace-nowrap text-right cq-xs:text-sm cq-md:text-sm text-gray-900 dark:text-white font-medium">
                   {formatNumber(service.calls)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                <td className="cq-md:px-6 cq-md:py-4 whitespace-nowrap text-right cq-xs:text-sm cq-md:text-sm text-gray-600 dark:text-gray-400 cq-xs:hidden cq-md:table-cell">
                   {formatNumber(service.inputTokens)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                <td className="cq-md:px-6 cq-md:py-4 whitespace-nowrap text-right cq-xs:text-sm cq-md:text-sm text-gray-600 dark:text-gray-400 cq-xs:hidden cq-md:table-cell">
                   {formatNumber(service.outputTokens)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-green-600 dark:text-green-400">
+                <td className="cq-xs:px-3 cq-xs:py-3 cq-md:px-6 cq-md:py-4 whitespace-nowrap text-right cq-xs:text-sm cq-md:text-sm font-medium text-green-600 dark:text-green-400">
                   {formatCurrency(service.cost)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600 dark:text-gray-400 hidden md:table-cell">
+                <td className="cq-lg:px-6 cq-lg:py-4 whitespace-nowrap text-right cq-xs:text-sm cq-md:text-sm text-gray-600 dark:text-gray-400 cq-xs:hidden cq-lg:table-cell">
                   {formatDate(service.lastCalled)}
                 </td>
               </tr>
