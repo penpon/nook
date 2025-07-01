@@ -66,7 +66,7 @@ class BusinessFeed(BaseService):
             ストレージディレクトリのパス。
         """
         super().__init__("business_feed")
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
         
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
@@ -97,6 +97,10 @@ class BusinessFeed(BaseService):
         limit : int, default=5
             各フィードから取得する記事数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         all_articles = []
         
         try:
@@ -135,7 +139,8 @@ class BusinessFeed(BaseService):
                 self.logger.info("保存する記事がありません")
                 
         finally:
-            await self.http_client.close()
+            # グローバルクライアントなのでクローズ不要
+            pass
     
     def _filter_entries(self, entries: List[dict], days: int, limit: int) -> List[dict]:
         """
