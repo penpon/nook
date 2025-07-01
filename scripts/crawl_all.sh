@@ -33,38 +33,25 @@ else
 fi
 
 # 各サービスを実行（エラーが発生しても続行）
-echo "Collecting Hacker News..."
-python -m nook.services.run_services --service hacker_news || echo "Failed to collect Hacker News"
+echo "Launching all services in parallel..."
 
-echo "Collecting GitHub Trending..."
-python -m nook.services.run_services --service github_trending || echo "Failed to collect GitHub Trending"
+# 全サービスをバックグラウンドで実行
+python -m nook.services.run_services --service hacker_news &
+python -m nook.services.run_services --service github_trending &
+python -m nook.services.run_services --service arxiv &
+python -m nook.services.run_services --service tech_news &
+python -m nook.services.run_services --service business_news &
+python -m nook.services.run_services --service reddit &
+python -m nook.services.run_services --service zenn &
+python -m nook.services.run_services --service qiita &
+python -m nook.services.run_services --service note &
+python -m nook.services.run_services --service 4chan &
+python -m nook.services.run_services --service 5chan &
 
-echo "Collecting Papers..."
-python -m nook.services.run_services --service arxiv || echo "Failed to collect Papers"
+# 全プロセスの完了を待つ
+wait
 
-echo "Collecting Tech Feed..."
-python -m nook.services.run_services --service tech_news || echo "Failed to collect Tech Feed"
-
-echo "Collecting Business Feed..."
-python -m nook.services.run_services --service business_news || echo "Failed to collect Business Feed"
-
-echo "Collecting Reddit..."
-python -m nook.services.run_services --service reddit || echo "Failed to collect Reddit"
-
-echo "Collecting Zenn..."
-python -m nook.services.run_services --service zenn || echo "Failed to collect Zenn"
-
-echo "Collecting Qiita..."
-python -m nook.services.run_services --service qiita || echo "Failed to collect Qiita"
-
-echo "Collecting Note..."
-python -m nook.services.run_services --service note || echo "Failed to collect Note"
-
-echo "Collecting 4chan..."
-python -m nook.services.run_services --service 4chan || echo "Failed to collect 4chan"
-
-echo "Collecting 5chan..."
-python -m nook.services.run_services --service 5chan || echo "Failed to collect 5chan"
+echo "All services completed"
 
 echo "Data collection completed at $(date)"
 
