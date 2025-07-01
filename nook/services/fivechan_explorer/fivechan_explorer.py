@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import re
@@ -7,10 +8,11 @@ from pathlib import Path
 from typing import List, Dict, Optional, Any
 import time
 
-import requests
 from bs4 import BeautifulSoup
 
+from nook.common.base_service import BaseService
 from nook.common.gpt_client import GPTClient
+from nook.common.http_client import AsyncHTTPClient
 from nook.common.storage import LocalStorage
 
 
@@ -44,7 +46,7 @@ class Thread:
     summary: str = field(default="")
 
 
-class FiveChanExplorer:
+class FiveChanExplorer(BaseService):
     """
     5chan（旧2ちゃんねる）から情報を収集するクラス。
     
@@ -63,8 +65,10 @@ class FiveChanExplorer:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        self.storage = LocalStorage(storage_dir)
+        super().__init__("fivechan_explorer")
+        self.http_client = AsyncHTTPClient()
         self.gpt_client = GPTClient()
+        self.storage = LocalStorage(storage_dir)
         
         # 対象となる板
         self.target_boards = self._load_boards()
@@ -120,37 +124,52 @@ class FiveChanExplorer:
         thread_limit : int, default=5
             各板から取得するスレッド数。
         """
+        asyncio.run(self.collect(thread_limit))
+    
+    async def collect(self, thread_limit: int = 5) -> None:
+        """
+        5chanからAI関連スレッドを収集して保存します（非同期版）。
+        
+        Parameters
+        ----------
+        thread_limit : int, default=5
+            各板から取得するスレッド数。
+        """
         all_threads = []
         
-        # 各板からスレッドを取得
-        for board_id, board_name in self.target_boards.items():
-            try:
-                print(f"板 /{board_id}/({board_name}) からのスレッド取得を開始します...")
-                threads = self._retrieve_ai_threads(board_id, thread_limit)
-                print(f"板 /{board_id}/({board_name}) から {len(threads)} 件のスレッドを取得しました")
+        try:
+            # 各板からスレッドを取得
+            for board_id, board_name in self.target_boards.items():
+                try:
+                    self.logger.info(f"板 /{board_id}/({board_name}) からのスレッド取得を開始します...")
+                    threads = await self._retrieve_ai_threads(board_id, thread_limit)
+                    self.logger.info(f"板 /{board_id}/({board_name}) から {len(threads)} 件のスレッドを取得しました")
+                    
+                    # スレッドを要約
+                    for thread in threads:
+                        await self._summarize_thread(thread)
+                    
+                    all_threads.extend(threads)
+                    
+                    # リクエスト間の遅延
+                    await asyncio.sleep(self.request_delay)
                 
-                # スレッドを要約
-                for thread in threads:
-                    self._summarize_thread(thread)
-                
-                all_threads.extend(threads)
-                
-                # リクエスト間の遅延
-                time.sleep(self.request_delay)
+                except Exception as e:
+                    self.logger.error(f"Error processing board /{board_id}/: {str(e)}")
             
-            except Exception as e:
-                print(f"Error processing board /{board_id}/: {str(e)}")
-        
-        print(f"合計 {len(all_threads)} 件のスレッドを取得しました")
-        
-        # 要約を保存
-        if all_threads:
-            self._store_summaries(all_threads)
-            print(f"スレッドの要約を保存しました")
-        else:
-            print("保存するスレッドがありません")
+            self.logger.info(f"合計 {len(all_threads)} 件のスレッドを取得しました")
+            
+            # 要約を保存
+            if all_threads:
+                await self._store_summaries(all_threads)
+                self.logger.info(f"スレッドの要約を保存しました")
+            else:
+                self.logger.info("保存するスレッドがありません")
+                
+        finally:
+            await self.http_client.close()
     
-    def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
+    async def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
         
@@ -170,13 +189,12 @@ class FiveChanExplorer:
         board_url = f"https://menu.5ch.net/bbsmenu.html"
         
         try:
-            print(f"板一覧ページ {board_url} にアクセスしています...")
+            self.logger.info(f"板一覧ページ {board_url} にアクセスしています...")
             
             # 板一覧ページにアクセス
-            response = requests.get(board_url, headers={
+            response = await self.http_client.get(board_url, headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }, timeout=15)
-            response.raise_for_status()
+            })
             
             # 板のURLを探す
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -189,21 +207,20 @@ class FiveChanExplorer:
                 href = link.get('href', '')
                 if f"/{board_id}/" in href and not href.endswith('.html'):
                     actual_board_url = href
-                    print(f"板 {board_id} のURL: {actual_board_url}")
+                    self.logger.info(f"板 {board_id} のURL: {actual_board_url}")
                     break
             
             if not actual_board_url:
-                print(f"板 {board_id} のURLが見つかりませんでした")
+                self.logger.warning(f"板 {board_id} のURLが見つかりませんでした")
                 # 直接URLを構築してみる
                 actual_board_url = f"https://menu.5ch.net/test/read.cgi/{board_id}/"
-                print(f"推測した板URL: {actual_board_url}")
+                self.logger.info(f"推測した板URL: {actual_board_url}")
             
             # 板のページにアクセス
-            print(f"板 {board_id} のページにアクセスしています...")
-            response = requests.get(actual_board_url, headers={
+            self.logger.info(f"板 {board_id} のページにアクセスしています...")
+            response = await self.http_client.get(actual_board_url, headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }, timeout=15)
-            response.raise_for_status()
+            })
             
             # スレッド一覧を解析
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -221,7 +238,7 @@ class FiveChanExplorer:
                 # 別の方法で試す
                 thread_elements = soup.select('a[href*="/test/read.cgi/"]')
             
-            print(f"見つかったスレッド数: {len(thread_elements)}")
+            self.logger.info(f"見つかったスレッド数: {len(thread_elements)}")
             
             ai_threads = []
             
@@ -246,13 +263,13 @@ class FiveChanExplorer:
                     title_lower = title.lower()
                     is_ai_related = any(keyword.lower() in title_lower for keyword in self.ai_keywords)
                     
-                    print(f"スレッド: {title}, AI関連: {is_ai_related}")
+                    self.logger.debug(f"スレッド: {title}, AI関連: {is_ai_related}")
                     
                     if is_ai_related:
                         # 投稿を取得
-                        print(f"AI関連スレッド見つかりました: {title}")
+                        self.logger.info(f"AI関連スレッド見つかりました: {title}")
                         # Fix: Pass None as the initial working_subdomain
-                        posts, timestamp = self._retrieve_thread_posts(thread_url, None)
+                        posts, timestamp = await self._retrieve_thread_posts(thread_url, None)
                         
                         if posts:  # 投稿が取得できた場合のみ追加
                             thread = Thread(
@@ -271,18 +288,18 @@ class FiveChanExplorer:
                                 break
                         
                         # リクエスト間の遅延
-                        time.sleep(self.request_delay)
+                        await asyncio.sleep(self.request_delay)
                 except Exception as e:
-                    print(f"スレッド処理エラー: {str(e)}")
+                    self.logger.error(f"スレッド処理エラー: {str(e)}")
                     continue
             
             return ai_threads
             
         except Exception as e:
-            print(f"板 {board_id} からのスレッド取得エラー: {str(e)}")
+            self.logger.error(f"板 {board_id} からのスレッド取得エラー: {str(e)}")
             return []
     
-    def _retrieve_thread_posts(self, thread_url: str, working_subdomain: Optional[str] = None) -> tuple[List[Dict[str, Any]], int]:
+    async def _retrieve_thread_posts(self, thread_url: str, working_subdomain: Optional[str] = None) -> tuple[List[Dict[str, Any]], int]:
         """
         スレッドの投稿を取得します。
         
@@ -299,20 +316,16 @@ class FiveChanExplorer:
             投稿のリストとスレッド作成タイムスタンプのタプル。
         """
         try:
-            print(f"スレッド {thread_url} にアクセスしています...")
+            self.logger.info(f"スレッド {thread_url} にアクセスしています...")
             
             # まず提供されたURLで試す
             try:
-                response = requests.get(thread_url, headers={
+                response = await self.http_client.get(thread_url, headers={
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }, timeout=15)
+                })
                 
-                # エラーの場合は他のサブドメインを試す
-                if response.status_code != 200:
-                    raise requests.RequestException(f"応答コード {response.status_code}")
-                
-            except requests.RequestException as e:
-                print(f"元のURLでのアクセスエラー: {str(e)}")
+            except Exception as e:
+                self.logger.warning(f"元のURLでのアクセスエラー: {str(e)}")
                 
                 # URLからパスを抽出し、別のサブドメインで試す
                 parsed_url = thread_url.split('/', 3)
@@ -328,17 +341,16 @@ class FiveChanExplorer:
                             
                         try:
                             new_url = f"https://{subdomain}{path}"
-                            print(f"代替URLを試しています: {new_url}")
+                            self.logger.info(f"代替URLを試しています: {new_url}")
                             
-                            response = requests.get(new_url, headers={
+                            response = await self.http_client.get(new_url, headers={
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                            }, timeout=15)
+                            })
                             
-                            if response.status_code == 200:
-                                thread_url = new_url  # 動作するURLに更新
-                                success = True
-                                break
-                        except requests.RequestException:
+                            thread_url = new_url  # 動作するURLに更新
+                            success = True
+                            break
+                        except Exception:
                             continue
                     
                     if not success:
@@ -474,20 +486,20 @@ class FiveChanExplorer:
                         "time": ""
                     })
             
-            print(f"取得した投稿数: {len(posts)}")
+            self.logger.info(f"取得した投稿数: {len(posts)}")
             
             # 投稿が見つからなければ、エラーログを表示
             if not posts:
-                print(f"警告: スレッド {thread_url} から投稿を取得できませんでした")
-                print(f"HTML構造: {soup.prettify()[:500]}...")
+                self.logger.warning(f"警告: スレッド {thread_url} から投稿を取得できませんでした")
+                self.logger.debug(f"HTML構造: {soup.prettify()[:500]}...")
             
             return posts, timestamp
             
         except Exception as e:
-            print(f"スレッド {thread_url} からの投稿取得エラー: {str(e)}")
+            self.logger.error(f"スレッド {thread_url} からの投稿取得エラー: {str(e)}")
             return [], int(datetime.now().timestamp())
     
-    def _summarize_thread(self, thread: Thread) -> None:
+    async def _summarize_thread(self, thread: Thread) -> None:
         """
         スレッドを要約します。
         
@@ -547,9 +559,10 @@ class FiveChanExplorer:
             )
             thread.summary = summary
         except Exception as e:
+            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
     
-    def _store_summaries(self, threads: List[Thread]) -> None:
+    async def _store_summaries(self, threads: List[Thread]) -> None:
         """
         要約を保存します。
         
@@ -587,4 +600,20 @@ class FiveChanExplorer:
                 content += "---\n\n"
         
         # 保存
-        self.storage.save_markdown(content, "fivechan_explorer", today)
+        self.logger.info(f"fivechan_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
+        try:
+            self.storage.save_markdown(content, "fivechan_explorer", today)
+            self.logger.info("保存が完了しました")
+        except Exception as e:
+            self.logger.error(f"保存中にエラーが発生しました: {str(e)}")
+            # ディレクトリを作成して再試行
+            try:
+                fivechan_explorer_dir = Path(self.storage.base_dir) / "fivechan_explorer"
+                fivechan_explorer_dir.mkdir(parents=True, exist_ok=True)
+    
+                file_path = fivechan_explorer_dir / f"{today.strftime('%Y-%m-%d')}.md"
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                self.logger.info(f"再試行で保存に成功しました: {file_path}")
+            except Exception as e2:
+                self.logger.error(f"再試行でも保存に失敗しました: {str(e2)}")
