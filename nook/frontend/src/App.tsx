@@ -1148,6 +1148,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('content'); // 'content' or 'usage-dashboard'
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrollPosition, setScrollPosition] = useState(0);
   const [darkMode, setDarkMode] = useState(() => {
     // ローカルストレージから初期値を取得、なければシステム設定を使用
     const savedTheme = localStorage.getItem('theme');
@@ -1171,6 +1172,37 @@ function App() {
     url.searchParams.set('source', selectedSource);
     window.history.replaceState({}, '', url.toString());
   }, [selectedSource]);
+
+  // モバイルメニュー表示時の背景スクロール制御
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      // 現在のスクロール位置を保存
+      const currentScrollY = window.scrollY;
+      setScrollPosition(currentScrollY);
+      
+      // スクロールを無効化
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${currentScrollY}px`;
+      document.body.style.width = '100%';
+    } else {
+      // スクロール位置を復元
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      
+      window.scrollTo(0, scrollPosition);
+    }
+    
+    // クリーンアップ関数でスタイルをリセット
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    };
+  }, [isMobileMenuOpen, scrollPosition]);
   
   const { data, isLoading, isError, error, refetch } = useQuery(
     ['content', selectedSource, format(selectedDate, 'yyyy-MM-dd')],
