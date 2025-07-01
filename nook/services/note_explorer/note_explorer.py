@@ -72,7 +72,7 @@ class NoteExplorer(BaseService):
             ストレージディレクトリのパス。
         """
         super().__init__("note_explorer")
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
         self.gpt_client = GPTClient()
         self.storage = LocalStorage(storage_dir)
         
@@ -105,6 +105,10 @@ class NoteExplorer(BaseService):
         limit : int, default=3
             各フィードから取得する記事数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         all_articles = []
         
         try:
@@ -148,7 +152,8 @@ class NoteExplorer(BaseService):
                 self.logger.info("保存する記事がありません")
                 
         finally:
-            await self.http_client.close()
+            # グローバルクライアントなのでクローズ不要
+            pass
     
     def _filter_entries(self, entries: List[dict], days: int, limit: Optional[int] = None) -> List[dict]:
         """
