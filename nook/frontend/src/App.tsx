@@ -1473,6 +1473,11 @@ function App() {
                   if (selectedSource === 'github') {
                     let repositoryCount = 0;
                     return processedItems.map((item, index) => {
+                      // 言語ヘッダーを検出したらカウンターをリセット
+                      if (item.isLanguageHeader) {
+                        repositoryCount = 0;
+                      }
+                      
                       const isRepository = item.isRepository;
                       const repositoryIndex = isRepository ? repositoryCount++ : undefined;
                       return (
