@@ -23,7 +23,7 @@ Discus0434氏の[Nook](https://github.com/discus0434/nook)をベースに、大�
 
 1. **Reddit Explorer** - 人気subredditの投稿を収集・要約
 2. **Hacker News Retriever** - 技術ニュースとディスカッション
-3. **Paper Summarizer** - arXiv論文の要約
+3. **ArXiv Summarizer** - arXiv論文の要約
 4. **GitHub Trending** - 人気急上昇リポジトリ
 5. **Tech Feed** - 技術ブログのRSSフィード
 6. **Business Feed** 📍 - ビジネスニュースRSSフィード
@@ -129,7 +129,7 @@ python -m nook.services.run_services --service all
 python -m nook.services.run_services --service reddit
 python -m nook.services.run_services --service hacker_news
 python -m nook.services.run_services --service github_trending
-python -m nook.services.run_services --service paper_summarizer
+python -m nook.services.run_services --service arxiv
 python -m nook.services.run_services --service tech_feed
 python -m nook.services.run_services --service business_feed
 python -m nook.services.run_services --service zenn
@@ -145,7 +145,7 @@ python -m nook.services.run_services --service 5chan
 data/
 ├── reddit_explorer/      # Reddit投稿
 ├── hacker_news/         # Hacker Newsデータ
-├── paper_summarizer/    # arXiv論文
+├── arxiv_summarizer/    # arXiv論文
 ├── github_trending/     # GitHubトレンド
 ├── tech_feed/          # 技術ブログ
 ├── business_feed/      # ビジネスニュース

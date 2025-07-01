@@ -22,7 +22,7 @@ from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
 from nook.services.note_explorer.note_explorer import NoteExplorer
 from nook.services.tech_feed.tech_feed import TechFeed
 from nook.services.business_feed.business_feed import BusinessFeed
-from nook.services.paper_summarizer.paper_summarizer import PaperSummarizer
+from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
 from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
@@ -150,7 +150,7 @@ def run_business_feed():
     except Exception as e:
         print(f"ビジネス記事のフィード収集中にエラーが発生しました: {str(e)}")
 
-def run_paper_summarizer():
+def run_arxiv_summarizer():
     """
     論文要約サービスを実行します。
     """
@@ -162,8 +162,8 @@ def run_paper_summarizer():
             print("論文要約には Grok API が必要です。")
             return
             
-        paper_summarizer = PaperSummarizer()
-        paper_summarizer.run()
+        arxiv_summarizer = ArxivSummarizer()
+        arxiv_summarizer.run()
         print("論文の収集・要約が完了しました。")
     except Exception as e:
         print(f"論文の収集・要約中にエラーが発生しました: {str(e)}")
@@ -207,8 +207,8 @@ def main():
     if args.service == "all" or args.service == "business_news":
         run_business_feed()
     
-    if args.service == "all" or args.service == "paper":
-        run_paper_summarizer()
+    if args.service == "all" or args.service == "arxiv":
+        run_arxiv_summarizer()
     
     if args.service == "all" or args.service == "4chan":
         run_fourchan_explorer()

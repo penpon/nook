@@ -26,7 +26,7 @@ Nookは以下の独立したマイクロサービスで構成されています�
 2. **hacker_news**: Hacker Newsの記事を収集
 3. **github_trending**: GitHubのトレンドリポジトリを収集
 4. **tech_feed**: 技術ブログのRSSフィードを監視・収集・要約
-5. **paper_summarizer**: arXiv論文を収集・要約
+5. **arxiv_summarizer**: arXiv論文を収集・要約
 6. **viewer**: Webインターフェースとチャット機能を提供
 
 ### アーキテクチャ図
@@ -51,7 +51,7 @@ graph TD
     HackerNews[Lambda: hacker_news<br>Hacker News記事収集]:::lambdaStyle
     GitHubTrending[Lambda: github_trending<br>GitHubトレンド収集]:::lambdaStyle
     TechFeed[Lambda: tech_feed<br>技術ブログRSS収集・要約]:::lambdaStyle
-    PaperSummarizer[Lambda: paper_summarizer<br>arXiv論文収集・要約]:::lambdaStyle
+    ArxivSummarizer[Lambda: arxiv_summarizer<br>arXiv論文収集・要約]:::lambdaStyle
     Viewer[Lambda: viewer<br>Webインターフェース・チャット機能]:::lambdaStyle
 
     %% 外部情報源
@@ -66,24 +66,24 @@ graph TD
     EventBridge --> HackerNews
     EventBridge --> GitHubTrending
     EventBridge --> TechFeed
-    EventBridge --> PaperSummarizer
+    EventBridge --> ArxivSummarizer
 
     RedditExplorer --> Reddit
     HackerNews --> HNSource
     GitHubTrending --> GitHub
     TechFeed --> RSSFeeds
-    PaperSummarizer --> ArXiv
+    ArxivSummarizer --> ArXiv
 
     RedditExplorer --> GeminiAPI
     TechFeed --> GeminiAPI
-    PaperSummarizer --> GeminiAPI
+    ArxivSummarizer --> GeminiAPI
     Viewer --> GeminiAPI
 
     RedditExplorer --> S3
     HackerNews --> S3
     GitHubTrending --> S3
     TechFeed --> S3
-    PaperSummarizer --> S3
+    ArxivSummarizer --> S3
 
     S3 --> Viewer
     User --> Viewer
@@ -156,7 +156,7 @@ s3://[bucket-name]/
 ├── tech_feed/
 │   ├── YYYY-MM-DD.md
 │   └── ...
-├── paper_summarizer/
+├── arxiv_summarizer/
 │   ├── YYYY-MM-DD.md
 │   ├── arxiv_ids-YYYY-MM-DD.txt
 │   └── ...
@@ -231,7 +231,7 @@ class Article:
     summary: list[str] = field(init=False)
 ```
 
-### PaperSummarizer
+### ArxivSummarizer
 ```python
 @dataclass
 class PaperInfo:
@@ -276,8 +276,8 @@ class PaperInfo:
 │   │   ├── hacker_news/ - Hacker News収集機能
 │   │   │   ├── hacker_news.py - メイン実装
 │   │   │   └── requirements.txt
-│   │   ├── paper_summarizer/ - 論文要約機能
-│   │   │   ├── paper_summarizer.py - メイン実装
+│   │   ├── arxiv_summarizer/ - 論文要約機能
+│   │   │   ├── arxiv_summarizer.py - メイン実装
 │   │   │   └── requirements.txt
 │   │   ├── reddit_explorer/ - Reddit収集機能
 │   │   │   ├── reddit_explorer.py - メイン実装
@@ -339,7 +339,7 @@ class PaperInfo:
   - `_retrieve_repositories()`: リポジトリ情報の取得
   - `_store_summaries()`: 情報の保存
 
-### 5. PaperSummarizer
+### 5. ArxivSummarizer
 - **役割**: arXiv論文を収集・要約
 - **入力**: Hugging Faceでキュレーションされた論文ID
 - **出力**: 要約されたMarkdownファイル（S3に保存）
@@ -378,7 +378,7 @@ class PaperInfo:
    - HackerNewsRetriever: Hacker News APIからの記事取得
    - GithubTrending: GitHubからのトレンドリポジトリ取得
    - TechFeed: RSSフィードからの記事取得
-   - PaperSummarizer: arXiv APIからの論文取得
+   - ArxivSummarizer: arXiv APIからの論文取得
 3. 必要に応じてGemini APIを使用してコンテンツを要約
 4. 処理結果をMarkdown形式でS3に保存
 
@@ -441,7 +441,7 @@ graph TD
   - requests: HTTP通信
   - beautifulsoup4: HTMLパース
 
-- **paper_summarizer**:
+- **arxiv_summarizer**:
   - arxiv: arXiv API
   - requests: HTTP通信
   - beautifulsoup4: HTMLパース
