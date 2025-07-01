@@ -1,5 +1,6 @@
 """4chanからのAI関連スレッド収集サービス。"""
 
+import asyncio
 import os
 import json
 import re
@@ -9,11 +10,12 @@ from pathlib import Path
 from typing import List, Dict, Optional, Any
 import time
 
-import requests
 from bs4 import BeautifulSoup
 import tomli
 
+from nook.common.base_service import BaseService
 from nook.common.gpt_client import GPTClient
+from nook.common.http_client import AsyncHTTPClient
 from nook.common.storage import LocalStorage
 
 
@@ -47,7 +49,7 @@ class Thread:
     summary: str = field(default="")
 
 
-class FourChanExplorer:
+class FourChanExplorer(BaseService):
     """
     4chanからAI関連スレッドを収集するクラス。
     
@@ -66,8 +68,10 @@ class FourChanExplorer:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        self.storage = LocalStorage(storage_dir)
+        super().__init__("fourchan_explorer")
+        self.http_client = AsyncHTTPClient()
         self.gpt_client = GPTClient()
+        self.storage = LocalStorage(storage_dir)
         
         # 対象となるボードを設定ファイルから読み込む
         self.target_boards = self._load_boards()
@@ -96,7 +100,7 @@ class FourChanExplorer:
         
         # boards.tomlが存在しない場合はデフォルト値を使用
         if not boards_file.exists():
-            print(f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。")
+            self.logger.warning(f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。")
             return ["g", "sci", "biz", "pol"]
         
         try:
@@ -106,8 +110,8 @@ class FourChanExplorer:
                 # ボードIDのリストを返す
                 return list(boards_dict.keys())
         except Exception as e:
-            print(f"エラー: boards.tomlの読み込みに失敗しました: {e}")
-            print("デフォルトのボードを使用します。")
+            self.logger.error(f"エラー: boards.tomlの読み込みに失敗しました: {e}")
+            self.logger.info("デフォルトのボードを使用します。")
             return ["g", "sci", "biz", "pol"]
     
     def run(self, thread_limit: int = 5) -> None:
@@ -119,37 +123,52 @@ class FourChanExplorer:
         thread_limit : int, default=5
             各ボードから取得するスレッド数。
         """
+        asyncio.run(self.collect(thread_limit))
+    
+    async def collect(self, thread_limit: int = 5) -> None:
+        """
+        4chanからAI関連スレッドを収集して保存します（非同期版）。
+        
+        Parameters
+        ----------
+        thread_limit : int, default=5
+            各ボードから取得するスレッド数。
+        """
         all_threads = []
         
-        # 各ボードからスレッドを取得
-        for board in self.target_boards:
-            try:
-                print(f"ボード /{board}/ からのスレッド取得を開始します...")
-                threads = self._retrieve_ai_threads(board, thread_limit)
-                print(f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました")
+        try:
+            # 各ボードからスレッドを取得
+            for board in self.target_boards:
+                try:
+                    self.logger.info(f"ボード /{board}/ からのスレッド取得を開始します...")
+                    threads = await self._retrieve_ai_threads(board, thread_limit)
+                    self.logger.info(f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました")
+                    
+                    # スレッドを要約
+                    for thread in threads:
+                        await self._summarize_thread(thread)
+                    
+                    all_threads.extend(threads)
+                    
+                    # APIリクエスト間の遅延
+                    await asyncio.sleep(self.request_delay)
                 
-                # スレッドを要約
-                for thread in threads:
-                    self._summarize_thread(thread)
-                
-                all_threads.extend(threads)
-                
-                # APIリクエスト間の遅延
-                time.sleep(self.request_delay)
+                except Exception as e:
+                    self.logger.error(f"Error processing board /{board}/: {str(e)}")
             
-            except Exception as e:
-                print(f"Error processing board /{board}/: {str(e)}")
-        
-        print(f"合計 {len(all_threads)} 件のスレッドを取得しました")
-        
-        # 要約を保存
-        if all_threads:
-            self._store_summaries(all_threads)
-            print(f"スレッドの要約を保存しました")
-        else:
-            print("保存するスレッドがありません")
+            self.logger.info(f"合計 {len(all_threads)} 件のスレッドを取得しました")
+            
+            # 要約を保存
+            if all_threads:
+                await self._store_summaries(all_threads)
+                self.logger.info(f"スレッドの要約を保存しました")
+            else:
+                self.logger.info("保存するスレッドがありません")
+                
+        finally:
+            await self.http_client.close()
     
-    def _retrieve_ai_threads(self, board: str, limit: int) -> List[Thread]:
+    async def _retrieve_ai_threads(self, board: str, limit: int) -> List[Thread]:
         """
         特定のボードからAI関連スレッドを取得します。
         
@@ -167,11 +186,7 @@ class FourChanExplorer:
         """
         # カタログの取得（すべてのスレッドのリスト）
         catalog_url = f"https://a.4cdn.org/{board}/catalog.json"
-        response = requests.get(catalog_url)
-        if response.status_code != 200:
-            print(f"カタログの取得に失敗しました: {response.status_code}")
-            return []
-        
+        response = await self.http_client.get(catalog_url)
         catalog_data = response.json()
         
         # AI関連のスレッドをフィルタリング
@@ -198,7 +213,7 @@ class FourChanExplorer:
                     thread_url = f"https://boards.4chan.org/{board}/thread/{thread_id}"
                     
                     # スレッドの投稿を取得
-                    thread_data = self._retrieve_thread_posts(board, thread_id)
+                    thread_data = await self._retrieve_thread_posts(board, thread_id)
                     
                     ai_threads.append(Thread(
                         thread_id=thread_id,
@@ -218,7 +233,7 @@ class FourChanExplorer:
         
         return ai_threads
     
-    def _retrieve_thread_posts(self, board: str, thread_id: int) -> List[Dict[str, Any]]:
+    async def _retrieve_thread_posts(self, board: str, thread_id: int) -> List[Dict[str, Any]]:
         """
         スレッドの投稿を取得します。
         
@@ -235,21 +250,20 @@ class FourChanExplorer:
             投稿のリスト。
         """
         thread_url = f"https://a.4cdn.org/{board}/thread/{thread_id}.json"
-        response = requests.get(thread_url)
-        
-        if response.status_code != 200:
-            print(f"スレッドの取得に失敗しました: {response.status_code}")
+        try:
+            response = await self.http_client.get(thread_url)
+            thread_data = response.json()
+            posts = thread_data.get("posts", [])
+            
+            # APIリクエスト間の遅延
+            await asyncio.sleep(self.request_delay)
+            
+            return posts
+        except Exception as e:
+            self.logger.error(f"スレッドの取得に失敗しました: {str(e)}")
             return []
-        
-        thread_data = response.json()
-        posts = thread_data.get("posts", [])
-        
-        # APIリクエスト間の遅延
-        time.sleep(self.request_delay)
-        
-        return posts
     
-    def _summarize_thread(self, thread: Thread) -> None:
+    async def _summarize_thread(self, thread: Thread) -> None:
         """
         スレッドを要約します。
         
@@ -312,9 +326,10 @@ class FourChanExplorer:
             )
             thread.summary = summary
         except Exception as e:
+            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
     
-    def _store_summaries(self, threads: List[Thread]) -> None:
+    async def _store_summaries(self, threads: List[Thread]) -> None:
         """
         要約を保存します。
         
@@ -347,4 +362,20 @@ class FourChanExplorer:
                 content += "---\n\n"
         
         # 保存
-        self.storage.save_markdown(content, "fourchan_explorer", today)
+        self.logger.info(f"fourchan_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
+        try:
+            self.storage.save_markdown(content, "fourchan_explorer", today)
+            self.logger.info("保存が完了しました")
+        except Exception as e:
+            self.logger.error(f"保存中にエラーが発生しました: {str(e)}")
+            # ディレクトリを作成して再試行
+            try:
+                fourchan_explorer_dir = Path(self.storage.base_dir) / "fourchan_explorer"
+                fourchan_explorer_dir.mkdir(parents=True, exist_ok=True)
+    
+                file_path = fourchan_explorer_dir / f"{today.strftime('%Y-%m-%d')}.md"
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                self.logger.info(f"再試行で保存に成功しました: {file_path}")
+            except Exception as e2:
+                self.logger.error(f"再試行でも保存に失敗しました: {str(e2)}")
