@@ -160,9 +160,9 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
   }
   
   // フィードグループごとにコンテンツアイテムを作成
-  let globalArticleNumber = 1;
-  
   for (const [feedName, articles] of feedGroups) {
+    let articleNumber = 1; // フィードごとにリセット
+    
     // フィード名をカテゴリヘッダーとして追加
     contentItems.push({
       title: feedName,
@@ -181,7 +181,7 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
         isArticle: true,
         metadata: {
           source: 'tech news',
-          articleNumber: globalArticleNumber++,
+          articleNumber: articleNumber++,
           feedName: feedName
         }
       });
