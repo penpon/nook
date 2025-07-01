@@ -39,7 +39,7 @@ def convert_paper_summary_titles(content: str) -> str:
     return result
 
 SOURCE_MAPPING = {
-    "paper": "paper_summarizer",
+    "arxiv": "paper_summarizer",
     "github": "github_trending",
     "hacker-news": "hacker_news",
     "tech-news": "tech_feed",
@@ -110,7 +110,7 @@ async def get_content(
         service_name = SOURCE_MAPPING[source]
 
         # Hacker Newsの場合はJSONから個別記事を取得
-        if source == "hacker news":
+        if source == "hacker-news":
             stories_data = storage.load_json(service_name, target_date)
             if stories_data:
                 # スコアで降順ソート
@@ -144,7 +144,7 @@ async def get_content(
 
             if content:
                 # 論文要約の場合はタイトルを変換
-                if source == "paper":
+                if source == "arxiv":
                     content = convert_paper_summary_titles(content)
 
                 # マークダウンからContentItemを作成
@@ -160,7 +160,7 @@ async def get_content(
     else:
         # すべてのソースからコンテンツを取得
         for src, service_name in SOURCE_MAPPING.items():
-            if src == "hacker news":
+            if src == "hacker-news":
                 # Hacker Newsは個別記事として追加
                 stories_data = storage.load_json(service_name, target_date)
                 if stories_data:
