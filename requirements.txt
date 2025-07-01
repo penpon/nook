@@ -16,7 +16,7 @@ feedparser>=6.0.10
 tomli>=2.0.1
 
 # Reddit API
-praw>=7.7.0
+asyncpraw>=7.7.1
 
 # arXiv API
 arxiv>=1.4.7
