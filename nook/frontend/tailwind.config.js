@@ -4,6 +4,18 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      minHeight: {
+        'touch': '44px', // WCAG推奨最小サイズ
+        'touch-large': '48px', // より大きなターゲット
+      },
+      minWidth: {
+        'touch': '44px',
+        'touch-large': '48px',
+      },
+      spacing: {
+        'touch': '44px',
+        'touch-large': '48px',
+      },
       typography: {
         DEFAULT: {
           css: {

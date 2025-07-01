@@ -47,10 +47,10 @@ export const ContentCard: React.FC<ContentCardProps> = ({ item, darkMode, index 
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline inline-flex items-center"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline inline-flex items-center min-h-touch touch-manipulation"
             >
               {item.title}
-              <ExternalLink size={16} className="ml-1 inline-block flex-shrink-0" />
+              <ExternalLink size={20} className="ml-2 inline-block flex-shrink-0" />
             </a>
           ) : (
             <span>{item.title}</span>
