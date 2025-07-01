@@ -1,3 +1,5 @@
+import { ContentItem } from '../../types';
+
 export { parseGitHubTrendingMarkdown } from './githubParser';
 export { parseTechNewsMarkdown } from './techNewsParser';
 export { parseBusinessNewsMarkdown } from './businessNewsParser';
@@ -12,7 +14,7 @@ export { parseHackerNewsData } from './hackerNewsParser';
 
 // パーサー選択ロジックを統一
 export function getParserForSource(source: string) {
-  const parsers: { [key: string]: any } = {
+  const parsers: { [key: string]: (markdown: string) => ContentItem[] } = {
     'github': parseGitHubTrendingMarkdown,
     'tech-news': parseTechNewsMarkdown,
     'business-news': parseBusinessNewsMarkdown,

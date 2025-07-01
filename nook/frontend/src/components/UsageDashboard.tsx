@@ -1,311 +1,124 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Chip,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
-import {
-  Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
-  AttachMoney as AttachMoneyIcon,
-  Api as ApiIcon,
-  CalendarToday as CalendarTodayIcon
-} from '@mui/icons-material';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend
-} from 'recharts';
-import axios from 'axios';
+import React from 'react';
+import { 
+  RefreshCw, 
+  TrendingUp, 
+  DollarSign, 
+  Activity, 
+  Calendar,
+  AlertCircle
+} from 'lucide-react';
+import { SummaryCard } from './dashboard/SummaryCard';
+import { ServiceUsageTable } from './dashboard/ServiceUsageTable';
+import { DailyUsageChart } from './dashboard/DailyUsageChart';
+import { useUsageData } from '../hooks/useUsageData';
 
-interface UsageSummary {
-  todayTokens: number;
-  todayCost: number;
-  monthCost: number;
-  totalCalls: number;
-}
+const UsageDashboard: React.FC = () => {
+  const {
+    summary,
+    serviceUsage,
+    dailyUsage,
+    loading,
+    error,
+    lastUpdated,
+    refetch
+  } = useUsageData();
 
-interface ServiceUsage {
-  service: string;
-  calls: number;
-  inputTokens: number;
-  outputTokens: number;
-  cost: number;
-  lastCalled: string;
-}
-
-interface DailyUsage {
-  date: string;
-  services: { [key: string]: number };
-  totalCost: number;
-}
-
-interface UsageDashboardProps {
-  darkMode?: boolean;
-}
-
-const UsageDashboard: React.FC<UsageDashboardProps> = ({ darkMode = false }) => {
-  const [summary, setSummary] = useState<UsageSummary | null>(null);
-  const [serviceUsage, setServiceUsage] = useState<ServiceUsage[]>([]);
-  const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-
-  const theme = useTheme();
-  // const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'));
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      const [summaryResponse, serviceResponse, dailyResponse] = await Promise.all([
-        axios.get('http://localhost:8000/api/usage/summary'),
-        axios.get('http://localhost:8000/api/usage/by-service'),
-        axios.get('http://localhost:8000/api/usage/daily?days=30')
-      ]);
-
-      setSummary(summaryResponse.data);
-      setServiceUsage(serviceResponse.data);
-      setDailyUsage(dailyResponse.data);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('データの取得に失敗しました:', error);
-      // モックデータを設定（開発用）
-      setSummary({
-        todayTokens: 15420,
-        todayCost: 0.23,
-        monthCost: 12.45,
-        totalCalls: 78
-      });
-      setServiceUsage([
-        {
-          service: 'OpenAI GPT-4',
-          calls: 25,
-          inputTokens: 8500,
-          outputTokens: 3200,
-          cost: 0.15,
-          lastCalled: '2024-01-20T15:30:00Z'
-        },
-        {
-          service: 'Claude-3',
-          calls: 18,
-          inputTokens: 6200,
-          outputTokens: 2800,
-          cost: 0.08,
-          lastCalled: '2024-01-20T14:45:00Z'
-        }
-      ]);
-      setDailyUsage([
-        { date: '2024-01-15', services: { 'OpenAI GPT-4': 0.12, 'Claude-3': 0.08 }, totalCost: 0.20 },
-        { date: '2024-01-16', services: { 'OpenAI GPT-4': 0.18, 'Claude-3': 0.06 }, totalCost: 0.24 },
-        { date: '2024-01-17', services: { 'OpenAI GPT-4': 0.15, 'Claude-3': 0.09 }, totalCost: 0.24 },
-        { date: '2024-01-18', services: { 'OpenAI GPT-4': 0.22, 'Claude-3': 0.07 }, totalCost: 0.29 },
-        { date: '2024-01-19', services: { 'OpenAI GPT-4': 0.19, 'Claude-3': 0.11 }, totalCost: 0.30 },
-        { date: '2024-01-20', services: { 'OpenAI GPT-4': 0.15, 'Claude-3': 0.08 }, totalCost: 0.23 }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    
-    // 5分ごとの自動更新
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ja-JP');
-  };
-
-
-  const SummaryCard: React.FC<{ 
-    title: string; 
-    value: string; 
-    icon: React.ReactNode; 
-    color: string;
-  }> = ({ title, value, icon, color }) => (
-    <Card elevation={2}>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography color="textSecondary" gutterBottom variant="body2">
-              {title}
-            </Typography>
-            <Typography variant="h5" component="div" color={color}>
-              {value}
-            </Typography>
-          </Box>
-          <Box color={color}>{icon}</Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
+  const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
 
   if (loading && !summary) {
     return (
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        <Typography>データを読み込み中...</Typography>
-      </Container>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex items-center space-x-2">
+              <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+              <span className="text-lg text-gray-600 dark:text-gray-400">
+                データを読み込み中...
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      {/* ヘッダー */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography 
-          variant="h4" 
-          component="h1" 
-          className={darkMode ? 'text-white' : 'text-gray-900'}
-        >
-          LLM API 使用状況ダッシュボード
-        </Typography>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Typography 
-            variant="body2" 
-            className={darkMode ? 'text-gray-300' : 'text-gray-600'}
-          >
-            最終更新: {lastUpdated.toLocaleTimeString('ja-JP')}
-          </Typography>
-          <IconButton onClick={fetchData} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
-        </Box>
-      </Box>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* ヘッダー */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              LLM API 使用状況ダッシュボード
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              APIの使用状況とコストを監視します
+            </p>
+          </div>
+          
+          <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            {error && (
+              <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm">モックデータ表示中</span>
+              </div>
+            )}
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              最終更新: {lastUpdated.toLocaleTimeString('ja-JP')}
+            </div>
+            <button
+              onClick={refetch}
+              disabled={loading}
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-touch touch-manipulation"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>更新</span>
+            </button>
+          </div>
+        </div>
 
-      {/* サマリーカード */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
+        {/* サマリーカード */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <SummaryCard
             title="今日のトークン数"
             value={formatNumber(summary?.todayTokens || 0)}
-            icon={<ApiIcon />}
-            color="primary.main"
+            icon={<Activity className="w-6 h-6" />}
+            colorClass="text-blue-600"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
           <SummaryCard
             title="今日のコスト"
             value={formatCurrency(summary?.todayCost || 0)}
-            icon={<AttachMoneyIcon />}
-            color="success.main"
+            icon={<DollarSign className="w-6 h-6" />}
+            colorClass="text-green-600"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
           <SummaryCard
             title="今月のコスト"
             value={formatCurrency(summary?.monthCost || 0)}
-            icon={<CalendarTodayIcon />}
-            color="warning.main"
+            icon={<Calendar className="w-6 h-6" />}
+            colorClass="text-orange-600"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
           <SummaryCard
             title="API呼び出し回数"
             value={formatNumber(summary?.totalCalls || 0)}
-            icon={<TrendingUpIcon />}
-            color="info.main"
+            icon={<TrendingUp className="w-6 h-6" />}
+            colorClass="text-purple-600"
           />
-        </Grid>
-      </Grid>
+        </div>
 
-      {/* サービス別使用量テーブル */}
-      <Card elevation={2} sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            サービス別使用量
-          </Typography>
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>サービス名</TableCell>
-                  <TableCell align="right">呼び出し回数</TableCell>
-                  <TableCell align="right">入力トークン</TableCell>
-                  <TableCell align="right">出力トークン</TableCell>
-                  <TableCell align="right">コスト</TableCell>
-                  <TableCell align="right">最終呼び出し</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {serviceUsage.map((service) => (
-                  <TableRow key={service.service}>
-                    <TableCell>
-                      <Chip 
-                        label={service.service} 
-                        variant="outlined" 
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">{formatNumber(service.calls)}</TableCell>
-                    <TableCell align="right">{formatNumber(service.inputTokens)}</TableCell>
-                    <TableCell align="right">{formatNumber(service.outputTokens)}</TableCell>
-                    <TableCell align="right">{formatCurrency(service.cost)}</TableCell>
-                    <TableCell align="right">{formatDate(service.lastCalled)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
+        {/* サービス別使用量テーブル */}
+        <div className="mb-8">
+          <ServiceUsageTable 
+            serviceUsage={serviceUsage} 
+          />
+        </div>
 
-      {/* 時系列グラフ */}
-      <Card elevation={2}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            日別コスト推移（過去30日）
-          </Typography>
-          <Box sx={{ width: '100%', height: isMediumScreen ? 300 : 400 }}>
-            <ResponsiveContainer>
-              <BarChart data={dailyUsage}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12 }}
-                  interval={isMediumScreen ? 'preserveStartEnd' : 0}
-                />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), 'コスト']}
-                  labelFormatter={(label) => `日付: ${label}`}
-                />
-                <Legend />
-                <Bar 
-                  dataKey="totalCost" 
-                  fill={theme.palette.primary.main}
-                  name="総コスト"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </CardContent>
-      </Card>
-    </Container>
+        {/* 日次使用量グラフ */}
+        <DailyUsageChart 
+          dailyUsage={dailyUsage} 
+        />
+      </div>
+    </div>
   );
 };
 
