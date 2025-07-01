@@ -1513,10 +1513,12 @@ function App() {
                   } 
                   // Tech Newsの場合も特別な番号付けロジック
                   else if (selectedSource === 'tech-news') {
-                    let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
-                      const articleIndex = isArticle ? articleCount++ : undefined;
+                      // metadata.articleNumberを使用してフィードごとにリセット
+                      const articleIndex = isArticle && item.metadata?.articleNumber 
+                        ? item.metadata.articleNumber - 1 
+                        : undefined;
                       return (
                         <ContentCard 
                           key={index} 
@@ -1529,10 +1531,12 @@ function App() {
                   } 
                   // Business Newsの場合も特別な番号付けロジック
                   else if (selectedSource === 'business-news') {
-                    let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
-                      const articleIndex = isArticle ? articleCount++ : undefined;
+                      // metadata.articleNumberを使用してフィードごとにリセット
+                      const articleIndex = isArticle && item.metadata?.articleNumber 
+                        ? item.metadata.articleNumber - 1 
+                        : undefined;
                       return (
                         <ContentCard 
                           key={index} 
