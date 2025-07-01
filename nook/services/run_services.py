@@ -59,11 +59,22 @@ class ServiceRunner:
     
     async def _run_sync_service(self, service_name: str, service):
         """同期サービスを非同期で実行"""
+        logger.info(f"Starting service: {service_name}")
+        
         try:
-            logger.info(f"Starting service: {service_name}")
-            # collectメソッドを呼び出す（非同期メソッド）
-            await service.collect()
-            logger.info(f"Service {service_name} completed successfully")
+            # サービスごとに異なるlimitパラメータを設定
+            if service_name == "hacker_news":
+                # Hacker Newsは15記事に制限
+                await service.collect(limit=15)
+                logger.info(f"Service {service_name} completed with limit=15")
+            elif service_name in ["tech_news", "business_news"]:
+                # Tech News/Business Newsは各5記事に制限
+                await service.collect(limit=5)
+                logger.info(f"Service {service_name} completed with limit=5")
+            else:
+                # その他のサービスはデフォルト値を使用
+                await service.collect()
+                logger.info(f"Service {service_name} completed successfully")
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)
             raise

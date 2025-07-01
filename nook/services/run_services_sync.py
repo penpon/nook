@@ -61,16 +61,16 @@ def run_github_trending():
 
 def run_hacker_news():
     """
-    Hacker Newsサービスを実行します。
+    Hacker Newsからのトップ記事収集サービスを実行します。
     """
-    print("Hacker News記事を収集しています...")
+    print("Hacker Newsからトップ記事を収集しています...")
     try:
-        # クラス名を修正
         hacker_news = HackerNewsRetriever()
-        hacker_news.run()
-        print("Hacker News記事の収集が完了しました。")
+        # 15記事に制限
+        hacker_news.run(limit=15)
+        print("Hacker Newsの記事収集が完了しました。")
     except Exception as e:
-        print(f"Hacker News記事の収集中にエラーが発生しました: {str(e)}")
+        print(f"Hacker Newsの記事収集中にエラーが発生しました: {str(e)}")
 
 def run_note_explorer():
     """
@@ -128,24 +128,26 @@ def run_reddit_explorer():
 
 def run_tech_feed():
     """
-    技術フィードサービスを実行します。
+    技術記事のフィード収集サービスを実行します。
     """
-    print("技術ブログのフィードを収集しています...")
+    print("技術記事のフィードを収集しています...")
     try:
         tech_feed = TechFeed()
-        tech_feed.run()
-        print("技術ブログのフィードの収集が完了しました。")
+        # 5記事に制限
+        tech_feed.run(limit=5)
+        print("技術記事のフィードの収集が完了しました。")
     except Exception as e:
-        print(f"技術ブログのフィード収集中にエラーが発生しました: {str(e)}")
+        print(f"技術記事のフィード収集中にエラーが発生しました: {str(e)}")
 
 def run_business_feed():
     """
-    ビジネスフィードサービスを実行します。
+    ビジネス記事のフィード収集サービスを実行します。
     """
     print("ビジネス記事のフィードを収集しています...")
     try:
         business_feed = BusinessFeed()
-        business_feed.run()
+        # 5記事に制限
+        business_feed.run(limit=5)
         print("ビジネス記事のフィードの収集が完了しました。")
     except Exception as e:
         print(f"ビジネス記事のフィード収集中にエラーが発生しました: {str(e)}")
