@@ -10,7 +10,7 @@ import { getContent } from './api';
 import { sourceDisplayInfo, defaultSourceDisplayInfo } from './config/sourceDisplayInfo';
 import { ContentItem } from './types';
 
-const sources = ['paper', 'github', 'hacker-news', 'tech-news', 'business-news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
+const sources = ['arxiv', 'github', 'hacker-news', 'tech-news', 'business-news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
 // GitHub TrendingのMarkdownをパースして個別のコンテンツアイテムに変換
 function parseGitHubTrendingMarkdown(markdown: string): ContentItem[] {

@@ -32,7 +32,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-slate-50',
     borderColor: 'border-gray-200'
   },
-  'paper': {
+  'arxiv': {
     title: 'ArXiv',
     subtitle: '学術論文・研究レポート',
     dateFormat: 'yyyy年MM月dd日',
