@@ -154,6 +154,9 @@ class HackerNewsRetriever(BaseService):
         # 8. 要約を並行して生成
         await self._summarize_stories(selected_stories)
         
+        # 9. コンテンツフェッチの要約を出力
+        await self._log_fetch_summary(selected_stories)
+        
         return selected_stories
     
     def _load_blocked_domains(self) -> Dict[str, Any]:
@@ -188,6 +191,24 @@ class HackerNewsRetriever(BaseService):
             return domain in [d.lower() for d in blocked_domains]
         except Exception:
             return False
+    
+    async def _log_fetch_summary(self, stories: List[Story]) -> None:
+        """コンテンツフェッチの要約ログを出力します。"""
+        success_count = 0
+        blocked_count = 0
+        error_count = 0
+        
+        for story in stories:
+            if not story.text:
+                error_count += 1
+            elif "ブロックされています" in story.text:
+                blocked_count += 1
+            elif "アクセス制限により" in story.text or "記事が見つかりませんでした" in story.text or "記事の内容を取得できませんでした" in story.text:
+                error_count += 1
+            else:
+                success_count += 1
+        
+        self.logger.info(f"Content fetch summary: {success_count} succeeded, {blocked_count} blocked, {error_count} failed")
     
     async def _fetch_story(self, story_id: int) -> Optional[Story]:
         """個別のストーリーを取得"""
@@ -264,12 +285,22 @@ class HackerNewsRetriever(BaseService):
                         if article:
                             story.text = article.get_text()[:500]
         except Exception as e:
-            # 403エラーなどのアクセス拒否エラーは頻繁に発生するため、ログレベルを下げる
-            if "403" in str(e) or "Forbidden" in str(e):
-                self.logger.warning(f"Access denied for {story.url}: {str(e)}")
+            # HTTPエラーに応じてログレベルを調整
+            error_str = str(e)
+            
+            if "401" in error_str or "403" in error_str or "Forbidden" in error_str:
+                # 401/403エラーは想定内のため、debugレベル
+                status_code = "401/403" if ("401" in error_str or "403" in error_str) else "Forbidden"
+                self.logger.debug(f"Expected access restriction for {story.url}: {status_code}")
                 story.text = "アクセス制限により記事の内容を取得できませんでした。"
+            elif "404" in error_str or "Not Found" in error_str:
+                # 404エラーはinfoレベル
+                self.logger.info(f"Content not found for {story.url}: 404")
+                story.text = "記事が見つかりませんでした。"
             else:
-                self.logger.error(f"Error fetching content for {story.url}: {str(e)}")
+                # その他の予期しないエラーはerrorレベル
+                self.logger.error(f"Unexpected error fetching {story.url}: {str(e)}")
+                story.text = "記事の内容を取得できませんでした。"
     
     async def _summarize_stories(self, stories: List[Story]) -> None:
         """複数のストーリーを並行して要約"""
