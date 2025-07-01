@@ -194,7 +194,7 @@ async def get_content(
                 content = storage.load_markdown(service_name, target_date)
                 if content:
                     # 論文要約の場合はタイトルを変換
-                    if src == "paper":
+                    if src == "arxiv":
                         content = convert_paper_summary_titles(content)
 
                     items.append(ContentItem(

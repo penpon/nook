@@ -1289,7 +1289,7 @@ function App() {
     }
 
     // Academic Papersの場合は特別な処理
-    if (selectedSource === 'paper' && data.items[0]?.content) {
+    if (selectedSource === 'arxiv' && data.items[0]?.content) {
       try {
         return parseAcademicPapersMarkdown(data.items[0].content);
       } catch (error) {
@@ -1656,7 +1656,7 @@ function App() {
                     });
                   } 
                   // Academic Papersの場合も特別な番号付けロジック
-                  else if (selectedSource === 'paper') {
+                  else if (selectedSource === 'arxiv') {
                     return processedItems.map((item, index) => {
                       const isPaper = item.isArticle;
                       const paperIndex = isPaper && item.metadata?.articleNumber ? item.metadata.articleNumber - 1 : undefined;
