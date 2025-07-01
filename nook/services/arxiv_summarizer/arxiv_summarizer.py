@@ -95,7 +95,7 @@ class ArxivSummarizer(BaseService):
             ストレージディレクトリのパス。
         """
         super().__init__("arxiv_summarizer")
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
 
     async def collect(self, limit: int = 5) -> None:
         """
@@ -106,6 +106,10 @@ class ArxivSummarizer(BaseService):
         limit : int, default=5
             取得する論文数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         # Hugging Faceでキュレーションされた論文IDを取得
         paper_ids = await self._get_curated_paper_ids(limit)
 

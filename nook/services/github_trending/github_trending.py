@@ -59,7 +59,7 @@ class GithubTrending(BaseService):
         """
         super().__init__("github_trending")
         self.base_url = "https://github.com/trending"
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
 
         # 言語の設定を読み込む
         script_dir = Path(__file__).parent
@@ -75,6 +75,10 @@ class GithubTrending(BaseService):
         limit : int, default=10
             各言語から取得するリポジトリ数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         all_repositories = []
 
         # 言語指定なしのリポジトリを取得（新規追加）
