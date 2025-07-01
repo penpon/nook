@@ -18,5 +18,9 @@
     "science.org": "403 - Access restricted",
     "smithsonianmag.com": "403 - Bot detection",
     "blogs.bl.uk": "403 - Geographic restriction"
-  }
+  },
+  "http1_required_domains": [
+    "htmlrev.com",
+    "example-site.com"
+  ]
 }
