@@ -1,5 +1,6 @@
 """ZennのRSSフィードを監視・収集・要約するサービス。"""
 
+import asyncio
 import tomli
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -7,10 +8,11 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
 
 import feedparser
-import requests
 from bs4 import BeautifulSoup
 
+from nook.common.base_service import BaseService
 from nook.common.gpt_client import GPTClient
+from nook.common.http_client import AsyncHTTPClient
 from nook.common.storage import LocalStorage
 
 
@@ -44,7 +46,7 @@ class Article:
     summary: str = field(default="")
 
 
-class ZennExplorer:
+class ZennExplorer(BaseService):
     """
     ZennのRSSフィードを監視・収集・要約するクラス。
     
@@ -69,8 +71,8 @@ class ZennExplorer:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
-        self.storage = LocalStorage(storage_dir)
-        self.gpt_client = GPTClient()
+        super().__init__("zenn_explorer")
+        self.http_client = AsyncHTTPClient()
         
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
@@ -88,46 +90,63 @@ class ZennExplorer:
         limit : int, default=3
             各フィードから取得する記事数。
         """
+        asyncio.run(self.collect(days, limit))
+    
+    async def collect(self, days: int = 1, limit: int = 3) -> None:
+        """
+        ZennのRSSフィードを監視・収集・要約して保存します（非同期版）。
+        
+        Parameters
+        ----------
+        days : int, default=1
+            何日前までの記事を取得するか。
+        limit : int, default=3
+            各フィードから取得する記事数。
+        """
         all_articles = []
         
-        # 各カテゴリのフィードから記事を取得
-        for category, feeds in self.feed_config.items():
-            print(f"カテゴリ {category} の処理を開始します...")
-            for feed_url in feeds:
-                try:
-                    # フィードを解析
-                    print(f"フィード {feed_url} を解析しています...")
-                    feed = feedparser.parse(feed_url)
-                    feed_name = feed.feed.title if hasattr(feed, "feed") and hasattr(feed.feed, "title") else feed_url
+        try:
+            # 各カテゴリのフィードから記事を取得
+            for category, feeds in self.feed_config.items():
+                self.logger.info(f"カテゴリ {category} の処理を開始します...")
+                for feed_url in feeds:
+                    try:
+                        # フィードを解析
+                        self.logger.info(f"フィード {feed_url} を解析しています...")
+                        feed = feedparser.parse(feed_url)
+                        feed_name = feed.feed.title if hasattr(feed, "feed") and hasattr(feed.feed, "title") else feed_url
+                        
+                        # 特定のフィードの場合は制限を解除
+                        current_limit = None if feed_url in self.UNLIMITED_FEEDS else limit
+                        if feed_url in self.UNLIMITED_FEEDS:
+                            self.logger.info(f"フィード {feed_url} は制限なしで取得します")
+                        
+                        # 新しいエントリをフィルタリング
+                        entries = self._filter_entries(feed.entries, days, current_limit)
+                        self.logger.info(f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました")
+                        
+                        for entry in entries:
+                            # 記事を取得
+                            article = await self._retrieve_article(entry, feed_name, category)
+                            if article:
+                                # 記事を要約
+                                await self._summarize_article(article)
+                                all_articles.append(article)
                     
-                    # 特定のフィードの場合は制限を解除
-                    current_limit = None if feed_url in self.UNLIMITED_FEEDS else limit
-                    if feed_url in self.UNLIMITED_FEEDS:
-                        print(f"フィード {feed_url} は制限なしで取得します")
-                    
-                    # 新しいエントリをフィルタリング
-                    entries = self._filter_entries(feed.entries, days, current_limit)
-                    print(f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました")
-                    
-                    for entry in entries:
-                        # 記事を取得
-                        article = self._retrieve_article(entry, feed_name, category)
-                        if article:
-                            # 記事を要約
-                            self._summarize_article(article)
-                            all_articles.append(article)
+                    except Exception as e:
+                        self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
+            
+            self.logger.info(f"合計 {len(all_articles)} 件の記事を取得しました")
+            
+            # 要約を保存
+            if all_articles:
+                await self._store_summaries(all_articles)
+                self.logger.info(f"記事の要約を保存しました")
+            else:
+                self.logger.info("保存する記事がありません")
                 
-                except Exception as e:
-                    print(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
-        
-        print(f"合計 {len(all_articles)} 件の記事を取得しました")
-        
-        # 要約を保存
-        if all_articles:
-            self._store_summaries(all_articles)
-            print(f"記事の要約を保存しました")
-        else:
-            print("保存する記事がありません")
+        finally:
+            await self.http_client.close()
     
     def _filter_entries(self, entries: List[dict], days: int, limit: Optional[int] = None) -> List[dict]:
         """
@@ -147,7 +166,7 @@ class ZennExplorer:
         List[dict]
             フィルタリングされたエントリのリスト。
         """
-        print(f"エントリのフィルタリングを開始します（{len(entries)}件）...")
+        self.logger.info(f"エントリのフィルタリングを開始します（{len(entries)}件）...")
         
         # 日付でフィルタリング
         cutoff_date = datetime.now() - timedelta(days=days)
@@ -162,15 +181,15 @@ class ZennExplorer:
                 entry_date = datetime(*entry.updated_parsed[:6])
             
             if entry_date:
-                print(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
+                self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
                 if entry_date >= cutoff_date:
                     recent_entries.append(entry)
             else:
                 # 日付が取得できない場合は含める
-                print("エントリに日付情報がありません。含めます。")
+                self.logger.debug("エントリに日付情報がありません。含めます。")
                 recent_entries.append(entry)
         
-        print(f"フィルタリング後のエントリ数: {len(recent_entries)}")
+        self.logger.info(f"フィルタリング後のエントリ数: {len(recent_entries)}")
         
         # limitがNoneの場合は全てのエントリを返す
         if limit is None:
@@ -179,7 +198,7 @@ class ZennExplorer:
         return recent_entries[:limit]
 
 
-    def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Optional[Article]:
+    async def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Optional[Article]:
         """
         記事を取得します。
     
@@ -207,10 +226,7 @@ class ZennExplorer:
             title = entry.title if hasattr(entry, "title") else "無題"
     
             # 記事の内容を取得
-            response = requests.get(url, timeout=10)
-            if response.status_code != 200:
-                return None
-    
+            response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
     
             # 本文を抽出
@@ -242,10 +258,10 @@ class ZennExplorer:
             )
     
         except Exception as e:
-            print(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
+            self.logger.error(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
             return None
 
-    def _summarize_article(self, article: Article) -> None:
+    async def _summarize_article(self, article: Article) -> None:
         """
         記事を要約します。
 
@@ -282,9 +298,10 @@ class ZennExplorer:
             )
             article.summary = summary
         except Exception as e:
+            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    def _store_summaries(self, articles: List[Article]) -> None:
+    async def _store_summaries(self, articles: List[Article]) -> None:
         """
         要約を保存します。
     
@@ -294,7 +311,7 @@ class ZennExplorer:
             保存する記事のリスト。
         """
         if not articles:
-            print("保存する記事がありません")
+            self.logger.info("保存する記事がありません")
             return
     
         today = datetime.now()
@@ -320,12 +337,12 @@ class ZennExplorer:
                 content += "---\n\n"
     
         # 保存
-        print(f"zenn_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
+        self.logger.info(f"zenn_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
         try:
             self.storage.save_markdown(content, "zenn_explorer", today)
-            print("保存が完了しました")
+            self.logger.info("保存が完了しました")
         except Exception as e:
-            print(f"保存中にエラーが発生しました: {str(e)}")
+            self.logger.error(f"保存中にエラーが発生しました: {str(e)}")
             # ディレクトリを作成して再試行
             try:
                 zenn_explorer_dir = Path(self.storage.base_dir) / "zenn_explorer"
@@ -334,6 +351,6 @@ class ZennExplorer:
                 file_path = zenn_explorer_dir / f"{today.strftime('%Y-%m-%d')}.md"
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
-                print(f"再試行で保存に成功しました: {file_path}")
+                self.logger.info(f"再試行で保存に成功しました: {file_path}")
             except Exception as e2:
-                print(f"再試行でも保存に失敗しました: {str(e2)}")
+                self.logger.error(f"再試行でも保存に失敗しました: {str(e2)}")
