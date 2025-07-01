@@ -41,9 +41,9 @@ def convert_paper_summary_titles(content: str) -> str:
 SOURCE_MAPPING = {
     "paper": "paper_summarizer",
     "github": "github_trending",
-    "hacker news": "hacker_news",
-    "tech news": "tech_feed",
-    "business news": "business_feed",
+    "hacker-news": "hacker_news",
+    "tech-news": "tech_feed",
+    "business-news": "business_feed",
     "zenn": "zenn_explorer",
     "qiita": "qiita_explorer",
     "note": "note_explorer",
@@ -246,11 +246,14 @@ def _get_source_display_name(source: str) -> str:
     """
     source_names = {
         "reddit": "Reddit",
-        "hackernews": "Hacker News",
+        "hacker-news": "Hacker News",
         "github": "GitHub Trending",
-        "techfeed": "Tech Feed",
-        "businessfeed": "Business Feed",
-        "paper": "論文",
+        "tech-news": "Tech News",
+        "business-news": "Business News",
+        "paper": "ArXiv",
+        "zenn": "Zenn",
+        "qiita": "Qiita",
+        "note": "Note",
         "4chan": "4chan",
         "5chan": "5ちゃんねる"
     }

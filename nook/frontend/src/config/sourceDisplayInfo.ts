@@ -8,7 +8,7 @@ export interface SourceDisplayInfo {
 }
 
 export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
-  'hacker news': {
+  'hacker-news': {
     title: 'Hacker News',
     subtitle: 'ハッカーニュース トップ記事',
     dateFormat: 'yyyy-MM-dd',
@@ -16,7 +16,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-amber-50',
     borderColor: 'border-orange-200'
   },
-  'tech news': {
+  'tech-news': {
     title: 'Tech News',
     subtitle: '技術ニュース記事',
     dateFormat: 'yyyy年MM月dd日',
@@ -24,7 +24,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-cyan-50',
     borderColor: 'border-blue-200'
   },
-  'business news': {
+  'business-news': {
     title: 'Business News',
     subtitle: 'ビジネスニュース記事',
     dateFormat: 'yyyy年MM月dd日',

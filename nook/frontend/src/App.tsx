@@ -10,7 +10,7 @@ import { getContent } from './api';
 import { sourceDisplayInfo, defaultSourceDisplayInfo } from './config/sourceDisplayInfo';
 import { ContentItem } from './types';
 
-const sources = ['paper', 'github', 'hacker news', 'tech news', 'business news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
+const sources = ['paper', 'github', 'hacker-news', 'tech-news', 'business-news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
 // GitHub TrendingのMarkdownをパースして個別のコンテンツアイテムに変換
 function parseGitHubTrendingMarkdown(markdown: string): ContentItem[] {
@@ -167,7 +167,7 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
     contentItems.push({
       title: feedName,
       content: '',
-      source: 'tech news',
+      source: 'tech-news',
       isCategoryHeader: true
     });
     
@@ -177,10 +177,10 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
         title: article.title,
         content: article.content,
         url: article.url,
-        source: 'tech news',
+        source: 'tech-news',
         isArticle: true,
         metadata: {
-          source: 'tech news',
+          source: 'tech-news',
           articleNumber: articleNumber++,
           feedName: feedName
         }
@@ -277,7 +277,7 @@ function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
     contentItems.push({
       title: feedName,
       content: '',
-      source: 'business news',
+      source: 'business-news',
       isCategoryHeader: true
     });
     
@@ -287,10 +287,10 @@ function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
         title: article.title,
         content: article.content,
         url: article.url,
-        source: 'business news',
+        source: 'business-news',
         isArticle: true,
         metadata: {
-          source: 'business news',
+          source: 'business-news',
           articleNumber: articleNumber++,
           feedName: feedName
         }
@@ -1125,7 +1125,21 @@ function parseFivechanThreadsMarkdown(markdown: string): ContentItem[] {
 }
 
 function App() {
-  const [selectedSource, setSelectedSource] = useState('hacker news');
+  // URLパラメータから初期ソースを取得
+  const getInitialSource = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sourceParam = urlParams.get('source');
+    
+    // パラメータが存在し、有効なソースの場合はそれを返す
+    if (sourceParam && sources.includes(sourceParam)) {
+      return sourceParam;
+    }
+    
+    // デフォルトはhacker-news
+    return 'hacker-news';
+  };
+
+  const [selectedSource, setSelectedSource] = useState(getInitialSource());
   const [currentPage, setCurrentPage] = useState('content'); // 'content' or 'usage-dashboard'
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -1145,6 +1159,13 @@ function App() {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  // ソース変更時にURLを更新
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('source', selectedSource);
+    window.history.replaceState({}, '', url.toString());
+  }, [selectedSource]);
   
   const { data, isLoading, isError, error, refetch } = useQuery(
     ['content', selectedSource, format(selectedDate, 'yyyy-MM-dd')],
@@ -1173,7 +1194,7 @@ function App() {
     }
 
     // Tech Newsの場合は特別な処理
-    if (selectedSource === 'tech news' && data.items[0]?.content) {
+    if (selectedSource === 'tech-news' && data.items[0]?.content) {
       try {
         return parseTechNewsMarkdown(data.items[0].content);
       } catch (error) {
@@ -1184,7 +1205,7 @@ function App() {
     }
 
     // Business Newsの場合は特別な処理
-    if (selectedSource === 'business news' && data.items[0]?.content) {
+    if (selectedSource === 'business-news' && data.items[0]?.content) {
       try {
         return parseBusinessNewsMarkdown(data.items[0].content);
       } catch (error) {
@@ -1239,13 +1260,13 @@ function App() {
     }
 
     // Hacker Newsの場合は構造化データをそのまま処理
-    if (selectedSource === 'hacker news' && data.items && data.items.length > 0) {
+    if (selectedSource === 'hacker-news' && data.items && data.items.length > 0) {
       // カテゴリヘッダーを追加
       const items: ContentItem[] = [{
         title: 'Hacker News',
         url: '',
         content: '',
-        source: 'hacker news',
+        source: 'hacker-news',
         isLanguageHeader: false,
         isCategoryHeader: true,
         isArticle: false
@@ -1257,7 +1278,7 @@ function App() {
           title: item.title,
           url: item.url || '',
           content: item.content,
-          source: 'hacker news',
+          source: 'hacker-news',
           isLanguageHeader: false,
           isCategoryHeader: false,
           isArticle: true
@@ -1491,7 +1512,7 @@ function App() {
                     });
                   } 
                   // Tech Newsの場合も特別な番号付けロジック
-                  else if (selectedSource === 'tech news') {
+                  else if (selectedSource === 'tech-news') {
                     let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
@@ -1507,7 +1528,7 @@ function App() {
                     });
                   } 
                   // Business Newsの場合も特別な番号付けロジック
-                  else if (selectedSource === 'business news') {
+                  else if (selectedSource === 'business-news') {
                     let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
@@ -1619,7 +1640,7 @@ function App() {
                     });
                   } 
                   // Hacker Newsの場合も特別な番号付けロジック
-                  else if (selectedSource === 'hacker news') {
+                  else if (selectedSource === 'hacker-news') {
                     let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
