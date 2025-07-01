@@ -3,8 +3,10 @@
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import asyncio
+import os
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -66,6 +68,7 @@ class HackerNewsRetriever(BaseService):
         super().__init__("hacker_news")
         self.base_url = "https://hacker-news.firebaseio.com/v0"
         self.http_client = AsyncHTTPClient()
+        self.blocked_domains = self._load_blocked_domains()
     
     async def collect(self, limit: int = 30) -> None:
         """
@@ -153,6 +156,39 @@ class HackerNewsRetriever(BaseService):
         
         return selected_stories
     
+    def _load_blocked_domains(self) -> Dict[str, Any]:
+        """ブロックドメインリストを読み込みます。"""
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            blocked_domains_path = os.path.join(current_dir, "blocked_domains.json")
+            
+            with open(blocked_domains_path, 'r', encoding='utf-8') as f:
+                blocked_data = json.load(f)
+            
+            self.logger.info(f"ブロックドメインリストを読み込みました: {len(blocked_data.get('blocked_domains', []))}件")
+            return blocked_data
+        except Exception as e:
+            self.logger.warning(f"ブロックドメインリストの読み込みに失敗しました: {e}")
+            return {"blocked_domains": [], "reasons": {}}
+    
+    def _is_blocked_domain(self, url: str) -> bool:
+        """指定されたURLがブロックされたドメインかどうかをチェックします。"""
+        if not url:
+            return False
+        
+        try:
+            parsed_url = urlparse(url)
+            domain = parsed_url.netloc.lower()
+            
+            # www.を除去して比較
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            
+            blocked_domains = self.blocked_domains.get('blocked_domains', [])
+            return domain in [d.lower() for d in blocked_domains]
+        except Exception:
+            return False
+    
     async def _fetch_story(self, story_id: int) -> Optional[Story]:
         """個別のストーリーを取得"""
         try:
@@ -180,6 +216,17 @@ class HackerNewsRetriever(BaseService):
     
     async def _fetch_story_content(self, story: Story) -> None:
         """記事の内容を取得"""
+        # ブロックされたドメインをチェック
+        if self._is_blocked_domain(story.url):
+            domain = urlparse(story.url).netloc.lower()
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            
+            reason = self.blocked_domains.get('reasons', {}).get(domain, 'アクセス制限')
+            story.text = f"このサイト（{domain}）は{reason}のためブロックされています。"
+            self.logger.debug(f"ブロックされたドメインをスキップ: {story.url} - {reason}")
+            return
+        
         try:
             # ユーザーエージェントを設定してアクセス制限を回避
             headers = {

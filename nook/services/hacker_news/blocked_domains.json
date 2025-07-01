@@ -1,0 +1,22 @@
+{
+  "blocked_domains": [
+    "reuters.com",
+    "wsj.com",
+    "bloomberg.com",
+    "ft.com",
+    "economist.com",
+    "science.org",
+    "smithsonianmag.com",
+    "blogs.bl.uk"
+  ],
+  "reasons": {
+    "reuters.com": "401 - Authentication required",
+    "wsj.com": "401 - Subscription required",
+    "bloomberg.com": "403 - Bot protection",
+    "ft.com": "403 - Paywall",
+    "economist.com": "403 - Paywall",
+    "science.org": "403 - Access restricted",
+    "smithsonianmag.com": "403 - Bot detection",
+    "blogs.bl.uk": "403 - Geographic restriction"
+  }
+}
