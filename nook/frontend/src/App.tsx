@@ -699,21 +699,58 @@ function parseAcademicPapersMarkdown(markdown: string): ContentItem[] {
       
       // 要約を次の行から取得
       let content = '';
+      let collectingContent = false;
+      let abstractContent = '';
+      let summaryContent = '';
+      let currentSection = '';
       
       for (let j = i + 1; j < lines.length; j++) {
         const nextLine = lines[j].trim();
         
-        // 次のセクションまたは次の論文に到達したら終了
-        if (nextLine.startsWith('#') || nextLine === '---') {
+        // 次の論文タイトルに到達したら終了
+        if (nextLine.startsWith('## [') && nextLine.includes('](')) {
+          // 最初の論文タイトル以外で終了
+          if (j > i + 1) break;
+        }
+        
+        // セクション区切り線
+        if (nextLine === '---') {
           break;
         }
         
-        if (nextLine) {
-          if (content) {
-            content += '\n\n';
-          }
-          content += nextLine;
+        // abstract セクション
+        if (nextLine.includes('**abstract**:')) {
+          currentSection = 'abstract';
+          collectingContent = true;
+          continue;
         }
+        
+        // summary セクション
+        if (nextLine.includes('**summary**:')) {
+          currentSection = 'summary';
+          collectingContent = true;
+          continue;
+        }
+        
+        // コンテンツを収集
+        if (collectingContent && nextLine) {
+          if (currentSection === 'abstract') {
+            if (abstractContent) abstractContent += '\n\n';
+            abstractContent += nextLine;
+          } else if (currentSection === 'summary') {
+            if (summaryContent) summaryContent += '\n\n';
+            summaryContent += nextLine;
+          }
+        }
+      }
+      
+      // abstract と summary を結合
+      if (abstractContent) {
+        content = `**abstract**:\n\n${abstractContent}`;
+      }
+      if (summaryContent) {
+        if (content) content += '\n\n';
+        content += `**summary**:\n\n${summaryContent}`;
       }
       
       items.push({
@@ -1567,6 +1604,21 @@ function App() {
                           item={item} 
                           darkMode={darkMode} 
                           index={articleIndex} 
+                        />
+                      );
+                    });
+                  } 
+                  // Academic Papersの場合も特別な番号付けロジック
+                  else if (selectedSource === 'paper') {
+                    return processedItems.map((item, index) => {
+                      const isPaper = item.isArticle;
+                      const paperIndex = isPaper && item.metadata?.articleNumber ? item.metadata.articleNumber - 1 : undefined;
+                      return (
+                        <ContentCard 
+                          key={index} 
+                          item={item} 
+                          darkMode={darkMode} 
+                          index={paperIndex} 
                         />
                       );
                     });

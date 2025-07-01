@@ -322,7 +322,9 @@ class PaperSummarizer(BaseService):
 
             body = soup.body
             if body:
-                for tag in body.find_all(["header", "nav", "footer", "script", "style"]):
+                for tag in body.find_all(
+                    ["header", "nav", "footer", "script", "style"]
+                ):
                     tag.decompose()
                 full_text = body.get_text(separator="\n", strip=True)
             else:
@@ -371,20 +373,20 @@ class PaperSummarizer(BaseService):
         1. 既存研究では何ができなかったのか
         2. どのようなアプローチでそれを解決しようとしたか
         3. 結果、何が達成できたのか
-        4. Limitationや問題点は何か。本文で言及されているものの他、あなたが考えるものも含めて
-        5. 技術的な詳細について。技術者が読むことを想定したトーンで
-        6. コストや物理的な詳細について。例えばトレーニングに使用したGPUの数や時間、データセット、モデルのサイズなど
-        7. 参考文献のうち、特に参照すべきもの
-        8. この論文を140字以内で要約すると？
+        4. 制限や問題点は何ですか。本文で言及されているやあなたが考えるものも含めて教えてください
+        5. 技術的な詳細について。技術者が読むことを想定したトーンで教えてください
+        6. コストや物理的な詳細について教えてください。例えばトレーニングに使用したGPUの数や時間、データセット、モデルのサイズなど
+        7. 参考文献のうち、特に参照すべきものを教えてください
+        8. この論文を140字以内で要約するとどうなりますか？
 
         フォーマットは以下の通りで、markdown形式で回答してください。このフォーマットに沿った文言以外の出力は不要です。
         なお、数式は表示が崩れがちで面倒なので、説明に数式を使うときは、代わりにPython風の疑似コードを書いてください。
 
-        ## 1. 既存研究では何ができなかったのか
+        1. 既存研究では何ができなかったのか
 
         ...
 
-        ## 2. どのようなアプローチでそれを解決しようとしたか
+        2. どのようなアプローチでそれを解決しようとしたか
 
         ...
 
@@ -425,12 +427,12 @@ class PaperSummarizer(BaseService):
                 max_tokens=3000,  # 8つの質問に対応するため増量
                 service_name=self.service_name,
             )
-            
+
             # 出力の整形
             summary = remove_tex_backticks(summary)
             summary = remove_outer_markdown_markers(summary)
             summary = remove_outer_singlequotes(summary)
-            
+
             paper_info.summary = summary
             await self.rate_limit()
         except Exception as e:
