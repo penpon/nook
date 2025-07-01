@@ -4,6 +4,7 @@ import { NewsHeader } from './components/NewsHeader';
 import UsageDashboard from './components/UsageDashboard';
 import { Sidebar } from './components/layout/Sidebar';
 import { ContentRenderer } from './components/content/ContentRenderer';
+import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { useSourceData } from './hooks/useSourceData';
 import { useTheme } from './hooks/useTheme';
 import { useMobileMenu } from './hooks/useMobileMenu';
@@ -129,6 +130,9 @@ function App() {
           </div>
         )}
       </div>
+      
+      {/* PWA更新通知 */}
+      <PWAUpdateNotification />
     </div>
   );
 }
