@@ -213,6 +213,10 @@ cd nook
 # 初期設定スクリプトの実行
 chmod +x setup.sh
 ./setup.sh
+# このスクリプトを実行すると：
+#   - ユーザー名の入力を求められます
+#   - パスワードの設定を求められます
+#   - nginx/.htpasswdファイルが自動作成されます
 
 # .env.productionの編集
 # APIキーを設定してください
