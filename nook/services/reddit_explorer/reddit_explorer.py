@@ -8,8 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
-import praw
-from praw.models import Submission
+import asyncpraw
+from asyncpraw.models import Submission
 
 from nook.common.base_service import BaseService
 from nook.common.gpt_client import GPTClient
@@ -100,7 +100,7 @@ class RedditExplorer(BaseService):
         if not all([self.client_id, self.client_secret, self.user_agent]):
             raise ValueError("Reddit API credentials must be provided or set as environment variables")
         
-        self.reddit = praw.Reddit(
+        self.reddit = asyncpraw.Reddit(
             client_id=self.client_id,
             client_secret=self.client_secret,
             user_agent=self.user_agent
@@ -167,6 +167,7 @@ class RedditExplorer(BaseService):
                 self.logger.info("保存する投稿がありません")
                 
         finally:
+            await self.reddit.close()
             await self.http_client.close()
     
     async def _retrieve_hot_posts(self, subreddit_name: str, limit: int) -> List[RedditPost]:
@@ -185,10 +186,10 @@ class RedditExplorer(BaseService):
         List[RedditPost]
             取得した投稿のリスト。
         """
-        subreddit = self.reddit.subreddit(subreddit_name)
+        subreddit = await self.reddit.subreddit(subreddit_name)
         posts = []
         
-        for submission in subreddit.hot(limit=limit):
+        async for submission in subreddit.hot(limit=limit):
             if submission.stickied:
                 continue
             
@@ -275,7 +276,7 @@ class RedditExplorer(BaseService):
         List[Dict[str, str | int]]
             取得したコメントのリスト。
         """
-        submission = self.reddit.submission(id=post.id)
+        submission = await self.reddit.submission(id=post.id)
         submission.comment_sort = "top"
         submission.comment_limit = limit
         
