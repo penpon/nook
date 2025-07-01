@@ -79,7 +79,7 @@ const UsageDashboard: React.FC = () => {
         </div>
 
         {/* サマリーカード */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="dashboard-container cq-xs:grid cq-xs:grid-cols-1 cq-sm:grid-cols-2 cq-lg:grid-cols-4 cq-xs:gap-4 cq-md:gap-6 mb-8">
           <SummaryCard
             title="今日のトークン数"
             value={formatNumber(summary?.todayTokens || 0)}

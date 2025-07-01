@@ -30,24 +30,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const sources = ['arxiv', 'github', 'hacker-news', 'tech-news', 'business-news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
   return (
-    <>
+    <div className="sidebar-container h-full">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="cq-xs:p-3 cq-md:p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2">
-          <Layout className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          <span className="text-xl font-bold text-gray-900 dark:text-white">Dashboard</span>
+          <Layout className="cq-xs:w-5 cq-xs:h-5 cq-md:w-6 cq-md:h-6 text-blue-600 dark:text-blue-400" />
+          <span className="cq-xs:text-lg cq-md:text-xl font-bold text-gray-900 dark:text-white">Dashboard</span>
         </div>
       </div>
       
       {/* Weather Widget */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="cq-xs:p-3 cq-md:p-4 border-b border-gray-200 dark:border-gray-700">
         <WeatherWidget />
       </div>
       
       {/* Date Selector */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="cq-xs:p-3 cq-md:p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2 mb-3">
-          <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <Calendar className="cq-xs:w-4 cq-xs:h-4 cq-md:w-5 cq-md:h-5 text-gray-600 dark:text-gray-400" />
           <span className="font-medium text-gray-700 dark:text-gray-300">Select Date</span>
         </div>
         <input
@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 cq-xs:p-3 cq-md:p-4">
         {/* Dashboard Section */}
         <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Dashboard</div>
         <button
@@ -117,6 +117,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
       </nav>
-    </>
+    </div>
   );
 };

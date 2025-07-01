@@ -16,6 +16,20 @@ export default {
         'touch': '44px',
         'touch-large': '48px',
       },
+      // Container Queries用の設定
+      containers: {
+        'xs': '20rem',
+        'sm': '24rem',
+        'md': '28rem',
+        'lg': '32rem',
+        'xl': '36rem',
+        '2xl': '42rem',
+        '3xl': '48rem',
+        '4xl': '56rem',
+        '5xl': '64rem',
+        '6xl': '72rem',
+        '7xl': '80rem',
+      },
       colors: {
         blue: {
           50: '#eff6ff',
@@ -74,5 +88,6 @@ export default {
   },
   plugins: [
     require('@tailwindcss/typography'),
+    require('@tailwindcss/container-queries'), // 追加
   ],
 };
