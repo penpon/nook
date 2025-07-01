@@ -210,6 +210,24 @@ class HackerNewsRetriever(BaseService):
         
         self.logger.info(f"Content fetch summary: {success_count} succeeded, {blocked_count} blocked, {error_count} failed")
     
+    def _is_http1_required_domain(self, url: str) -> bool:
+        """指定されたURLがHTTP/1.1を必要とするドメインかどうかをチェックします。"""
+        if not url:
+            return False
+        
+        try:
+            parsed_url = urlparse(url)
+            domain = parsed_url.netloc.lower()
+            
+            # www.を除去して比較
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            
+            http1_required_domains = self.blocked_domains.get('http1_required_domains', [])
+            return domain in [d.lower() for d in http1_required_domains]
+        except Exception:
+            return False
+    
     async def _fetch_story(self, story_id: int) -> Optional[Story]:
         """個別のストーリーを取得"""
         try:
@@ -248,12 +266,17 @@ class HackerNewsRetriever(BaseService):
             self.logger.debug(f"ブロックされたドメインをスキップ: {story.url} - {reason}")
             return
         
+        # HTTP/1.1が必要なドメインをチェック
+        force_http1 = self._is_http1_required_domain(story.url)
+        if force_http1:
+            self.logger.info(f"Using HTTP/1.1 for {story.url} (required domain)")
+        
         try:
             # ユーザーエージェントを設定してアクセス制限を回避
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
-            response = await self.http_client.get(story.url, headers=headers)
+            response = await self.http_client.get(story.url, headers=headers, force_http1=force_http1)
             
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")

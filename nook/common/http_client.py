@@ -31,6 +31,7 @@ class AsyncHTTPClient:
             keepalive_expiry=30.0
         )
         self._client: Optional[httpx.AsyncClient] = None
+        self._http1_client: Optional[httpx.AsyncClient] = None
         self._session_start: Optional[datetime] = None
     
     async def __aenter__(self):
@@ -54,15 +55,30 @@ class AsyncHTTPClient:
             self._session_start = datetime.utcnow()
             logger.info("HTTP client session started")
     
+    async def _start_http1_client(self):
+        """HTTP/1.1専用クライアントセッションを開始"""
+        if self._http1_client is None:
+            self._http1_client = httpx.AsyncClient(
+                timeout=self.timeout,
+                limits=self.limits,
+                follow_redirects=True,
+                http2=False  # HTTP/1.1専用
+            )
+            logger.info("HTTP/1.1 client session started")
+    
     async def close(self):
         """クライアントセッションを終了"""
         if self._client:
             await self._client.aclose()
             self._client = None
+        
+        if self._http1_client:
+            await self._http1_client.aclose()
+            self._http1_client = None
             
-            if self._session_start:
-                duration = (datetime.utcnow() - self._session_start).total_seconds()
-                logger.info(f"HTTP client session closed after {duration:.2f} seconds")
+        if self._session_start:
+            duration = (datetime.utcnow() - self._session_start).total_seconds()
+            logger.info(f"HTTP client session closed after {duration:.2f} seconds")
     
     @handle_errors(retries=3, delay=1.0, backoff=2.0)
     async def get(
@@ -70,16 +86,25 @@ class AsyncHTTPClient:
         url: str,
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
+        force_http1: bool = False,
         **kwargs
     ) -> httpx.Response:
-        """GET リクエスト"""
-        if not self._client:
-            await self.start()
-        
-        logger.debug(f"GET {url}", extra={"params": params})
+        """GET リクエスト（HTTP/1.1フォールバック対応）"""
+        if force_http1:
+            # HTTP/1.1を強制使用
+            if not self._http1_client:
+                await self._start_http1_client()
+            client = self._http1_client
+            logger.debug(f"GET {url} (forced HTTP/1.1)", extra={"params": params})
+        else:
+            # 通常のHTTP/2クライアントを使用
+            if not self._client:
+                await self.start()
+            client = self._client
+            logger.debug(f"GET {url}", extra={"params": params})
         
         try:
-            response = await self._client.get(
+            response = await client.get(
                 url,
                 headers=headers,
                 params=params,
@@ -91,11 +116,21 @@ class AsyncHTTPClient:
                 f"GET {url} completed",
                 extra={
                     "status_code": response.status_code,
-                    "response_time": response.elapsed.total_seconds()
+                    "response_time": response.elapsed.total_seconds(),
+                    "http_version": "HTTP/1.1" if force_http1 else "HTTP/2"
                 }
             )
             
             return response
+            
+        except httpx.StreamError as e:
+            # StreamResetエラーの場合、HTTP/1.1でリトライ
+            if not force_http1 and ("stream" in str(e).lower() or "reset" in str(e).lower()):
+                logger.info(f"StreamReset error for {url}, falling back to HTTP/1.1: {e}")
+                return await self.get(url, headers=headers, params=params, force_http1=True, **kwargs)
+            else:
+                logger.error(f"Stream error for {url}: {e}")
+                raise APIException(f"Stream error: {str(e)}") from e
             
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP error for {url}: {e}")
