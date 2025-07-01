@@ -130,8 +130,8 @@ python -m nook.services.run_services --service reddit
 python -m nook.services.run_services --service hacker_news
 python -m nook.services.run_services --service github_trending
 python -m nook.services.run_services --service arxiv
-python -m nook.services.run_services --service tech_feed
-python -m nook.services.run_services --service business_feed
+python -m nook.services.run_services --service tech_news
+python -m nook.services.run_services --service business_news
 python -m nook.services.run_services --service zenn
 python -m nook.services.run_services --service qiita
 python -m nook.services.run_services --service note
@@ -172,6 +172,7 @@ data/
 
 ### その他
 - `GET /health` - ヘルスチェック
+- `GET /api/weather` - 天気情報取得（神奈川県）
 
 ## 新機能
 
@@ -189,6 +190,23 @@ data/
 - システム設定に連動
 - Tailwind CSSベースの実装
 - すべてのコンポーネントで対応
+
+## 設定ファイル
+
+### RSSフィード設定
+- `nook/services/tech_feed/feed.toml` - 技術ブログのRSSフィード設定
+- `nook/services/business_feed/feed.toml` - ビジネスニュースのRSSフィード設定
+- `nook/services/note_explorer/feed.toml` - noteのRSSフィード設定
+- `nook/services/qiita_explorer/feed.toml` - QiitaのRSSフィード設定
+- `nook/services/zenn_explorer/feed.toml` - ZennのRSSフィード設定
+
+### 掲示板設定
+- `nook/services/fourchan_explorer/boards.toml` - 4chanの監視対象スレッド設定
+- `nook/services/fivechan_explorer/boards.toml` - 5chの監視対象スレッド設定
+
+### その他の設定
+- `nook/services/reddit_explorer/subreddits.toml` - 監視対象subreddit設定
+- `nook/services/github_trending/languages.toml` - 監視対象プログラミング言語設定
 
 ## ディレクトリ構造
 
