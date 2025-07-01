@@ -85,66 +85,48 @@ function parseGitHubTrendingMarkdown(markdown: string): ContentItem[] {
 function parseTechNewsMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
-  let currentCategory = '';
-  let articleNumber = 1;
+  const feedGroups = new Map<string, { title: string; url: string; content: string }[]>();
   
+  // まず全ての記事を解析してフィード別にグループ化
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // 日付付きタイトル（# 技術ニュース記事 (2025-06-24)）を無視
+    // 日付付きタイトルは無視
     if (line.startsWith('# 技術ニュース記事')) {
       continue;
     }
     
-    // カテゴリセクション（## Tech_blogs, ## Hatena等）を検出
+    // カテゴリセクション（## Tech_blogs, ## Hatena等）は無視
     if (line.startsWith('## ') && line.length > 3) {
-      currentCategory = line.substring(3).trim();
-      // カテゴリ名を読みやすい形式に変換
-      const categoryDisplayName = currentCategory
-        .replace('_', ' ')
-        .replace(/\b\w/g, l => l.toUpperCase());
-      
-      articleNumber = 1; // カテゴリごとに番号をリセット
-      
-      contentItems.push({
-        title: categoryDisplayName,
-        content: '',
-        source: 'tech news',
-        isCategoryHeader: true
-      });
+      continue;
     }
-    // 記事（### [タイトル](URL)）を検出
-    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+    
+    // 記事を検出
+    if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
       const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
         const articleTitle = linkMatch[1];
         const articleUrl = linkMatch[2];
         
-        // 次の行からフィード情報と要約を取得
+        // フィード情報と要約を取得
         let feedName = '';
         let summary = '';
         
-        // フィード情報と要約を取得（次の行以降）
         for (let j = i + 1; j < lines.length; j++) {
           const nextLine = lines[j].trim();
           
-          // 次のセクションまたは次の記事に到達したら終了
           if (nextLine.startsWith('#') || nextLine === '---') {
             break;
           }
           
           if (nextLine.startsWith('**フィード**:')) {
-            // フィード情報の行
             feedName = nextLine.replace('**フィード**:', '').trim();
           } else if (nextLine.startsWith('**要約**:')) {
-            // 要約情報の開始
             summary = nextLine.replace('**要約**:', '').trim();
             
-            // 要約の続きがある場合は次の行も読み込み
             for (let k = j + 1; k < lines.length; k++) {
               const summaryLine = lines[k].trim();
               
-              // 次のセクション、記事、または区切り線に到達したら終了
               if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
                 break;
               }
@@ -156,29 +138,54 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
           }
         }
         
-        // 記事内容を構築
-        let content = '';
+        // フィード名でグループ化
         if (feedName) {
-          content += `**フィード**: ${feedName}\n\n`;
-        }
-        if (summary) {
-          content += `**要約**:\n${summary}`;
-        }
-        
-        contentItems.push({
-          title: articleTitle,
-          content: content,
-          url: articleUrl,
-          source: 'tech news',
-          category: currentCategory,
-          isArticle: true,
-          metadata: {
-            source: 'tech news',
-            articleNumber: articleNumber++
+          if (!feedGroups.has(feedName)) {
+            feedGroups.set(feedName, []);
           }
-        });
+          
+          let content = '';
+          if (summary) {
+            content = `**要約**:\n${summary}`;
+          }
+          
+          feedGroups.get(feedName)!.push({
+            title: articleTitle,
+            url: articleUrl,
+            content: content
+          });
+        }
       }
     }
+  }
+  
+  // フィードグループごとにコンテンツアイテムを作成
+  let globalArticleNumber = 1;
+  
+  for (const [feedName, articles] of feedGroups) {
+    // フィード名をカテゴリヘッダーとして追加
+    contentItems.push({
+      title: feedName,
+      content: '',
+      source: 'tech news',
+      isCategoryHeader: true
+    });
+    
+    // 各記事を追加
+    articles.forEach((article) => {
+      contentItems.push({
+        title: article.title,
+        content: article.content,
+        url: article.url,
+        source: 'tech news',
+        isArticle: true,
+        metadata: {
+          source: 'tech news',
+          articleNumber: globalArticleNumber++,
+          feedName: feedName
+        }
+      });
+    });
   }
   
   return contentItems;
@@ -188,62 +195,48 @@ function parseTechNewsMarkdown(markdown: string): ContentItem[] {
 function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
   const lines = markdown.split('\n');
   const contentItems: ContentItem[] = [];
-  let currentCategory = '';
-  let articleNumber = 1;
+  const feedGroups = new Map<string, { title: string; url: string; content: string }[]>();
   
+  // まず全ての記事を解析してフィード別にグループ化
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // 日付付きタイトル（# ビジネスニュース記事 (2025-06-24)）を無視
+    // 日付付きタイトルは無視
     if (line.startsWith('# ビジネスニュース記事')) {
       continue;
     }
     
-    // カテゴリセクション（## Business等）を検出
+    // カテゴリセクション（## Business）は無視
     if (line.startsWith('## ') && line.length > 3) {
-      currentCategory = line.substring(3).trim();
-      
-      articleNumber = 1; // カテゴリごとに番号をリセット
-      
-      contentItems.push({
-        title: currentCategory,
-        content: '',
-        source: 'business news',
-        isCategoryHeader: true
-      });
+      continue;
     }
-    // 記事（### [タイトル](URL)）を検出
-    else if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
+    
+    // 記事を検出
+    if (line.startsWith('### ') && line.includes('[') && line.includes('](')) {
       const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
         const articleTitle = linkMatch[1];
         const articleUrl = linkMatch[2];
         
-        // 次の行からフィード情報と要約を取得
+        // フィード情報と要約を取得
         let feedName = '';
         let summary = '';
         
-        // フィード情報と要約を取得（次の行以降）
         for (let j = i + 1; j < lines.length; j++) {
           const nextLine = lines[j].trim();
           
-          // 次のセクションまたは次の記事に到達したら終了
           if (nextLine.startsWith('#') || nextLine === '---') {
             break;
           }
           
           if (nextLine.startsWith('**フィード**:')) {
-            // フィード情報の行
             feedName = nextLine.replace('**フィード**:', '').trim();
           } else if (nextLine.startsWith('**要約**:')) {
-            // 要約情報の開始
             summary = nextLine.replace('**要約**:', '').trim();
             
-            // 要約の続きがある場合は次の行も読み込み
             for (let k = j + 1; k < lines.length; k++) {
               const summaryLine = lines[k].trim();
               
-              // 次のセクション、記事、または区切り線に到達したら終了
               if (summaryLine.startsWith('#') || summaryLine === '---' || summaryLine.startsWith('**')) {
                 break;
               }
@@ -255,29 +248,54 @@ function parseBusinessNewsMarkdown(markdown: string): ContentItem[] {
           }
         }
         
-        // 記事内容を構築
-        let content = '';
+        // フィード名でグループ化
         if (feedName) {
-          content += `**フィード**: ${feedName}\n\n`;
-        }
-        if (summary) {
-          content += `**要約**:\n${summary}`;
-        }
-        
-        contentItems.push({
-          title: articleTitle,
-          content: content,
-          url: articleUrl,
-          source: 'business news',
-          category: currentCategory,
-          isArticle: true,
-          metadata: {
-            source: 'business news',
-            articleNumber: articleNumber++
+          if (!feedGroups.has(feedName)) {
+            feedGroups.set(feedName, []);
           }
-        });
+          
+          let content = '';
+          if (summary) {
+            content = `**要約**:\n${summary}`;
+          }
+          
+          feedGroups.get(feedName)!.push({
+            title: articleTitle,
+            url: articleUrl,
+            content: content
+          });
+        }
       }
     }
+  }
+  
+  // フィードグループごとにコンテンツアイテムを作成
+  let globalArticleNumber = 1;
+  
+  for (const [feedName, articles] of feedGroups) {
+    // フィード名をカテゴリヘッダーとして追加
+    contentItems.push({
+      title: feedName,
+      content: '',
+      source: 'business news',
+      isCategoryHeader: true
+    });
+    
+    // 各記事を追加
+    articles.forEach((article) => {
+      contentItems.push({
+        title: article.title,
+        content: article.content,
+        url: article.url,
+        source: 'business news',
+        isArticle: true,
+        metadata: {
+          source: 'business news',
+          articleNumber: globalArticleNumber++,
+          feedName: feedName
+        }
+      });
+    });
   }
   
   return contentItems;
