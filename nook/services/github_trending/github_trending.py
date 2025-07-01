@@ -77,15 +77,20 @@ class GithubTrending(BaseService):
         """
         all_repositories = []
         
+        # 言語指定なしのリポジトリを取得（新規追加）
+        repositories = await self._retrieve_repositories("", limit)
+        all_repositories.append(("all", repositories))
+        await self.rate_limit()  # レート制限を遵守
+        
         # 一般的な言語のリポジトリを取得
         for language in self.languages_config["general"]:
             repositories = await self._retrieve_repositories(language, limit)
-            all_repositories.append((language or "all", repositories))
+            all_repositories.append((language, repositories))
             await self.rate_limit()  # レート制限を遵守
         
-        # 特定の言語のリポジトリを取得（少なめに）
+        # 特定の言語のリポジトリを取得（limitと同じ数に変更）
         for language in self.languages_config["specific"]:
-            repositories = await self._retrieve_repositories(language, limit // 2)
+            repositories = await self._retrieve_repositories(language, limit)  # limit // 2 → limit
             all_repositories.append((language, repositories))
             await self.rate_limit()  # レート制限を遵守
         
