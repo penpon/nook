@@ -8,12 +8,14 @@ import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { useSourceData } from './hooks/useSourceData';
 import { useTheme } from './hooks/useTheme';
 import { useMobileMenu } from './hooks/useMobileMenu';
+import { isServer } from '@/utils/ssr';
 
 const sources = ['arxiv', 'github', 'hacker-news', 'tech-news', 'business-news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
 function App() {
   // 初期ソースの取得
   const getInitialSource = () => {
+    if (isServer) return 'hacker-news';
     const urlParams = new URLSearchParams(window.location.search);
     const sourceParam = urlParams.get('source');
     return (sourceParam && sources.includes(sourceParam)) ? sourceParam : 'hacker-news';
@@ -28,6 +30,7 @@ function App() {
   
   // ソース変更時にURLを更新
   useEffect(() => {
+    if (isServer) return;
     const url = new URL(window.location.href);
     url.searchParams.set('source', selectedSource);
     window.history.replaceState({}, '', url.toString());
