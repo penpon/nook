@@ -1252,15 +1252,33 @@ function App() {
       }
     }
 
-    // Hacker Newsの場合は特別な処理
-    if (selectedSource === 'hacker news' && data.items[0]?.content) {
-      try {
-        return parseHackerNewsMarkdown(data.items[0].content);
-      } catch (error) {
-        console.error('Hacker News Markdown parsing error:', error);
-        // フォールバック: 元のアイテムをそのまま返す
-        return data.items;
-      }
+    // Hacker Newsの場合は構造化データをそのまま処理
+    if (selectedSource === 'hacker news' && data.items && data.items.length > 0) {
+      // カテゴリヘッダーを追加
+      const items: ContentItem[] = [{
+        title: 'Hacker News',
+        url: '',
+        content: '',
+        source: 'hacker news',
+        isLanguageHeader: false,
+        isCategoryHeader: true,
+        isArticle: false
+      }];
+      
+      // 各記事を適切な形式に変換
+      data.items.forEach((item, index) => {
+        items.push({
+          title: item.title,
+          url: item.url || '',
+          content: item.content,
+          source: 'hacker news',
+          isLanguageHeader: false,
+          isCategoryHeader: false,
+          isArticle: true
+        });
+      });
+      
+      return items;
     }
 
     // Academic Papersの場合は特別な処理
