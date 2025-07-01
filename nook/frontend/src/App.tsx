@@ -734,75 +734,6 @@ function parseAcademicPapersMarkdown(markdown: string): ContentItem[] {
   return items;
 }
 
-// Hacker NewsのMarkdownをパースして個別のコンテンツアイテムに変換
-function parseHackerNewsMarkdown(markdown: string): ContentItem[] {
-  const items: ContentItem[] = [];
-  const lines = markdown.split('\n');
-  
-  // 最初に「Hacker News」カテゴリヘッダーを追加
-  items.push({
-    title: 'Hacker News',
-    url: '',
-    content: '',
-    isLanguageHeader: false,
-    isCategoryHeader: true,
-    isArticle: false
-  });
-  
-  let articleNumber = 1;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // 記事タイトル行を検出（## [タイトル](URL)）
-    const titleMatch = line.match(/^##\s*\[([^\]]+)\]\(([^)]+)\)$/);
-    if (titleMatch) {
-      const title = titleMatch[1];
-      const url = titleMatch[2];
-      
-      // スコア情報を次の行から抽出
-      let score = '';
-      let content = '';
-      
-      for (let j = i + 1; j < lines.length; j++) {
-        const nextLine = lines[j].trim();
-        
-        // 次のセクションまたは次の記事に到達したら終了
-        if (nextLine.startsWith('#') || nextLine === '---') {
-          break;
-        }
-        
-        // スコア情報を抽出（例: "⬆️ 1,234"）
-        const scoreMatch = nextLine.match(/⬆️\s*([\d,]+)/);
-        if (scoreMatch) {
-          score = scoreMatch[1];
-        } else if (nextLine) {
-          // その他の内容
-          if (content) {
-            content += '\n\n';
-          }
-          content += nextLine;
-        }
-      }
-      
-      items.push({
-        title: title,
-        url: url,
-        content: content,
-        isLanguageHeader: false,
-        isCategoryHeader: false,
-        isArticle: true,
-        metadata: {
-          source: 'hackernews',
-          score: score,
-          articleNumber: articleNumber++
-        }
-      });
-    }
-  }
-  
-  return items;
-}
 
 // Reddit PostsのMarkdownをパースして個別のコンテンツアイテムに変換
 function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
@@ -1266,7 +1197,7 @@ function App() {
       }];
       
       // 各記事を適切な形式に変換
-      data.items.forEach((item, index) => {
+      data.items.forEach((item) => {
         items.push({
           title: item.title,
           url: item.url || '',
@@ -1620,6 +1551,22 @@ function App() {
                           item={item} 
                           darkMode={darkMode} 
                           index={threadIndex} 
+                        />
+                      );
+                    });
+                  } 
+                  // Hacker Newsの場合も特別な番号付けロジック
+                  else if (selectedSource === 'hacker news') {
+                    let articleCount = 0;
+                    return processedItems.map((item, index) => {
+                      const isArticle = item.isArticle;
+                      const articleIndex = isArticle ? articleCount++ : undefined;
+                      return (
+                        <ContentCard 
+                          key={index} 
+                          item={item} 
+                          darkMode={darkMode} 
+                          index={articleIndex} 
                         />
                       );
                     });
