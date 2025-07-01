@@ -1,5 +1,6 @@
 """Redditの人気投稿を収集・要約するサービス。"""
 
+import asyncio
 import os
 import tomli
 from dataclasses import dataclass, field
@@ -10,7 +11,9 @@ from typing import Dict, List, Literal, Optional
 import praw
 from praw.models import Submission
 
+from nook.common.base_service import BaseService
 from nook.common.gpt_client import GPTClient
+from nook.common.http_client import AsyncHTTPClient
 from nook.common.storage import LocalStorage
 
 
@@ -51,7 +54,7 @@ class RedditPost:
     thumbnail: str = "self"
 
 
-class RedditExplorer:
+class RedditExplorer(BaseService):
     """
     Redditの人気投稿を収集・要約するクラス。
     
@@ -88,6 +91,8 @@ class RedditExplorer:
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
         """
+        super().__init__("reddit_explorer")
+        
         self.client_id = client_id or os.environ.get("REDDIT_CLIENT_ID")
         self.client_secret = client_secret or os.environ.get("REDDIT_CLIENT_SECRET")
         self.user_agent = user_agent or os.environ.get("REDDIT_USER_AGENT")
@@ -101,8 +106,7 @@ class RedditExplorer:
             user_agent=self.user_agent
         )
         
-        self.gpt_client = GPTClient()
-        self.storage = LocalStorage(storage_dir)
+        self.http_client = AsyncHTTPClient()
         
         # サブレディットの設定を読み込む
         script_dir = Path(__file__).parent
@@ -118,27 +122,54 @@ class RedditExplorer:
         limit : int, default=3
             各サブレディットから取得する投稿数。
         """
+        asyncio.run(self.collect(limit))
+    
+    async def collect(self, limit: int = 3) -> None:
+        """
+        Redditの人気投稿を収集・要約して保存します（非同期版）。
+        
+        Parameters
+        ----------
+        limit : int, default=3
+            各サブレディットから取得する投稿数。
+        """
         all_posts = []
         
-        # 各カテゴリのサブレディットから投稿を取得
-        for category, subreddits in self.subreddits_config.items():
-            for subreddit_name in subreddits:
-                posts = self._retrieve_hot_posts(subreddit_name, limit)
+        try:
+            # 各カテゴリのサブレディットから投稿を取得
+            for category, subreddits in self.subreddits_config.items():
+                self.logger.info(f"カテゴリ {category} の処理を開始します...")
+                for subreddit_name in subreddits:
+                    try:
+                        self.logger.info(f"サブレディット r/{subreddit_name} から投稿を取得しています...")
+                        posts = await self._retrieve_hot_posts(subreddit_name, limit)
+                        
+                        for post in posts:
+                            # トップコメントを取得
+                            comments = await self._retrieve_top_comments_of_post(post, limit=5)
+                            post.comments = comments
+                            
+                            # 投稿を要約
+                            await self._summarize_reddit_post(post)
+                            
+                            all_posts.append((category, subreddit_name, post))
+                    
+                    except Exception as e:
+                        self.logger.error(f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}")
+            
+            self.logger.info(f"合計 {len(all_posts)} 件の投稿を取得しました")
+            
+            # 要約を保存
+            if all_posts:
+                await self._store_summaries(all_posts)
+                self.logger.info("投稿の要約を保存しました")
+            else:
+                self.logger.info("保存する投稿がありません")
                 
-                for post in posts:
-                    # トップコメントを取得
-                    comments = self._retrieve_top_comments_of_post(post, limit=5)
-                    post.comments = comments
-                    
-                    # 投稿を要約
-                    self._summarize_reddit_post(post)
-                    
-                    all_posts.append((category, subreddit_name, post))
-        
-        # 要約を保存
-        self._store_summaries(all_posts)
+        finally:
+            await self.http_client.close()
     
-    def _retrieve_hot_posts(self, subreddit_name: str, limit: int) -> List[RedditPost]:
+    async def _retrieve_hot_posts(self, subreddit_name: str, limit: int) -> List[RedditPost]:
         """
         サブレディットの人気投稿を取得します。
         
@@ -180,7 +211,7 @@ class RedditExplorer:
             
             # タイトルと本文を日本語に翻訳
             title = submission.title
-            text_ja = self._translate_to_japanese(submission.selftext) if submission.selftext else ""
+            text_ja = await self._translate_to_japanese(submission.selftext) if submission.selftext else ""
             
             post = RedditPost(
                 type=post_type,
@@ -197,7 +228,7 @@ class RedditExplorer:
         
         return posts
     
-    def _translate_to_japanese(self, text: str) -> str:
+    async def _translate_to_japanese(self, text: str) -> str:
         """
         テキストを日本語に翻訳します。
         
@@ -225,10 +256,10 @@ class RedditExplorer:
             
             return translated_text
         except Exception as e:
-            print(f"Error translating text: {str(e)}")
+            self.logger.error(f"Error translating text: {str(e)}")
             return text  # 翻訳に失敗した場合は原文を返す
     
-    def _retrieve_top_comments_of_post(self, post: RedditPost, limit: int = 5) -> List[Dict[str, str | int]]:
+    async def _retrieve_top_comments_of_post(self, post: RedditPost, limit: int = 5) -> List[Dict[str, str | int]]:
         """
         投稿のトップコメントを取得します。
         
@@ -252,7 +283,7 @@ class RedditExplorer:
         for comment in submission.comments[:limit]:
             if hasattr(comment, "body"):
                 # コメントを日本語に翻訳
-                comment_text_ja = self._translate_to_japanese(comment.body)
+                comment_text_ja = await self._translate_to_japanese(comment.body)
                 
                 comments.append({
                     "text": comment_text_ja,
@@ -261,7 +292,7 @@ class RedditExplorer:
         
         return comments
     
-    def _summarize_reddit_post(self, post: RedditPost) -> None:
+    async def _summarize_reddit_post(self, post: RedditPost) -> None:
         """
         Reddit投稿を要約します。
         
@@ -302,9 +333,10 @@ class RedditExplorer:
             )
             post.summary = summary
         except Exception as e:
+            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             post.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
     
-    def _store_summaries(self, posts: List[tuple[str, str, RedditPost]]) -> None:
+    async def _store_summaries(self, posts: List[tuple[str, str, RedditPost]]) -> None:
         """
         要約を保存します。
         
