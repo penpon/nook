@@ -1554,10 +1554,11 @@ function App() {
                   } 
                   // note Articlesの場合も特別な番号付けロジック
                   else if (selectedSource === 'note') {
-                    let articleCount = 0;
                     return processedItems.map((item, index) => {
                       const isArticle = item.isArticle;
-                      const articleIndex = isArticle ? articleCount++ : undefined;
+                      const articleIndex = isArticle && item.metadata?.articleNumber 
+                        ? item.metadata.articleNumber - 1 
+                        : undefined;
                       return (
                         <ContentCard 
                           key={index} 
