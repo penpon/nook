@@ -380,4 +380,4 @@ class RedditExplorer(BaseService):
                     content += "---\n\n"
         
         # 保存
-        self.storage.save_markdown(content, "reddit_explorer", today)
+        self.storage.save_markdown(content, "", today)

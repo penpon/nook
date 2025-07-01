@@ -415,7 +415,7 @@ class TechFeed(BaseService):
         # 保存
         self.logger.info(f"tech_feed ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
         try:
-            self.storage.save_markdown(content, "tech_feed", today)
+            self.storage.save_markdown(content, "", today)
             self.logger.info("保存が完了しました")
         except Exception as e:
             self.logger.error(f"保存中にエラーが発生しました: {str(e)}")
