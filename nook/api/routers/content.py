@@ -85,7 +85,7 @@ async def get_content(source: str, date: Optional[str] = None, response: Respons
                     if story.get("summary"):
                         content = f"**要約**:\n{story['summary']}\n\n"
                     elif story.get("text"):
-                        content = f"{story['text'][:500]}{'...' if len(story['text']) > 500 else ''}\n\n"
+                        content = f"{story['text'][:1000]}{'...' if len(story['text']) > 1000 else ''}\n\n"
                     
                     content += f"スコア: {story['score']}"
                     
