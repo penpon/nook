@@ -1387,7 +1387,7 @@ function App() {
           max={format(new Date(), 'yyyy-MM-dd')}
           min={format(subDays(new Date(), 30), 'yyyy-MM-dd')}
           onChange={(e) => setSelectedDate(new Date(e.target.value))}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white min-h-touch touch-manipulation"
         />
       </div>
       <nav className="flex-1 p-4">
@@ -1398,7 +1398,7 @@ function App() {
             setCurrentPage('usage-dashboard');
             setIsMobileMenuOpen(false);
           }}
-          className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors ${
+          className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors min-h-touch touch-manipulation ${
             currentPage === 'usage-dashboard'
               ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
               : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30'
@@ -1419,7 +1419,7 @@ function App() {
                 setCurrentPage('content');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors ${
+              className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors min-h-touch touch-manipulation ${
                 selectedSource === source && currentPage === 'content'
                   ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                   : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30'
@@ -1435,7 +1435,7 @@ function App() {
           <div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Theme</div>
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="w-full flex items-center justify-between px-4 py-2 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30"
+            className="w-full flex items-center justify-between px-4 py-2 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30 min-h-touch touch-manipulation"
           >
             <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
             {darkMode ? (
@@ -1463,7 +1463,8 @@ function App() {
       <div className="md:hidden fixed top-0 left-0 z-20 m-4">
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md"
+          className="min-h-touch min-w-touch p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md flex items-center justify-center touch-manipulation"
+          aria-label="メニューを開く"
         >
           <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
         </button>
@@ -1480,7 +1481,8 @@ function App() {
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="min-h-touch min-w-touch flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 touch-manipulation"
+                aria-label="メニューを閉じる"
               >
                 ✕
               </button>
