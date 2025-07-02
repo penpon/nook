@@ -1,7 +1,9 @@
-# TASK-067: TDDによるレイアウト問題解決（修正版）
+# TASK-067: TDDによるレイアウト問題解決（修正版・安全ブランチ戦略）
 
 ## タスク概要
 RGRCサイクル（Red, Green, Refactor, Commit）を使用して、番号表示問題とレイアウト崩れを修正します。コミット`e6248a37`の美しいUI状態を正確に再現し、最終的に`0b3a80b96358db6651fc5660334677d613441ad3`に統合します。
+
+**重要**: tmp-developブランチでの安全な作業とUI確認プロセスを含みます。
 
 ## 正しいTDDアプローチ
 **重要**: 
@@ -9,6 +11,7 @@ RGRCサイクル（Red, Green, Refactor, Commit）を使用して、番号表示
 2. **その状態（美しいUI）でテストコードを書く**
 3. **テストが通ることを確認**
 4. **そのテストコードを保持しながら0b3a80b96358db6651fc5660334677d613441ad3に向けて統合**
+5. **merge時にはスクリーンショット確認必須**
 
 ## 解決すべき問題
 1. 全サービスで記事番号「1」が表示されない
@@ -20,7 +23,6 @@ RGRCサイクル（Red, Green, Refactor, Commit）を使用して、番号表示
 - **最終統合先**: 0b3a80b96358db6651fc5660334677d613441ad3
 
 ## 変更予定ファイル
-- `nook/frontend/tests/` 配下の新規テストファイル
 - `nook/frontend/src/components/ContentCard.tsx` 
 - `nook/frontend/src/components/content/ContentRenderer.tsx`
 - その他e6248a37で変更されたファイル
@@ -41,126 +43,231 @@ worktrees/TASK-067-tdd-layout-fix
 git reset --hard e6248a37b7b91b33e7c34aac417fcfc0b75ed0e6
 ```
 
-#### 2. 美しいUI状態の確認
-- 記事番号「1」の青い背景表示（`bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300`）
-- 丸い形状（`rounded-full`）
-- カードレイアウト（`rounded-lg shadow-md p-6`）
-- ダークモード対応（`dark:bg-gray-800`）
+#### 2. 美しいUI状態の確認（スクリーンショット必須）
 
-### Phase 2: 美しい状態でのテスト作成
+**重要**: git reset直後は必ずスクリーンショットを撮影してユーザー確認を取る
+
+1. **アプリケーション起動**
+   ```bash
+   # バックエンドとフロントエンドを起動
+   # 起動方法はプロジェクトの設定に従う
+   ```
+
+2. **UI確認（スクリーンショット + MCP経由Playwright両方必須）**
+   
+   **A. スクリーンショット撮影**
+   - **ライトモードでのスクリーンショット**
+     - 記事番号「1」の青い背景表示（`bg-blue-100 text-blue-800`）
+     - 丸い形状（`rounded-full`）
+     - カードレイアウト（`rounded-lg shadow-md p-6`）
+     - 全体的なレイアウトの美しさ
+
+   - **ダークモードでのスクリーンショット**
+     - 記事番号「1」の青い背景表示（`dark:bg-blue-900 dark:text-blue-300`）
+     - ダークモード対応（`dark:bg-gray-800`）
+     - カードの影とレイアウト
+     - 全体的なダークモードの美しさ
+
+   **B. MCP経由Playwrightアクセス（必須）**
+   - MCP経由でPlaywrightを使用してアプリケーションにアクセス
+   - UI要素の存在確認（記事番号、カードレイアウト等）
+   - ライトモード・ダークモード両方での動作確認
+   - DOM要素の構造とスタイル確認
+
+3. **ユーザー確認プロセス（必須）**
+   - スクリーンショットをユーザーに提示
+   - 「この状態が美しいUI状態として正しいか」の確認を求める
+   - **ユーザー承認取得まで後続作業は停止**
+   - 承認後にPhase 2（テスト作成）に進む
+
+4. **確認項目チェックリスト**
+   - [ ] **スクリーンショット**: 記事番号「1」が青い丸いバッジで表示されている
+   - [ ] **スクリーンショット**: カードに美しい影（shadow-md）と角丸（rounded-lg）が適用されている
+   - [ ] **スクリーンショット**: ライトモードで適切な色合いになっている
+   - [ ] **スクリーンショット**: ダークモードで適切な色合いになっている
+   - [ ] **スクリーンショット**: 全体的なレイアウトが美しく整っている
+   - [ ] **MCP経由Playwright**: UI要素の存在をPlaywrightで確認済み
+   - [ ] **MCP経由Playwright**: ライト・ダークモード両方でのアクセス確認済み
+   - [ ] **MCP経由Playwright**: DOM構造とスタイルの確認済み
+   - [ ] **ユーザーからの承認を取得済み**
+
+### Phase 2: 美しい状態でのテスト作成（MCP経由）
+
+**前提条件**: Phase 1でのユーザー承認が完了していること
 
 #### ステップ1: 美しいUI状態を捉えるテスト作成
 
+**重要**: UIテストはMCP経由のPlaywrightを使用
+
 ```typescript
-// nook/frontend/tests/beautiful-ui.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('美しいUI状態の再現（e6248a37）', () => {
-  test.beforeEach(async ({ page }) => {
-    // 実際のAPIを使用（バックエンド起動が必要）
-    await page.goto('/?source=hacker-news');
-    await page.waitForLoadState('networkidle');
-  });
-
-  test('記事番号1が青い丸いバッジで表示される', async ({ page }) => {
-    // e6248a37の美しい状態を期待
-    const numberBadge = page.locator('span.bg-blue-100.text-blue-800.rounded-full').filter({ hasText: '1' }).first();
-    await expect(numberBadge).toBeVisible();
-    
-    // 丸い形状を確認
-    const borderRadius = await numberBadge.evaluate(el => 
-      window.getComputedStyle(el).borderRadius
-    );
-    expect(borderRadius).toMatch(/9999px|50%/);
-  });
-
-  test('カードに美しい影と角丸が適用される', async ({ page }) => {
-    const card = page.locator('.bg-white.dark\\:bg-gray-800.rounded-lg.shadow-md').first();
-    await expect(card).toBeVisible();
-    
-    // shadow-mdの確認
-    const boxShadow = await card.evaluate(el => 
-      window.getComputedStyle(el).boxShadow
-    );
-    expect(boxShadow).not.toBe('none');
-    
-    // rounded-lgの確認
-    const borderRadius = await card.evaluate(el => 
-      window.getComputedStyle(el).borderRadius
-    );
-    expect(borderRadius).toBe('8px');
-  });
-});
+// Test strategy via MCP Playwright
+// MCP経由でPlaywrightテストを実行
 ```
 
-**このテストは通るはず（美しい状態）**
-
-#### ステップ2: テスト実行と確認
+#### ステップ2: MCP経由テスト実行と確認
 ```bash
-# テストが通ることを確認
-npm run test
+# MCP経由でPlaywrightテスト実行
+# npmコマンドは使用しない
 ```
 
-### Phase 3: テスト駆動統合プロセス
+### Phase 3: 段階的テスト駆動統合プロセス
 
-#### ステップ1: 目標コミットとの差分確認
+**前提条件**: Phase 2でのテスト作成とユーザー承認が完了していること
+
+**重要**: 一気に統合せず、段階的に少しずつ統合してテストとUI確認を繰り返す
+
+#### ステップ1: 統合計画の作成
 ```bash
-# 0b3a80b96358db6651fc5660334677d613441ad3との差分確認
+# 目標コミットとの差分確認
 git diff 0b3a80b96358db6651fc5660334677d613441ad3 -- nook/frontend/
+
+# 変更されたファイル一覧の取得
+git diff --name-only 0b3a80b96358db6651fc5660334677d613441ad3 -- nook/frontend/
 ```
 
-#### ステップ2: テスト保護統合
-```bash
-# テストを保持しながら統合コミットに向けてrebase
-git rebase 0b3a80b96358db6651fc5660334677d613441ad3
-```
+#### ステップ2: 段階的統合戦略
+各ファイルまたはファイルグループ毎に段階的に統合：
 
-#### ステップ3: 統合後の検証
+**統合順序例**:
+1. **第1段階**: CSS/スタイル関連の変更のみ統合
+2. **第2段階**: コンポーネント構造の変更を統合  
+3. **第3段階**: ロジック変更を統合
+4. **第4段階**: 残りの変更を統合
+
+#### ステップ3: 各段階での統合プロセス
+**各段階で以下を繰り返し**:
+
+1. **小さな変更の適用**
+   ```bash
+   # 特定ファイルのみ統合（例：スタイル変更）
+   git show 0b3a80b96358db6651fc5660334677d613441ad3:nook/frontend/src/components/ContentCard.tsx > temp_file
+   # 必要な部分のみを手動で適用
+   ```
+
+2. **統合後テスト実行**
+   ```bash
+   # MCP経由でのPlaywrightテスト
+   # UI崩れがないことを確認
+   ```
+
+3. **UI確認（スクリーンショット + MCP経由Playwright両方必須）**
+   
+   **A. スクリーンショット撮影**
+   - ライトモード・ダークモードでのUI状態確認
+   - 記事番号、カードレイアウトの表示確認
+   
+   **B. MCP経由Playwrightアクセス**
+   - MCP経由でPlaywrightを使用してUI要素確認
+   - テストコードがpassすることを確認
+   - DOM構造とスタイルの確認
+   
+   **C. ユーザー確認プロセス**
+   - スクリーンショットとPlaywright結果をユーザーに提示
+   - ユーザー承認待ち（必須）
+   - 承認後に次の段階に進む
+
+4. **問題発生時の対処**
+   ```bash
+   # UI崩れが発生した場合
+   git reset --hard HEAD~1  # 前の状態に戻す
+   # 統合方法を見直して再実行
+   ```
+
+#### ステップ4: 各段階の完了条件
+- [ ] **MCP経由Playwright**: テストコードが全て通過
+- [ ] **スクリーンショット**: UI崩れがないことを視覚的に確認
+- [ ] **MCP経由Playwright**: UI要素の存在とスタイルを確認
+- [ ] **ユーザー承認**: スクリーンショット + Playwright結果の承認取得
+- [ ] **ビルド**: npm run buildが成功
+- [ ] **品質チェック**: Biomeチェックが通過
+
+#### ステップ5: 統合完了の最終検証
 ```bash
-# 統合後もテストが通ることを確認
-npm run test
+# 全段階完了後の最終確認
 npm run build
-npm run lint
+npx biome check --apply .
+# MCP経由での全テスト実行
 ```
 
-### Phase 4: 最終確認と完了
+### Phase 4: 安全ブランチ戦略での統合
 
-#### 1. 統合完了条件チェック
-- [ ] beautiful-ui.spec.tsが全て通過
-- [ ] 既存テストが全て通過  
-- [ ] 0b3a80b96358db6651fc5660334677d613441ad3への統合完了
-- [ ] ビルドが成功
-- [ ] Lintが通過
-
-#### 2. developブランチへのマージ
+#### 1. tmp-developブランチへの統合
 ```bash
-# developブランチにマージ
-git checkout develop
+# tmp-developブランチにマージ
+git checkout tmp-develop
 git merge feature/TASK-067-tdd-layout-fix --no-ff
 ```
 
-#### 3. 最終検証
-- [ ] developブランチでの全テスト通過
+#### 2. UI確認プロセス（必須）
+**重要**: merge後は必ずスクリーンショットを取りユーザが確認
+
+1. **スクリーンショット撮影**
+   - ライトモードでのUI状態
+   - ダークモードでのUI状態  
+   - 記事番号「1」の表示確認
+   - カードレイアウトの確認
+
+2. **ユーザー確認待ち**
+   - スクリーンショットをユーザーに提示
+   - UI崩れがないことの確認を求める
+   - 確認完了まで後続作業は停止
+
+3. **確認後の作業継続**
+   - ユーザー承認後に次のタスクに進む
+
+#### 3. 統合完了条件チェック
+- [ ] MCP経由でのPlaywrightテストが全て通過
+- [ ] 既存テストが全て通過  
+- [ ] 0b3a80b96358db6651fc5660334677d613441ad3への統合完了
+- [ ] ビルドが成功
+- [ ] Biomeチェックが通過
+- [ ] **スクリーンショット確認完了（ユーザー承認済み）**
+
+#### 4. 最終検証
+- [ ] tmp-developブランチでの全テスト通過
 - [ ] 美しいUI状態の保持確認
 - [ ] 品質チェック完了
+- [ ] **UI確認プロセス完了**
 
 ## 重要注意事項
 
-### 1. 修正されたアプローチの理解
+### 1. 安全ブランチ戦略
+- **作業ブランチ**: tmp-developブランチを使用（developブランチ不使用）
+- **UI確認**: git reset直後・merge毎にスクリーンショット撮影・ユーザー確認必須
+- **作業停止**: ユーザー確認完了まで後続作業は実行しない
+- **Phase毎の承認**: 各Phase開始前にユーザー承認が必要
+
+### 2. テスト実行方法
+- **UIテスト**: MCP経由のPlaywrightのみ使用
+- **npmコマンド**: UIテストでは使用禁止
+- **品質チェック**: Biome使用（`npx biome check --apply .`）
+
+### 3. UI確認プロセスの詳細
+- **タイミング**: git reset直後・merge毎に必須
+- **方法**: スクリーンショット撮影 + MCP経由Playwrightアクセス（両方必須）
+- **内容**: ライト/ダークモード両方での確認
+- **確認項目**: 記事番号表示、カードレイアウト、DOM構造、全体的なUI崩れ
+- **承認**: スクリーンショット + Playwright結果でのユーザー承認が必要
+
+### 4. 修正されたアプローチの理解
 - **Phase 1**: e6248a37にリセットして美しい状態を確保
-- **Phase 2**: 美しい状態でテストコードを作成（テスト通過を確認）
-- **Phase 3**: テストを保持しながら0b3a80b96358db6651fc5660334677d613441ad3に統合
-- **Phase 4**: 最終確認と完了
+- **Phase 2**: 美しい状態でMCP経由テストコード作成
+- **Phase 3**: **段階的統合** - 少しずつテストとUI確認を繰り返しながら統合
+- **Phase 4**: tmp-developへの安全統合とUI確認プロセス
 
-### 2. テスト駆動統合の重要性
-- テストコードが美しいUI状態の保護者として機能
-- 統合時にUIが破綻しないことを保証
-- 将来の変更に対する回帰テストとして機能
+### 5. 段階的統合の重要性
+- **一気統合の禁止**: 大きな変更を一度に統合することは禁止
+- **段階分割**: CSS→構造→ロジック→その他の順番で段階的に統合
+- **各段階での確認**: 統合毎にMCP経由Playwright + スクリーンショット + ユーザー承認
+- **テストコードpass必須**: 各段階でテストコードが通ることを確認
+- **問題時の巻き戻し**: UI崩れ発生時は即座に前の状態に戻す
+- **安全第一**: 確実性を優先し、時間がかかっても段階的に進める
 
-### 3. 最終目標
-- e6248a37の美しいUI状態を正確に捉えたテスト作成
+### 6. 最終目標
+- e6248a37の美しいUI状態を正確に捉えたMCP経由テスト作成
 - 0b3a80b96358db6651fc5660334677d613441ad3への安全な統合
-- 美しいUI状態を保護するテストコード整備
+- UI崩れを防ぐスクリーンショット確認プロセスの確立
+- tmp-developブランチでの安全な作業環境
 
 ## 期待される結果
 - 全サービスで記事番号「1」が青い背景の丸で表示
@@ -168,3 +275,4 @@ git merge feature/TASK-067-tdd-layout-fix --no-ff
 - ダークモードでの適切な背景色（gray-800）
 - e6248a37と同等の美しいUI
 - 0b3a80b96358db6651fc5660334677d613441ad3への正常統合
+- **UI崩れのないtmp-developブランチ状態**
