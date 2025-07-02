@@ -103,14 +103,21 @@ class TestFiveChanExplorer:
         
         # 呼び出されたURLを検証
         calls = mock_client.get.call_args_list
-        assert len(calls) == 2
+        call_urls = [call[0][0] for call in calls]
         
         # bbsmenu.html へのアクセス
-        assert "menu.5ch.net/bbsmenu.html" in calls[0][0][0]
+        assert any("menu.5ch.net/bbsmenu.html" in url for url in call_urls)
         
         # 正しい板URL（egg.5ch.net/esite/）へのアクセス
-        assert "egg.5ch.net/esite/" in calls[1][0][0]
+        assert any("egg.5ch.net/esite/" in url for url in call_urls)
         
         # 間違ったURL（menu.5ch.net/test/read.cgi/esite/）は使用されていない
-        for call in calls:
-            assert "menu.5ch.net/test/read.cgi" not in call[0][0]
+        for url in call_urls:
+            assert "menu.5ch.net/test/read.cgi" not in url
+        
+        # 正しいスレッドURL（egg.5ch.netのサーバーを使用）が最初に使用されている
+        thread_urls = [url for url in call_urls if "/test/read.cgi/" in url]
+        assert len(thread_urls) > 0
+        # 最初のスレッドURLが正しいサーバー（egg.5ch.net）を使用していることを確認
+        first_thread_url = thread_urls[0]
+        assert "egg.5ch.net" in first_thread_url
