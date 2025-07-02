@@ -36,10 +36,10 @@ class TestFiveChanExplorer:
             assert actual_url == expected_url
     
     @pytest.mark.asyncio
-    @patch('httpx.AsyncClient.get')
-    async def test_get_board_server_from_bbsmenu(self, mock_get, service):
+    async def test_get_board_server_from_bbsmenu(self, service):
         """bbsmenu.htmlから板のサーバー情報を取得するテスト"""
-        # モックレスポンスを設定
+        # http_clientをモックに設定
+        mock_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = """
@@ -50,7 +50,8 @@ class TestFiveChanExplorer:
         </body>
         </html>
         """
-        mock_get.return_value = mock_response
+        mock_client.get.return_value = mock_response
+        service.http_client = mock_client
         
         # テスト実行
         server = await service._get_board_server("esite")

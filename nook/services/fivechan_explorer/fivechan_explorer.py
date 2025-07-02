@@ -198,6 +198,52 @@ class FiveChanExplorer(BaseService):
         """
         return f"https://{server}/{board_id}/"
     
+    async def _get_board_server(self, board_id: str) -> str:
+        """
+        bbsmenu.htmlから板のサーバー情報を取得します。
+        
+        Parameters
+        ----------
+        board_id : str
+            板のID。
+            
+        Returns
+        -------
+        str
+            サーバーのホスト名。存在しない場合はNone。
+        """
+        try:
+            # bbsmenu.htmlにアクセス
+            bbsmenu_url = "https://menu.5ch.net/bbsmenu.html"
+            response = await self.http_client.get(bbsmenu_url, headers=self.browser_headers)
+            
+            if response.status_code != 200:
+                self.logger.error(f"bbsmenu.html取得失敗: {response.status_code}")
+                return None
+            
+            # BeautifulSoupでHTMLを解析
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # 板のリンクを検索
+            for a_tag in soup.find_all('a', href=True):
+                href = a_tag.get('href')
+                if f"/{board_id}/" in href:
+                    # URLからサーバー名を抽出
+                    import re
+                    match = re.search(r'https://([^/]+)/', href)
+                    if match:
+                        server = match.group(1)
+                        self.logger.info(f"板 {board_id} のサーバー: {server}")
+                        return server
+            
+            self.logger.warning(f"板 {board_id} のサーバー情報が見つかりませんでした")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"サーバー情報取得エラー: {e}")
+            return None
+    
     async def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
