@@ -35,45 +35,29 @@ class TestFiveChanExplorer:
             actual_url = service._build_board_url(board_id, server)
             assert actual_url == expected_url
     
-    @pytest.mark.asyncio
-    async def test_get_board_server_from_bbsmenu(self, service):
-        """bbsmenu.htmlから板のサーバー情報を取得するテスト"""
-        # http_clientをモックに設定
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.text = """
-        <html>
-        <body>
-        <a href="https://egg.5ch.net/esite/">ネットサービス</a>
-        <a href="https://peace.5ch.net/prog/">プログラミング</a>
-        </body>
-        </html>
-        """
-        mock_client.get.return_value = mock_response
-        service.http_client = mock_client
-        
-        # テスト実行
-        server = await service._get_board_server("esite")
+    def test_get_board_server_from_static_config(self, service):
+        """TASK-068: 静的設定から板のサーバー情報を取得するテスト（bbsmenu.html依存除去）"""
+        # 静的設定からサーバー情報を取得（非同期ではない）
+        server = service._get_board_server("esite")
         assert server == "egg.5ch.net"
         
-        server = await service._get_board_server("prog")  
-        assert server == "peace.5ch.net"
+        server = service._get_board_server("prog")  
+        assert server == "mevius.5ch.net"
         
-        # 存在しない板の場合
-        server = await service._get_board_server("nonexistent")
-        assert server is None
+        server = service._get_board_server("ai")
+        assert server == "egg.5ch.net"
+        
+        # 存在しない板の場合はデフォルトサーバー
+        server = service._get_board_server("nonexistent")
+        assert server == "mevius.5ch.net"  # デフォルト値
     
     @pytest.mark.asyncio
-    async def test_retrieve_ai_threads_uses_correct_url_structure(self, service):
-        """_retrieve_ai_threadsが正しいURL構造を使用するテスト"""
-        # http_clientをモックに設定
+    async def test_retrieve_ai_threads_uses_static_config_and_403_tolerance(self, service):
+        """TASK-068: 静的設定による正しいURL構造と403エラー対策のテスト"""
+        # 403対策戦略用のモック設定
         mock_client = AsyncMock()
-        
-        # bbsmenu.htmlのレスポンス（サーバー情報取得用）
-        bbsmenu_response = MagicMock()
-        bbsmenu_response.status_code = 200
-        bbsmenu_response.text = '<a href="https://egg.5ch.net/esite/">ネットサービス</a>'
+        mock_inner_client = AsyncMock()
+        mock_client._client = mock_inner_client
         
         # 板ページのレスポンス（スレッド一覧取得用）
         board_response = MagicMock()
@@ -86,41 +70,29 @@ class TestFiveChanExplorer:
         </html>
         '''
         
-        # getメソッドの動作をURL別に設定
-        def mock_get_side_effect(url, **kwargs):
-            if "bbsmenu.html" in url:
-                return bbsmenu_response
-            elif "egg.5ch.net/esite/" in url:
-                return board_response
-            else:
-                raise Exception(f"Unexpected URL: {url}")
-        
-        mock_client.get.side_effect = mock_get_side_effect
+        # 403対策戦略が成功するように設定
+        mock_inner_client.get.return_value = board_response
         service.http_client = mock_client
         
         # テスト実行
         threads = await service._retrieve_ai_threads("esite", 10)
         
+        # 403対策戦略により複数回のアクセスが試行されることを確認
+        assert mock_inner_client.get.call_count >= 1
+        
         # 呼び出されたURLを検証
-        calls = mock_client.get.call_args_list
+        calls = mock_inner_client.get.call_args_list
         call_urls = [call[0][0] for call in calls]
         
-        # bbsmenu.html へのアクセス
-        assert any("menu.5ch.net/bbsmenu.html" in url for url in call_urls)
+        # bbsmenu.htmlへのアクセスがないことを確認（TASK-068で除去）
+        assert not any("bbsmenu.html" in url for url in call_urls)
         
-        # 正しい板URL（egg.5ch.net/esite/）へのアクセス
+        # 正しい板URL（静的設定に基づくegg.5ch.net/esite/）へのアクセス
         assert any("egg.5ch.net/esite/" in url for url in call_urls)
         
-        # 間違ったURL（menu.5ch.net/test/read.cgi/esite/）は使用されていない
-        for url in call_urls:
-            assert "menu.5ch.net/test/read.cgi" not in url
-        
-        # 正しいスレッドURL（egg.5ch.netのサーバーを使用）が最初に使用されている
-        thread_urls = [url for url in call_urls if "/test/read.cgi/" in url]
-        assert len(thread_urls) > 0
-        # 最初のスレッドURLが正しいサーバー（egg.5ch.net）を使用していることを確認
-        first_thread_url = thread_urls[0]
-        assert "egg.5ch.net" in first_thread_url
+        # 代替エンドポイント戦略も試行されることを確認
+        alternative_urls = [url for url in call_urls if any(alt in url for alt in ["sp.5ch.net", "itest.5ch.net", "subject.txt"])]
+        assert len(alternative_urls) > 0  # 代替戦略が実行されている
     
     def test_improved_request_delay_configuration(self, service):
         """改善されたリクエスト遅延設定のテスト"""
