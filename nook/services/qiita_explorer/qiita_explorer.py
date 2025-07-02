@@ -72,7 +72,7 @@ class QiitaExplorer(BaseService):
             ストレージディレクトリのパス。
         """
         super().__init__("qiita_explorer")
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
         
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
@@ -103,6 +103,10 @@ class QiitaExplorer(BaseService):
         limit : int, default=3
             各フィードから取得する記事数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         all_articles = []
         
         try:
@@ -146,7 +150,8 @@ class QiitaExplorer(BaseService):
                 self.logger.info("保存する記事がありません")
                 
         finally:
-            await self.http_client.close()
+            # グローバルクライアントなのでクローズ不要
+            pass
     
     def _filter_entries(self, entries: List[dict], days: int, limit: Optional[int] = None) -> List[dict]:
         """
