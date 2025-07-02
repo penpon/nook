@@ -50,9 +50,9 @@ git checkout tmp-develop
 git log --oneline -5
 ```
 
-#### 2. 理想UI状態の確認（スクリーンショット必須）
+#### 2. 理想UI状態の確認（MCP-Playwright）
 
-**重要**: tmp-develop切り替え直後は必ずスクリーンショットを撮影してユーザー確認を取る
+**重要**: tmp-develop切り替え直後は必ずMCP-PlaywrightでUI状態を確認しユーザー確認を取る
 
 1. **アプリケーション起動**
    ```bash
@@ -60,9 +60,9 @@ git log --oneline -5
    # 起動方法はプロジェクトの設定に従う
    ```
 
-2. **環境情報（MCP経由Playwright使用時）**
+2. **環境情報（MCP-Playwright使用時）**
    
-   **重要**: MCP経由でPlaywrightを使用する際は以下のURLを使用：
+   **重要**: MCP-Playwrightを使用する際は以下のURLを使用：
    
    - **フロントエンドURL**: `http://localhost:5173`
    - **バックエンドURL**: `http://0.0.0.0:8000`
@@ -74,54 +74,34 @@ git log --oneline -5
    - `tech-feed`: `http://localhost:5173/?source=tech-feed`
    - その他のサービスも同様に`?source=<service-name>`パラメータで確認
 
-3. **UI確認（スクリーンショット + MCP経由Playwright両方必須）**
+3. **UI確認（MCP-Playwright）**
    
-   **A. スクリーンショット撮影**
-   - **ライトモードでのスクリーンショット**
-     - 記事番号「1」の青い背景表示（`bg-blue-100 text-blue-800`）
-     - 丸い形状（`rounded-full`）
-     - カードレイアウト（`rounded-lg shadow-md p-6`）
-     - 全体的なレイアウトの美しさ
-
-   - **ダークモードでのスクリーンショット**
-     - 記事番号「1」の青い背景表示（`dark:bg-blue-900 dark:text-blue-300`）
-     - ダークモード対応（`dark:bg-gray-800`）
-     - カードの影とレイアウト
-     - 全体的なダークモードの美しさ
-
-   **B. MCP経由Playwrightアクセス（必須）**
-   - MCP経由でPlaywrightを使用してアプリケーションにアクセス
+   **MCP-Playwrightアクセス**
+   - MCP-Playwrightを使用してアプリケーションにアクセス
    - **アクセスURL**: `http://localhost:5173/?source=hacker-news`を使用
    - UI要素の存在確認（記事番号、カードレイアウト等）
    - ライトモード・ダークモード両方での動作確認
    - DOM要素の構造とスタイル確認
 
 3. **ユーザー確認プロセス（必須）**
-   - スクリーンショットをユーザーに提示
+   - MCP-Playwright確認結果をユーザーに提示
    - 「この状態が美しいUI状態として正しいか」の確認を求める
    - **ユーザー承認取得まで後続作業は停止**
    - 承認後にPhase 2（テスト作成）に進む
 
 4. **確認項目チェックリスト**
-   - [ ] **スクリーンショット**: 記事番号「1」が青い丸いバッジで表示されている
-   - [ ] **スクリーンショット**: カードに美しい影（shadow-md）と角丸（rounded-lg）が適用されている
-   - [ ] **スクリーンショット**: ライトモードで適切な色合いになっている
-   - [ ] **スクリーンショット**: ダークモードで適切な色合いになっている
-   - [ ] **スクリーンショット**: 全体的なレイアウトが美しく整っている
-   - [ ] **MCP経由Playwright**: UI要素の存在をPlaywrightで確認済み
-   - [ ] **MCP経由Playwright**: ライト・ダークモード両方でのアクセス確認済み
-   - [ ] **MCP経由Playwright**: DOM構造とスタイルの確認済み
+   - [ ] **MCP-Playwright稼働**: 理想UI状態へのアクセス確認済み
    - [ ] **ユーザーからの承認を取得済み**
 
-### Phase 2: 理想UI状態でのテスト作成（MCP経由）
+### Phase 2: 理想UI状態でのテスト作成（MCP-Playwright）
 
 **前提条件**: Phase 1でのユーザー承認が完了していること
 
 #### ステップ1: 理想UI状態を完全に捉えるテスト作成
 
-**重要**: UIテストはMCP経由のPlaywrightを使用
+**重要**: UIテストはMCP-Playwrightを使用
 
-**環境情報（MCP経由Playwright使用時）**:
+**環境情報（MCP-Playwright使用時）**:
 - **フロントエンドURL**: `http://localhost:5173`
 - **バックエンドURL**: `http://0.0.0.0:8000`
 - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
@@ -140,18 +120,8 @@ git log --oneline -5
 ```
 
 #### ステップ2: 包括的テストスイートの作成
-1. **基本UI要素テスト**
-   - 記事番号バッジの存在と表示確認
-   - カードコンポーネントのスタイル確認
-   
-2. **レイアウトテスト**
-   - カードの影（shadow-md）確認
-   - 角丸（rounded-lg）確認
-   - パディング（p-6）確認
-   
-3. **テーマ対応テスト**
-   - ライトモードでの色合い確認
-   - ダークモードでの色合い確認
+1. **理想UI状態を確認するテストコード作成**
+   - tmp-develop (5017a80) の理想UI状態を基準とするテスト実装
 
 ### Phase 3: タスクグループ別段階的統合プロセス
 
@@ -217,31 +187,26 @@ git log --oneline tmp-develop..dst-develop
 
 3. **統合後テスト実行**
    ```bash
-   # MCP経由でのPlaywrightテスト実行
+   # MCP-Playwrightテスト実行
    # 理想UI状態テストがpassすることを確認
    ```
    
-   **環境情報（MCP経由Playwright使用時）**:
+   **環境情報（MCP-Playwright使用時）**:
    - **フロントエンドURL**: `http://localhost:5173`
    - **バックエンドURL**: `http://0.0.0.0:8000`
    - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
 
-4. **UI確認（スクリーンショット + MCP経由Playwright両方必須）**
+4. **UI確認（MCP-Playwright）**
    
-   **A. スクリーンショット撮影**
-   - ライトモード・ダークモードでのUI状態確認
-   - 記事番号、カードレイアウトの表示確認
-   - Stage統合後の全体的なUI品質確認
-   
-   **B. MCP経由Playwrightアクセス**
-   - MCP経由でPlaywrightを使用してUI要素確認
+   **MCP-Playwrightアクセス**
+   - MCP-Playwrightを使用してUI要素確認
    - **アクセスURL**: `http://localhost:5173/?source=hacker-news`を使用
    - **環境情報**: フロントエンド(`http://localhost:5173`)、バックエンド(`http://0.0.0.0:8000`)
    - 理想UI状態テストコードがpassすることを確認
    - DOM構造とスタイルの確認
    
-   **C. ユーザー確認プロセス**
-   - スクリーンショットとPlaywright結果の提示
+   **ユーザー確認プロセス**
+   - Playwright確認結果の提示
    - ユーザー承認待ち（必須）
    - 承認後に次のStageに進む
 
@@ -258,13 +223,8 @@ git log --oneline tmp-develop..dst-develop
    ```
 
 #### ステップ4: 各段階の完了条件
-- [ ] **MCP経由Playwright**: テストコードが全て通過
-  - **使用URL**: `http://localhost:5173/?source=hacker-news`
-  - **環境**: フロントエンド(`http://localhost:5173`)、バックエンド(`http://0.0.0.0:8000`)
-- [ ] **スクリーンショット**: UI崩れがないことを視覚的に確認
-- [ ] **MCP経由Playwright**: UI要素の存在とスタイルを確認
-  - **テスト対象サービス**: `hacker-news`, `business-feed`, `tech-feed`など
-- [ ] **ユーザー承認**: スクリーンショット + Playwright結果の承認取得
+- [ ] **MCP-Playwright稼働**: 理想UI状態テストが全て通過
+- [ ] **ユーザー承認**: MCP-Playwright確認結果の承認取得
 - [ ] **ビルド**: npm run buildが成功
 - [ ] **品質チェック**: Biomeチェックが通過
 
@@ -273,7 +233,7 @@ git log --oneline tmp-develop..dst-develop
 # 全段階完了後の最終確認
 npm run build
 npx biome check --apply .
-# MCP経由での全テスト実行
+# MCP-Playwrightでの全テスト実行
 ```
 
 ### Phase 4: 最終統合と統合完了検証
@@ -287,35 +247,28 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 ```
 
 #### 2. 最終UI確認プロセス（必須）
-**重要**: 最終統合後は必ずスクリーンショットを取りユーザーが最終確認
+**重要**: 最終統合後は必ずMCP-Playwright経由でUI状態を確認しユーザーが最終確認
 
-1. **統合完了スクリーンショット撮影**
-   - ライトモードでの最終UI状態
-   - ダークモードでの最終UI状態  
-   - 記事番号「1」の表示確認
-   - カードレイアウトの最終確認
-   - 全体的なUI品質の確認
+1. **統合完了UI確認（MCP-Playwright）**
+   - MCP-Playwrightによる理想UI状態の確認
 
 2. **dst-develop状態との比較確認**
    - dst-develop (0b3a80b) 状態と同等機能を持つことの確認
    - 理想UI状態が保持されていることの確認
 
 3. **最終ユーザー承認**
-   - 統合完了スクリーンショットをユーザーに提示
+   - 統合完了MCP-Playwright確認結果をユーザーに提示
    - dst-developへの全機能統合完了の確認
    - 理想UI状態維持の確認
    - 最終承認完了まで作業停止
 
 #### 3. 統合完了条件チェック
 - [ ] **全4Stage（HTTPクライアント、PWA、UIライブラリ、アーキテクチャ）の統合完了**
-- [ ] MCP経由でのPlaywrightテストが全て通過
-  - **使用URL**: `http://localhost:5173/?source=hacker-news`
-  - **環境**: フロントエンド(`http://localhost:5173`)、バックエンド(`http://0.0.0.0:8000`)
-- [ ] 理想UI状態テストが全て通過  
+- [ ] **MCP-Playwright稼働**: 理想UI状態テストが全て通過
+- [ ] **ユーザー承認**: 最終MCP-Playwright確認完了
 - [ ] dst-develop (0b3a80b) と同等機能の実現
 - [ ] ビルドが成功
 - [ ] Biomeチェックが通過
-- [ ] **最終スクリーンショット確認完了（ユーザー承認済み）**
 
 #### 4. 最終検証と作業完了
 - [ ] tmp-developブランチでの全テスト通過
@@ -330,7 +283,7 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 ### 1. 段階的統合戦略
 - **理想ベース**: tmp-develop (5017a80) を理想UI状態として設定
 - **統合方法**: cherry-pick戦略による段階的統合
-- **UI確認**: Stage統合毎にスクリーンショット撮影・ユーザー確認必須
+- **UI確認**: Stage統合毎にMCP-Playwright確認・ユーザー確認必須
 - **作業停止**: ユーザー確認完了まで後続作業は実行しない
 - **Stage毎の承認**: 各Stage完了前にユーザー承認が必要
 
@@ -341,7 +294,7 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 - **順次実行**: Stage 1→2→3→4の順で実行（並行実行禁止）
 
 ### 3. テスト実行方法
-- **UIテスト**: MCP経由のPlaywrightのみ使用
+- **UIテスト**: MCP-Playwrightのみ使用
   - **フロントエンドURL**: `http://localhost:5173`
   - **バックエンドURL**: `http://0.0.0.0:8000`
   - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
@@ -350,26 +303,25 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 
 ### 4. UI確認プロセスの詳細
 - **タイミング**: tmp-develop切り替え直後・Stage統合毎・最終統合後に必須
-- **方法**: スクリーンショット撮影 + MCP経由Playwrightアクセス（両方必須）
-- **MCP経由Playwright環境情報**:
+- **方法**: MCP-Playwrightアクセス
+- **MCP-Playwright環境情報**:
   - **フロントエンドURL**: `http://localhost:5173`
   - **バックエンドURL**: `http://0.0.0.0:8000`
   - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
   - **テスト対象サービス**: `hacker-news`, `business-feed`, `tech-feed`など
-- **内容**: ライト/ダークモード両方での確認
-- **確認項目**: 記事番号表示、カードレイアウト、DOM構造、全体的なUI崩れ
-- **承認**: スクリーンショット + Playwright結果でのユーザー承認が必要
+- **内容**: MCP-Playwrightによる理想UI状態確認
+- **承認**: ユーザー承認が必要
 
 ### 5. 新戦略アプローチの理解
 - **Phase 1**: tmp-developの理想UI状態を確認・承認取得
-- **Phase 2**: 理想UI状態でMCP経由テストコード作成
+- **Phase 2**: 理想UI状態でMCP-Playwrightテストコード作成
 - **Phase 3**: **4段階cherry-pick統合** - タスクグループ毎にStage統合実行
 - **Phase 4**: 最終統合とdst-develop同等機能の実現確認
 
 ### 6. 段階的cherry-pick統合の重要性
 - **一気統合の禁止**: 80+コミットを一度に統合することは禁止
 - **Stage分割**: HTTPクライアント→PWA→UIライブラリ→アーキテクチャの順番
-- **各Stage確認**: 統合毎にMCP経由Playwright + スクリーンショット + ユーザー承認
+- **各Stage確認**: 統合毎にMCP-Playwright + ユーザー承認
 - **理想UI保持**: 各Stage統合後も理想UI状態テストがpassすることを確認
 - **競合時対処**: cherry-pick競合は手動解決、困難な場合はスキップして後で対処
 - **安全第一**: 確実性を優先し、時間がかかっても段階的に進める
@@ -377,16 +329,13 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 ### 7. 最終目標
 - tmp-develop (5017a80) の理想UI状態を完全保持
 - dst-develop (0b3a80b) の全機能を安全に統合
-- UI崩れを防ぐスクリーンショット確認プロセスの確立
+- UI崩れを防ぐMCP-Playwright確認プロセスの確立
 - cherry-pick戦略による段階的統合の成功実現
 
 ## 期待される結果
 
 ### UI品質の保持
-- 全サービスで記事番号「1」が青い背景の丸で表示
-- カードに美しい影（shadow-md）と角丸（rounded-lg）  
-- ダークモードでの適切な背景色（gray-800）
-- tmp-develop (5017a80) と同等の理想UI状態
+- tmp-develop (5017a80) と同等の理想UI状態の完全保持
 
 ### 機能統合の完了
 - dst-develop (0b3a80b) の全機能を正常統合
@@ -400,4 +349,4 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 - cherry-pick戦略による段階的統合の成功
 - 理想UI状態の完全保持
 - 4つのStage統合プロセスの完遂
-- MCP経由テストによる品質保証の確立
+- MCP-Playwrightテストによる品質保証の確立
