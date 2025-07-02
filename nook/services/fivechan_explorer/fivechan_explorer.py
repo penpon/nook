@@ -1,18 +1,14 @@
 import asyncio
-import os
-import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Any
-import time
 
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.gpt_client import GPTClient
-from nook.common.http_client import AsyncHTTPClient
 from nook.common.storage import LocalStorage
 
 
@@ -99,6 +95,16 @@ class FiveChanExplorer(BaseService):
         
         # リクエスト間の遅延（サーバー負荷軽減のため）
         self.request_delay = 2  # 秒
+        
+        # ブラウザヘッダーの完全設定
+        self.browser_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Cache-Control": "no-cache",
+            "Referer": "https://5ch.net/"
+        }
     
     def _load_boards(self) -> Dict[str, str]:
         """
@@ -194,12 +200,21 @@ class FiveChanExplorer(BaseService):
         board_url = f"https://menu.5ch.net/bbsmenu.html"
         
         try:
-            self.logger.info(f"板一覧ページ {board_url} にアクセスしています...")
+            self.logger.info(f"板一覧ページ {board_url} にアクセスしています... (HTTP/1.1を使用)")
             
-            # 板一覧ページにアクセス
-            response = await self.http_client.get(board_url, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            })
+            # 板一覧ページにアクセス（HTTP/1.1を強制）
+            response = await self.http_client.get(
+                board_url, 
+                headers=self.browser_headers,
+                force_http1=True
+            )
+            
+            # 403エラーのチェック
+            if response.status_code == 403:
+                self.logger.error(f"HTTP 403 Forbidden エラー: {board_url}")
+                self.logger.error(f"レスポンスヘッダー: {response.headers}")
+                self.logger.error(f"レスポンス内容（最初の500文字）: {response.text[:500]}")
+                raise Exception(f"403 Forbidden: アクセスが拒否されました。レート制限またはアクセス制限の可能性があります。")
             
             # 板のURLを探す
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -221,11 +236,20 @@ class FiveChanExplorer(BaseService):
                 actual_board_url = f"https://menu.5ch.net/test/read.cgi/{board_id}/"
                 self.logger.info(f"推測した板URL: {actual_board_url}")
             
-            # 板のページにアクセス
+            # 板のページにアクセス（HTTP/1.1を強制）
             self.logger.info(f"板 {board_id} のページにアクセスしています...")
-            response = await self.http_client.get(actual_board_url, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            })
+            response = await self.http_client.get(
+                actual_board_url,
+                headers=self.browser_headers,
+                force_http1=True
+            )
+            
+            # 403エラーのチェック
+            if response.status_code == 403:
+                self.logger.error(f"HTTP 403 Forbidden エラー: {actual_board_url}")
+                self.logger.error(f"レスポンスヘッダー: {response.headers}")
+                self.logger.error(f"レスポンス内容（最初の500文字）: {response.text[:500]}")
+                raise Exception(f"403 Forbidden: 板 {board_id} へのアクセスが拒否されました。")
             
             # スレッド一覧を解析
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -323,11 +347,20 @@ class FiveChanExplorer(BaseService):
         try:
             self.logger.info(f"スレッド {thread_url} にアクセスしています...")
             
-            # まず提供されたURLで試す
+            # まず提供されたURLで試す（HTTP/1.1を強制）
             try:
-                response = await self.http_client.get(thread_url, headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                })
+                response = await self.http_client.get(
+                    thread_url,
+                    headers=self.browser_headers,
+                    force_http1=True
+                )
+                
+                # 403エラーのチェック
+                if response.status_code == 403:
+                    self.logger.error(f"HTTP 403 Forbidden エラー: {thread_url}")
+                    self.logger.error(f"レスポンスヘッダー: {response.headers}")
+                    self.logger.error(f"レスポンス内容（最初の500文字）: {response.text[:500]}")
+                    raise Exception(f"403 Forbidden: スレッドへのアクセスが拒否されました。")
                 
             except Exception as e:
                 self.logger.warning(f"元のURLでのアクセスエラー: {str(e)}")
@@ -348,9 +381,16 @@ class FiveChanExplorer(BaseService):
                             new_url = f"https://{subdomain}{path}"
                             self.logger.info(f"代替URLを試しています: {new_url}")
                             
-                            response = await self.http_client.get(new_url, headers={
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                            })
+                            response = await self.http_client.get(
+                                new_url,
+                                headers=self.browser_headers,
+                                force_http1=True
+                            )
+                            
+                            # 403エラーのチェック
+                            if response.status_code == 403:
+                                self.logger.warning(f"代替URLでも403エラー: {new_url}")
+                                continue
                             
                             thread_url = new_url  # 動作するURLに更新
                             success = True
