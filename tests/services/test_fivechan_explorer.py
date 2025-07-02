@@ -198,3 +198,49 @@ class TestFiveChanExplorer:
         # 最大遅延時間を超えないことを確認（例：300秒）
         max_delay = service._calculate_backoff_delay(10)
         assert max_delay <= 300
+    
+    def test_boards_configuration_loading(self, service):
+        """boards.toml設定ファイルの読み込みテスト"""
+        # 板設定が正しく読み込まれていることを確認
+        assert hasattr(service, 'target_boards')
+        assert isinstance(service.target_boards, dict)
+        assert len(service.target_boards) > 0
+        
+        # 重要な板が含まれていることを確認
+        important_boards = ['ai', 'esite', 'prog', 'tech']
+        for board_id in important_boards:
+            assert board_id in service.target_boards
+            assert len(service.target_boards[board_id]) > 0
+        
+        # AI専門板の確認
+        assert service.target_boards['ai'] == '人工知能'
+        assert service.target_boards['esite'] == 'ネットサービス'
+    
+    def test_ai_keywords_configuration(self, service):
+        """AIキーワード設定のテスト"""
+        # AIキーワードが適切に設定されていることを確認
+        assert hasattr(service, 'ai_keywords')
+        assert isinstance(service.ai_keywords, list)
+        assert len(service.ai_keywords) > 10
+        
+        # 重要なキーワードが含まれていることを確認
+        important_keywords = ['ai', 'chatgpt', 'claude', 'gpt', '人工知能']
+        for keyword in important_keywords:
+            assert any(keyword.lower() in kw.lower() for kw in service.ai_keywords)
+    
+    def test_service_integration_readiness(self, service):
+        """サービス統合準備状況のテスト"""
+        # 必要な属性が全て設定されていることを確認
+        required_attributes = [
+            'target_boards', 'ai_keywords', 'user_agents',
+            'min_request_delay', 'max_request_delay',
+            'browser_headers'
+        ]
+        
+        for attr in required_attributes:
+            assert hasattr(service, attr), f"必須属性 {attr} が設定されていません"
+        
+        # HTTP関連の設定が適切であることを確認
+        assert len(service.user_agents) >= 3
+        assert 'Accept' in service.browser_headers
+        assert 'Accept-Language' in service.browser_headers
