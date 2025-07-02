@@ -491,15 +491,53 @@ nook/
 - コミット: [CLAUDE.md](./CLAUDE.md)のコミット規約を参照
 
 ### テスト
-```bash
-# バックエンドテスト
-pytest tests/
 
-# フロントエンドテスト
+#### フロントエンドテスト（Vitest + Testing Library）
+```bash
+# テスト実行
 cd nook/frontend && npm test
 
-# E2Eテスト（今後実装予定）
+# ウォッチモード（開発時推奨）
+npm run test:watch
+
+# UIモード（ブラウザでテスト結果確認）
+npm run test:ui
+
+# 単発実行（CI用）
+npm run test:run
+
+# カバレッジ付きテスト
+npm run test:coverage
 ```
+
+#### バックエンドテスト
+```bash
+# 基本テスト実行
+pytest tests/
+
+# カバレッジ付きテスト
+pytest --cov=nook tests/
+
+# 特定モジュールのテスト
+pytest tests/test_services.py
+
+# 詳細出力
+pytest -v tests/
+```
+
+#### E2Eテスト（準備中）
+```bash
+# Playwright E2Eテスト（今後実装予定）
+npm run test:e2e
+
+# テスト環境セットアップ
+npm run test:e2e:setup
+```
+
+#### テスト品質管理
+- **テストカバレッジ**: フロントエンド90%以上、バックエンド85%以上を維持
+- **CI/CD統合**: すべてのプルリクエストで自動テスト実行
+- **モックデータ**: 実際のAPIを使用しないテスト環境
 
 ### 開発ワークフロー
 詳細な開発ガイドラインは[CLAUDE.md](./CLAUDE.md)を参照してください。
