@@ -100,13 +100,10 @@ class RedditExplorer(BaseService):
         if not all([self.client_id, self.client_secret, self.user_agent]):
             raise ValueError("Reddit API credentials must be provided or set as environment variables")
         
-        self.reddit = asyncpraw.Reddit(
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            user_agent=self.user_agent
-        )
+        # asyncprawインスタンスは使用時に作成
+        self.reddit = None
         
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
         
         # サブレディットの設定を読み込む
         script_dir = Path(__file__).parent
@@ -133,42 +130,55 @@ class RedditExplorer(BaseService):
         limit : int, default=3
             各サブレディットから取得する投稿数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         all_posts = []
         
-        try:
-            # 各カテゴリのサブレディットから投稿を取得
-            for category, subreddits in self.subreddits_config.items():
-                self.logger.info(f"カテゴリ {category} の処理を開始します...")
-                for subreddit_name in subreddits:
-                    try:
-                        self.logger.info(f"サブレディット r/{subreddit_name} から投稿を取得しています...")
-                        posts = await self._retrieve_hot_posts(subreddit_name, limit)
+        # Redditクライアントをコンテキストマネージャーで使用
+        async with asyncpraw.Reddit(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            user_agent=self.user_agent
+        ) as reddit:
+            self.reddit = reddit
+            
+            try:
+                # 各カテゴリのサブレディットから投稿を取得
+                for category, subreddits in self.subreddits_config.items():
+                    self.logger.info(f"カテゴリ {category} の処理を開始します...")
+                    for subreddit_name in subreddits:
+                        try:
+                            self.logger.info(f"サブレディット r/{subreddit_name} から投稿を取得しています...")
+                            posts = await self._retrieve_hot_posts(subreddit_name, limit)
+                            
+                            for post in posts:
+                                # トップコメントを取得
+                                comments = await self._retrieve_top_comments_of_post(post, limit=5)
+                                post.comments = comments
+                                
+                                # 投稿を要約
+                                await self._summarize_reddit_post(post)
+                                
+                                all_posts.append((category, subreddit_name, post))
                         
-                        for post in posts:
-                            # トップコメントを取得
-                            comments = await self._retrieve_top_comments_of_post(post, limit=5)
-                            post.comments = comments
-                            
-                            # 投稿を要約
-                            await self._summarize_reddit_post(post)
-                            
-                            all_posts.append((category, subreddit_name, post))
-                    
-                    except Exception as e:
-                        self.logger.error(f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}")
-            
-            self.logger.info(f"合計 {len(all_posts)} 件の投稿を取得しました")
-            
-            # 要約を保存
-            if all_posts:
-                await self._store_summaries(all_posts)
-                self.logger.info("投稿の要約を保存しました")
-            else:
-                self.logger.info("保存する投稿がありません")
+                        except Exception as e:
+                            self.logger.error(f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}")
                 
-        finally:
-            await self.reddit.close()
-            await self.http_client.close()
+                self.logger.info(f"合計 {len(all_posts)} 件の投稿を取得しました")
+                
+                # 要約を保存
+                if all_posts:
+                    await self._store_summaries(all_posts)
+                    self.logger.info("投稿の要約を保存しました")
+                else:
+                    self.logger.info("保存する投稿がありません")
+                
+            finally:
+                # グローバルHTTPクライアントなのでクローズ不要
+                pass
+                # asyncprawのコンテキストマネージャーが自動的にクローズする
     
     async def _retrieve_hot_posts(self, subreddit_name: str, limit: int) -> List[RedditPost]:
         """
