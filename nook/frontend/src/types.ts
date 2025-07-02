@@ -9,6 +9,12 @@ export interface ContentItem {
   isCategoryHeader?: boolean;
   isRepository?: boolean;
   isArticle?: boolean;
+  metadata?: {
+    articleNumber?: number;
+    feedName?: string;
+    subreddit?: string;
+    source?: string;
+  };
 }
 
 export interface ContentResponse {
