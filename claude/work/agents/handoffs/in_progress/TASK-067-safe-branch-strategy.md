@@ -60,7 +60,21 @@ git log --oneline -5
    # 起動方法はプロジェクトの設定に従う
    ```
 
-2. **UI確認（スクリーンショット + MCP経由Playwright両方必須）**
+2. **環境情報（MCP経由Playwright使用時）**
+   
+   **重要**: MCP経由でPlaywrightを使用する際は以下のURLを使用：
+   
+   - **フロントエンドURL**: `http://localhost:5173`
+   - **バックエンドURL**: `http://0.0.0.0:8000`
+   - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
+   
+   **テスト対象サービス**:
+   - `hacker-news`: `http://localhost:5173/?source=hacker-news`
+   - `business-feed`: `http://localhost:5173/?source=business-feed`
+   - `tech-feed`: `http://localhost:5173/?source=tech-feed`
+   - その他のサービスも同様に`?source=<service-name>`パラメータで確認
+
+3. **UI確認（スクリーンショット + MCP経由Playwright両方必須）**
    
    **A. スクリーンショット撮影**
    - **ライトモードでのスクリーンショット**
@@ -77,6 +91,7 @@ git log --oneline -5
 
    **B. MCP経由Playwrightアクセス（必須）**
    - MCP経由でPlaywrightを使用してアプリケーションにアクセス
+   - **アクセスURL**: `http://localhost:5173/?source=hacker-news`を使用
    - UI要素の存在確認（記事番号、カードレイアウト等）
    - ライトモード・ダークモード両方での動作確認
    - DOM要素の構造とスタイル確認
@@ -105,6 +120,16 @@ git log --oneline -5
 #### ステップ1: 理想UI状態を完全に捉えるテスト作成
 
 **重要**: UIテストはMCP経由のPlaywrightを使用
+
+**環境情報（MCP経由Playwright使用時）**:
+- **フロントエンドURL**: `http://localhost:5173`
+- **バックエンドURL**: `http://0.0.0.0:8000`
+- **テスト用URL**: `http://localhost:5173/?source=hacker-news`
+- **テスト対象サービス**:
+  - `hacker-news`: `http://localhost:5173/?source=hacker-news`
+  - `business-feed`: `http://localhost:5173/?source=business-feed`
+  - `tech-feed`: `http://localhost:5173/?source=tech-feed`
+  - その他のサービスも同様に`?source=<service-name>`パラメータで確認
 
 ```typescript
 // 理想UI状態テスト戦略
@@ -195,6 +220,11 @@ git log --oneline tmp-develop..dst-develop
    # MCP経由でのPlaywrightテスト実行
    # 理想UI状態テストがpassすることを確認
    ```
+   
+   **環境情報（MCP経由Playwright使用時）**:
+   - **フロントエンドURL**: `http://localhost:5173`
+   - **バックエンドURL**: `http://0.0.0.0:8000`
+   - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
 
 4. **UI確認（スクリーンショット + MCP経由Playwright両方必須）**
    
@@ -205,6 +235,8 @@ git log --oneline tmp-develop..dst-develop
    
    **B. MCP経由Playwrightアクセス**
    - MCP経由でPlaywrightを使用してUI要素確認
+   - **アクセスURL**: `http://localhost:5173/?source=hacker-news`を使用
+   - **環境情報**: フロントエンド(`http://localhost:5173`)、バックエンド(`http://0.0.0.0:8000`)
    - 理想UI状態テストコードがpassすることを確認
    - DOM構造とスタイルの確認
    
@@ -227,8 +259,11 @@ git log --oneline tmp-develop..dst-develop
 
 #### ステップ4: 各段階の完了条件
 - [ ] **MCP経由Playwright**: テストコードが全て通過
+  - **使用URL**: `http://localhost:5173/?source=hacker-news`
+  - **環境**: フロントエンド(`http://localhost:5173`)、バックエンド(`http://0.0.0.0:8000`)
 - [ ] **スクリーンショット**: UI崩れがないことを視覚的に確認
 - [ ] **MCP経由Playwright**: UI要素の存在とスタイルを確認
+  - **テスト対象サービス**: `hacker-news`, `business-feed`, `tech-feed`など
 - [ ] **ユーザー承認**: スクリーンショット + Playwright結果の承認取得
 - [ ] **ビルド**: npm run buildが成功
 - [ ] **品質チェック**: Biomeチェックが通過
@@ -274,6 +309,8 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 #### 3. 統合完了条件チェック
 - [ ] **全4Stage（HTTPクライアント、PWA、UIライブラリ、アーキテクチャ）の統合完了**
 - [ ] MCP経由でのPlaywrightテストが全て通過
+  - **使用URL**: `http://localhost:5173/?source=hacker-news`
+  - **環境**: フロントエンド(`http://localhost:5173`)、バックエンド(`http://0.0.0.0:8000`)
 - [ ] 理想UI状態テストが全て通過  
 - [ ] dst-develop (0b3a80b) と同等機能の実現
 - [ ] ビルドが成功
@@ -305,12 +342,20 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 
 ### 3. テスト実行方法
 - **UIテスト**: MCP経由のPlaywrightのみ使用
+  - **フロントエンドURL**: `http://localhost:5173`
+  - **バックエンドURL**: `http://0.0.0.0:8000`
+  - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
 - **理想状態テスト**: tmp-developの理想UI状態を基準とするテスト作成
 - **品質チェック**: Biome使用（`npx biome check --apply .`）
 
 ### 4. UI確認プロセスの詳細
 - **タイミング**: tmp-develop切り替え直後・Stage統合毎・最終統合後に必須
 - **方法**: スクリーンショット撮影 + MCP経由Playwrightアクセス（両方必須）
+- **MCP経由Playwright環境情報**:
+  - **フロントエンドURL**: `http://localhost:5173`
+  - **バックエンドURL**: `http://0.0.0.0:8000`
+  - **テスト用URL**: `http://localhost:5173/?source=hacker-news`
+  - **テスト対象サービス**: `hacker-news`, `business-feed`, `tech-feed`など
 - **内容**: ライト/ダークモード両方での確認
 - **確認項目**: 記事番号表示、カードレイアウト、DOM構造、全体的なUI崩れ
 - **承認**: スクリーンショット + Playwright結果でのユーザー承認が必要
