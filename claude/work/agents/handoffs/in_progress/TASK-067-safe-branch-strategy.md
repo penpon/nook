@@ -1,7 +1,10 @@
-# TASK-067: TDDによるレイアウト問題解決
+# TASK-067: TDDによるレイアウト問題解決（修正版）
 
 ## タスク概要
-RGRCサイクル（Red, Green, Refactor, Commit）を使用して、番号表示問題とレイアウト崩れを修正します。過去の美しいUIコミット（e6248a37）を参考にしながら、テストファーストで実装を進めます。
+RGRCサイクル（Red, Green, Refactor, Commit）を使用して、番号表示問題とレイアウト崩れを修正します。コミット`e6248a37`の美しいUI状態を正確に再現し、最終的に`0b3a80b96358db6651fc5660334677d613441ad3`に統合します。
+
+## 正しいTDDアプローチ
+**重要**: 現在のdevelopブランチ（問題がある状態）→ コミット`e6248a37`（美しいUI状態）を再現する
 
 ## 解決すべき問題
 1. 全サービスで記事番号「1」が表示されない
@@ -9,12 +12,14 @@ RGRCサイクル（Red, Green, Refactor, Commit）を使用して、番号表示
 3. ダークモードでの表示問題
 
 ## 参考コミット
-- **美しいUI状態**: e6248a37b7b91b33e7c34aac417fcfc0b75ed0e6 （参考実装として確認）
+- **目標状態**: e6248a37b7b91b33e7c34aac417fcfc0b75ed0e6 （美しいUI状態を正確に再現）
+- **最終統合先**: 0b3a80b96358db6651fc5660334677d613441ad3
 
 ## 変更予定ファイル
-- `nook/frontend/tests/layout.spec.ts` (新規テストファイル)
-- `nook/frontend/src/components/` 配下の各コンポーネント
-- `nook/frontend/playwright.config.ts` (Playwright設定)
+- `nook/frontend/tests/` 配下の新規テストファイル
+- `nook/frontend/src/components/ContentCard.tsx` 
+- `nook/frontend/src/components/content/ContentRenderer.tsx`
+- その他e6248a37で変更されたファイル
 
 ## 前提タスク
 TASK-063～TASK-066（失敗した修正アプローチ）
@@ -24,230 +29,134 @@ worktrees/TASK-067-tdd-layout-fix
 
 ## 作業内容
 
-### Phase 1: 環境準備とTODOリスト作成
+### Phase 1: e6248a37の詳細分析
 
-#### 1. 参考実装の確認
+#### 1. 参考実装の完全な分析
 ```bash
-# 美しいUIの状態を確認（参考として）
-git show e6248a37b7b91b33e7c34aac417fcfc0b75ed0e6 --name-only
-git show e6248a37b7b91b33e7c34aac417fcfc0b75ed0e6:nook/frontend/src/components/
+# e6248a37の変更内容を詳細調査
+git show e6248a37:nook/frontend/src/components/ContentCard.tsx
+git show e6248a37:nook/frontend/src/components/content/ContentRenderer.tsx
+git diff HEAD..e6248a37 -- nook/frontend/src/components/
 ```
 
-#### 2. TODOリスト作成
-以下の機能を小さく分割してリスト化：
-- [ ] 記事番号「1」の表示テスト作成
-- [ ] カードレイアウト（影・角丸）のテスト作成
-- [ ] ダークモードでの背景色テスト作成
-- [ ] サイドバー固定幅（256px）のテスト作成
-- [ ] 各サービス固有のヘッダー表示テスト作成
+#### 2. 美しいUI状態の特定
+- 記事番号「1」の青い背景表示（`bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300`）
+- 丸い形状（`rounded-full`）
+- カードレイアウト（`rounded-lg shadow-md p-6`）
+- ダークモード対応（`dark:bg-gray-800`）
 
-### Phase 2: RGRCサイクルによる実装
+### Phase 2: 正しいTDDサイクル
 
-#### サイクル1: 記事番号表示の修正
+#### サイクル1: RED段階 - e6248a37状態を期待するテスト
 
-**RED段階**
 ```typescript
-// nook/frontend/tests/article-number.spec.ts
+// nook/frontend/tests/beautiful-ui.spec.ts
 import { test, expect } from '@playwright/test';
 
-test.describe('記事番号表示', () => {
-  test('Hacker Newsで記事番号1が青い背景で表示される', async ({ page }) => {
+test.describe('美しいUI状態の再現（e6248a37）', () => {
+  test.beforeEach(async ({ page }) => {
+    // 実際のAPIを使用（バックエンド起動が必要）
     await page.goto('/?source=hacker-news');
     await page.waitForLoadState('networkidle');
-    
-    // 記事番号「1」を含む要素を探す
-    const numberBadge = page.locator('.bg-blue-100, .bg-blue-900').filter({ hasText: '1' }).first();
+  });
+
+  test('記事番号1が青い丸いバッジで表示される', async ({ page }) => {
+    // e6248a37の美しい状態を期待
+    const numberBadge = page.locator('span.bg-blue-100.text-blue-800.rounded-full').filter({ hasText: '1' }).first();
     await expect(numberBadge).toBeVisible();
     
-    // 丸い形状（rounded-full）であることを確認
+    // 丸い形状を確認
     const borderRadius = await numberBadge.evaluate(el => 
       window.getComputedStyle(el).borderRadius
     );
     expect(borderRadius).toMatch(/9999px|50%/);
   });
-  
-  test('Tech Newsで記事番号1が表示される', async ({ page }) => {
-    await page.goto('/?source=tech-news');
-    await page.waitForLoadState('networkidle');
+
+  test('カードに美しい影と角丸が適用される', async ({ page }) => {
+    const card = page.locator('.bg-white.dark\\:bg-gray-800.rounded-lg.shadow-md').first();
+    await expect(card).toBeVisible();
     
-    const numberBadge = page.locator('.bg-blue-100, .bg-blue-900').filter({ hasText: '1' }).first();
-    await expect(numberBadge).toBeVisible();
-  });
-});
-```
-**実行して失敗を確認**
-
-**GREEN段階**
-- テストを通すための最小限の実装
-- 各サービスのコンポーネントに番号表示を追加
-- ベタ書きでも構わない（動くことが最優先）
-
-**REFACTOR段階**
-- 番号表示の共通コンポーネント化
-- スタイルの統一
-- 重複コードの除去
-
-**COMMIT段階**
-```
-RED: 記事番号表示テスト追加 - TASK-067
-GREEN: 記事番号表示の最小実装 - TASK-067
-REFACTOR: 番号表示コンポーネント共通化 - TASK-067
-```
-
-#### サイクル2: カードレイアウトの修正
-
-**RED段階**
-```typescript
-// nook/frontend/tests/card-layout.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('カードレイアウト', () => {
-  test('カードに適切な影と角丸が適用される', async ({ page }) => {
-    await page.goto('/?source=hacker-news');
-    await page.waitForLoadState('networkidle');
-    
-    const card = page.locator('.bg-gray-800').first();
-    
-    // shadow-mdが適用されていることを確認
-    const shadow = await card.evaluate(el => 
+    // shadow-mdの確認
+    const boxShadow = await card.evaluate(el => 
       window.getComputedStyle(el).boxShadow
     );
-    expect(shadow).not.toBe('none');
-    expect(shadow).toMatch(/rgba?\(/);
+    expect(boxShadow).not.toBe('none');
     
-    // rounded-lg (8px)が適用されていることを確認
+    // rounded-lgの確認
     const borderRadius = await card.evaluate(el => 
       window.getComputedStyle(el).borderRadius
     );
     expect(borderRadius).toBe('8px');
-    
-    // パディング p-6 (24px)が適用されていることを確認
-    const padding = await card.evaluate(el => 
-      window.getComputedStyle(el).padding
-    );
-    expect(padding).toBe('24px');
   });
 });
 ```
 
-**GREEN段階**
-- カードコンポーネントにTailwindクラスを追加
-- `rounded-lg shadow-md p-6` の適用
+**このテストは失敗するはず（現在の状態は美しくない）**
 
-**REFACTOR段階**
-- カードスタイルの統一
-- 共通スタイルの抽出
-
-**COMMIT段階**
-```
-RED: カードレイアウトテスト追加 - TASK-067
-GREEN: カードスタイルの最小実装 - TASK-067
-REFACTOR: カードスタイル統一 - TASK-067
-```
-
-#### サイクル3: ダークモード対応
-
-**RED段階**
-```typescript
-// nook/frontend/tests/dark-mode.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('ダークモード', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.evaluate(() => {
-      document.documentElement.classList.add('dark');
-    });
-  });
-  
-  test('ダークモードでカード背景がgray-800になる', async ({ page }) => {
-    await page.goto('/?source=hacker-news');
-    await page.waitForLoadState('networkidle');
-    
-    const card = page.locator('.dark\\:bg-gray-800').first();
-    const bgColor = await card.evaluate(el => 
-      window.getComputedStyle(el).backgroundColor
-    );
-    expect(bgColor).toBe('rgb(31, 41, 55)'); // gray-800
-  });
-});
-```
-
-**以降、同様のサイクルで実装**
-
-### Phase 3: 統合テストの作成
-
-全体レイアウトが正しく表示されることを確認する統合テストを作成：
+#### サイクル2: GREEN段階 - e6248a37の実装を適用
 
 ```typescript
-// nook/frontend/tests/integration-layout.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('統合レイアウトテスト', () => {
-  test('全体レイアウトが正しく表示される', async ({ page }) => {
-    await page.goto('/');
-    
-    // サイドバー
-    const sidebar = page.locator('.w-64');
-    await expect(sidebar).toBeVisible();
-    const width = await sidebar.evaluate(el => 
-      window.getComputedStyle(el).width
-    );
-    expect(width).toBe('256px');
-    
-    // メインコンテンツ
-    const mainContent = page.locator('.flex-1');
-    await expect(mainContent).toBeVisible();
-    
-    // ナビゲーション項目
-    const navItems = ['Hacker News', 'Tech News', 'Business News', 'Zenn'];
-    for (const item of navItems) {
-      await expect(page.locator(`text=${item}`)).toBeVisible();
-    }
-  });
-});
+// ContentCard.tsxをe6248a37の状態に修正
+// 1. 記事番号バッジのスタイル修正
+// 2. カードレイアウトのクラス修正
+// 3. ダークモード対応の確認
 ```
 
-### Phase 4: 品質確認
+#### サイクル3: REFACTOR段階 - コード整理
 
-#### 完了前必須チェック
-- [ ] ビルドが成功する
-- [ ] 全テストが成功する
-- [ ] 自動品質チェック（Biome）が通過する
-- [ ] 新規追加したコードの警告を解消した
+- e6248a37の実装をベースに最適化
+- 重複コードの除去
+- 型安全性の向上
 
-#### テスト実行コマンド
+### Phase 3: 統合と検証
+
+#### 1. 全体テストの実行
 ```bash
-# Playwrightインストール
-npm install -D @playwright/test
-npx playwright install
-
-# テスト実行
-npm run test:layout
-
-# ヘッドフルモードで確認
-npx playwright test --headed
+npm run test
+npm run build
+npm run lint
 ```
+
+#### 2. 品質チェック
+- Biome自動修正
+- 新規警告の解消
+- パフォーマンス確認
+
+### Phase 4: 最終統合
+
+#### 1. 0b3a80b96358db6651fc5660334677d613441ad3への統合準備
+```bash
+# 目標コミットとの差分確認
+git diff 0b3a80b96358db6651fc5660334677d613441ad3 -- nook/frontend/
+
+# 必要に応じてrebase/merge戦略を決定
+```
+
+#### 2. 統合実行
+- developブランチにマージ
+- コンフリクト解決
+- 最終検証
 
 ## 重要注意事項
 
-### TDD原則の厳守
-1. **必ずテストを先に書く**（RED）
-2. **テストを通す最小限の実装**（GREEN）
-3. **動作を保ちながらリファクタリング**（REFACTOR）
-4. **各段階でコミット**（COMMIT）
+### 1. 正しいTDDの理解
+- **RED**: e6248a37の美しい状態を期待するテストを書く（失敗する）
+- **GREEN**: e6248a37の実装をそのまま適用してテストを通す
+- **REFACTOR**: コードを整理して品質向上
 
-### 三角測量の活用
-- 2つ以上のテストケースから一般化を導く
-- 例：Hacker NewsとTech Newsの番号表示テストから共通コンポーネントを抽出
+### 2. 参考実装の使い方
+- e6248a37の実装をそのまま採用（コピペOK）
+- 現在の状態との差分を正確に把握
+- テストが通ることを最優先
 
-### 参考実装の使い方
-- 過去のコミット（e6248a37）は「どう動くべきか」の参考
-- コピペではなく、テストが要求する実装を行う
+### 3. 最終目標
+- e6248a37の美しいUI状態を完全再現
+- 0b3a80b96358db6651fc5660334677d613441ad3への統合
+- 将来の変更に強いテストコード整備
 
 ## 期待される結果
 - 全サービスで記事番号「1」が青い背景の丸で表示
-- カードに美しい影（shadow-md）と角丸（rounded-lg）
+- カードに美しい影（shadow-md）と角丸（rounded-lg）  
 - ダークモードでの適切な背景色（gray-800）
-- 左サイドバーの固定幅（256px）
-- RGRCサイクルによる品質の高い実装
-- 将来の変更に強いテストコード
+- e6248a37と同等の美しいUI
+- 0b3a80b96358db6651fc5660334677d613441ad3への正常統合
