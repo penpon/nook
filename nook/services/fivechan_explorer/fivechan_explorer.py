@@ -130,7 +130,24 @@ class FiveChanExplorer(BaseService):
         with open(script_dir / "boards.toml", "rb") as f:
             import tomli
             config = tomli.load(f)
-            return config.get("boards", {})
+            boards_config = config.get("boards", {})
+            
+            # 新しい形式対応: {board_id: {name: "名前", server: "サーバー"}}
+            # 旧形式も対応: {board_id: "名前"}
+            boards = {}
+            self.board_servers = {}  # サーバー情報を保存
+            
+            for board_id, board_info in boards_config.items():
+                if isinstance(board_info, dict):
+                    # 新形式: {name: "名前", server: "サーバー"}
+                    boards[board_id] = board_info.get("name", board_id)
+                    self.board_servers[board_id] = board_info.get("server", "mevius.5ch.net")
+                else:
+                    # 旧形式: "名前"
+                    boards[board_id] = board_info
+                    self.board_servers[board_id] = "mevius.5ch.net"  # デフォルト
+            
+            return boards
     
     def _get_random_user_agent(self) -> str:
         """
@@ -307,9 +324,10 @@ class FiveChanExplorer(BaseService):
         """
         return f"https://{server}/{board_id}/"
     
-    async def _get_board_server(self, board_id: str) -> str:
+    def _get_board_server(self, board_id: str) -> str:
         """
-        bbsmenu.htmlから板のサーバー情報を取得します。
+        boards.tomlから板のサーバー情報を取得します。
+        TASK-068: bbsmenu.html依存を除去し、静的設定から取得
         
         Parameters
         ----------
@@ -319,39 +337,12 @@ class FiveChanExplorer(BaseService):
         Returns
         -------
         str
-            サーバーのホスト名。存在しない場合はNone。
+            サーバーのホスト名。存在しない場合はデフォルト値。
         """
-        try:
-            # bbsmenu.htmlにアクセス（改善されたリトライ機能付き）
-            bbsmenu_url = "https://menu.5ch.net/bbsmenu.html"
-            response = await self._get_with_retry(bbsmenu_url)
-            
-            if response.status_code != 200:
-                self.logger.error(f"bbsmenu.html取得失敗: {response.status_code}")
-                return None
-            
-            # BeautifulSoupでHTMLを解析
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 板のリンクを検索
-            for a_tag in soup.find_all('a', href=True):
-                href = a_tag.get('href')
-                if f"/{board_id}/" in href:
-                    # URLからサーバー名を抽出
-                    import re
-                    match = re.search(r'https://([^/]+)/', href)
-                    if match:
-                        server = match.group(1)
-                        self.logger.info(f"板 {board_id} のサーバー: {server}")
-                        return server
-            
-            self.logger.warning(f"板 {board_id} のサーバー情報が見つかりませんでした")
-            return None
-            
-        except Exception as e:
-            self.logger.error(f"サーバー情報取得エラー: {e}")
-            return None
+        # boards.tomlから直接サーバー情報を取得（bbsmenu.html依存除去）
+        server = self.board_servers.get(board_id, "mevius.5ch.net")
+        self.logger.info(f"板 {board_id} のサーバー: {server} (静的設定)")
+        return server
     
     async def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
         """
@@ -370,8 +361,8 @@ class FiveChanExplorer(BaseService):
             取得したスレッドのリスト。
         """
         try:
-            # 板のサーバー情報を取得
-            server = await self._get_board_server(board_id)
+            # 板のサーバー情報を取得（静的設定から）
+            server = self._get_board_server(board_id)
             if not server:
                 self.logger.error(f"板 {board_id} のサーバー情報が取得できませんでした")
                 return []
@@ -379,9 +370,28 @@ class FiveChanExplorer(BaseService):
             # 正しい板URLを構築
             board_url = self._build_board_url(board_id, server)
             
-            # 板のページにアクセス（改善されたリトライ機能付き、HTTP/1.1を強制）
+            # 板のページにアクセス（シンプルなHTTPアクセス）
             self.logger.info(f"板 {board_id} のページにアクセスしています...")
-            response = await self._get_with_retry(board_url, force_http1=True)
+            
+            # TASK-068: 最大限の簡素化 - より古典的なUA、ヘッダー最小化
+            headers = {
+                "User-Agent": "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)",
+                "Accept": "*/*"
+            }
+            
+            # アクセス間隔を増やす（5ch.netの制限回避）
+            await asyncio.sleep(3)
+            
+            try:
+                response = await self.http_client.get(board_url, headers=headers)
+            except Exception as e:
+                # HTTPSで失敗した場合、HTTPを試行
+                if board_url.startswith("https://"):
+                    http_url = board_url.replace("https://", "http://")
+                    self.logger.info(f"HTTPSアクセス失敗、HTTPで再試行: {http_url}")
+                    response = await self.http_client.get(http_url, headers=headers)
+                else:
+                    raise e
             
             # 403エラーのチェック
             if response.status_code == 403:
