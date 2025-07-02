@@ -1,16 +1,29 @@
 import { ContentItem } from '../../types';
+import { parseGitHubTrendingMarkdown } from './githubParser';
+import { parseTechNewsMarkdown } from './techNewsParser';
+import { parseBusinessNewsMarkdown } from './businessNewsParser';
+import { parseZennArticlesMarkdown } from './zennParser';
+import { parseQiitaArticlesMarkdown } from './qiitaParser';
+import { parseNoteArticlesMarkdown } from './noteParser';
+import { parseRedditPostsMarkdown } from './redditParser';
+import { parseAcademicPapersMarkdown } from './arxivParser';
+import { parseFourchanThreadsMarkdown } from './fourchanParser';
+import { parseFivechanThreadsMarkdown } from './fivechanParser';
+import { parseHackerNewsData } from './hackerNewsParser';
 
-export { parseGitHubTrendingMarkdown } from './githubParser';
-export { parseTechNewsMarkdown } from './techNewsParser';
-export { parseBusinessNewsMarkdown } from './businessNewsParser';
-export { parseZennArticlesMarkdown } from './zennParser';
-export { parseQiitaArticlesMarkdown } from './qiitaParser';
-export { parseNoteArticlesMarkdown } from './noteParser';
-export { parseRedditPostsMarkdown } from './redditParser';
-export { parseAcademicPapersMarkdown } from './arxivParser';
-export { parseFourchanThreadsMarkdown } from './fourchanParser';
-export { parseFivechanThreadsMarkdown } from './fivechanParser';
-export { parseHackerNewsData } from './hackerNewsParser';
+export {
+  parseGitHubTrendingMarkdown,
+  parseTechNewsMarkdown,
+  parseBusinessNewsMarkdown,
+  parseZennArticlesMarkdown,
+  parseQiitaArticlesMarkdown,
+  parseNoteArticlesMarkdown,
+  parseRedditPostsMarkdown,
+  parseAcademicPapersMarkdown,
+  parseFourchanThreadsMarkdown,
+  parseFivechanThreadsMarkdown,
+  parseHackerNewsData
+};
 
 // パーサー選択ロジックを統一
 export function getParserForSource(source: string) {

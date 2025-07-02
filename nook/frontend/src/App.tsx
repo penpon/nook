@@ -29,12 +29,13 @@ function App() {
   const { darkMode, setDarkMode } = useTheme();
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useMobileMenu();
   
-  // ソース変更時にURLを更新
+  // ソース変更時にURLを更新（一時的に無効化）
   useEffect(() => {
     if (isServer) return;
-    const url = new URL(window.location.href);
-    url.searchParams.set('source', selectedSource);
-    window.history.replaceState({}, '', url.toString());
+    // 一時的にコメントアウト
+    // const url = new URL(window.location.href);
+    // url.searchParams.set('source', selectedSource);
+    // window.history.replaceState({}, '', url.toString());
   }, [selectedSource]);
   
   const { processedItems, isLoading, isError, error, refetch } = useSourceData(
