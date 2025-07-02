@@ -10,7 +10,7 @@
 1. **tmp-develop (5017a80) を理想UI状態として設定**
 2. **理想UI状態で最高品質のテストコードを作成**
 3. **dst-developのコミットをタスクグループ単位で段階的cherry-pick**
-4. **各段階でテスト実行とUI確認（スクリーンショット必須）**
+4. **各段階でテスト実行とUI確認（MCP-Playwright）**
 5. **最終的にdst-develop (0b3a80b) 状態まで到達**
 
 ## 統合対象分析
@@ -42,17 +42,11 @@ worktrees/TASK-067-staged-integration
 
 ### Phase 1: 理想UI状態の確認とテスト作成
 
-#### 1. tmp-developブランチへの切り替え
-```bash
-# 理想UI状態のブランチに切り替え
-git checkout tmp-develop
-# 現在の状態確認
-git log --oneline -5
-```
+**前提条件**: 既にtmp-developブランチで作業中
 
-#### 2. 理想UI状態の確認（MCP-Playwright）
+#### 1. 理想UI状態の確認（MCP-Playwright）
 
-**重要**: tmp-develop切り替え直後は必ずMCP-PlaywrightでUI状態を確認しユーザー確認を取る
+**重要**: tmp-developブランチの理想UI状態をMCP-PlaywrightでUI状態を確認しユーザー確認を取る
 
 1. **アプリケーション起動**
    ```bash
@@ -177,11 +171,11 @@ git log --oneline tmp-develop..dst-develop
 
 2. **段階的cherry-pick実行**
    ```bash
-   # worktreeで安全に作業
-   git worktree add -b feature/TASK-067-staged-integration worktrees/TASK-067-staged-integration
+   # worktreeで安全に作業（tmp-developベース）
+   git worktree add -b feature/TASK-067-staged-integration worktrees/TASK-067-staged-integration tmp-develop
    cd worktrees/TASK-067-staged-integration
    
-   # tmp-developベースでタスクグループをcherry-pick
+   # タスクグループをcherry-pick
    git cherry-pick <commit-hash-1> <commit-hash-2> ...
    ```
 
@@ -242,12 +236,11 @@ npx biome check --apply .
 ```bash
 # 全Stage完了後、worktreeからtmp-developへ統合
 cd /Users/nana/workspace/nook  # メインディレクトリに戻る
-git checkout tmp-develop
 git merge worktrees/TASK-067-staged-integration --no-ff
 ```
 
 #### 2. 最終UI確認プロセス（必須）
-**重要**: 最終統合後は必ずMCP-Playwright経由でUI状態を確認しユーザーが最終確認
+**重要**: 最終統合後はMCP-PlaywrightでUI状態を確認しユーザーが最終確認
 
 1. **統合完了UI確認（MCP-Playwright）**
    - MCP-Playwrightによる理想UI状態の確認
@@ -302,7 +295,7 @@ git merge worktrees/TASK-067-staged-integration --no-ff
 - **品質チェック**: Biome使用（`npx biome check --apply .`）
 
 ### 4. UI確認プロセスの詳細
-- **タイミング**: tmp-develop切り替え直後・Stage統合毎・最終統合後に必須
+- **タイミング**: 作業開始時・Stage統合毎・最終統合後に必須
 - **方法**: MCP-Playwrightアクセス
 - **MCP-Playwright環境情報**:
   - **フロントエンドURL**: `http://localhost:5173`
