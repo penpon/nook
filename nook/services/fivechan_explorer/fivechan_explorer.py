@@ -66,7 +66,7 @@ class FiveChanExplorer(BaseService):
             ストレージディレクトリのパス。
         """
         super().__init__("fivechan_explorer")
-        self.http_client = AsyncHTTPClient()
+        self.http_client = None  # setup_http_clientで初期化
         self.gpt_client = GPTClient()
         self.storage = LocalStorage(storage_dir)
         
@@ -135,6 +135,10 @@ class FiveChanExplorer(BaseService):
         thread_limit : int, default=5
             各板から取得するスレッド数。
         """
+        # HTTPクライアントの初期化を確認
+        if self.http_client is None:
+            await self.setup_http_client()
+        
         all_threads = []
         
         try:
@@ -167,7 +171,8 @@ class FiveChanExplorer(BaseService):
                 self.logger.info("保存するスレッドがありません")
                 
         finally:
-            await self.http_client.close()
+            # グローバルクライアントなのでクローズ不要
+            pass
     
     async def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
         """
