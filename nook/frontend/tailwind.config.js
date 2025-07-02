@@ -5,8 +5,8 @@ export default {
   theme: {
     extend: {
       minHeight: {
-        'touch': '44px', // WCAG推奨最小サイズ
-        'touch-large': '48px', // より大きなターゲット
+        'touch': '44px',
+        'touch-large': '48px',
       },
       minWidth: {
         'touch': '44px',
@@ -15,20 +15,6 @@ export default {
       spacing: {
         'touch': '44px',
         'touch-large': '48px',
-      },
-      // Container Queries用の設定
-      containers: {
-        'xs': '20rem',
-        'sm': '24rem',
-        'md': '28rem',
-        'lg': '32rem',
-        'xl': '36rem',
-        '2xl': '42rem',
-        '3xl': '48rem',
-        '4xl': '56rem',
-        '5xl': '64rem',
-        '6xl': '72rem',
-        '7xl': '80rem',
       },
       colors: {
         blue: {
@@ -43,10 +29,6 @@ export default {
           800: '#1e40af',
           900: '#1e3a8a',
         }
-      },
-      animation: {
-        'spin': 'spin 1s linear infinite',
-        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       typography: {
         DEFAULT: {
@@ -69,18 +51,6 @@ export default {
             h3: {
               fontSize: '1.5rem',
             },
-            img: {
-              maxWidth: '100%',
-            },
-            pre: {
-              fontSize: '1.125rem',
-              overflowX: 'auto',
-            },
-            code: {
-              fontSize: '1.125rem',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            },
           },
         },
       },
@@ -88,6 +58,6 @@ export default {
   },
   plugins: [
     require('@tailwindcss/typography'),
-    require('@tailwindcss/container-queries'), // 復元
+    // @tailwindcss/container-queries を削除
   ],
 };

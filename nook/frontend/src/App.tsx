@@ -128,14 +128,14 @@ function App() {
             <UsageDashboard />
           </div>
         ) : (
-          <div className="content-container cq-xs:p-4 cq-md:p-6 cq-lg:p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <NewsHeader 
               selectedSource={selectedSource}
               selectedDate={selectedDate}
               darkMode={darkMode}
             />
 
-            <div className="cq-xs:grid cq-xs:grid-cols-1 cq-xl:grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <ContentRenderer
                 processedItems={processedItems}
                 selectedSource={selectedSource}
