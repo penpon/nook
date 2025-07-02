@@ -1,40 +1,51 @@
-# TASK-012: 言語セクションヘッダーのスタイリング実装
+# TASK-012: TypeScript型定義修正（フロントエンドエラー緊急修正）
 
-## タスク概要: GitHub Trendingの言語セクション（Python, Go, Rust）を視覚的に区別できるようにスタイリング
+## タスク概要
+フロントエンドの白い画面エラーの根本原因であるContentItem型のmetadata プロパティ未定義問題を修正
 
-## 変更予定ファイル: 
-- nook/frontend/src/components/ContentCard.tsx
-- nook/frontend/src/App.tsx（必要に応じて）
+## 変更予定ファイル
+- `/Users/nana/workspace/nook/nook/frontend/src/types.ts`
 
-## 前提タスク: TASK-011（Markdownパースが完了していること）
+## 前提タスク
+なし（最優先緊急修正）
 
-## worktree名: worktrees/TASK-012-section-header-styling
+## worktree名
+worktrees/TASK-012-typescript-types-fix
 
-## 作業内容:
+## 作業内容
 
-1. **セクションヘッダーの識別**
-   - 言語名だけのContentItem（content=""）を識別
-   - または特別なフラグで識別
+### 1. 現状確認
+- ContentItem型定義の現在の状態を確認
+- 各parserファイルでのmetadata使用状況を再確認（techNewsParser, businessNewsParser, zennParser等）
+- ContentRenderer.tsx:93でのmetadata アクセス箇所を確認
 
-2. **セクションヘッダー用のスタイル実装**
-   - カードスタイルではなく、見出しスタイルで表示
-   - デザイン案：
-     - フォントサイズ: text-2xl
-     - フォントウェイト: font-bold
-     - マージン: mt-8 mb-4（最初のセクションはmt-0）
-     - 下線または区切り線
-     - 背景色なし（カードスタイルを適用しない）
+### 2. 型定義修正
+- ContentItem型にmetadataプロパティを追加
+- metadata の型定義を以下の形式で設定：
+  ```typescript
+  metadata?: {
+    articleNumber?: number;
+    feedName?: string;
+  }
+  ```
 
-3. **番号付けの除外**
-   - セクションヘッダーには番号を付けない
-   - indexの計算から除外するロジックを実装
+### 3. 動作確認
+- TypeScript コンパイルエラーが解消されることを確認
+- フロントエンド開発サーバーが正常起動することを確認
+- ブラウザで白い画面が解消されることを確認
 
-4. **レスポンシブ対応**
-   - モバイルでの表示を確認
-   - 適切なマージンとフォントサイズ
+### 4. 品質管理
+- [ ] ビルドが成功する（`npm run build`）
+- [ ] 型チェックが成功する（`npm run type-check` または `tsc --noEmit`）
+- [ ] 既存テストが成功する
+- [ ] ブラウザでページが正常表示される
 
-## 期待される成果:
-- 言語セクションが明確に区別される
-- セクションヘッダーはカードではなく見出しとして表示
-- リポジトリのみに番号が付く
-- 全体的に見やすく整理された表示
+### 技術的注意事項
+- metadata プロパティはOptional（?）として定義（既存コードとの互換性確保）
+- 各プロパティも Optional として定義（段階的マイグレーション対応）
+- 既存のparserファイルの修正は不要（型定義のみで解決）
+
+### 期待される結果
+- フロントエンドの白い画面エラーが解消される
+- TypeScript の型安全性が確保される
+- すべてのparserファイルとContentRenderer.tsx の型エラーが解消される
