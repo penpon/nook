@@ -80,17 +80,21 @@ docker-compose up -d
 ## 技術スタック
 
 ### バックエンド
-- **Python 3.12** + **FastAPI**
-- **OpenAI API** (GPT-4互換) - テキスト生成・要約
+- **Python 3.12** + **FastAPI 0.95.0**
+- **OpenAI API 1.0.0** (GPT-4互換) - テキスト生成・要約
+- **httpx[http2] 0.24.0** - HTTP/2対応HTTPクライアント
+- **asyncpraw 7.7.1** - Reddit API非同期クライアント
 - **uv** - 高速パッケージマネージャー
 - **非同期処理** - httpx, asyncio
 - **エラーハンドリング** - 統一的な例外処理システム
 
 ### フロントエンド
-- **React 18** + **TypeScript** + **Vite**
-- **Material-UI** (@mui/material) - UIコンポーネント
-- **Tailwind CSS** - スタイリング（ダークモード対応）
-- **Recharts** - 使用量グラフ表示
+- **React 18.3.1** + **TypeScript 5.5.3** + **Vite 5.4.2**
+- **Material-UI v7.2.0** (@mui/material) - UIコンポーネント
+- **Tailwind CSS 3.4.1** - スタイリング（ダークモード対応）
+- **Recharts 3.0.0** - 使用量グラフ表示
+- **React Query 3.39.3** - サーバーサイドステート管理
+- **Vitest 3.2.4** + **Testing Library** - テストフレームワーク
 
 ### インフラ
 - **Docker** + **Docker Compose**
