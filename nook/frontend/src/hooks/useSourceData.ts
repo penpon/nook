@@ -16,21 +16,16 @@ export function useSourceData(selectedSource: string, selectedDate: Date, enable
   );
 
   const processedItems = useMemo((): ContentItem[] => {
-    console.log('useSourceData debug:', { selectedSource, dataItems: data?.items?.length });
-    
     if (!data?.items || data.items.length === 0) {
-      console.log('No data items available');
       return [];
     }
 
     const parser = getParserForSource(selectedSource);
-    console.log('Parser found:', !!parser);
     
     if (parser && data.items[0]?.content) {
       try {
         // Hacker Newsの場合は特殊処理
         if (selectedSource === 'hacker-news') {
-          console.log('Processing Hacker News data...');
           return parser(data.items);
         }
         // 他のソースはMarkdownをパース
@@ -41,7 +36,6 @@ export function useSourceData(selectedSource: string, selectedDate: Date, enable
       }
     }
 
-    console.log('Returning raw data items');
     return data.items;
   }, [data, selectedSource]);
 
