@@ -7,6 +7,15 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  },
   build: {
     // ファイル名にハッシュを含める（キャッシュバスティング）
     rollupOptions: {

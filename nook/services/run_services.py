@@ -184,7 +184,7 @@ async def main():
     parser.add_argument(
         "--service",
         choices=["all", "github_trending", "hacker_news", "reddit", "zenn", "qiita", 
-                "note", "tech_news", "business_news", "paper", "4chan", "5chan"],
+                "note", "tech_news", "business_news", "arxiv", "4chan", "5chan"],
         default="all",
         help="実行するサービスを指定します"
     )
