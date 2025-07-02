@@ -5,6 +5,7 @@ import UsageDashboard from './components/UsageDashboard';
 import { Sidebar } from './components/layout/Sidebar';
 import { ContentRenderer } from './components/content/ContentRenderer';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useSourceData } from './hooks/useSourceData';
 import { useTheme } from './hooks/useTheme';
 import { useMobileMenu } from './hooks/useMobileMenu';
@@ -42,8 +43,21 @@ function App() {
     currentPage === 'content'
   );
 
+  // Error handler for the main application
+  const handleAppError = (error: Error, errorInfo: React.ErrorInfo) => {
+    console.error('Application Error:', {
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+      source: selectedSource,
+      page: currentPage,
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
+    <ErrorBoundary onError={handleAppError}>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-screen overflow-y-auto">
         <Sidebar
@@ -138,7 +152,8 @@ function App() {
       
       {/* PWA更新通知 */}
       <PWAUpdateNotification />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 
