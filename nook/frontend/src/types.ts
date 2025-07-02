@@ -25,3 +25,31 @@ export interface WeatherResponse {
   temperature: number;
   icon: string;
 }
+
+export interface ApiErrorResponse {
+  message: string;
+  status: number;
+  statusText: string;
+  url?: string;
+  timestamp: string;
+}
+
+export interface ApiErrorContext {
+  url: string;
+  method: string;
+  params?: Record<string, unknown>;
+  headers?: Record<string, string>;
+  timestamp: string;
+}
+
+export interface NetworkError extends Error {
+  code?: string;
+  isNetworkError: true;
+  context: ApiErrorContext;
+}
+
+export interface ServerError extends Error {
+  response: ApiErrorResponse;
+  isServerError: true;
+  context: ApiErrorContext;
+}
