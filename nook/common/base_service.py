@@ -22,6 +22,7 @@ class BaseService(ABC):
         self.gpt_client = GPTClient()
         self.logger = setup_logger(service_name)
         self.request_delay = self.config.REQUEST_DELAY
+        self.http_client = None  # グローバルHTTPクライアントで初期化
         
     @abstractmethod
     async def collect(self) -> None:
@@ -80,3 +81,22 @@ class BaseService(ABC):
         
         # 新しいデータを保存
         await self.save_data(data, filename)
+    
+    async def setup_http_client(self):
+        """グローバルHTTPクライアントをセットアップ"""
+        if self.http_client is None:
+            from nook.common.http_client import get_http_client
+            self.http_client = await get_http_client()
+            self.logger.debug("HTTP client setup completed")
+    
+    async def cleanup(self):
+        """クリーンアップ処理（オーバーライド可能）"""
+        # グローバルクライアントの場合はクローズ不要
+        # サブクラスで追加のクリーンアップが必要な場合はオーバーライドする
+        pass
+    
+    async def initialize(self):
+        """非同期初期化処理（オーバーライド可能）"""
+        # サービスの非同期初期化をサポート
+        # 必要に応じてHTTPクライアントのセットアップも含む
+        await self.setup_http_client()
