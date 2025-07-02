@@ -180,6 +180,70 @@ class FiveChanExplorer(BaseService):
             # グローバルクライアントなのでクローズ不要
             pass
     
+    def _build_board_url(self, board_id: str, server: str) -> str:
+        """
+        板URLを構築します。
+        
+        Parameters
+        ----------
+        board_id : str
+            板のID。
+        server : str
+            サーバーのホスト名。
+            
+        Returns
+        -------
+        str
+            構築された板URL。
+        """
+        return f"https://{server}/{board_id}/"
+    
+    async def _get_board_server(self, board_id: str) -> str:
+        """
+        bbsmenu.htmlから板のサーバー情報を取得します。
+        
+        Parameters
+        ----------
+        board_id : str
+            板のID。
+            
+        Returns
+        -------
+        str
+            サーバーのホスト名。存在しない場合はNone。
+        """
+        try:
+            # bbsmenu.htmlにアクセス
+            bbsmenu_url = "https://menu.5ch.net/bbsmenu.html"
+            response = await self.http_client.get(bbsmenu_url, headers=self.browser_headers)
+            
+            if response.status_code != 200:
+                self.logger.error(f"bbsmenu.html取得失敗: {response.status_code}")
+                return None
+            
+            # BeautifulSoupでHTMLを解析
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # 板のリンクを検索
+            for a_tag in soup.find_all('a', href=True):
+                href = a_tag.get('href')
+                if f"/{board_id}/" in href:
+                    # URLからサーバー名を抽出
+                    import re
+                    match = re.search(r'https://([^/]+)/', href)
+                    if match:
+                        server = match.group(1)
+                        self.logger.info(f"板 {board_id} のサーバー: {server}")
+                        return server
+            
+            self.logger.warning(f"板 {board_id} のサーバー情報が見つかりませんでした")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"サーバー情報取得エラー: {e}")
+            return None
+    
     async def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
@@ -196,15 +260,20 @@ class FiveChanExplorer(BaseService):
         List[Thread]
             取得したスレッドのリスト。
         """
-        # 5chの板URLを構築
-        board_url = f"https://menu.5ch.net/bbsmenu.html"
-        
         try:
-            self.logger.info(f"板一覧ページ {board_url} にアクセスしています... (HTTP/1.1を使用)")
+            # 板のサーバー情報を取得
+            server = await self._get_board_server(board_id)
+            if not server:
+                self.logger.error(f"板 {board_id} のサーバー情報が取得できませんでした")
+                return []
             
-            # 板一覧ページにアクセス（HTTP/1.1を強制）
+            # 正しい板URLを構築
+            board_url = self._build_board_url(board_id, server)
+            
+            # 板のページにアクセス（HTTP/1.1を強制）
+            self.logger.info(f"板 {board_id} のページにアクセスしています...")
             response = await self.http_client.get(
-                board_url, 
+                board_url,
                 headers=self.browser_headers,
                 force_http1=True
             )
@@ -212,41 +281,6 @@ class FiveChanExplorer(BaseService):
             # 403エラーのチェック
             if response.status_code == 403:
                 self.logger.error(f"HTTP 403 Forbidden エラー: {board_url}")
-                self.logger.error(f"レスポンスヘッダー: {response.headers}")
-                self.logger.error(f"レスポンス内容（最初の500文字）: {response.text[:500]}")
-                raise Exception(f"403 Forbidden: アクセスが拒否されました。レート制限またはアクセス制限の可能性があります。")
-            
-            # 板のURLを探す
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 特定の板へのリンクを検索
-            board_links = soup.find_all('a')
-            actual_board_url = None
-            
-            for link in board_links:
-                href = link.get('href', '')
-                if f"/{board_id}/" in href and not href.endswith('.html'):
-                    actual_board_url = href
-                    self.logger.info(f"板 {board_id} のURL: {actual_board_url}")
-                    break
-            
-            if not actual_board_url:
-                self.logger.warning(f"板 {board_id} のURLが見つかりませんでした")
-                # 直接URLを構築してみる
-                actual_board_url = f"https://menu.5ch.net/test/read.cgi/{board_id}/"
-                self.logger.info(f"推測した板URL: {actual_board_url}")
-            
-            # 板のページにアクセス（HTTP/1.1を強制）
-            self.logger.info(f"板 {board_id} のページにアクセスしています...")
-            response = await self.http_client.get(
-                actual_board_url,
-                headers=self.browser_headers,
-                force_http1=True
-            )
-            
-            # 403エラーのチェック
-            if response.status_code == 403:
-                self.logger.error(f"HTTP 403 Forbidden エラー: {actual_board_url}")
                 self.logger.error(f"レスポンスヘッダー: {response.headers}")
                 self.logger.error(f"レスポンス内容（最初の500文字）: {response.text[:500]}")
                 raise Exception(f"403 Forbidden: 板 {board_id} へのアクセスが拒否されました。")
@@ -277,9 +311,9 @@ class FiveChanExplorer(BaseService):
                     title = element.text.strip()
                     thread_url = element.get('href', '')
                     
-                    # 相対URLの場合は絶対URLに変換
+                    # 相対URLの場合は絶対URLに変換（正しいサーバーを使用）
                     if thread_url.startswith('/'):
-                        thread_url = f"https://menu.5ch.net{thread_url}"
+                        thread_url = f"https://{server}{thread_url}"
                     
                     # スレッドIDを抽出
                     thread_id_match = re.search(r'/([0-9]+)', thread_url)
