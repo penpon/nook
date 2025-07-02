@@ -162,7 +162,7 @@ class FiveChanExplorer(BaseService):
         base_delay = min(2 ** retry_count, 300)
         return base_delay
     
-    async def _get_with_retry(self, url: str, max_retries: int = 3) -> any:
+    async def _get_with_retry(self, url: str, max_retries: int = 3, **kwargs) -> any:
         """
         リトライ機能付きHTTP GETリクエスト。
         
@@ -186,7 +186,7 @@ class FiveChanExplorer(BaseService):
                 headers = self.browser_headers.copy()
                 headers["User-Agent"] = self._get_random_user_agent()
                 
-                response = await self.http_client.get(url, headers=headers)
+                response = await self.http_client.get(url, headers=headers, **kwargs)
                 
                 # 成功レスポンス（200番台）の場合は返す
                 if 200 <= response.status_code < 300:
@@ -267,8 +267,11 @@ class FiveChanExplorer(BaseService):
                     
                     all_threads.extend(threads)
                     
-                    # リクエスト間の遅延
-                    await asyncio.sleep(self.request_delay)
+                    # 改善されたリクエスト間遅延（ランダム化）
+                    import random
+                    delay = random.uniform(self.min_request_delay, self.max_request_delay)
+                    self.logger.debug(f"リクエスト間遅延: {delay:.1f}秒")
+                    await asyncio.sleep(delay)
                 
                 except Exception as e:
                     self.logger.error(f"Error processing board /{board_id}/: {str(e)}")
@@ -319,9 +322,9 @@ class FiveChanExplorer(BaseService):
             サーバーのホスト名。存在しない場合はNone。
         """
         try:
-            # bbsmenu.htmlにアクセス
+            # bbsmenu.htmlにアクセス（改善されたリトライ機能付き）
             bbsmenu_url = "https://menu.5ch.net/bbsmenu.html"
-            response = await self.http_client.get(bbsmenu_url, headers=self.browser_headers)
+            response = await self._get_with_retry(bbsmenu_url)
             
             if response.status_code != 200:
                 self.logger.error(f"bbsmenu.html取得失敗: {response.status_code}")
@@ -376,13 +379,9 @@ class FiveChanExplorer(BaseService):
             # 正しい板URLを構築
             board_url = self._build_board_url(board_id, server)
             
-            # 板のページにアクセス（HTTP/1.1を強制）
+            # 板のページにアクセス（改善されたリトライ機能付き、HTTP/1.1を強制）
             self.logger.info(f"板 {board_id} のページにアクセスしています...")
-            response = await self.http_client.get(
-                board_url,
-                headers=self.browser_headers,
-                force_http1=True
-            )
+            response = await self._get_with_retry(board_url, force_http1=True)
             
             # 403エラーのチェック
             if response.status_code == 403:
