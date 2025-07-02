@@ -2,373 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-/* モバイルファースト基本設定 */
-@layer base {
-  /* モバイル基準のroot設定 */
-  :root {
-    /* モバイル用カラーパレット */
-    --primary-50: #eff6ff;
-    --primary-500: #3b82f6;
-    --primary-900: #1e3a8a;
-    
-    /* モバイル用フォントサイズ（基準） */
-    --text-xs: 0.75rem;    /* 12px */
-    --text-sm: 0.875rem;   /* 14px */
-    --text-base: 1rem;     /* 16px - モバイル基準 */
-    --text-lg: 1.125rem;   /* 18px */
-    --text-xl: 1.25rem;    /* 20px */
-    
-    /* モバイル用スペーシング（基準） */
-    --space-1: 0.25rem;    /* 4px */
-    --space-2: 0.5rem;     /* 8px */
-    --space-3: 0.75rem;    /* 12px */
-    --space-4: 1rem;       /* 16px - モバイル基準 */
-    --space-5: 1.25rem;    /* 20px */
-    --space-6: 1.5rem;     /* 24px */
-    
-    /* タッチターゲットサイズ */
-    --touch-target-min: 44px;
-    --touch-target-comfortable: 48px;
-    --touch-target-large: 56px;
-  }
-  
-  /* デスクトップ用の拡張 */
-  @media (min-width: 768px) {
-    :root {
-      /* デスクトップ用フォントサイズ（拡張） */
-      --text-base: 1.125rem; /* 18px */
-      --text-lg: 1.25rem;    /* 20px */
-      --text-xl: 1.5rem;     /* 24px */
-      --text-2xl: 2rem;      /* 32px */
-      
-      /* デスクトップ用スペーシング（拡張） */
-      --space-4: 1.5rem;     /* 24px */
-      --space-6: 2rem;       /* 32px */
-      --space-8: 2.5rem;     /* 40px */
-    }
-  }
+/* Container Queries基本設定 */
+.container-query {
+  container-type: inline-size;
+}
 
-  /* HTML基本設定（モバイル優先） */
-  html {
-    font-size: 16px; /* モバイル基準 */
-    line-height: 1.5;
-    scroll-behavior: smooth;
-    -webkit-text-size-adjust: 100%;
-    -webkit-tap-highlight-color: transparent;
-  }
-  
-  @media (min-width: 768px) {
-    html {
-      font-size: 18px; /* デスクトップで拡張 */
-    }
-  }
+.container-query-normal {
+  container-type: normal;
+}
 
-  body {
-    @apply antialiased;
-    @apply text-base text-gray-900 dark:text-white;
-    @apply bg-white dark:bg-gray-900;
-    /* モバイル用フォント設定 */
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    /* モバイル最適化 */
-    overscroll-behavior: none;
-    -webkit-overflow-scrolling: touch;
-    touch-action: manipulation;
-  }
+.container-query-size {
+  container-type: size;
+}
 
-  /* タッチデバイス用の調整 */
-  @media (hover: none) and (pointer: coarse) {
-    body {
-      /* モバイルデバイス専用スタイル */
-      user-select: none;
-    }
-    
-    /* ボタンのタッチ最適化 */
-    button, [role="button"] {
-      @apply min-h-[44px] min-w-[44px];
-      touch-action: manipulation;
-      user-select: none;
-    }
+/* カスタムコンテナサイズ */
+.content-container {
+  container-type: inline-size;
+  container-name: content;
+}
+
+.card-container {
+  container-type: inline-size;
+  container-name: card;
+}
+
+.dashboard-container {
+  container-type: inline-size;
+  container-name: dashboard;
+}
+
+.sidebar-container {
+  container-type: inline-size;
+  container-name: sidebar;
+}
+
+/* Container Queries用のレスポンシブクラス */
+@container (min-width: 320px) {
+  .cq-xs\:block { display: block; }
+  .cq-xs\:grid { display: grid; }
+  .cq-xs\:flex { display: flex; }
+  .cq-xs\:grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  .cq-xs\:text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+}
+
+@container (min-width: 384px) {
+  .cq-sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cq-sm\:flex-row { flex-direction: row; }
+  .cq-sm\:text-base { font-size: 1rem; line-height: 1.5rem; }
+  .cq-sm\:p-4 { padding: 1rem; }
+}
+
+@container (min-width: 448px) {
+  .cq-md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cq-md\:p-6 { padding: 1.5rem; }
+  .cq-md\:text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+
+@container (min-width: 512px) {
+  .cq-lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cq-lg\:flex-row { flex-direction: row; }
+  .cq-lg\:space-x-4 > :not([hidden]) ~ :not([hidden]) { 
+    margin-left: 1rem; 
   }
 }
 
-@layer components {
-  /* モバイルファーストコンポーネントベース */
-  
-  /* カード基本スタイル（モバイル基準） */
-  .card {
-    @apply bg-white dark:bg-gray-800;
-    @apply rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
-    @apply p-4; /* モバイル基準パディング */
-    @apply transition-shadow duration-200;
-    
-    /* デスクトップでの拡張 */
-    @media (min-width: 768px) {
-      padding: 1.5rem;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    }
-    
-    /* タッチデバイスでの調整 */
-    @media (hover: none) {
-      transform: scale(1);
-      transition-property: transform;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 150ms;
-    }
-    
-    /* ホバー可能デバイスでの調整 */
-    @media (hover: hover) {
-      transition: box-shadow 0.2s;
-    }
-  }
-  
-  /* ボタン基本スタイル（モバイル基準） */
-  .btn {
-    @apply inline-flex items-center justify-center;
-    @apply px-4 py-2; /* モバイル基準 */
-    @apply min-h-[44px]; /* WCAG準拠 */
-    @apply rounded-lg font-medium;
-    @apply transition-colors duration-200;
-    @apply touch-manipulation;
-    @apply select-none;
-    
-    /* デスクトップでの拡張 */
-    @media (min-width: 768px) {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-      padding-top: 0.75rem;
-      padding-bottom: 0.75rem;
-      min-height: 40px; /* デスクトップでは少し小さく */
-    }
-  }
-  
-  .btn-primary {
-    @apply btn bg-blue-600 text-white;
-    @apply active:bg-blue-700; /* タッチ用 */
-  }
-  
-  @media (hover: hover) {
-    .btn-primary:hover {
-      background-color: #1d4ed8;
-    }
-  }
-  
-  .btn-secondary {
-    @apply btn bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white;
-    @apply active:bg-gray-300 dark:active:bg-gray-600;
-  }
-  
-  @media (hover: hover) {
-    .btn-secondary:hover {
-      background-color: #d1d5db;
-    }
-    .dark .btn-secondary:hover {
-      background-color: #4b5563;
-    }
-  }
-  
-  /* 入力フィールド（モバイル基準） */
-  .input {
-    @apply w-full px-3 py-2;
-    @apply min-h-[44px]; /* タッチフレンドリー */
-    @apply border border-gray-300 dark:border-gray-600;
-    @apply rounded-lg;
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-500;
-    @apply dark:bg-gray-700 dark:text-white;
-    @apply text-base; /* ズーム防止のため16px以上 */
-    
-    /* デスクトップでの調整 */
-    @media (min-width: 768px) {
-      min-height: 40px;
-      font-size: 0.875rem;
-      line-height: 1.25rem;
-    }
-  }
-  
-  /* グリッドレイアウト（モバイルファースト） */
-  .grid-responsive {
-    @apply grid grid-cols-1 gap-4; /* モバイル基準 */
-  }
-  
-  @media (min-width: 640px) {
-    .grid-responsive {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1.5rem;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .grid-responsive {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-  
-  @media (min-width: 1280px) {
-    .grid-responsive {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-  }
-  
-  /* テキストサイズ（モバイルファースト） */
-  .text-responsive-sm {
-    @apply text-sm; /* モバイル基準 */
-  }
-  
-  @media (min-width: 768px) {
-    .text-responsive-sm {
-      font-size: 1rem;
-      line-height: 1.5rem;
-    }
-  }
-  
-  .text-responsive-base {
-    @apply text-base; /* モバイル基準 */
-  }
-  
-  @media (min-width: 768px) {
-    .text-responsive-base {
-      font-size: 1.125rem;
-      line-height: 1.75rem;
-    }
-  }
-  
-  .text-responsive-lg {
-    @apply text-lg; /* モバイル基準 */
-  }
-  
-  @media (min-width: 768px) {
-    .text-responsive-lg {
-      font-size: 1.25rem;
-      line-height: 1.75rem;
-    }
-  }
-  
-  /* スペーシング（モバイルファースト） */
-  .spacing-responsive {
-    @apply p-4; /* モバイル基準 */
-  }
-  
-  @media (min-width: 640px) {
-    .spacing-responsive {
-      padding: 1.5rem;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .spacing-responsive {
-      padding: 2rem;
-    }
-  }
+@container (min-width: 640px) {
+  .cq-xl\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cq-xl\:p-8 { padding: 2rem; }
 }
 
-@layer utilities {
-  /* タッチ最適化ユーティリティ */
-  .touch-optimized {
-    @apply min-h-[44px] min-w-[44px];
-    @apply touch-manipulation;
-    @apply select-none;
-  }
-  
-  /* スクロール最適化 */
-  .scroll-smooth-mobile {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
-  
-  /* フォーカス最適化 */
-  .focus-visible-mobile {
-    @apply focus:outline-none;
-    @apply focus-visible:outline-2;
-    @apply focus-visible:outline-blue-500;
-    @apply focus-visible:outline-offset-2;
-  }
-  
-  /* モバイル専用表示/非表示 */
-  .mobile-only {
-    display: block;
-  }
-  
-  @media (min-width: 768px) {
-    .mobile-only {
-      display: none;
-    }
-  }
-  
-  .desktop-only {
-    @apply hidden;
-  }
-  
-  @media (min-width: 768px) {
-    .desktop-only {
-      display: block;
-    }
-  }
-  
-  /* セーフエリア対応 */
-  .safe-area-inset {
-    padding-top: env(safe-area-inset-top);
-    padding-right: env(safe-area-inset-right);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-  }
-  
-  /* Container Queries（モバイルファースト） */
-  .container-mobile {
-    container-type: inline-size;
-    container-name: mobile;
-  }
+@container (min-width: 768px) {
+  .cq-2xl\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-/* モバイル専用メディアクエリ */
-@media (max-width: 767px) {
-  /* モバイル専用の微調整 */
-  .prose {
-    font-size: 0.875rem;
-    line-height: 1.5;
+/* 古いブラウザ向けフォールバック */
+@supports not (container-type: inline-size) {
+  .card-container {
+    /* ビューポートベースのフォールバック */
   }
   
-  /* モバイルでのテーブル最適化 */
-  .table-mobile {
-    font-size: 0.75rem;
-    line-height: 1rem;
+  .cq-xs\:text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
   }
   
-  .table-mobile th,
-  .table-mobile td {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-  }
-}
-
-/* タッチデバイス専用 */
-@media (hover: none) and (pointer: coarse) {
-  /* スクロールバーを隠す */
-  ::-webkit-scrollbar {
-    display: none;
-  }
-  
-  /* タッチフィードバック */
-  .touch-feedback {
-    @apply active:scale-95;
-    @apply transition-transform duration-150;
-  }
-  
-  /* ボタンのタッチ最適化 */
-  button:active,
-  [role="button"]:active {
-    transform: scale(0.95);
-  }
-}
-
-/* 印刷用スタイル */
-@media print {
-  .no-print {
-    display: none;
-  }
-  
-  body {
-    color: black;
-    background-color: white;
+  .cq-md\:text-xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
   }
 }
