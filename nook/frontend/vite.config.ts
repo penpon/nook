@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
-export default defineConfig(({ command, mode }) => {
+export default defineConfig(({ mode }) => {
   const isSSR = mode === 'ssr'
   
   return {
@@ -80,6 +80,18 @@ export default defineConfig(({ command, mode }) => {
         disable: isSSR,
       })
     ],
+    
+    // プロキシ設定を追加
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path // パスをそのまま使用
+        }
+      }
+    },
     
     resolve: {
       alias: {
