@@ -2,92 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Container Queries基本設定 */
-.container-query {
-  container-type: inline-size;
-}
-
-.container-query-normal {
-  container-type: normal;
-}
-
-.container-query-size {
-  container-type: size;
-}
-
-/* カスタムコンテナサイズ */
-.content-container {
-  container-type: inline-size;
-  container-name: content;
-}
-
-.card-container {
-  container-type: inline-size;
-  container-name: card;
-}
-
-.dashboard-container {
-  container-type: inline-size;
-  container-name: dashboard;
-}
-
-.sidebar-container {
-  container-type: inline-size;
-  container-name: sidebar;
-}
-
-/* Container Queries用のレスポンシブクラス */
-@container (min-width: 320px) {
-  .cq-xs\:block { display: block; }
-  .cq-xs\:grid { display: grid; }
-  .cq-xs\:flex { display: flex; }
-  .cq-xs\:grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-  .cq-xs\:text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-}
-
-@container (min-width: 384px) {
-  .cq-sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cq-sm\:flex-row { flex-direction: row; }
-  .cq-sm\:text-base { font-size: 1rem; line-height: 1.5rem; }
-  .cq-sm\:p-4 { padding: 1rem; }
-}
-
-@container (min-width: 448px) {
-  .cq-md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .cq-md\:p-6 { padding: 1.5rem; }
-  .cq-md\:text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-}
-
-@container (min-width: 512px) {
-  .cq-lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .cq-lg\:flex-row { flex-direction: row; }
-  .cq-lg\:space-x-4 > :not([hidden]) ~ :not([hidden]) { 
-    margin-left: 1rem; 
-  }
-}
-
-@container (min-width: 640px) {
-  .cq-xl\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cq-xl\:p-8 { padding: 2rem; }
-}
-
-@container (min-width: 768px) {
-  .cq-2xl\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-/* 古いブラウザ向けフォールバック */
-@supports not (container-type: inline-size) {
-  .card-container {
-    /* ビューポートベースのフォールバック */
-  }
-  
-  .cq-xs\:text-lg {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-  }
-  
-  .cq-md\:text-xl {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
+/* 基本的なカスタムスタイルのみ保持 */
+@layer components {
+  .dashboard-container {
+    container-type: inline-size;
+    container-name: dashboard;
   }
 }
