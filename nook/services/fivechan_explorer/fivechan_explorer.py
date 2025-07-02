@@ -517,9 +517,168 @@ class FiveChanExplorer(BaseService):
         
         return None
     
+    async def _get_subject_txt_data(self, board_id: str) -> List[dict]:
+        """
+        subject.txt形式でスレッド一覧を取得（Cloudflare突破成功手法）
+        
+        Parameters
+        ----------
+        board_id : str
+            板ID
+            
+        Returns
+        -------
+        List[dict]
+            スレッド情報リスト
+        """
+        # 成功確認済みサーバーマッピング（実際のテスト結果に基づく）
+        server_mapping = {
+            'ai': ['egg.5ch.net', 'mevius.5ch.net'],
+            'prog': ['medaka.5ch.net', 'mevius.5ch.net'], 
+            'tech': ['mevius.5ch.net'],  # 修正: techはmevius.5ch.netのみ
+            'esite': ['mevius.5ch.net'],  # 修正: esiteはmevius.5ch.netのみ
+            'software': ['egg.5ch.net'],
+            'bizplus': ['egg.5ch.net'],
+            'news': ['hayabusa9.5ch.net']
+        }
+        
+        servers = server_mapping.get(board_id, [self._get_board_server(board_id)])
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (compatible; 5ch subject reader)',
+            'Accept': 'text/plain'
+        }
+        
+        for server in servers:
+            try:
+                url = f"https://{server}/{board_id}/subject.txt"
+                self.logger.info(f"subject.txt取得: {url}")
+                
+                # 直接httpxクライアントを使用（403回避のため）
+                import httpx
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, headers=headers, timeout=10.0)
+                
+                if response.status_code == 200:
+                    # 文字化け対策（Shift_JIS + フォールバック）
+                    try:
+                        content = response.content.decode('shift_jis', errors='ignore')
+                    except:
+                        try:
+                            content = response.content.decode('cp932', errors='ignore')
+                        except:
+                            try:
+                                content = response.content.decode('utf-8', errors='ignore')
+                            except:
+                                content = response.text
+                    
+                    threads_data = []
+                    lines = content.split('\n')
+                    
+                    import re
+                    for line in lines:
+                        if line.strip():
+                            # dat形式解析: timestamp.dat<>title (post_count)
+                            match = re.match(r'(\d+)\.dat<>(.+?)\s+\((\d+)\)', line)
+                            if match:
+                                timestamp, title, post_count = match.groups()
+                                threads_data.append({
+                                    'server': server,
+                                    'board': board_id,
+                                    'timestamp': timestamp,
+                                    'title': title.strip(),
+                                    'post_count': int(post_count),
+                                    'dat_url': f"https://{server}/{board_id}/dat/{timestamp}.dat",
+                                    'html_url': f"https://{server}/test/read.cgi/{board_id}/{timestamp}/"
+                                })
+                    
+                    self.logger.info(f"subject.txt成功: {len(threads_data)}スレッド取得")
+                    return threads_data
+                    
+            except Exception as e:
+                self.logger.warning(f"subject.txt失敗 {server}: {e}")
+                continue
+        
+        return []
+    
+    async def _get_thread_posts_from_dat(self, dat_url: str) -> List[Dict[str, Any]]:
+        """
+        dat形式でスレッドの投稿を取得（Cloudflare突破成功手法）
+        
+        Parameters
+        ----------
+        dat_url : str
+            datファイルURL
+            
+        Returns
+        -------
+        List[Dict[str, Any]]
+            投稿データリスト
+        """
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (compatible; 5ch dat reader)',
+            'Accept': 'text/plain'
+        }
+        
+        try:
+            self.logger.info(f"dat取得開始: {dat_url}")
+            # 直接httpxクライアントを使用（403回避のため）
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(dat_url, headers=headers, timeout=15.0)
+            self.logger.info(f"dat取得レスポンス: {response.status_code}")
+            
+            if response.status_code == 200:
+                # 文字化け対策（Shift_JIS + フォールバック）
+                try:
+                    content = response.content.decode('shift_jis', errors='ignore')
+                except:
+                    try:
+                        content = response.content.decode('cp932', errors='ignore')
+                    except:
+                        try:
+                            content = response.content.decode('utf-8', errors='ignore')
+                        except:
+                            content = response.text
+                
+                posts = []
+                lines = content.split('\n')
+                
+                for i, line in enumerate(lines):
+                    if line.strip():
+                        # dat形式: name<>mail<>date ID<>message<>
+                        parts = line.split('<>')
+                        if len(parts) >= 4:
+                            posts.append({
+                                'no': i + 1,
+                                'name': parts[0],
+                                'mail': parts[1], 
+                                'date': parts[2],
+                                'com': parts[3],
+                                'time': parts[2]  # 互換性のため
+                            })
+                
+                self.logger.info(f"dat解析完了: 総行数{len(lines)}, 有効投稿{len(posts)}件")
+                if posts:
+                    self.logger.info(f"dat取得成功: {len(posts)}投稿")
+                    return posts[:10]  # 最初の10投稿
+                else:
+                    self.logger.warning(f"dat内容は取得したが投稿データなし: {len(content)}文字")
+                    self.logger.debug(f"dat内容サンプル: {content[:200]}")
+                    return []
+            else:
+                self.logger.error(f"dat取得HTTP error: {response.status_code}")
+                return []
+                
+        except Exception as e:
+            self.logger.error(f"dat取得エラー {dat_url}: {e}")
+        
+        return []
+
     async def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
+        【Cloudflare突破成功版】subject.txt + dat形式による完全実装
         
         Parameters
         ----------
@@ -534,315 +693,59 @@ class FiveChanExplorer(BaseService):
             取得したスレッドのリスト。
         """
         try:
-            # 板のサーバー情報を取得（静的設定から）
-            server = self._get_board_server(board_id)
-            if not server:
-                self.logger.error(f"板 {board_id} のサーバー情報が取得できませんでした")
+            self.logger.info(f"【突破手法】板 {board_id} からAI関連スレッドを取得します")
+            
+            # 1. subject.txtからスレッド一覧を取得（突破成功手法）
+            threads_data = await self._get_subject_txt_data(board_id)
+            if not threads_data:
+                self.logger.warning(f"subject.txt取得失敗: 板 {board_id}")
                 return []
             
-            # 正しい板URLを構築
-            board_url = self._build_board_url(board_id, server)
-            
-            # 板のページにアクセス（403エラー耐性HTTPアクセス）
-            self.logger.info(f"板 {board_id} のページにアクセスしています...")
-            
-            # TASK-068: 更なる最適化 - 403エラー特化対策
-            response = await self._get_with_403_tolerance(board_url, board_id)
-            if not response:
-                return []
-            
-            # スレッド一覧を解析
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 5chのスレッド一覧を取得（pタグ内のaタグを探す）
-            thread_elements = []
-            p_elements = soup.find_all('p')
-            
-            for p in p_elements:
-                a_tag = p.find('a')
-                if a_tag and '/test/read.cgi/' in a_tag.get('href', ''):
-                    thread_elements.append(a_tag)
-            
-            if not thread_elements:
-                # 別の方法で試す
-                thread_elements = soup.select('a[href*="/test/read.cgi/"]')
-            
-            self.logger.info(f"見つかったスレッド数: {len(thread_elements)}")
-            
+            # 2. AI関連スレッドをフィルタリング
             ai_threads = []
+            self.logger.info(f"AI関連スレッド検索中... 対象: {len(threads_data)}スレッド")
             
-            for element in thread_elements[:50]:  # 最初の50スレッドだけ確認
-                try:
-                    # スレッドタイトルとURLを取得
-                    title = element.text.strip()
-                    thread_url = element.get('href', '')
+            for thread_data in threads_data:
+                title = thread_data['title']
+                title_lower = title.lower()
+                
+                # AIキーワードマッチング
+                is_ai_related = any(keyword.lower() in title_lower for keyword in self.ai_keywords)
+                
+                if is_ai_related:
+                    self.logger.info(f"AI関連スレッド発見: {title}")
                     
-                    # 相対URLの場合は絶対URLに変換（正しいサーバーを使用）
-                    if thread_url.startswith('/'):
-                        thread_url = f"https://{server}{thread_url}"
+                    # 3. dat形式で投稿データを取得（突破成功手法）
+                    posts = await self._get_thread_posts_from_dat(thread_data['dat_url'])
                     
-                    # スレッドIDを抽出
-                    thread_id_match = re.search(r'/([0-9]+)', thread_url)
-                    if not thread_id_match:
-                        continue
-                    
-                    thread_id = int(thread_id_match.group(1))
-                    
-                    # AIキーワードがタイトルに含まれているかチェック（大文字小文字を区別しない）
-                    title_lower = title.lower()
-                    is_ai_related = any(keyword.lower() in title_lower for keyword in self.ai_keywords)
-                    
-                    self.logger.debug(f"スレッド: {title}, AI関連: {is_ai_related}")
-                    
-                    if is_ai_related:
-                        # 投稿を取得
-                        self.logger.info(f"AI関連スレッド見つかりました: {title}")
-                        # Fix: Pass None as the initial working_subdomain
-                        posts, timestamp = await self._retrieve_thread_posts(thread_url, None)
+                    if posts:  # 投稿取得成功時のみスレッド作成
+                        thread = Thread(
+                            thread_id=int(thread_data['timestamp']),
+                            title=title,
+                            url=thread_data['html_url'],  # HTML版URL
+                            board=board_id,
+                            posts=posts,
+                            timestamp=int(thread_data['timestamp'])
+                        )
                         
-                        if posts:  # 投稿が取得できた場合のみ追加
-                            thread = Thread(
-                                thread_id=thread_id,
-                                title=title,
-                                url=thread_url,
-                                board=board_id,
-                                posts=posts,
-                                timestamp=timestamp
-                            )
-                            
-                            ai_threads.append(thread)
-                            
-                            # 指定された数のスレッドを取得したら終了
-                            if len(ai_threads) >= limit:
-                                break
+                        ai_threads.append(thread)
+                        self.logger.info(f"スレッド追加成功: {title} ({len(posts)}投稿)")
                         
-                        # リクエスト間の遅延
-                        await asyncio.sleep(self.request_delay)
-                except Exception as e:
-                    self.logger.error(f"スレッド処理エラー: {str(e)}")
-                    continue
+                        # 制限数に達したら終了
+                        if len(ai_threads) >= limit:
+                            break
+                    else:
+                        self.logger.warning(f"投稿取得失敗: {title}")
+                    
+                    # アクセス間隔（丁寧なアクセス）
+                    await asyncio.sleep(2)
             
+            self.logger.info(f"【突破成功】板 {board_id}: {len(ai_threads)}件のAI関連スレッド取得完了")
             return ai_threads
             
         except Exception as e:
-            self.logger.error(f"板 {board_id} からのスレッド取得エラー: {str(e)}")
+            self.logger.error(f"【突破手法エラー】板 {board_id}: {str(e)}")
             return []
-    
-    async def _retrieve_thread_posts(self, thread_url: str, working_subdomain: Optional[str] = None) -> tuple[List[Dict[str, Any]], int]:
-        """
-        スレッドの投稿を取得します。
-        
-        Parameters
-        ----------
-        thread_url : str
-            スレッドのURL。
-        working_subdomain : Optional[str], default=None
-            動作しているサブドメイン。指定されない場合は自動的に検出を試みます。
-            
-        Returns
-        -------
-        tuple[List[Dict[str, Any]], int]
-            投稿のリストとスレッド作成タイムスタンプのタプル。
-        """
-        try:
-            self.logger.info(f"スレッド {thread_url} にアクセスしています...")
-            
-            # まず提供されたURLで試す（HTTP/1.1を強制）
-            try:
-                response = await self.http_client.get(
-                    thread_url,
-                    headers=self.browser_headers,
-                    force_http1=True
-                )
-                
-                # 403エラーのチェック
-                if response.status_code == 403:
-                    self.logger.error(f"HTTP 403 Forbidden エラー: {thread_url}")
-                    self.logger.error(f"レスポンスヘッダー: {response.headers}")
-                    self.logger.error(f"レスポンス内容（最初の500文字）: {response.text[:500]}")
-                    raise Exception(f"403 Forbidden: スレッドへのアクセスが拒否されました。")
-                
-            except Exception as e:
-                self.logger.warning(f"元のURLでのアクセスエラー: {str(e)}")
-                
-                # URLからパスを抽出し、別のサブドメインで試す
-                parsed_url = thread_url.split('/', 3)
-                if len(parsed_url) >= 4:
-                    path = '/' + parsed_url[3]
-                    
-                    # 他のサブドメインを試す
-                    success = False
-                    for subdomain in self.subdomains:
-                        # Skip if it's the same as working_subdomain
-                        if working_subdomain is not None and subdomain == working_subdomain:
-                            continue  # 既に試したサブドメインはスキップ
-                            
-                        try:
-                            new_url = f"https://{subdomain}{path}"
-                            self.logger.info(f"代替URLを試しています: {new_url}")
-                            
-                            response = await self.http_client.get(
-                                new_url,
-                                headers=self.browser_headers,
-                                force_http1=True
-                            )
-                            
-                            # 403エラーのチェック
-                            if response.status_code == 403:
-                                self.logger.warning(f"代替URLでも403エラー: {new_url}")
-                                continue
-                            
-                            thread_url = new_url  # 動作するURLに更新
-                            success = True
-                            break
-                        except Exception:
-                            continue
-                    
-                    if not success:
-                        return [], int(datetime.now().timestamp())
-                else:
-                    return [], int(datetime.now().timestamp())
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # スレッドの投稿を取得（divタグ内のdtタグとddタグを探す）
-            # 5chのレイアウトは変わることがあるため、複数の方法を試す
-            
-            # まず、一般的なレイアウトを試す
-            posts = []
-            timestamp = int(datetime.now().timestamp())  # デフォルトタイムスタンプ
-            
-            # 方法1: div.reshead と div.resbody を探す
-            dt_elements = soup.select('div.reshead')
-            dd_elements = soup.select('div.resbody')
-            
-            if dt_elements and dd_elements and len(dt_elements) == len(dd_elements):
-                for i, (dt, dd) in enumerate(zip(dt_elements[:10], dd_elements[:10])):
-                    post_number = i + 1
-                    date_str = ""
-                    
-                    # 投稿番号と日時を抽出
-                    header_text = dt.text.strip()
-                    post_match = re.search(r'(\d+)', header_text)
-                    if post_match:
-                        post_number = int(post_match.group(1))
-                    
-                    date_match = re.search(r'(\d{4}/\d{2}/\d{2}(?:\(\w+\))? \d{2}:\d{2}:\d{2})', header_text)
-                    if date_match:
-                        date_str = date_match.group(1)
-                        
-                        # 最初の投稿からタイムスタンプを取得
-                        if i == 0:
-                            try:
-                                # 様々な日付形式に対応
-                                date_formats = [
-                                    "%Y/%m/%d(%a) %H:%M:%S",
-                                    "%Y/%m/%d %H:%M:%S"
-                                ]
-                                for fmt in date_formats:
-                                    try:
-                                        cleaned_date = re.sub(r'\(\w+\)', '', date_str)
-                                        dt = datetime.strptime(cleaned_date, fmt)
-                                        timestamp = int(dt.timestamp())
-                                        break
-                                    except:
-                                        continue
-                            except:
-                                pass
-                    
-                    # 投稿内容
-                    content = dd.text.strip()
-                    
-                    posts.append({
-                        "no": post_number,
-                        "com": content,
-                        "time": date_str
-                    })
-            
-            # 方法2: divタグのclass属性に"post"を含むものを探す
-            if not posts:
-                post_elements = soup.select('div[class*="post"]')
-                if post_elements:
-                    for i, element in enumerate(post_elements[:10]):
-                        post_number = i + 1
-                        content = element.text.strip()
-                        
-                        # 番号と内容を分離する試み
-                        number_match = re.search(r'^(\d+)', content)
-                        if number_match:
-                            post_number = int(number_match.group(1))
-                            content = content[len(number_match.group(0)):].strip()
-                        
-                        # 日付を抽出する試み
-                        date_str = ""
-                        date_match = re.search(r'(\d{4}/\d{2}/\d{2}(?:\(\w+\))? \d{2}:\d{2}:\d{2})', content)
-                        if date_match:
-                            date_str = date_match.group(1)
-                        
-                        posts.append({
-                            "no": post_number,
-                            "com": content,
-                            "time": date_str
-                        })
-            
-            # 方法3: 添付されたHTMLのようなパターン
-            if not posts:
-                p_elements = soup.find_all('p')
-                current_post = {}
-                post_count = 0
-                
-                for p in p_elements[:20]:
-                    text = p.text.strip()
-                    
-                    if re.match(r'^\d+:', text):  # 番号から始まる行はレス
-                        # 前の投稿を保存
-                        if current_post and 'com' in current_post:
-                            posts.append(current_post)
-                            post_count += 1
-                            if post_count >= 10:  # 最初の10投稿まで
-                                break
-                        
-                        # 新しい投稿
-                        post_parts = text.split(':', 1)
-                        post_number = int(post_parts[0])
-                        content = post_parts[1].strip() if len(post_parts) > 1 else ""
-                        
-                        current_post = {
-                            "no": post_number,
-                            "com": content,
-                            "time": ""
-                        }
-                
-                # 最後の投稿を追加
-                if current_post and 'com' in current_post and len(posts) < 10:
-                    posts.append(current_post)
-            
-            # もし投稿が見つからなければ、別の方法を試す
-            if not posts:
-                # すべてのテキストを取得し、正規表現で投稿を抽出する
-                all_text = soup.get_text()
-                post_pattern = re.compile(r'(\d+)[:：](.+?)(?=\d+[:：]|$)', re.DOTALL)
-                matches = post_pattern.findall(all_text)
-                
-                for i, (num, content) in enumerate(matches[:10]):
-                    posts.append({
-                        "no": int(num),
-                        "com": content.strip(),
-                        "time": ""
-                    })
-            
-            self.logger.info(f"取得した投稿数: {len(posts)}")
-            
-            # 投稿が見つからなければ、エラーログを表示
-            if not posts:
-                self.logger.warning(f"警告: スレッド {thread_url} から投稿を取得できませんでした")
-                self.logger.debug(f"HTML構造: {soup.prettify()[:500]}...")
-            
-            return posts, timestamp
-            
-        except Exception as e:
-            self.logger.error(f"スレッド {thread_url} からの投稿取得エラー: {str(e)}")
-            return [], int(datetime.now().timestamp())
     
     async def _summarize_thread(self, thread: Thread) -> None:
         """
