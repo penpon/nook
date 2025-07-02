@@ -93,12 +93,23 @@ class FiveChanExplorer(BaseService):
             "pixai", "comfyui", "stablediffusion", "ai画像", "ai動画"
         ]
         
-        # リクエスト間の遅延（サーバー負荷軽減のため）
-        self.request_delay = 2  # 秒
+        # 改善されたリクエスト制御設定
+        self.min_request_delay = 5  # 最小遅延時間（秒）
+        self.max_request_delay = 10  # 最大遅延時間（秒）
+        self.request_delay = 2  # 下位互換性のため保持
         
-        # ブラウザヘッダーの完全設定
+        # User-Agentローテーション用のリスト
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0"
+        ]
+        
+        # ブラウザヘッダーの完全設定（User-Agentは動的に設定）
         self.browser_headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
             "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
@@ -120,6 +131,101 @@ class FiveChanExplorer(BaseService):
             import tomli
             config = tomli.load(f)
             return config.get("boards", {})
+    
+    def _get_random_user_agent(self) -> str:
+        """
+        ランダムなUser-Agentを取得します。
+        
+        Returns
+        -------
+        str
+            ランダムに選択されたUser-Agent文字列。
+        """
+        import random
+        return random.choice(self.user_agents)
+    
+    def _calculate_backoff_delay(self, retry_count: int) -> float:
+        """
+        指数バックオフによる遅延時間を計算します。
+        
+        Parameters
+        ----------
+        retry_count : int
+            リトライ回数。
+            
+        Returns
+        -------
+        float
+            遅延時間（秒）。
+        """
+        # 基本遅延時間: 2^retry_count秒、最大300秒
+        base_delay = min(2 ** retry_count, 300)
+        return base_delay
+    
+    async def _get_with_retry(self, url: str, max_retries: int = 3) -> any:
+        """
+        リトライ機能付きHTTP GETリクエスト。
+        
+        Parameters
+        ----------
+        url : str
+            リクエストURL。
+        max_retries : int, default=3
+            最大リトライ回数。
+            
+        Returns
+        -------
+        any
+            HTTPレスポンス。
+        """
+        import asyncio
+        
+        for attempt in range(max_retries + 1):
+            try:
+                # 動的なUser-Agentでヘッダーを更新
+                headers = self.browser_headers.copy()
+                headers["User-Agent"] = self._get_random_user_agent()
+                
+                response = await self.http_client.get(url, headers=headers)
+                
+                # 成功レスポンス（200番台）の場合は返す
+                if 200 <= response.status_code < 300:
+                    return response
+                
+                # レート制限エラー（429）の場合
+                if response.status_code == 429:
+                    retry_after = response.headers.get('Retry-After')
+                    if retry_after:
+                        wait_time = int(retry_after)
+                    else:
+                        wait_time = self._calculate_backoff_delay(attempt)
+                    
+                    self.logger.warning(f"レート制限検知 (429): {wait_time}秒待機します")
+                    await asyncio.sleep(wait_time)
+                    continue
+                
+                # サーバーエラー（503等）の場合
+                if response.status_code >= 500:
+                    if attempt < max_retries:
+                        wait_time = self._calculate_backoff_delay(attempt)
+                        self.logger.warning(f"サーバーエラー ({response.status_code}): {wait_time}秒後にリトライします")
+                        await asyncio.sleep(wait_time)
+                        continue
+                
+                # その他のエラーは最後の試行の場合は返す
+                if attempt == max_retries:
+                    return response
+                    
+            except Exception as e:
+                if attempt == max_retries:
+                    raise e
+                
+                wait_time = self._calculate_backoff_delay(attempt)
+                self.logger.warning(f"リクエストエラー: {e}, {wait_time}秒後にリトライします")
+                await asyncio.sleep(wait_time)
+        
+        # ここには到達しないはずですが、安全のため
+        return response
     
     def run(self, thread_limit: int = 5) -> None:
         """
