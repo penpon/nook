@@ -180,6 +180,24 @@ class FiveChanExplorer(BaseService):
             # グローバルクライアントなのでクローズ不要
             pass
     
+    def _build_board_url(self, board_id: str, server: str) -> str:
+        """
+        板URLを構築します。
+        
+        Parameters
+        ----------
+        board_id : str
+            板のID。
+        server : str
+            サーバーのホスト名。
+            
+        Returns
+        -------
+        str
+            構築された板URL。
+        """
+        return f"https://{server}/{board_id}/"
+    
     async def _retrieve_ai_threads(self, board_id: str, limit: int) -> List[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
