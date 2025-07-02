@@ -11,7 +11,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
   'hacker-news': {
     title: 'Hacker News',
     subtitle: 'ハッカーニュース トップ記事',
-    dateFormat: 'yyyy-MM-dd',
+    dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-orange-50',
     gradientTo: 'to-amber-50',
     borderColor: 'border-orange-200'
@@ -43,7 +43,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
   'github': {
     title: 'GitHub Trending',
     subtitle: 'GitHub トレンドリポジトリ',
-    dateFormat: 'yyyy-MM-dd',
+    dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-gray-50',
     gradientTo: 'to-zinc-50',
     borderColor: 'border-gray-300'
@@ -75,7 +75,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
   'reddit': {
     title: 'Reddit',
     subtitle: 'Reddit 人気投稿',
-    dateFormat: 'MMM dd, yyyy',
+    dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-red-50',
     gradientTo: 'to-orange-50',
     borderColor: 'border-red-200'
@@ -83,7 +83,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
   '4chan': {
     title: '4ch',
     subtitle: '4ちゃんねる スレッド',
-    dateFormat: 'MM/dd/yyyy',
+    dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-green-50',
     gradientTo: 'to-lime-50',
     borderColor: 'border-green-300'
@@ -102,7 +102,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
 export const defaultSourceDisplayInfo: SourceDisplayInfo = {
   title: 'News Feed',
   subtitle: 'ニュースフィード',
-  dateFormat: 'yyyy-MM-dd',
+  dateFormat: 'yyyy年MM月dd日',
   gradientFrom: 'from-blue-50',
   gradientTo: 'to-indigo-50',
   borderColor: 'border-blue-200'
