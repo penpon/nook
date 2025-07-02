@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { isServer, storage } from '@/utils/ssr';
+import { isServer, storage } from '../utils/ssr';
 
 export function useTheme() {
   const [darkMode, setDarkMode] = useState(() => {

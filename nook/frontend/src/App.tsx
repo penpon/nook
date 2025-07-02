@@ -9,7 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { useSourceData } from './hooks/useSourceData';
 import { useTheme } from './hooks/useTheme';
 import { useMobileMenu } from './hooks/useMobileMenu';
-import { isServer } from '@/utils/ssr';
+import { isServer } from './utils/ssr';
 
 const sources = ['arxiv', 'github', 'hacker-news', 'tech-news', 'business-news', 'zenn', 'qiita', 'note', 'reddit', '4chan', '5chan'];
 
