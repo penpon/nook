@@ -34,3 +34,31 @@ class TestFiveChanExplorer:
         for board_id, server, expected_url in test_cases:
             actual_url = service._build_board_url(board_id, server)
             assert actual_url == expected_url
+    
+    @pytest.mark.asyncio
+    @patch('httpx.AsyncClient.get')
+    async def test_get_board_server_from_bbsmenu(self, mock_get, service):
+        """bbsmenu.htmlから板のサーバー情報を取得するテスト"""
+        # モックレスポンスを設定
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = """
+        <html>
+        <body>
+        <a href="https://egg.5ch.net/esite/">ネットサービス</a>
+        <a href="https://peace.5ch.net/prog/">プログラミング</a>
+        </body>
+        </html>
+        """
+        mock_get.return_value = mock_response
+        
+        # テスト実行
+        server = await service._get_board_server("esite")
+        assert server == "egg.5ch.net"
+        
+        server = await service._get_board_server("prog")  
+        assert server == "peace.5ch.net"
+        
+        # 存在しない板の場合
+        server = await service._get_board_server("nonexistent")
+        assert server is None
