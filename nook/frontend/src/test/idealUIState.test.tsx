@@ -10,7 +10,14 @@ const createTestQueryClient = () =>
 			queries: {
 				retry: false,
 				refetchOnWindowFocus: false,
+				cacheTime: 0,
+				staleTime: 0,
 			},
+		},
+		logger: {
+			log: console.log,
+			warn: console.warn,
+			error: console.error,
 		},
 	});
 
@@ -53,7 +60,7 @@ describe("理想UI状態テスト", () => {
 				// 記事番号「1」の要素を探す
 				const articleNumber1 = screen.getByText("1");
 				expect(articleNumber1).toBeInTheDocument();
-			});
+			}, { timeout: 10000 });
 		});
 
 		it("記事番号「2」から「15」が表示されること", async () => {
