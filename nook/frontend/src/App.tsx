@@ -1,15 +1,11 @@
-import { Layout, Menu } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { ContentRenderer } from "./components/content/ContentRenderer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Sidebar } from "./components/layout/Sidebar";
-import { BottomNavigation } from "./components/mobile/BottomNavigation";
-import { MobileHeader } from "./components/mobile/MobileHeader";
 import { NewsHeader } from "./components/NewsHeader";
 import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
 import UsageDashboard from "./components/UsageDashboard";
-import { useMobileMenu } from "./hooks/useMobileMenu";
 import { useSourceData } from "./hooks/useSourceData";
 import { useTheme } from "./hooks/useTheme";
 import { isServer } from "./utils/ssr";
@@ -44,14 +40,18 @@ function App() {
 	const [selectedDate, setSelectedDate] = useState(new Date());
 
 	const { darkMode, setDarkMode } = useTheme();
-	const { isMobileMenuOpen, setIsMobileMenuOpen } = useMobileMenu();
 
 	// ソース変更時にURLを更新
 	useEffect(() => {
 		if (isServer) return;
-		const url = new URL(window.location.href);
-		url.searchParams.set("source", selectedSource);
-		window.history.replaceState({}, "", url.toString());
+		try {
+			const url = new URL(window.location.href);
+			url.searchParams.set("source", selectedSource);
+			window.history.replaceState({}, "", url.toString());
+		} catch (error) {
+			// テスト環境やセキュリティ制限がある場合は無視
+			console.warn("URL更新に失敗しました:", error);
+		}
 	}, [selectedSource]);
 
 	const { processedItems, isLoading, isError, error, refetch } = useSourceData(
@@ -61,28 +61,6 @@ function App() {
 	);
 
 	// 動的タイトル生成
-	const getMobileHeaderTitle = () => {
-		if (currentPage === "usage-dashboard") {
-			return "使用状況ダッシュボード";
-		}
-		if (currentPage === "content") {
-			const sourceDisplayNames: Record<string, string> = {
-				"arxiv": "arXiv論文",
-				"github": "GitHub トレンド",
-				"hacker-news": "Hacker News",
-				"tech-news": "テックニュース",
-				"business-news": "ビジネスニュース",
-				"zenn": "Zenn",
-				"qiita": "Qiita",
-				"note": "note",
-				"reddit": "Reddit",
-				"4chan": "4chan",
-				"5chan": "5chan",
-			};
-			return sourceDisplayNames[selectedSource] || "ニュース";
-		}
-		return "Dashboard";
-	};
 
 	// Error handler for the main application
 	const handleAppError = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -99,8 +77,8 @@ function App() {
 	return (
 		<ErrorBoundary onError={handleAppError}>
 			<div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
-				{/* Desktop Sidebar */}
-				<div className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-screen overflow-y-auto">
+				{/* Sidebar */}
+				<div className="flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-screen overflow-y-auto">
 					<Sidebar
 						selectedSource={selectedSource}
 						setSelectedSource={setSelectedSource}
@@ -115,53 +93,9 @@ function App() {
 				</div>
 
 				{/* Main Content Spacer */}
-				<div className="hidden md:block w-64 flex-shrink-0"></div>
+				<div className="w-64 flex-shrink-0"></div>
 
-				{/* Mobile Header */}
-				<div className="md:hidden">
-					<MobileHeader
-						title={getMobileHeaderTitle()}
-						showMenuButton={true}
-						showSearchButton={false}
-						onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-					/>
-				</div>
 
-				{/* Mobile Navigation */}
-				{isMobileMenuOpen && (
-					<div className="md:hidden fixed inset-0 z-40 bg-gray-800 bg-opacity-75 dark:bg-black dark:bg-opacity-75">
-						<div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 overflow-y-auto">
-							<div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-								<div className="flex items-center space-x-2">
-									<Layout className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-									<span className="text-xl font-bold text-gray-900 dark:text-white">
-										Dashboard
-									</span>
-								</div>
-								<button
-									onClick={() => setIsMobileMenuOpen(false)}
-									className="min-h-touch min-w-touch flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 touch-manipulation"
-									aria-label="メニューを閉じる"
-								>
-									✕
-								</button>
-							</div>
-							<div className="h-full">
-								<Sidebar
-									selectedSource={selectedSource}
-									setSelectedSource={setSelectedSource}
-									currentPage={currentPage}
-									setCurrentPage={setCurrentPage}
-									selectedDate={selectedDate}
-									setSelectedDate={setSelectedDate}
-									darkMode={darkMode}
-									setDarkMode={setDarkMode}
-									onMenuItemClick={() => setIsMobileMenuOpen(false)}
-								/>
-							</div>
-						</div>
-					</div>
-				)}
 
 				{/* Main Content */}
 				<div className="flex-1">
@@ -170,7 +104,7 @@ function App() {
 							<UsageDashboard />
 						</div>
 					) : (
-						<div className="p-4 sm:p-6 lg:p-8 pt-20 pb-20 md:pt-4 md:pb-4">
+						<div className="p-4 sm:p-6 lg:p-8 pt-4 pb-4">
 							<NewsHeader
 								selectedSource={selectedSource}
 								selectedDate={selectedDate}
@@ -192,15 +126,6 @@ function App() {
 					)}
 				</div>
 
-				{/* Bottom Navigation */}
-				<div className="md:hidden">
-					<BottomNavigation
-						selectedSource={selectedSource}
-						setSelectedSource={setSelectedSource}
-						currentPage={currentPage}
-						setCurrentPage={setCurrentPage}
-					/>
-				</div>
 
 				{/* PWA更新通知 */}
 				<PWAUpdateNotification />
