@@ -114,4 +114,37 @@ test.describe('Responsive Mobile Menu', () => {
       });
     });
   });
+
+  // パフォーマンステスト
+  test.describe('Performance Tests', () => {
+    test('should maintain smooth scrolling performance', async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 667 }); // iPhone SE
+      await page.goto('/');
+      
+      // ハンバーガーメニューを開く
+      await page.click('[aria-label="メニューを開く"]');
+      
+      // スクロール性能を測定
+      const sidebar = page.locator('.sidebar-container nav');
+      
+      const startTime = Date.now();
+      
+      // 複数回のスクロール操作
+      for (let i = 0; i < 10; i++) {
+        await sidebar.hover();
+        await page.mouse.wheel(0, 50);
+        await page.waitForTimeout(10);
+      }
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      // スクロール操作が500ms以内で完了することを確認
+      expect(duration).toBeLessThan(500);
+      
+      // 最終的にTheme toggleが見えることを確認
+      await page.locator('text=Theme').scrollIntoViewIfNeeded();
+      await expect(page.locator('text=Theme')).toBeVisible();
+    });
+  });
 });
