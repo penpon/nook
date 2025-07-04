@@ -108,9 +108,19 @@ class AsyncHTTPClient:
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
         force_http1: bool = False,
+        use_browser_headers: bool = True,
         **kwargs
     ) -> httpx.Response:
         """GET リクエスト（HTTP/1.1フォールバック対応）"""
+        # ブラウザヘッダーを使用
+        if use_browser_headers and headers is None:
+            headers = self.get_browser_headers()
+        elif use_browser_headers and headers:
+            # ユーザー指定のヘッダーとマージ
+            browser_headers = self.get_browser_headers()
+            browser_headers.update(headers)
+            headers = browser_headers
+            
         if force_http1:
             # HTTP/1.1を強制使用
             if not self._http1_client:
