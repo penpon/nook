@@ -19,7 +19,7 @@ export function MobileHeader({
 	title,
 	showBackButton = false,
 	showMenuButton = true,
-	showSearchButton = true,
+	showSearchButton = false,
 	showWeather = false,
 	onMenuClick,
 	onSearchClick,
