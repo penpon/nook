@@ -1,7 +1,7 @@
 import { Cloud, CloudRain, Sun } from "lucide-react";
 import type React from "react";
 import { useQuery } from "react-query";
-import { getWeather } from "../api";
+import { getWeather } from "../../api";
 
 const getWeatherIcon = (icon: string) => {
 	switch (icon) {
