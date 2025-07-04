@@ -251,7 +251,7 @@ class AsyncHTTPClient:
                 scraper.get,
                 url,
                 params=params,
-                timeout=self.timeout.timeout
+                timeout=self.timeout.read
             )
             
             # httpx互換のレスポンスに変換

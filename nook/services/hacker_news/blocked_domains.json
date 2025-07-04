@@ -11,7 +11,13 @@
 		"nytimes.com",
 		"cell.com",
 		"journals.aps.org",
-		"decodingml.substack.com"
+		"decodingml.substack.com",
+		"techdirt.com",
+		"ethanzuckerman.com",
+		"overclock3d.net",
+		"jidonline.org",
+		"commonwealmagazine.org",
+		"friendsjournal.org"
 	],
 	"reasons": {
 		"reuters.com": "401 - Authentication required",
@@ -25,7 +31,13 @@
 		"nytimes.com": "403 - Advanced bot protection (Cloudflare)",
 		"cell.com": "403 - Publisher access control",
 		"journals.aps.org": "403 - Academic publisher protection",
-		"decodingml.substack.com": "403 - Substack bot protection"
+		"decodingml.substack.com": "403 - Substack bot protection",
+		"techdirt.com": "403 - Bot protection",
+		"ethanzuckerman.com": "403 - Bot protection",
+		"overclock3d.net": "403 - Bot protection",
+		"jidonline.org": "403 - Bot protection",
+		"commonwealmagazine.org": "403 - Bot protection",
+		"friendsjournal.org": "403 - Bot protection"
 	},
 	"http1_required_domains": ["htmlrev.com", "example-site.com"]
 }
