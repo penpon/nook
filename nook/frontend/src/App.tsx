@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { ContentRenderer } from "./components/content/ContentRenderer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Sidebar } from "./components/layout/Sidebar";
+import { MobileHeader } from "./components/mobile/MobileHeader";
 import { NewsHeader } from "./components/NewsHeader";
 import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
 import UsageDashboard from "./components/UsageDashboard";
+import { useMobileMenu } from "./hooks/useMobileMenu";
 import { useSourceData } from "./hooks/useSourceData";
 import { useTheme } from "./hooks/useTheme";
 import { isServer } from "./utils/ssr";
@@ -40,6 +42,7 @@ function App() {
 	const [selectedDate, setSelectedDate] = useState(new Date());
 
 	const { darkMode, setDarkMode } = useTheme();
+	const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileMenu();
 
 	// ソース変更時にURLを更新
 	useEffect(() => {
@@ -74,11 +77,27 @@ function App() {
 		});
 	};
 
+	// Handle mobile menu item click
+	const handleMobileMenuItemClick = () => {
+		closeMobileMenu();
+	};
+
 	return (
 		<ErrorBoundary onError={handleAppError}>
 			<div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
-				{/* Sidebar */}
-				<div className="flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-screen overflow-y-auto">
+				{/* Mobile Header */}
+				<MobileHeader
+					title="News Dashboard"
+					showWeather={true}
+					onMenuClick={toggleMobileMenu}
+					onSearchClick={() => {}}
+				/>
+
+				{/* Sidebar - Hidden on mobile, overlay when menu is open */}
+				<div className={`
+					flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-screen overflow-y-auto z-20
+					${isMobileMenuOpen ? 'flex' : 'hidden md:flex'}
+				`}>
 					<Sidebar
 						selectedSource={selectedSource}
 						setSelectedSource={setSelectedSource}
@@ -88,17 +107,23 @@ function App() {
 						setSelectedDate={setSelectedDate}
 						darkMode={darkMode}
 						setDarkMode={setDarkMode}
-						onMenuItemClick={() => {}}
+						onMenuItemClick={handleMobileMenuItemClick}
 					/>
 				</div>
 
-				{/* Main Content Spacer */}
-				<div className="w-64 flex-shrink-0"></div>
+				{/* Mobile Overlay */}
+				{isMobileMenuOpen && (
+					<div
+						className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden"
+						onClick={closeMobileMenu}
+					/>
+				)}
 
-
+				{/* Main Content Spacer - Hidden on mobile */}
+				<div className="hidden md:block w-64 flex-shrink-0"></div>
 
 				{/* Main Content */}
-				<div className="flex-1">
+				<div className="flex-1 pt-16 md:pt-0">
 					{currentPage === "usage-dashboard" ? (
 						<div className="dashboard-container">
 							<UsageDashboard />
