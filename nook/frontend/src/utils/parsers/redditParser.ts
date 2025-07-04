@@ -32,10 +32,9 @@ export function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
 
 				// 投稿情報を取得
 				let score = "";
-				let author = "";
-				let commentCount = "";
-				let postType = "";
 				let content = "";
+				let summary = "";
+				let link = "";
 
 				for (let j = i + 1; j < lines.length; j++) {
 					const nextLine = lines[j].trim();
@@ -44,17 +43,11 @@ export function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
 						break;
 					}
 
-					if (nextLine.startsWith("**スコア**:")) {
-						score = nextLine.replace("**スコア**:", "").trim();
-					} else if (nextLine.startsWith("**投稿者**:")) {
-						author = nextLine.replace("**投稿者**:", "").trim();
-					} else if (nextLine.startsWith("**コメント数**:")) {
-						commentCount = nextLine.replace("**コメント数**:", "").trim();
-					} else if (nextLine.startsWith("**投稿タイプ**:")) {
-						postType = nextLine.replace("**投稿タイプ**:", "").trim();
-					} else if (nextLine.startsWith("**本文**:")) {
+					if (nextLine.startsWith("アップボート数:")) {
+						score = nextLine.replace("アップボート数:", "").trim();
+					} else if (nextLine.startsWith("本文:")) {
 						// 本文の開始
-						content = nextLine.replace("**本文**:", "").trim();
+						content = nextLine.replace("本文:", "").trim();
 
 						// 本文の続きがある場合は次の行も読み込み
 						for (let k = j + 1; k < lines.length; k++) {
@@ -63,7 +56,9 @@ export function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
 							if (
 								contentLine.startsWith("#") ||
 								contentLine === "---" ||
-								contentLine.startsWith("**")
+								contentLine.startsWith("**") ||
+								contentLine.startsWith("アップボート数:") ||
+								contentLine.startsWith("リンク:")
 							) {
 								break;
 							}
@@ -72,17 +67,47 @@ export function parseRedditPostsMarkdown(markdown: string): ContentItem[] {
 								content += "\n\n" + contentLine;
 							}
 						}
+					} else if (nextLine.startsWith("リンク:")) {
+						link = nextLine.replace("リンク:", "").trim();
+					} else if (nextLine.startsWith("**要約**:")) {
+						// 要約セクションの開始
+						summary = "";
+
+						// 要約の内容を読み込み
+						for (let k = j + 1; k < lines.length; k++) {
+							const summaryLine = lines[k].trim();
+
+							if (
+								summaryLine.startsWith("#") ||
+								summaryLine === "---"
+							) {
+								break;
+							}
+
+							if (summaryLine) {
+								if (summary) {
+									summary += "\n\n" + summaryLine;
+								} else {
+									summary = summaryLine;
+								}
+							}
+						}
 					}
 				}
 
-				// 投稿内容を構築
+				// 投稿内容を構築（要約優先、本文はフォールバック）
 				let postContent = "";
-				if (score) postContent += `**スコア**: ${score}\n`;
-				if (author) postContent += `**投稿者**: ${author}\n`;
-				if (commentCount) postContent += `**コメント数**: ${commentCount}\n`;
-				if (postType) postContent += `**投稿タイプ**: ${postType}\n`;
-				if (postContent && content) postContent += "\n";
-				if (content) postContent += `**本文**:\n${content}`;
+				if (score) postContent += `**アップボート数**: ${score}\n`;
+				if (link) postContent += `**リンク**: ${link}\n`;
+				
+				// 要約がある場合は要約を優先、ない場合は本文を表示
+				if (summary) {
+					if (postContent) postContent += "\n";
+					postContent += `**要約**:\n${summary}`;
+				} else if (content) {
+					if (postContent) postContent += "\n";
+					postContent += `**本文**:\n${content}`;
+				}
 
 				// 各サブレディット内での記事番号
 				const subredditItems = contentItems.filter(
