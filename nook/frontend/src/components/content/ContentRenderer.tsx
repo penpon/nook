@@ -63,9 +63,14 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 			"4chan": () => renderWithArticleNumbers(),
 			"5chan": () => renderWithArticleNumbers(),
 			"hacker-news": () => {
-				let articleCount = 0;
 				return processedItems.map((item, index) => {
-					const articleIndex = item.isArticle ? articleCount++ : undefined;
+					// metadataのarticleNumberを使用、またはisArticleに基づくフォールバック
+					const articleIndex = item.metadata?.articleNumber 
+						? item.metadata.articleNumber - 1 // 0ベースに変換
+						: item.isArticle 
+							? index - 1 // ヘッダー分を引く
+							: undefined;
+					
 					return (
 						<ContentCard
 							key={index}
