@@ -1,12 +1,14 @@
 import { ArrowLeft, Menu, MoreVertical, Search } from "lucide-react";
 import type React from "react";
 import { useVibration } from "../../hooks/useVibration";
+import { WeatherWidget } from "../weather/WeatherWidget";
 
 interface MobileHeaderProps {
 	title: string;
 	showBackButton?: boolean;
 	showMenuButton?: boolean;
 	showSearchButton?: boolean;
+	showWeather?: boolean;
 	onMenuClick?: () => void;
 	onSearchClick?: () => void;
 	onBackClick?: () => void;
@@ -18,6 +20,7 @@ export function MobileHeader({
 	showBackButton = false,
 	showMenuButton = true,
 	showSearchButton = true,
+	showWeather = false,
 	onMenuClick,
 	onSearchClick,
 	onBackClick,
@@ -71,6 +74,14 @@ export function MobileHeader({
 
 				{/* Right Section */}
 				<div className="flex items-center space-x-2">
+					{showWeather && (
+						<div className="mr-2">
+							<div className="scale-75 origin-right">
+								<WeatherWidget />
+							</div>
+						</div>
+					)}
+					
 					{showSearchButton && (
 						<button
 							onClick={handleSearchClick}
