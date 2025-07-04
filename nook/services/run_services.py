@@ -71,6 +71,10 @@ class ServiceRunner:
                 # Tech News/Business Newsは各5記事に制限
                 await service.collect(limit=5)
                 logger.info(f"Service {service_name} completed with limit=5")
+            elif service_name == "reddit":
+                # Redditは10記事に制限
+                await service.collect(limit=10)
+                logger.info(f"Service {service_name} completed with limit=10")
             else:
                 # その他のサービスはデフォルト値を使用
                 await service.collect()
