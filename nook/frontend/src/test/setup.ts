@@ -1,36 +1,36 @@
-import '@testing-library/jest-dom';
-import { expect, afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import "@testing-library/jest-dom";
+import { cleanup } from "@testing-library/react";
+import { afterEach, expect, vi } from "vitest";
 
 // テスト後のクリーンアップ
 afterEach(() => {
-  cleanup();
+	cleanup();
 });
 
 // window.matchMediaのモック
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+Object.defineProperty(window, "matchMedia", {
+	writable: true,
+	value: vi.fn().mockImplementation((query) => ({
+		matches: false,
+		media: query,
+		onchange: null,
+		addListener: vi.fn(), // deprecated
+		removeListener: vi.fn(), // deprecated
+		addEventListener: vi.fn(),
+		removeEventListener: vi.fn(),
+		dispatchEvent: vi.fn(),
+	})),
 });
 
 // localStorageのモック
-Object.defineProperty(window, 'localStorage', {
-  value: {
-    getItem: vi.fn(() => null),
-    setItem: vi.fn(() => null),
-    removeItem: vi.fn(() => null),
-    clear: vi.fn(() => null),
-  },
-  writable: true,
+Object.defineProperty(window, "localStorage", {
+	value: {
+		getItem: vi.fn(() => null),
+		setItem: vi.fn(() => null),
+		removeItem: vi.fn(() => null),
+		clear: vi.fn(() => null),
+	},
+	writable: true,
 });
 
 // カスタムマッチャーの設定
