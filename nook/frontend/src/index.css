@@ -8,4 +8,20 @@
 		container-type: inline-size;
 		container-name: dashboard;
 	}
+
+	.mobile-nav {
+		@apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden;
+		@apply flex justify-around items-center px-4 py-2 z-20;
+		@apply shadow-lg;
+	}
+
+	.mobile-header {
+		@apply fixed top-0 left-0 right-0 bg-white border-b border-gray-200 md:hidden;
+		@apply shadow-sm z-30;
+	}
+
+	.sidebar-container {
+		container-type: inline-size;
+		container-name: sidebar;
+	}
 }
