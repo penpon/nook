@@ -5,7 +5,7 @@ import {
 	defaultSourceDisplayInfo,
 	sourceDisplayInfo,
 } from "../../config/sourceDisplayInfo";
-import { WeatherWidget } from "../WeatherWidget";
+import { WeatherWidget } from "../weather/WeatherWidget";
 
 interface SidebarProps {
 	selectedSource: string;
