@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any, Union
 from datetime import datetime
 import logging
 from contextlib import asynccontextmanager
+import cloudscraper
 
 from nook.common.exceptions import APIException, RetryException
 from nook.common.decorators import handle_errors
@@ -33,6 +34,27 @@ class AsyncHTTPClient:
         self._client: Optional[httpx.AsyncClient] = None
         self._http1_client: Optional[httpx.AsyncClient] = None
         self._session_start: Optional[datetime] = None
+    
+    @staticmethod
+    def get_browser_headers() -> Dict[str, str]:
+        """最新のブラウザヘッダーを返す"""
+        return {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"'
+        }
     
     async def __aenter__(self):
         """コンテキストマネージャーのエントリー"""
@@ -87,9 +109,19 @@ class AsyncHTTPClient:
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
         force_http1: bool = False,
+        use_browser_headers: bool = True,
         **kwargs
     ) -> httpx.Response:
         """GET リクエスト（HTTP/1.1フォールバック対応）"""
+        # ブラウザヘッダーを使用
+        if use_browser_headers and headers is None:
+            headers = self.get_browser_headers()
+        elif use_browser_headers and headers:
+            # ユーザー指定のヘッダーとマージ
+            browser_headers = self.get_browser_headers()
+            browser_headers.update(headers)
+            headers = browser_headers
+            
         if force_http1:
             # HTTP/1.1を強制使用
             if not self._http1_client:
@@ -133,12 +165,17 @@ class AsyncHTTPClient:
                 raise APIException(f"Stream error: {str(e)}") from e
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error for {url}: {e}")
-            raise APIException(
-                f"HTTP {e.response.status_code} error",
-                status_code=e.response.status_code,
-                response_body=e.response.text
-            ) from e
+            # 403エラーの場合、cloudscraper��リトライ
+            if e.response.status_code == 403:
+                logger.info(f"403 error for {url}, trying cloudscraper")
+                return await self._cloudscraper_fallback(url, params, **kwargs)
+            else:
+                logger.error(f"HTTP error for {url}: {e}")
+                raise APIException(
+                    f"HTTP {e.response.status_code} error",
+                    status_code=e.response.status_code,
+                    response_body=e.response.text
+                ) from e
         
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {e}")
@@ -197,6 +234,59 @@ class AsyncHTTPClient:
         """テキストレスポンスを取得"""
         response = await self.get(url, **kwargs)
         return response.text
+    
+    async def _cloudscraper_fallback(self, url: str, params: Optional[Dict[str, Any]] = None, **kwargs) -> httpx.Response:
+        """cloudscraperを使用したフォールバック処理"""
+        try:
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'windows',
+                    'desktop': True
+                }
+            )
+            
+            # 同期処理を非同期で実行
+            response = await asyncio.to_thread(
+                scraper.get,
+                url,
+                params=params,
+                timeout=self.timeout.timeout
+            )
+            
+            # httpx互換のレスポンスに変換
+            return self._convert_to_httpx_response(response)
+            
+        except Exception as e:
+            logger.error(f"Cloudscraper failed for {url}: {e}")
+            # 元の403エラーを再発生
+            raise APIException(
+                f"HTTP 403 error (cloudscraper also failed)",
+                status_code=403
+            ) from e
+    
+    def _convert_to_httpx_response(self, response):
+        """requests.Responseをhttpx互換のレスポンスアダプターに変換"""
+        class CloudscraperResponseAdapter:
+            def __init__(self, cloudscraper_response):
+                self._response = cloudscraper_response
+                self.status_code = cloudscraper_response.status_code
+                self.text = cloudscraper_response.text
+                self.content = cloudscraper_response.content
+                self.headers = cloudscraper_response.headers
+            
+            def json(self):
+                return self._response.json()
+            
+            def raise_for_status(self):
+                if self.status_code >= 400:
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {self.status_code} error",
+                        request=None,
+                        response=self
+                    )
+        
+        return CloudscraperResponseAdapter(response)
     
     async def download(
         self,
