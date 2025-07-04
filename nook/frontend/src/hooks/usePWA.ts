@@ -1,42 +1,42 @@
-import { useState, useEffect } from 'react';
-import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useRegisterSW } from "virtual:pwa-register/react";
+import { useEffect, useState } from "react";
 
 export function usePWA() {
-  const [needRefresh, setNeedRefresh] = useState(false);
-  const [offlineReady, setOfflineReady] = useState(false);
-  
-  const {
-    needRefresh: [needRefreshSW, setNeedRefreshSW],
-    offlineReady: [offlineReadySW, setOfflineReadySW],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(r) {
-      console.log('SW Registered: ' + r);
-    },
-    onRegisterError(error) {
-      console.log('SW registration error', error);
-    },
-  });
+	const [needRefresh, setNeedRefresh] = useState(false);
+	const [offlineReady, setOfflineReady] = useState(false);
 
-  useEffect(() => {
-    setNeedRefresh(needRefreshSW);
-  }, [needRefreshSW]);
+	const {
+		needRefresh: [needRefreshSW, setNeedRefreshSW],
+		offlineReady: [offlineReadySW, setOfflineReadySW],
+		updateServiceWorker,
+	} = useRegisterSW({
+		onRegistered(r) {
+			console.log("SW Registered: " + r);
+		},
+		onRegisterError(error) {
+			console.log("SW registration error", error);
+		},
+	});
 
-  useEffect(() => {
-    setOfflineReady(offlineReadySW);
-  }, [offlineReadySW]);
+	useEffect(() => {
+		setNeedRefresh(needRefreshSW);
+	}, [needRefreshSW]);
 
-  const close = () => {
-    setOfflineReady(false);
-    setNeedRefresh(false);
-    setOfflineReadySW(false);
-    setNeedRefreshSW(false);
-  };
+	useEffect(() => {
+		setOfflineReady(offlineReadySW);
+	}, [offlineReadySW]);
 
-  return {
-    needRefresh,
-    offlineReady,
-    updateServiceWorker,
-    close
-  };
+	const close = () => {
+		setOfflineReady(false);
+		setNeedRefresh(false);
+		setOfflineReadySW(false);
+		setNeedRefreshSW(false);
+	};
+
+	return {
+		needRefresh,
+		offlineReady,
+		updateServiceWorker,
+		close,
+	};
 }

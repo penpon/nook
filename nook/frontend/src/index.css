@@ -4,8 +4,8 @@
 
 /* 基本的なカスタムスタイルのみ保持 */
 @layer components {
-  .dashboard-container {
-    container-type: inline-size;
-    container-name: dashboard;
-  }
+	.dashboard-container {
+		container-type: inline-size;
+		container-name: dashboard;
+	}
 }
