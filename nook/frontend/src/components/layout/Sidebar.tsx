@@ -45,9 +45,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 	];
 
 	return (
-		<div className="sidebar-container h-full">
-			{/* Header */}
-			<div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700">
+		<div className="sidebar-container h-full flex flex-col">
+			{/* Header - 固定 */}
+			<div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
 				<div className="flex items-center space-x-2">
 					<Layout className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
 					<span className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
@@ -56,13 +56,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 				</div>
 			</div>
 
-			{/* Weather Widget */}
-			<div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700">
+			{/* Weather Widget - 固定 */}
+			<div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
 				<WeatherWidget />
 			</div>
 
-			{/* Date Selector */}
-			<div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700">
+			{/* Date Selector - 固定 */}
+			<div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
 				<div className="flex items-center space-x-2 mb-3">
 					<Calendar className="w-4 h-4 md:w-5 md:h-5 text-gray-600 dark:text-gray-400" />
 					<span className="font-medium text-gray-700 dark:text-gray-300">
@@ -79,8 +79,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 				/>
 			</div>
 
-			{/* Navigation */}
-			<nav className="flex-1 p-3 md:p-4">
+			{/* Navigation - スクロール可能 */}
+			<nav className="flex-1 p-3 md:p-4 overflow-y-auto">
 				{/* Dashboard Section */}
 				<div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">
 					Dashboard
