@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { ContentRenderer } from "./components/content/ContentRenderer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Sidebar } from "./components/layout/Sidebar";
+import { BottomNavigation } from "./components/mobile/BottomNavigation";
+import { MobileHeader } from "./components/mobile/MobileHeader";
 import { NewsHeader } from "./components/NewsHeader";
 import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
 import UsageDashboard from "./components/UsageDashboard";
@@ -91,20 +93,19 @@ function App() {
 				{/* Main Content Spacer */}
 				<div className="hidden md:block w-64 flex-shrink-0"></div>
 
-				{/* Mobile Menu Button */}
-				<div className="md:hidden fixed top-0 left-0 z-20 m-4">
-					<button
-						onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-						className="min-h-touch min-w-touch p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md flex items-center justify-center touch-manipulation"
-						aria-label="メニューを開く"
-					>
-						<Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-					</button>
+				{/* Mobile Header */}
+				<div className="md:hidden">
+					<MobileHeader
+						title="Dashboard"
+						showMenuButton={true}
+						showSearchButton={false}
+						onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+					/>
 				</div>
 
 				{/* Mobile Navigation */}
 				{isMobileMenuOpen && (
-					<div className="md:hidden fixed inset-0 z-10 bg-gray-800 bg-opacity-75 dark:bg-black dark:bg-opacity-75">
+					<div className="md:hidden fixed inset-0 z-40 bg-gray-800 bg-opacity-75 dark:bg-black dark:bg-opacity-75">
 						<div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 overflow-y-auto">
 							<div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
 								<div className="flex items-center space-x-2">
@@ -145,7 +146,7 @@ function App() {
 							<UsageDashboard />
 						</div>
 					) : (
-						<div className="p-4 sm:p-6 lg:p-8">
+						<div className="p-4 sm:p-6 lg:p-8 pt-20 pb-20 md:pt-4 md:pb-4">
 							<NewsHeader
 								selectedSource={selectedSource}
 								selectedDate={selectedDate}
@@ -165,6 +166,16 @@ function App() {
 							</div>
 						</div>
 					)}
+				</div>
+
+				{/* Bottom Navigation */}
+				<div className="md:hidden">
+					<BottomNavigation
+						selectedSource={selectedSource}
+						setSelectedSource={setSelectedSource}
+						currentPage={currentPage}
+						setCurrentPage={setCurrentPage}
+					/>
 				</div>
 
 				{/* PWA更新通知 */}
