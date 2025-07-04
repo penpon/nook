@@ -89,3 +89,11 @@ wheels/
 # Python virtual environment
 venv/
 .venv/
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
