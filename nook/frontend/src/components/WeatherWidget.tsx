@@ -21,7 +21,7 @@ export const WeatherWidget: React.FC = () => {
 
 	if (isLoading) {
 		return (
-			<div className="bg-white rounded-lg shadow-md p-4 animate-pulse">
+			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse">
 				<div className="h-8 bg-gray-200 rounded w-24 mb-2"></div>
 				<div className="h-6 bg-gray-200 rounded w-16"></div>
 			</div>
@@ -31,12 +31,12 @@ export const WeatherWidget: React.FC = () => {
 	if (!data) return null;
 
 	return (
-		<div className="bg-white rounded-lg shadow-md p-4">
+		<div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
 			<div className="flex items-center space-x-4">
 				{getWeatherIcon(data.icon)}
 				<div>
 					<div className="text-2xl font-bold">{data.temperature}°C</div>
-					<div className="text-gray-500">Current Weather</div>
+					<div className="text-gray-500 dark:text-gray-400">Current Weather</div>
 				</div>
 			</div>
 		</div>
