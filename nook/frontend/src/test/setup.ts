@@ -68,7 +68,6 @@ const mockedAxios = vi.mocked(axios);
 
 // APIレスポンスのモック実装
 const mockApiResponse = (url: string, config?: any) => {
-	console.log('Mock API called:', url, config);
 	
 	if (url === '/weather') {
 		return Promise.resolve({
@@ -97,24 +96,16 @@ const mockAxiosInstance = {
 	get: vi.fn().mockImplementation(mockApiResponse),
 	interceptors: {
 		request: {
-			use: vi.fn((successHandler) => {
-				console.log('Request interceptor added');
-				// インターセプターのハンドラーをモック
-				return mockAxiosInstance;
-			})
+			use: vi.fn(() => mockAxiosInstance)
 		},
 		response: {
-			use: vi.fn((successHandler, errorHandler) => {
-				console.log('Response interceptor added');
-				return mockAxiosInstance;
-			})
+			use: vi.fn(() => mockAxiosInstance)
 		}
 	}
 };
 
 // axios.createから返されるインスタンスのモック設定
 mockedAxios.create.mockImplementation(() => {
-	console.log('axios.create called');
 	return mockAxiosInstance;
 });
 

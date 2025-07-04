@@ -26,14 +26,16 @@ export function useSourceData(
 
 		const parser = getParserForSource(selectedSource);
 
-		if (parser && data.items[0]?.content) {
+		if (parser) {
 			try {
 				// Hacker Newsの場合は特殊処理
 				if (selectedSource === "hacker-news") {
 					return parser(data.items);
 				}
 				// 他のソースはMarkdownをパース
-				return parser(data.items[0].content);
+				if (data.items[0]?.content) {
+					return parser(data.items[0].content);
+				}
 			} catch (error) {
 				console.error(`${selectedSource} parsing error:`, error);
 				return data.items;
