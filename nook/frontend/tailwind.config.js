@@ -35,21 +35,21 @@ export default {
 					css: {
 						maxWidth: "100%",
 						width: "100%",
-						fontSize: "1.25rem",
+						fontSize: "0.875rem",
 						p: {
-							fontSize: "1.25rem",
+							fontSize: "0.875rem",
 						},
 						li: {
-							fontSize: "1.25rem",
+							fontSize: "0.875rem",
 						},
 						h1: {
-							fontSize: "2.25rem",
+							fontSize: "1.5rem",
 						},
 						h2: {
-							fontSize: "1.875rem",
+							fontSize: "1.25rem",
 						},
 						h3: {
-							fontSize: "1.5rem",
+							fontSize: "1.0rem",
 						},
 					},
 				},
