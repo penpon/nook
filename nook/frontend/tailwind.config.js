@@ -58,6 +58,6 @@ export default {
 	},
 	plugins: [
 		require("@tailwindcss/typography"),
-		// @tailwindcss/container-queries を削除
+		require("@tailwindcss/container-queries"),
 	],
 };
