@@ -1,5 +1,6 @@
 import { ArrowLeft, Menu, MoreVertical, Search } from "lucide-react";
 import type React from "react";
+import { useVibration } from "../../hooks/useVibration";
 
 interface MobileHeaderProps {
 	title: string;
@@ -22,6 +23,22 @@ export function MobileHeader({
 	onBackClick,
 	rightActions,
 }: MobileHeaderProps) {
+	const { vibrateShort } = useVibration();
+
+	const handleMenuClick = () => {
+		vibrateShort();
+		onMenuClick?.();
+	};
+
+	const handleSearchClick = () => {
+		vibrateShort();
+		onSearchClick?.();
+	};
+
+	const handleBackClick = () => {
+		vibrateShort();
+		onBackClick?.();
+	};
 	return (
 		<header className="mobile-header dark:bg-gray-900 dark:border-gray-700">
 			<div className="flex items-center justify-between px-4 py-3">
@@ -29,7 +46,7 @@ export function MobileHeader({
 				<div className="flex items-center">
 					{showBackButton && (
 						<button
-							onClick={onBackClick}
+							onClick={handleBackClick}
 							className="btn-secondary p-2 mr-2"
 							aria-label="戻る"
 						>
@@ -39,7 +56,7 @@ export function MobileHeader({
 
 					{showMenuButton && !showBackButton && (
 						<button
-							onClick={onMenuClick}
+							onClick={handleMenuClick}
 							className="btn-secondary p-2 mr-3"
 							aria-label="メニューを開く"
 						>
@@ -56,7 +73,7 @@ export function MobileHeader({
 				<div className="flex items-center space-x-2">
 					{showSearchButton && (
 						<button
-							onClick={onSearchClick}
+							onClick={handleSearchClick}
 							className="btn-secondary p-2"
 							aria-label="検索"
 						>
@@ -66,6 +83,7 @@ export function MobileHeader({
 
 					{rightActions || (
 						<button
+							onClick={vibrateShort}
 							className="btn-secondary p-2"
 							aria-label="その他のオプション"
 						>

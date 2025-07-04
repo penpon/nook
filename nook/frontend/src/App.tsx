@@ -60,6 +60,30 @@ function App() {
 		currentPage === "content",
 	);
 
+	// 動的タイトル生成
+	const getMobileHeaderTitle = () => {
+		if (currentPage === "usage-dashboard") {
+			return "使用状況ダッシュボード";
+		}
+		if (currentPage === "content") {
+			const sourceDisplayNames: Record<string, string> = {
+				"arxiv": "arXiv論文",
+				"github": "GitHub トレンド",
+				"hacker-news": "Hacker News",
+				"tech-news": "テックニュース",
+				"business-news": "ビジネスニュース",
+				"zenn": "Zenn",
+				"qiita": "Qiita",
+				"note": "note",
+				"reddit": "Reddit",
+				"4chan": "4chan",
+				"5chan": "5chan",
+			};
+			return sourceDisplayNames[selectedSource] || "ニュース";
+		}
+		return "Dashboard";
+	};
+
 	// Error handler for the main application
 	const handleAppError = (error: Error, errorInfo: React.ErrorInfo) => {
 		console.error("Application Error:", {
@@ -96,7 +120,7 @@ function App() {
 				{/* Mobile Header */}
 				<div className="md:hidden">
 					<MobileHeader
-						title="Dashboard"
+						title={getMobileHeaderTitle()}
 						showMenuButton={true}
 						showSearchButton={false}
 						onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
