@@ -7,7 +7,11 @@
 		"economist.com",
 		"science.org",
 		"smithsonianmag.com",
-		"blogs.bl.uk"
+		"blogs.bl.uk",
+		"nytimes.com",
+		"cell.com",
+		"journals.aps.org",
+		"decodingml.substack.com"
 	],
 	"reasons": {
 		"reuters.com": "401 - Authentication required",
@@ -17,7 +21,11 @@
 		"economist.com": "403 - Paywall",
 		"science.org": "403 - Access restricted",
 		"smithsonianmag.com": "403 - Bot detection",
-		"blogs.bl.uk": "403 - Geographic restriction"
+		"blogs.bl.uk": "403 - Geographic restriction",
+		"nytimes.com": "403 - Advanced bot protection (Cloudflare)",
+		"cell.com": "403 - Publisher access control",
+		"journals.aps.org": "403 - Academic publisher protection",
+		"decodingml.substack.com": "403 - Substack bot protection"
 	},
 	"http1_required_domains": ["htmlrev.com", "example-site.com"]
 }
