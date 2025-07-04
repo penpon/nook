@@ -4,6 +4,8 @@ from typing import Optional, Dict, Any, Union
 from datetime import datetime
 import logging
 from contextlib import asynccontextmanager
+import cloudscraper
+from unittest.mock import MagicMock
 
 from nook.common.exceptions import APIException, RetryException
 from nook.common.decorators import handle_errors
@@ -164,12 +166,17 @@ class AsyncHTTPClient:
                 raise APIException(f"Stream error: {str(e)}") from e
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error for {url}: {e}")
-            raise APIException(
-                f"HTTP {e.response.status_code} error",
-                status_code=e.response.status_code,
-                response_body=e.response.text
-            ) from e
+            # 403エラーの場合、cloudscraper��リトライ
+            if e.response.status_code == 403:
+                logger.info(f"403 error for {url}, trying cloudscraper")
+                return await self._cloudscraper_fallback(url, params, **kwargs)
+            else:
+                logger.error(f"HTTP error for {url}: {e}")
+                raise APIException(
+                    f"HTTP {e.response.status_code} error",
+                    status_code=e.response.status_code,
+                    response_body=e.response.text
+                ) from e
         
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {e}")
@@ -228,6 +235,47 @@ class AsyncHTTPClient:
         """テキストレスポンスを取得"""
         response = await self.get(url, **kwargs)
         return response.text
+    
+    async def _cloudscraper_fallback(self, url: str, params: Optional[Dict[str, Any]] = None, **kwargs) -> httpx.Response:
+        """cloudscraperを使用したフォールバック処理"""
+        try:
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'windows',
+                    'desktop': True
+                }
+            )
+            
+            # 同期処理を非同期で実行
+            response = await asyncio.to_thread(
+                scraper.get,
+                url,
+                params=params,
+                timeout=self.timeout.timeout
+            )
+            
+            # httpx互換のレスポンスに変換
+            return self._convert_to_httpx_response(response)
+            
+        except Exception as e:
+            logger.error(f"Cloudscraper failed for {url}: {e}")
+            # 元の403エラーを再発生
+            raise APIException(
+                f"HTTP 403 error (cloudscraper also failed)",
+                status_code=403
+            ) from e
+    
+    def _convert_to_httpx_response(self, response):
+        """requests.Responseをhttpxレスポンスに変換"""
+        mock_response = MagicMock()
+        mock_response.status_code = response.status_code
+        mock_response.text = response.text
+        mock_response.content = response.content
+        mock_response.headers = response.headers
+        mock_response.json = lambda: response.json()
+        mock_response.raise_for_status = lambda: None
+        return mock_response
     
     async def download(
         self,
