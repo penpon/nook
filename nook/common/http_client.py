@@ -5,7 +5,6 @@ from datetime import datetime
 import logging
 from contextlib import asynccontextmanager
 import cloudscraper
-from unittest.mock import MagicMock
 
 from nook.common.exceptions import APIException, RetryException
 from nook.common.decorators import handle_errors
@@ -267,15 +266,27 @@ class AsyncHTTPClient:
             ) from e
     
     def _convert_to_httpx_response(self, response):
-        """requests.Responseをhttpxレスポンスに変換"""
-        mock_response = MagicMock()
-        mock_response.status_code = response.status_code
-        mock_response.text = response.text
-        mock_response.content = response.content
-        mock_response.headers = response.headers
-        mock_response.json = lambda: response.json()
-        mock_response.raise_for_status = lambda: None
-        return mock_response
+        """requests.Responseをhttpx互換のレスポンスアダプターに変換"""
+        class CloudscraperResponseAdapter:
+            def __init__(self, cloudscraper_response):
+                self._response = cloudscraper_response
+                self.status_code = cloudscraper_response.status_code
+                self.text = cloudscraper_response.text
+                self.content = cloudscraper_response.content
+                self.headers = cloudscraper_response.headers
+            
+            def json(self):
+                return self._response.json()
+            
+            def raise_for_status(self):
+                if self.status_code >= 400:
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {self.status_code} error",
+                        request=None,
+                        response=self
+                    )
+        
+        return CloudscraperResponseAdapter(response)
     
     async def download(
         self,
