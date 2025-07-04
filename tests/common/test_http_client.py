@@ -54,3 +54,34 @@ class TestAsyncHTTPClient:
         headers = call_args.kwargs.get('headers', {})
         assert 'User-Agent' in headers
         assert 'Chrome' in headers['User-Agent']
+    
+    @pytest.mark.asyncio
+    @patch('nook.common.http_client.BaseConfig')
+    async def test_get_falls_back_to_cloudscraper_on_403(self, mock_config):
+        """403エラー時にcloudscraperフォールバックが使用されることをテスト"""
+        # Arrange
+        mock_config_instance = MagicMock()
+        mock_config_instance.REQUEST_TIMEOUT = 30
+        mock_config.return_value = mock_config_instance
+        
+        client = AsyncHTTPClient()
+        mock_httpx_client = AsyncMock()
+        
+        # HTTPXが403エラーを発生させる
+        mock_403_response = MagicMock()
+        mock_403_response.status_code = 403
+        mock_403_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "403 Forbidden", request=MagicMock(), response=mock_403_response
+        )
+        mock_httpx_client.get.return_value = mock_403_response
+        client._client = mock_httpx_client
+        
+        # cloudscraperフォールバックをモック
+        with patch.object(client, '_cloudscraper_fallback', new=AsyncMock()) as mock_fallback:
+            mock_fallback.return_value = MagicMock()
+            
+            # Act
+            result = await client.get("https://example.com")
+            
+            # Assert
+            mock_fallback.assert_called_once_with("https://example.com", None)
