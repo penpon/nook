@@ -88,9 +88,11 @@ function App() {
 				{/* Mobile Header */}
 				<MobileHeader
 					title="News Dashboard"
-					showWeather={true}
+					showWeather={false}
+					showSearchButton={false}
 					onMenuClick={toggleMobileMenu}
 					onSearchClick={() => {}}
+					rightActions={<></>}
 				/>
 
 				{/* Sidebar - Hidden on mobile, overlay when menu is open */}
