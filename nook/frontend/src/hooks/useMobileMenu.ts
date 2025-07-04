@@ -30,8 +30,23 @@ export function useMobileMenu() {
 		};
 	}, [isMobileMenuOpen, scrollPosition]);
 
+	const toggleMobileMenu = () => {
+		setIsMobileMenuOpen(prev => !prev);
+	};
+
+	const closeMobileMenu = () => {
+		setIsMobileMenuOpen(false);
+	};
+
+	const openMobileMenu = () => {
+		setIsMobileMenuOpen(true);
+	};
+
 	return {
 		isMobileMenuOpen,
 		setIsMobileMenuOpen,
+		toggleMobileMenu,
+		closeMobileMenu,
+		openMobileMenu,
 	};
 }
