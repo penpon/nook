@@ -34,6 +34,17 @@ class AsyncHTTPClient:
         self._http1_client: Optional[httpx.AsyncClient] = None
         self._session_start: Optional[datetime] = None
     
+    @staticmethod
+    def get_browser_headers() -> Dict[str, str]:
+        """最新のブラウザヘッダーを返す"""
+        return {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"'
+        }
+    
     async def __aenter__(self):
         """コンテキストマネージャーのエントリー"""
         await self.start()
