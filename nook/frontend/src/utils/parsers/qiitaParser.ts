@@ -3,6 +3,10 @@ import type { ContentItem } from "../../types";
 export function parseQiitaArticlesMarkdown(markdown: string): ContentItem[] {
 	const lines = markdown.split("\n");
 	const contentItems: ContentItem[] = [];
+	
+	// 重複チェック用のセット
+	const seenUrls = new Set<string>();
+	const seenTitles = new Set<string>();
 
 	// 最初に「Qiita」カテゴリヘッダーを追加
 	contentItems.push({
@@ -69,6 +73,16 @@ export function parseQiitaArticlesMarkdown(markdown: string): ContentItem[] {
 						}
 					}
 				}
+
+				// 重複チェック
+				if (seenUrls.has(url) || seenTitles.has(title)) {
+					// 重複記事をスキップ
+					continue;
+				}
+
+				// 重複していない場合は記録
+				seenUrls.add(url);
+				seenTitles.add(title);
 
 				// コンテンツの構築
 				let content = "";

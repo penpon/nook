@@ -1,19 +1,15 @@
 """Qiitaの技術ブログのRSSフィードを監視・収集・要約するサービス。"""
 
 import asyncio
-import tomli
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
 
 import feedparser
+import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
-from nook.common.gpt_client import GPTClient
-from nook.common.http_client import AsyncHTTPClient
-from nook.common.storage import LocalStorage
 
 
 @dataclass
@@ -36,13 +32,13 @@ class Article:
     category : str | None
         カテゴリ。
     """
-    
+
     feed_name: str
     title: str
     url: str
     text: str
     soup: BeautifulSoup
-    category: Optional[str] = None
+    category: str | None = None
     summary: str = field(default="")
 
 
@@ -55,13 +51,13 @@ class QiitaExplorer(BaseService):
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
     """
-    
+
     # 限度値を無視するフィードのURL
     UNLIMITED_FEEDS = [
         "https://qiita.com/tags/stablediffusion/feed.atom",
-        "https://qiita.com/tags/画像生成/feed.atom"
+        "https://qiita.com/tags/画像生成/feed.atom",
     ]
-    
+
     def __init__(self, storage_dir: str = "data"):
         """
         QiitaExplorerを初期化します。
@@ -73,12 +69,12 @@ class QiitaExplorer(BaseService):
         """
         super().__init__("qiita_explorer")
         self.http_client = None  # setup_http_clientで初期化
-        
+
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "feed.toml", "rb") as f:
             self.feed_config = tomli.load(f)
-    
+
     def run(self, days: int = 1, limit: int = 3) -> None:
         """
         QiitaのRSSフィードを監視・収集・要約して保存します。
@@ -91,7 +87,7 @@ class QiitaExplorer(BaseService):
             各フィードから取得する記事数。
         """
         asyncio.run(self.collect(days, limit))
-    
+
     async def collect(self, days: int = 1, limit: int = 3) -> None:
         """
         QiitaのRSSフィードを監視・収集・要約して保存します（非同期版）。
@@ -106,9 +102,11 @@ class QiitaExplorer(BaseService):
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
-        
+
         all_articles = []
-        
+        seen_urls = set()  # URL重複チェック用
+        seen_titles = set()  # タイトル重複チェック用（フォールバック）
+
         try:
             # 各カテゴリのフィードから記事を取得
             for category, feeds in self.feed_config.items():
@@ -118,42 +116,63 @@ class QiitaExplorer(BaseService):
                         # フィードを解析
                         self.logger.info(f"フィード {feed_url} を解析しています...")
                         feed = feedparser.parse(feed_url)
-                        feed_name = feed.feed.title if hasattr(feed, "feed") and hasattr(feed.feed, "title") else feed_url
-                        
+                        feed_name = (
+                            feed.feed.title
+                            if hasattr(feed, "feed") and hasattr(feed.feed, "title")
+                            else feed_url
+                        )
+
                         # 特定のフィードの場合は制限を解除
-                        current_limit = None if feed_url in self.UNLIMITED_FEEDS else limit
+                        current_limit = (
+                            None if feed_url in self.UNLIMITED_FEEDS else limit
+                        )
                         if feed_url in self.UNLIMITED_FEEDS:
                             self.logger.info(f"フィード {feed_url} は制限なしで取得します")
-                        
+
                         # 新しいエントリをフィルタリング
-                        entries = self._filter_entries(feed.entries, days, current_limit)
-                        self.logger.info(f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました")
-                        
+                        entries = self._filter_entries(
+                            feed.entries, days, current_limit
+                        )
+                        self.logger.info(
+                            f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました"
+                        )
+
                         for entry in entries:
                             # 記事を取得
-                            article = await self._retrieve_article(entry, feed_name, category)
+                            article = await self._retrieve_article(
+                                entry, feed_name, category
+                            )
                             if article:
-                                # 記事を要約
+                                # 重複チェック
+                                if self._is_duplicate(article, seen_urls, seen_titles):
+                                    self.logger.info(f"重複記事をスキップ: {article.title}")
+                                    continue
+
+                                # 重複していない場合は記録して要約
+                                seen_urls.add(article.url)
+                                seen_titles.add(article.title)
                                 await self._summarize_article(article)
                                 all_articles.append(article)
-                    
+
                     except Exception as e:
                         self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
-            
+
             self.logger.info(f"合計 {len(all_articles)} 件の記事を取得しました")
-            
+
             # 要約を保存
             if all_articles:
                 await self._store_summaries(all_articles)
-                self.logger.info(f"記事の要約を保存しました")
+                self.logger.info("記事の要約を保存しました")
             else:
                 self.logger.info("保存する記事がありません")
-                
+
         finally:
             # グローバルクライアントなのでクローズ不要
             pass
-    
-    def _filter_entries(self, entries: List[dict], days: int, limit: Optional[int] = None) -> List[dict]:
+
+    def _filter_entries(
+        self, entries: list[dict], days: int, limit: int | None = None
+    ) -> list[dict]:
         """
         新しいエントリをフィルタリングします。
         
@@ -172,19 +191,19 @@ class QiitaExplorer(BaseService):
             フィルタリングされたエントリのリスト。
         """
         self.logger.info(f"エントリのフィルタリングを開始します（{len(entries)}件）...")
-        
+
         # 日付でフィルタリング
         cutoff_date = datetime.now() - timedelta(days=days)
         recent_entries = []
-        
+
         for entry in entries:
             entry_date = None
-            
+
             if hasattr(entry, "published_parsed") and entry.published_parsed:
                 entry_date = datetime(*entry.published_parsed[:6])
             elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
                 entry_date = datetime(*entry.updated_parsed[:6])
-            
+
             if entry_date:
                 self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
                 if entry_date >= cutoff_date:
@@ -193,17 +212,46 @@ class QiitaExplorer(BaseService):
                 # 日付が取得できない場合は含める
                 self.logger.debug("エントリに日付情報がありません。含めます。")
                 recent_entries.append(entry)
-        
+
         self.logger.info(f"フィルタリング後のエントリ数: {len(recent_entries)}")
-        
+
         # limitがNoneの場合は全てのエントリを返す
         if limit is None:
             return recent_entries
         # そうでなければ指定された数だけ返す
         return recent_entries[:limit]
 
+    def _is_duplicate(self, article: Article, seen_urls: set, seen_titles: set) -> bool:
+        """
+        記事が重複しているかチェックします。
+        
+        Parameters
+        ----------
+        article : Article
+            チェックする記事。
+        seen_urls : set
+            既に収集したURLのセット。
+        seen_titles : set
+            既に収集したタイトルのセット。
+            
+        Returns
+        -------
+        bool
+            重複している場合はTrue、そうでなければFalse。
+        """
+        # URLベースの重複チェック（最優先）
+        if article.url in seen_urls:
+            return True
 
-    async def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Optional[Article]:
+        # タイトルベースの重複チェック（フォールバック）
+        if article.title in seen_titles:
+            return True
+
+        return False
+
+    async def _retrieve_article(
+        self, entry: dict, feed_name: str, category: str
+    ) -> Article | None:
         """
         記事を取得します。
     
@@ -226,21 +274,21 @@ class QiitaExplorer(BaseService):
             url = entry.link if hasattr(entry, "link") else None
             if not url:
                 return None
-    
+
             # タイトルを取得
             title = entry.title if hasattr(entry, "title") else "無題"
-    
+
             # 記事の内容を取得
             response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
-    
+
             # 本文を抽出
             text = ""
-    
+
             # まずはエントリの要約を使用
             if hasattr(entry, "summary"):
                 text = entry.summary
-    
+
             # 次に記事の本文を抽出
             if not text:
                 # メタディスクリプションを取得
@@ -252,16 +300,16 @@ class QiitaExplorer(BaseService):
                     paragraphs = soup.find_all("p")
                     if paragraphs:
                         text = "\n".join([p.get_text() for p in paragraphs[:5]])
-    
+
             return Article(
                 feed_name=feed_name,
                 title=title,
                 url=url,
                 text=text,
                 soup=soup,
-                category=category
+                category=category,
             )
-    
+
         except Exception as e:
             self.logger.error(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
             return None
@@ -299,14 +347,14 @@ class QiitaExplorer(BaseService):
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=1000,
             )
             article.summary = summary
         except Exception as e:
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, articles: List[Article]) -> None:
+    async def _store_summaries(self, articles: list[Article]) -> None:
         """
         要約を保存します。
     
@@ -318,31 +366,33 @@ class QiitaExplorer(BaseService):
         if not articles:
             self.logger.info("保存する記事がありません")
             return
-    
+
         today = datetime.now()
         content = f"# Qiita記事 ({today.strftime('%Y-%m-%d')})\n\n"
-    
+
         # カテゴリごとに整理
         categories = {}
         for article in articles:
             if article.category not in categories:
                 categories[article.category] = []
-    
+
             categories[article.category].append(article)
-    
+
         # Markdownを生成
         for category, category_articles in categories.items():
             content += f"## {category.replace('_', ' ').capitalize()}\n\n"
-    
+
             for article in category_articles:
                 content += f"### [{article.title}]({article.url})\n\n"
                 content += f"**フィード**: {article.feed_name}\n\n"
                 content += f"**要約**:\n{article.summary}\n\n"
-    
+
                 content += "---\n\n"
-    
+
         # 保存
-        self.logger.info(f"qiita_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
+        self.logger.info(
+            f"qiita_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md"
+        )
         try:
             self.storage.save_markdown(content, "", today)
             self.logger.info("保存が完了しました")
@@ -352,7 +402,7 @@ class QiitaExplorer(BaseService):
             try:
                 qiita_explorer_dir = Path(self.storage.base_dir) / "qiita_explorer"
                 qiita_explorer_dir.mkdir(parents=True, exist_ok=True)
-    
+
                 file_path = qiita_explorer_dir / f"{today.strftime('%Y-%m-%d')}.md"
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
