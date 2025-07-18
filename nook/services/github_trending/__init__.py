@@ -1,1 +1,1 @@
-"""GitHubTrendingパッケージ。""" 
+"""GitHubTrendingパッケージ。"""

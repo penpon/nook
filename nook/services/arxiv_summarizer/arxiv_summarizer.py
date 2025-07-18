@@ -1,21 +1,15 @@
 """arXiv論文を収集・要約するサービス。"""
 
-import os
+import asyncio
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import List, Optional
-import asyncio
 
 import arxiv
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 
 from nook.common.base_service import BaseService
-from nook.common.http_client import AsyncHTTPClient
 from nook.common.decorators import handle_errors
-from nook.common.exceptions import APIException
 
 
 def remove_tex_backticks(text: str) -> str:
@@ -109,7 +103,7 @@ class ArxivSummarizer(BaseService):
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
-        
+
         # Hugging Faceでキュレーションされた論文IDを取得
         paper_ids = await self._get_curated_paper_ids(limit)
 
@@ -159,7 +153,7 @@ class ArxivSummarizer(BaseService):
         return False if "." not in line else True
 
     @handle_errors(retries=3)
-    async def _get_curated_paper_ids(self, limit: int) -> List[str]:
+    async def _get_curated_paper_ids(self, limit: int) -> list[str]:
         """
         Hugging Faceでキュレーションされた論文IDを取得します。
 
@@ -198,7 +192,7 @@ class ArxivSummarizer(BaseService):
 
         return paper_ids[:limit]
 
-    async def _get_processed_ids(self) -> List[str]:
+    async def _get_processed_ids(self) -> list[str]:
         """
         既に処理済みの論文IDを取得します。
 
@@ -217,7 +211,7 @@ class ArxivSummarizer(BaseService):
 
         return [line.strip() for line in content.split("\n") if line.strip()]
 
-    async def _save_processed_ids(self, paper_ids: List[str]) -> None:
+    async def _save_processed_ids(self, paper_ids: list[str]) -> None:
         """
         処理済みの論文IDを保存します。
 
@@ -240,7 +234,7 @@ class ArxivSummarizer(BaseService):
         content = "\n".join(all_ids)
         await self.save_data(content, filename)
 
-    async def _retrieve_paper_info(self, paper_id: str) -> Optional[PaperInfo]:
+    async def _retrieve_paper_info(self, paper_id: str) -> PaperInfo | None:
         """
         論文情報を取得します。
 
@@ -361,7 +355,7 @@ class ArxivSummarizer(BaseService):
             self.logger.error(f"Error extracting body text: {str(e)}")
             return ""  # エラー時は空文字列を返す
 
-    async def _summarize_papers(self, papers: List[PaperInfo]) -> None:
+    async def _summarize_papers(self, papers: list[PaperInfo]) -> None:
         """複数の論文を並行して要約"""
         tasks = []
         for paper in papers:
@@ -448,7 +442,7 @@ class ArxivSummarizer(BaseService):
                 )
             paper_info.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, papers: List[PaperInfo]) -> None:
+    async def _store_summaries(self, papers: list[PaperInfo]) -> None:
         """
         要約を保存します。
 

@@ -3,9 +3,7 @@ APIスキーマ。
 APIリクエストとレスポンスのデータモデルを定義します。
 """
 
-from typing import List, Optional, Dict, Any, Union
-from datetime import datetime
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 
 class ContentRequest(BaseModel):
@@ -17,7 +15,8 @@ class ContentRequest(BaseModel):
     date : str, optional
         取得する日付（YYYY-MM-DD形式）。
     """
-    date: Optional[str] = Field(None, description="取得する日付（YYYY-MM-DD形式）")
+
+    date: str | None = Field(None, description="取得する日付（YYYY-MM-DD形式）")
 
 
 class ContentItem(BaseModel):
@@ -35,10 +34,13 @@ class ContentItem(BaseModel):
     source : str
         ソース（reddit, hackernews, github, techfeed, paper）。
     """
+
     title: str = Field(..., description="タイトル")
     content: str = Field(..., description="コンテンツ本文")
-    url: Optional[str] = Field(None, description="関連URL")
-    source: str = Field(..., description="ソース（reddit, hackernews, github, techfeed, paper）")
+    url: str | None = Field(None, description="関連URL")
+    source: str = Field(
+        ..., description="ソース（reddit, hackernews, github, techfeed, paper）"
+    )
 
 
 class ContentResponse(BaseModel):
@@ -50,7 +52,8 @@ class ContentResponse(BaseModel):
     items : List[ContentItem]
         コンテンツ項目のリスト。
     """
-    items: List[ContentItem] = Field(..., description="コンテンツ項目のリスト")
+
+    items: list[ContentItem] = Field(..., description="コンテンツ項目のリスト")
 
 
 class WeatherResponse(BaseModel):
@@ -64,6 +67,7 @@ class WeatherResponse(BaseModel):
     icon : str
         天気アイコン。
     """
+
     temperature: float = Field(..., description="気温（摂氏）")
     icon: str = Field(..., description="天気アイコン")
 
@@ -79,6 +83,7 @@ class ChatMessage(BaseModel):
     content : str
         メッセージの内容。
     """
+
     role: str
     content: str
 
@@ -98,10 +103,13 @@ class ChatRequest(BaseModel):
     markdown : str, optional
         関連するマークダウンコンテキスト。
     """
+
     topic_id: str = Field(..., description="トピックID")
     message: str = Field(..., description="ユーザーメッセージ")
-    chat_history: List[Dict[str, str]] = Field(default_factory=list, description="チャット履歴")
-    markdown: Optional[str] = Field("", description="関連するマークダウンコンテキスト")
+    chat_history: list[dict[str, str]] = Field(
+        default_factory=list, description="チャット履歴"
+    )
+    markdown: str | None = Field("", description="関連するマークダウンコンテキスト")
 
 
 class ChatResponse(BaseModel):
@@ -113,4 +121,5 @@ class ChatResponse(BaseModel):
     response : str
         アシスタントからのレスポンス。
     """
-    response: str = Field(..., description="アシスタントからのレスポンス") 
+
+    response: str = Field(..., description="アシスタントからのレスポンス")

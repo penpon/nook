@@ -1,1 +1,1 @@
-"""ArxivSummarizerパッケージ。""" 
+"""ArxivSummarizerパッケージ。"""

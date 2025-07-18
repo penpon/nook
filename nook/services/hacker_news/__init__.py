@@ -1,1 +1,1 @@
-"""HackerNewsパッケージ。""" 
+"""HackerNewsパッケージ。"""

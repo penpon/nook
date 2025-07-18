@@ -1,1 +1,1 @@
-"""BussinessFeedパッケージ。""" 
+"""BussinessFeedパッケージ。"""

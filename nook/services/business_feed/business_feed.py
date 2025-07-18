@@ -1,19 +1,15 @@
 """ビジネスニュースのRSSフィードを監視・収集・要約するサービス。"""
 
 import asyncio
-import tomli
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
 
 import feedparser
+import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
-from nook.common.gpt_client import GPTClient
-from nook.common.http_client import AsyncHTTPClient
-from nook.common.storage import LocalStorage
 
 
 @dataclass
@@ -36,13 +32,13 @@ class Article:
     category : str | None
         カテゴリ。
     """
-    
+
     feed_name: str
     title: str
     url: str
     text: str
     soup: BeautifulSoup
-    category: Optional[str] = None
+    category: str | None = None
     summary: str = field(default="")
 
 
@@ -55,7 +51,7 @@ class BusinessFeed(BaseService):
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
     """
-    
+
     def __init__(self, storage_dir: str = "data"):
         """
         BusinessFeedを初期化します。
@@ -67,12 +63,12 @@ class BusinessFeed(BaseService):
         """
         super().__init__("business_feed")
         self.http_client = None  # setup_http_clientで初期化
-        
+
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "feed.toml", "rb") as f:
             self.feed_config = tomli.load(f)
-    
+
     def run(self, days: int = 1, limit: int = 5) -> None:
         """
         ビジネスニュースのRSSフィードを監視・収集・要約して保存します。
@@ -85,7 +81,7 @@ class BusinessFeed(BaseService):
             各フィードから取得する記事数。
         """
         asyncio.run(self.collect(days, limit))
-    
+
     async def collect(self, days: int = 1, limit: int = 5) -> None:
         """
         ビジネスニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
@@ -100,9 +96,9 @@ class BusinessFeed(BaseService):
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
-        
+
         all_articles = []
-        
+
         try:
             # 各カテゴリのフィードから記事を取得
             for category, feeds in self.feed_config.items():
@@ -112,37 +108,45 @@ class BusinessFeed(BaseService):
                         # フィードを解析
                         self.logger.info(f"フィード {feed_url} を解析しています...")
                         feed = feedparser.parse(feed_url)
-                        feed_name = feed.feed.title if hasattr(feed, "feed") and hasattr(feed.feed, "title") else feed_url
-                        
+                        feed_name = (
+                            feed.feed.title
+                            if hasattr(feed, "feed") and hasattr(feed.feed, "title")
+                            else feed_url
+                        )
+
                         # 新しいエントリをフィルタリング
                         entries = self._filter_entries(feed.entries, days, limit)
-                        self.logger.info(f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました")
-                        
+                        self.logger.info(
+                            f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました"
+                        )
+
                         for entry in entries:
                             # 記事を取得
-                            article = await self._retrieve_article(entry, feed_name, category)
+                            article = await self._retrieve_article(
+                                entry, feed_name, category
+                            )
                             if article:
                                 # 記事を要約
                                 await self._summarize_article(article)
                                 all_articles.append(article)
-                    
+
                     except Exception as e:
                         self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
-            
+
             self.logger.info(f"合計 {len(all_articles)} 件の記事を取得しました")
-            
+
             # 要約を保存
             if all_articles:
                 await self._store_summaries(all_articles)
-                self.logger.info(f"記事の要約を保存しました")
+                self.logger.info("記事の要約を保存しました")
             else:
                 self.logger.info("保存する記事がありません")
-                
+
         finally:
             # グローバルクライアントなのでクローズ不要
             pass
-    
-    def _filter_entries(self, entries: List[dict], days: int, limit: int) -> List[dict]:
+
+    def _filter_entries(self, entries: list[dict], days: int, limit: int) -> list[dict]:
         """
         新しいエントリをフィルタリングします。
         
@@ -161,19 +165,19 @@ class BusinessFeed(BaseService):
             フィルタリングされたエントリのリスト。
         """
         self.logger.info(f"エントリのフィルタリングを開始します（{len(entries)}件）...")
-        
+
         # 日付でフィルタリング
         cutoff_date = datetime.now() - timedelta(days=days)
         recent_entries = []
-        
+
         for entry in entries:
             entry_date = None
-            
+
             if hasattr(entry, "published_parsed") and entry.published_parsed:
                 entry_date = datetime(*entry.published_parsed[:6])
             elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
                 entry_date = datetime(*entry.updated_parsed[:6])
-            
+
             if entry_date:
                 self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
                 if entry_date >= cutoff_date:
@@ -182,14 +186,15 @@ class BusinessFeed(BaseService):
                 # 日付が取得できない場合は含める
                 self.logger.debug("エントリに日付情報がありません。含めます。")
                 recent_entries.append(entry)
-        
+
         self.logger.info(f"フィルタリング後のエントリ数: {len(recent_entries)}")
-        
+
         # 最新の記事を取得
         return recent_entries[:limit]
 
-
-    async def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Optional[Article]:
+    async def _retrieve_article(
+        self, entry: dict, feed_name: str, category: str
+    ) -> Article | None:
         """
         記事を取得します。
     
@@ -212,28 +217,28 @@ class BusinessFeed(BaseService):
             url = entry.link if hasattr(entry, "link") else None
             if not url:
                 return None
-    
+
             # タイトルを取得
             title = entry.title if hasattr(entry, "title") else "無題"
-    
+
             # 記事の内容を取得
             response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
-    
+
             # 日本語記事かどうかを判定
             is_japanese = self._detect_japanese_content(soup, title, entry)
-            
+
             if not is_japanese:
                 self.logger.debug(f"日本語でない記事をスキップします: {title}")
                 return None
-                
+
             # 本文を抽出
             text = ""
-    
+
             # まずはエントリの要約を使用
             if hasattr(entry, "summary"):
                 text = entry.summary
-    
+
             # 次に記事の本文を抽出
             if not text:
                 # メタディスクリプションを取得
@@ -245,20 +250,20 @@ class BusinessFeed(BaseService):
                     paragraphs = soup.find_all("p")
                     if paragraphs:
                         text = "\n".join([p.get_text() for p in paragraphs[:5]])
-    
+
             return Article(
                 feed_name=feed_name,
                 title=title,
                 url=url,
                 text=text,
                 soup=soup,
-                category=category
+                category=category,
             )
-    
+
         except Exception as e:
             self.logger.error(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
             return None
-            
+
     def _detect_japanese_content(self, soup, title, entry) -> bool:
         """
         記事が日本語であるかどうかを判定します。
@@ -283,62 +288,78 @@ class BusinessFeed(BaseService):
             lang = html_tag.get("lang").lower()
             if lang.startswith("ja") or lang == "jp":
                 return True
-                
+
         # 方法2: meta タグの言語情報をチェック
         meta_lang = soup.find("meta", attrs={"http-equiv": "content-language"})
         if meta_lang and meta_lang.get("content"):
             if meta_lang.get("content").lower().startswith("ja"):
                 return True
-        
+
         # 方法3: 日本語の文字コードパターンをチェック
         # ひらがな、カタカナ、漢字の文字コード範囲
         hiragana_pattern = range(0x3040, 0x309F)
         katakana_pattern = range(0x30A0, 0x30FF)
         kanji_pattern = range(0x4E00, 0x9FBF)
-        
+
         # タイトルをチェック
         japanese_chars_count = 0
         for char in title:
             code = ord(char)
-            if code in hiragana_pattern or code in katakana_pattern or code in kanji_pattern:
+            if (
+                code in hiragana_pattern
+                or code in katakana_pattern
+                or code in kanji_pattern
+            ):
                 japanese_chars_count += 1
-                
+
         if japanese_chars_count > 2:  # 複数の日本語文字があれば日本語とみなす
             return True
-            
+
         # 方法4: サマリーやディスクリプションもチェック
         text_to_check = ""
         if hasattr(entry, "summary"):
             text_to_check += entry.summary
-            
+
         meta_desc = soup.find("meta", attrs={"name": "description"})
         if meta_desc and meta_desc.get("content"):
             text_to_check += meta_desc.get("content")
-            
+
         # 最初の段落をサンプリング
         paragraphs = soup.find_all("p")
         if paragraphs and len(paragraphs) > 0:
             text_to_check += paragraphs[0].get_text()
-            
+
         # サンプリングしたテキストで日本語文字をチェック
         japanese_chars_count = 0
         for char in text_to_check[:100]:  # 最初の100文字だけチェック
             code = ord(char)
-            if code in hiragana_pattern or code in katakana_pattern or code in kanji_pattern:
+            if (
+                code in hiragana_pattern
+                or code in katakana_pattern
+                or code in kanji_pattern
+            ):
                 japanese_chars_count += 1
-                
+
         if japanese_chars_count > 5:  # 複数の日本語文字があれば日本語とみなす
             return True
-            
+
         # 方法5: 特定の日本語サイトのドメインリスト（バックアップとして）
-        japanese_domains = ["nikkei.com", "toyokeizai.net", "businessinsider.jp", "bloomberg.co.jp", 
-                          "reuters.co.jp", "diamond.jp", "jbpress.co.jp", "president.jp"]
-        
+        japanese_domains = [
+            "nikkei.com",
+            "toyokeizai.net",
+            "businessinsider.jp",
+            "bloomberg.co.jp",
+            "reuters.co.jp",
+            "diamond.jp",
+            "jbpress.co.jp",
+            "president.jp",
+        ]
+
         url = entry.link if hasattr(entry, "link") else ""
         for domain in japanese_domains:
             if domain in url:
                 return True
-                
+
         # デフォルトでは非日本語と判定
         return False
 
@@ -375,14 +396,14 @@ class BusinessFeed(BaseService):
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=1000,
             )
             article.summary = summary
         except Exception as e:
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, articles: List[Article]) -> None:
+    async def _store_summaries(self, articles: list[Article]) -> None:
         """
         要約を保存します。
     
@@ -394,29 +415,29 @@ class BusinessFeed(BaseService):
         if not articles:
             self.logger.info("保存する記事がありません")
             return
-    
+
         today = datetime.now()
         content = f"# ビジネスニュース記事 ({today.strftime('%Y-%m-%d')})\n\n"
-    
+
         # カテゴリごとに整理
         categories = {}
         for article in articles:
             if article.category not in categories:
                 categories[article.category] = []
-    
+
             categories[article.category].append(article)
-    
+
         # Markdownを生成
         for category, category_articles in categories.items():
             content += f"## {category.replace('_', ' ').capitalize()}\n\n"
-    
+
             for article in category_articles:
                 content += f"### [{article.title}]({article.url})\n\n"
                 content += f"**フィード**: {article.feed_name}\n\n"
                 content += f"**要約**:\n{article.summary}\n\n"
-    
+
                 content += "---\n\n"
-    
+
         # 保存
         self.logger.info(f"business_feed ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
         try:
@@ -428,7 +449,7 @@ class BusinessFeed(BaseService):
             try:
                 business_feed_dir = Path(self.storage.base_dir) / "business_feed"
                 business_feed_dir.mkdir(parents=True, exist_ok=True)
-    
+
                 file_path = business_feed_dir / f"{today.strftime('%Y-%m-%d')}.md"
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)

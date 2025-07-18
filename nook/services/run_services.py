@@ -4,17 +4,15 @@ Nookの各サービスを非同期で実行するスクリプト。
 """
 
 import asyncio
-import logging
-from typing import List, Optional
-from datetime import datetime
 import signal
 import sys
-import os
+from datetime import datetime
+
 from dotenv import load_dotenv
 
 from nook.common.async_utils import AsyncTaskManager, gather_with_errors
-from nook.common.logging import setup_logger
 from nook.common.http_client import close_http_client
+from nook.common.logging import setup_logger
 
 # 環境変数の読み込み
 load_dotenv()
@@ -27,17 +25,17 @@ class ServiceRunner:
 
     def __init__(self):
         # 既存のサービスをインポート（同期版として残す）
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+        from nook.services.business_feed.business_feed import BusinessFeed
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
         from nook.services.github_trending.github_trending import GithubTrending
         from nook.services.hacker_news.hacker_news import HackerNewsRetriever
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-        from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
-        from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
         from nook.services.note_explorer.note_explorer import NoteExplorer
+        from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
+        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
         from nook.services.tech_feed.tech_feed import TechFeed
-        from nook.services.business_feed.business_feed import BusinessFeed
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
-        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+        from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
 
         # サービスインスタンスを保持
         self.sync_services = {

@@ -3,15 +3,14 @@ Nook APIのメインアプリケーション。
 FastAPIを使用してAPIエンドポイントを提供します。
 """
 
-import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-from nook.api.routers import content, weather, chat, usage
-from nook.api.middleware.error_handler import error_handler_middleware, handle_exception
 from nook.api.exceptions import NookHTTPException
+from nook.api.middleware.error_handler import error_handler_middleware, handle_exception
 from nook.api.models.errors import ErrorResponse
+from nook.api.routers import chat, content, usage, weather
 from nook.common.error_metrics import error_metrics
 
 # 環境変数の読み込み
@@ -22,10 +21,7 @@ app = FastAPI(
     title="Nook API",
     description="パーソナル情報ハブのAPI",
     version="0.1.0",
-    responses={
-        422: {"model": ErrorResponse},
-        500: {"model": ErrorResponse}
-    }
+    responses={422: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
 
 # エラーハンドリングミドルウェアの追加
@@ -43,18 +39,19 @@ app.add_middleware(
 # エラーハンドラーの登録
 @app.exception_handler(NookHTTPException)
 async def nook_exception_handler(request: Request, exc: NookHTTPException):
-    error_metrics.record_error(exc.error_type, {
-        "status_code": exc.status_code,
-        "detail": exc.detail
-    })
-    
+    error_metrics.record_error(
+        exc.error_type, {"status_code": exc.status_code, "detail": exc.detail}
+    )
+
     return handle_exception(exc, request)
+
 
 # ルーターの登録
 app.include_router(content.router, prefix="/api")
 app.include_router(weather.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
+
 
 @app.get("/")
 async def root():
@@ -66,11 +63,8 @@ async def root():
     dict
         APIの基本情報。
     """
-    return {
-        "name": "Nook API",
-        "version": "0.1.0",
-        "description": "パーソナル情報ハブのAPI"
-    }
+    return {"name": "Nook API", "version": "0.1.0", "description": "パーソナル情報ハブのAPI"}
+
 
 @app.get("/health")
 async def health():
@@ -84,6 +78,7 @@ async def health():
     """
     return {"status": "healthy"}
 
+
 @app.get("/api/health/errors", include_in_schema=False)
 async def get_error_stats():
     """
@@ -94,4 +89,4 @@ async def get_error_stats():
     dict
         過去60分間のエラー統計。
     """
-    return error_metrics.get_error_stats() 
+    return error_metrics.get_error_stats()

@@ -1,18 +1,15 @@
 """GitHubのトレンドリポジトリを収集するサービス。"""
 
-import tomli
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
-import asyncio
 
+import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
-from nook.common.decorators import handle_errors, log_execution_time
+from nook.common.decorators import handle_errors
 from nook.common.exceptions import APIException
-from nook.common.http_client import AsyncHTTPClient
 
 
 @dataclass
@@ -33,7 +30,7 @@ class Repository:
     """
 
     name: str
-    description: Optional[str]
+    description: str | None
     link: str
     stars: int
 
@@ -78,7 +75,7 @@ class GithubTrending(BaseService):
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
-        
+
         all_repositories = []
 
         # 言語指定なしのリポジトリを取得（新規追加）
@@ -108,7 +105,7 @@ class GithubTrending(BaseService):
     @handle_errors(retries=3)
     async def _retrieve_repositories(
         self, language: str, limit: int
-    ) -> List[Repository]:
+    ) -> list[Repository]:
         """
         特定の言語のトレンドリポジトリを取得します。
 
@@ -174,8 +171,8 @@ class GithubTrending(BaseService):
             raise APIException(f"Failed to retrieve repositories for {language}") from e
 
     async def _translate_repositories(
-        self, repositories_by_language: List[tuple[str, List[Repository]]]
-    ) -> List[tuple[str, List[Repository]]]:
+        self, repositories_by_language: list[tuple[str, list[Repository]]]
+    ) -> list[tuple[str, list[Repository]]]:
         """
         リポジトリの説明を日本語に翻訳します。
 
@@ -219,7 +216,7 @@ class GithubTrending(BaseService):
         return repositories_by_language
 
     async def _store_summaries(
-        self, repositories_by_language: List[tuple[str, List[Repository]]]
+        self, repositories_by_language: list[tuple[str, list[Repository]]]
     ) -> None:
         """
         リポジトリ情報を保存します。
