@@ -24,6 +24,7 @@ const sources = [
 	"reddit",
 	"4chan",
 	"5chan",
+	"penpon",
 ];
 
 function App() {

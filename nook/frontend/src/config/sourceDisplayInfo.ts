@@ -5,6 +5,7 @@ export interface SourceDisplayInfo {
 	gradientFrom?: string;
 	gradientTo?: string;
 	borderColor?: string;
+	externalUrl?: string;
 }
 
 export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
@@ -95,6 +96,15 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
 		gradientFrom: "from-amber-50",
 		gradientTo: "to-yellow-50",
 		borderColor: "border-amber-200",
+	},
+	penpon: {
+		title: "Penpon",
+		subtitle: "Penpon日記",
+		dateFormat: "yyyy年MM月dd日",
+		gradientFrom: "from-pink-50",
+		gradientTo: "to-rose-50",
+		borderColor: "border-pink-200",
+		externalUrl: "https://penpon.github.io/diary/",
 	},
 };
 
