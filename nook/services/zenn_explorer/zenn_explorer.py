@@ -104,6 +104,7 @@ class ZennExplorer(BaseService):
             await self.setup_http_client()
 
         all_articles = []
+        seen_titles = set()  # タイトル重複チェック用
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -141,6 +142,12 @@ class ZennExplorer(BaseService):
                                 entry, feed_name, category
                             )
                             if article:
+                                # 重複タイトルをスキップ
+                                if article.title in seen_titles:
+                                    self.logger.info(f"重複記事をスキップ: {article.title}")
+                                    continue
+                                seen_titles.add(article.title)
+
                                 # 記事を要約
                                 await self._summarize_article(article)
                                 all_articles.append(article)
