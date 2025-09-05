@@ -42,7 +42,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 		"reddit",
 		"4chan",
 		"5chan",
-		"penpon",
 	];
 
 	return (
@@ -107,23 +106,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 				{sources.map((source) => {
 					const sourceInfo =
 						sourceDisplayInfo[source] || defaultSourceDisplayInfo;
-					
-					// 外部リンクの場合
-					if (sourceInfo.externalUrl) {
-						return (
-							<button
-								key={source}
-								onClick={() => {
-									window.location.href = sourceInfo.externalUrl;
-								}}
-								className="w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors min-h-touch touch-manipulation text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30"
-							>
-								{sourceInfo.title}
-							</button>
-						);
-					}
-					
-					// 内部ソースの場合
 					return (
 						<button
 							key={source}
