@@ -10,6 +10,7 @@ import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
+from nook.common.dedup import DedupTracker
 
 
 @dataclass
@@ -105,7 +106,7 @@ class QiitaExplorer(BaseService):
 
         all_articles = []
         seen_urls = set()  # URL重複チェック用
-        seen_titles = set()  # タイトル重複チェック用（フォールバック）
+        dedup_tracker = DedupTracker()  # カテゴリ横断のタイトル重複チェック用
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -143,14 +144,24 @@ class QiitaExplorer(BaseService):
                                 entry, feed_name, category
                             )
                             if article:
-                                # 重複チェック
-                                if self._is_duplicate(article, seen_urls, seen_titles):
-                                    self.logger.info(f"重複記事をスキップ: {article.title}")
+                                # URL重複チェック（最優先）
+                                if article.url in seen_urls:
+                                    self.logger.info(f"重複URLをスキップ: {article.title}")
+                                    continue
+
+                                # タイトル重複チェック（カテゴリ横断・正規化済み）
+                                is_dup, normalized_title = dedup_tracker.is_duplicate(article.title)
+                                if is_dup:
+                                    original = dedup_tracker.get_original_title(normalized_title)
+                                    self.logger.info(
+                                        f"重複記事をスキップ: '{article.title}' "
+                                        f"(正規化後: '{normalized_title}', 初出: '{original}')"
+                                    )
                                     continue
 
                                 # 重複していない場合は記録して要約
                                 seen_urls.add(article.url)
-                                seen_titles.add(article.title)
+                                dedup_tracker.add(article.title)
                                 await self._summarize_article(article)
                                 all_articles.append(article)
 
@@ -220,34 +231,6 @@ class QiitaExplorer(BaseService):
             return recent_entries
         # そうでなければ指定された数だけ返す
         return recent_entries[:limit]
-
-    def _is_duplicate(self, article: Article, seen_urls: set, seen_titles: set) -> bool:
-        """
-        記事が重複しているかチェックします。
-        
-        Parameters
-        ----------
-        article : Article
-            チェックする記事。
-        seen_urls : set
-            既に収集したURLのセット。
-        seen_titles : set
-            既に収集したタイトルのセット。
-            
-        Returns
-        -------
-        bool
-            重複している場合はTrue、そうでなければFalse。
-        """
-        # URLベースの重複チェック（最優先）
-        if article.url in seen_urls:
-            return True
-
-        # タイトルベースの重複チェック（フォールバック）
-        if article.title in seen_titles:
-            return True
-
-        return False
 
     async def _retrieve_article(
         self, entry: dict, feed_name: str, category: str

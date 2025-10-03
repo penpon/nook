@@ -10,6 +10,7 @@ import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
+from nook.common.dedup import DedupTracker
 
 
 @dataclass
@@ -104,7 +105,7 @@ class ZennExplorer(BaseService):
             await self.setup_http_client()
 
         all_articles = []
-        seen_titles = set()  # タイトル重複チェック用
+        dedup_tracker = DedupTracker()  # カテゴリ横断のタイトル重複チェック用
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -142,11 +143,16 @@ class ZennExplorer(BaseService):
                                 entry, feed_name, category
                             )
                             if article:
-                                # 重複タイトルをスキップ
-                                if article.title in seen_titles:
-                                    self.logger.info(f"重複記事をスキップ: {article.title}")
+                                # 重複タイトルをスキップ（カテゴリ横断・正規化済み）
+                                is_dup, normalized_title = dedup_tracker.is_duplicate(article.title)
+                                if is_dup:
+                                    original = dedup_tracker.get_original_title(normalized_title)
+                                    self.logger.info(
+                                        f"重複記事をスキップ: '{article.title}' "
+                                        f"(正規化後: '{normalized_title}', 初出: '{original}')"
+                                    )
                                     continue
-                                seen_titles.add(article.title)
+                                dedup_tracker.add(article.title)
 
                                 # 記事を要約
                                 await self._summarize_article(article)
