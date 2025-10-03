@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 最大許容サイズ（バイト）: 10MB
+MAX_SIZE=$((10 * 1024 * 1024))
+
+# ブロック対象のパス（誤コミット防止）
+# venv/.venv/node_modules はコミット禁止
+BLOCK_PATHS_REGEX='^(venv/|\.venv/|node_modules/)'
+
+# ステージ済みファイル
+mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACM)
+
+if [[ ${#STAGED[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+violations=()
+for f in "${STAGED[@]}"; do
+  # 削除やディレクトリはスキップ
+  [[ -f "$f" ]] || continue
+
+  # ブロック対象パスの検出
+  if [[ "$f" =~ $BLOCK_PATHS_REGEX ]]; then
+    echo "[pre-commit] ERROR: Blocked path matched: $f"
+    echo "Please remove from staging and add to .gitignore if needed."
+    exit 1
+  fi
+
+  # ファイルサイズ検査
+  size=$(wc -c < "$f" 2>/dev/null || echo 0)
+  if (( size > MAX_SIZE )); then
+    violations+=("$f ($(numfmt --to=iec --suffix=B <<<"$size" 2>/dev/null || echo ${size}B))")
+  fi
+done
+
+if [[ ${#violations[@]} -gt 0 ]]; then
+  echo "[pre-commit] ERROR: The following files exceed the size limit ($((MAX_SIZE/1024/1024))MB):"
+  for v in "${violations[@]}"; do
+    echo "  - $v"
+  done
+  echo "Rejecting commit. If this is intentional, reconsider splitting or storing externally."
+  exit 1
+fi
+
+exit 0

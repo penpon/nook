@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 最大許容サイズ（バイト）: 10MB
+MAX_SIZE=$((10 * 1024 * 1024))
+BLOCK_PATHS_REGEX='^(venv/|\.venv/|node_modules/)'
+
+# 変更レンジをSTDINから受け取り
+# pre-pushは複数行（refごと）: <local_ref> <local_sha> <remote_ref> <remote_sha>
+mapfile -t REFS
+
+# 対象オブジェクト(SHAとパス)を一時ファイルに集約
+TMP_OBJS=$(mktemp)
+trap 'rm -f "$TMP_OBJS"' EXIT
+
+if [[ ${#REFS[@]} -eq 0 ]]; then
+  # 直接指定がない場合はローカルのみのオブジェクトを検査
+  git rev-list --objects --not --remotes | awk 'NF==2' > "$TMP_OBJS"
+else
+  for r in "${REFS[@]}"; do
+    read -r local_ref local_sha remote_ref remote_sha <<<"$r"
+    if [[ -z "${local_sha:-}" ]]; then
+      continue
+    fi
+    if [[ "${remote_sha:-}" == "0000000000000000000000000000000000000000" || -z "${remote_sha:-}" ]]; then
+      RANGE="$local_sha"
+    else
+      RANGE="${remote_sha}..${local_sha}"
+    fi
+    git rev-list --objects "$RANGE" | awk 'NF==2' >> "$TMP_OBJS"
+  done
+fi
+
+# 重複排除
+sort -u "$TMP_OBJS" -o "$TMP_OBJS"
+
+violations=()
+while read -r sha path; do
+  # ブロック対象パス
+  if [[ "$path" =~ $BLOCK_PATHS_REGEX ]]; then
+    violations+=("$path (blocked path)")
+    continue
+  fi
+  # blobのみ対象
+  type=$(git cat-file -t "$sha" 2>/dev/null || echo "")
+  [[ "$type" == "blob" ]] || continue
+  size=$(git cat-file -s "$sha" 2>/dev/null || echo 0)
+  if (( size > MAX_SIZE )); then
+    human=$(numfmt --to=iec --suffix=B <<<"$size" 2>/dev/null || echo ${size}B)
+    violations+=("$path ($human)")
+  fi
+done < "$TMP_OBJS"
+
+if [[ ${#violations[@]} -gt 0 ]]; then
+  echo "[pre-push] ERROR: The following files exceed the size limit or are blocked:"
+  for v in "${violations[@]}"; do
+    echo "  - $v"
+  done
+  echo "Rejecting push. Consider excluding paths or external storage."
+  exit 1
+fi
+
+exit 0
