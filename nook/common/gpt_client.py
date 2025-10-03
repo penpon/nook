@@ -1,4 +1,4 @@
-"""GPT-4.1-nano API（OpenAI）クライアント。"""
+"""OpenAI GPT APIクライアント。"""
 
 import asyncio
 import inspect
@@ -22,15 +22,17 @@ PRICING = {"input": 0.20, "cached_input": 0.05, "output": 0.80}
 
 class GPTClient:
     """
-    GPT-4.1-nano API（OpenAI）との通信を担当するクライアントクラス。
+    OpenAI GPT APIとの通信を担当するクライアントクラス。
     
     Parameters
     ----------
     api_key : str, optional
         OpenAI APIキー。指定しない場合は環境変数から取得。
+    model : str, optional
+        使用するモデル名。指定しない場合は環境変数から取得。
     """
 
-    def __init__(self, api_key: str | None = None):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         """
         GPTClientを初期化します。
         
@@ -38,11 +40,19 @@ class GPTClient:
         ----------
         api_key : str, optional
             OpenAI APIキー。指定しない場合は環境変数から取得。
+        model : str, optional
+            使用するモデル名。指定しない場合は環境変数から取得。
         """
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError(
                 "OPENAI_API_KEY must be provided or set as an environment variable"
+            )
+        
+        self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4.1-nano")
+        if not self.model:
+            raise ValueError(
+                "OPENAI_MODEL must be provided or set as an environment variable"
             )
 
         # OpenAI APIの設定
@@ -195,7 +205,7 @@ class GPTClient:
         input_tokens = self._count_tokens(input_text.strip())
 
         response = self.client.chat.completions.create(
-            model="gpt-4.1-nano",
+            model=self.model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -207,7 +217,7 @@ class GPTClient:
 
         # 料金計算とログ記録
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         return output_text
 
@@ -313,7 +323,7 @@ class GPTClient:
         input_tokens = self._count_tokens(input_text.strip())
 
         response = self.client.chat.completions.create(
-            model="gpt-4.1-nano",
+            model=self.model,
             messages=chat_session["messages"],
             temperature=temperature,
             max_tokens=max_tokens,
@@ -324,7 +334,7 @@ class GPTClient:
 
         # 料金計算とログ記録
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         chat_session["messages"].append(
             {"role": "assistant", "content": assistant_message}
@@ -386,7 +396,7 @@ class GPTClient:
         input_tokens = self._count_tokens(input_text.strip())
 
         response = self.client.chat.completions.create(
-            model="gpt-4.1-nano",
+            model=self.model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -398,7 +408,7 @@ class GPTClient:
 
         # 料金計算とログ記録
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         return output_text
 
@@ -443,7 +453,7 @@ class GPTClient:
         input_tokens = self._count_tokens(input_text.strip())
 
         response = self.client.chat.completions.create(
-            model="gpt-4.1-nano",
+            model=self.model,
             messages=all_messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -455,6 +465,6 @@ class GPTClient:
 
         # 料金計算とログ記録
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, "gpt-4.1-nano", input_tokens, output_tokens, cost)
+        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         return output_text
