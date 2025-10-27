@@ -84,6 +84,150 @@ class GPTClient:
         output_cost = (output_tokens / 1_000_000) * PRICING["output"]
         return input_cost + output_cost
 
+    def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
+        """
+        Chat CompletionsのmessagesをResponses APIのinput形式へ変換します。
+        """
+        inputs: list[dict[str, Any]] = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            inputs.append(
+                {
+                    "role": role,
+                    "content": [{"type": "input_text", "text": content}],
+                }
+            )
+        return inputs
+
+    def _extract_text_from_response(self, resp: Any) -> str:
+        """
+        Responses APIのレスポンスからテキスト出力を抽出します。
+        output_textが無い場合にフォールバックとして使用。
+        """
+        # まずはSDKのプロパティを試す
+        text = getattr(resp, "output_text", None)
+        if isinstance(text, str) and text.strip():
+            return text
+
+        # 次に辞書化して走査
+        data = None
+        for attr in ("model_dump", "dict"):
+            try:
+                meth = getattr(resp, attr)
+                if callable(meth):
+                    data = meth()
+                    break
+            except Exception:
+                pass
+        if data is None:
+            try:
+                data = resp.__dict__
+            except Exception:
+                return ""
+
+        def collect(obj: Any) -> list[str]:
+            out: list[str] = []
+            if isinstance(obj, dict):
+                # 典型: {type: 'output_text', text: '...'}
+                typ = obj.get("type")
+                if (typ and "text" in str(typ)) and isinstance(obj.get("text"), str):
+                    out.append(obj["text"])
+                for v in obj.values():
+                    out.extend(collect(v))
+            elif isinstance(obj, list):
+                for v in obj:
+                    out.extend(collect(v))
+            return out
+
+        pieces = [p for p in collect(data) if isinstance(p, str) and p.strip()]
+        return "\n".join(pieces)
+
+    def _call_gpt5(self, prompt: str, system_instruction: str | None, max_tokens: int) -> str:
+        """
+        GPT-5系モデル用のResponses API呼び出し。
+        必要に応じてprevious_response_idで継続生成を試みます。
+        """
+        effort = "minimal"
+        prev_id: str | None = None
+        output_text = ""
+
+        for attempt in range(3):
+            params: dict[str, Any] = {
+                "model": self.model,
+                "max_output_tokens": max_tokens * (2 if attempt else 1),
+            }
+            if prev_id:
+                params["previous_response_id"] = prev_id
+            else:
+                params["input"] = [
+                    {
+                        "role": "user",
+                        "content": [{"type": "input_text", "text": prompt}],
+                    }
+                ]
+                params["reasoning"] = {"effort": effort}
+                params["text"] = {"verbosity": "medium"}
+                if system_instruction:
+                    params["instructions"] = system_instruction
+
+            resp = self.client.responses.create(**params)
+            output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
+            if output_text:
+                return output_text
+
+    def _call_gpt5_chat(self, messages: list[dict[str, str]], system_instruction: str | None, max_tokens: int) -> str:
+        """
+        GPT-5系向けにチャット形式のmessagesをResponses APIで処理。
+        必要に応じてprevious_response_idで継続生成。
+        """
+        effort = "minimal"
+        prev_id: str | None = None
+        output_text = ""
+
+        for attempt in range(3):
+            params: dict[str, Any] = {
+                "model": self.model,
+                "max_output_tokens": max_tokens * (2 if attempt else 1),
+            }
+            if prev_id:
+                params["previous_response_id"] = prev_id
+            else:
+                params["input"] = self._messages_to_responses_input(messages)
+                params["reasoning"] = {"effort": effort}
+                params["text"] = {"verbosity": "medium"}
+                if system_instruction:
+                    params["instructions"] = system_instruction
+
+            resp = self.client.responses.create(**params)
+            output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
+            if output_text:
+                return output_text
+            prev_id = getattr(resp, "id", None)
+
+        return output_text
+
+    def _supports_max_completion_tokens(self) -> bool:
+        """
+        モデルがmax_completion_tokensパラメータをサポートしているか判定します。
+        
+        gpt-5シリーズとgpt-4.1シリーズは max_completion_tokens を使用します。
+        それ以外のモデルは max_tokens を使用します。
+        """
+        model_lower = self.model.lower()
+        return model_lower.startswith("gpt-5") or model_lower.startswith(
+            "gpt-4.1"
+        )
+
+    def _is_gpt5_model(self) -> bool:
+        """
+        GPT-5モデルかどうかを判定します。
+        
+        GPT-5モデルはtemperature、top_p、logprobsをサポートせず、
+        代わりにreasoning_effortとverbosityを使用します。
+        """
+        return self.model.lower().startswith("gpt-5")
+
     def _get_calling_service(self) -> str:
         """呼び出し元のサービス名を取得します。"""
         try:
@@ -203,16 +347,27 @@ class GPTClient:
         for msg in messages:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
+        # モデルに応じて適切なAPIを使用
+        if self._is_gpt5_model():
+            # Responses API（継続生成込み）
+            output_text = self._call_gpt5(prompt, system_instruction, max_tokens)
+        else:
+            # Chat Completions API を使用
+            completion_params = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+            }
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+            if self._supports_max_completion_tokens():
+                completion_params["max_completion_tokens"] = max_tokens
+            else:
+                completion_params["max_tokens"] = max_tokens
+
+            response = self.client.chat.completions.create(**completion_params)
+            output_text = response.choices[0].message.content
 
         # 出力トークン数の計算
-        output_text = response.choices[0].message.content
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算とログ記録
@@ -322,14 +477,22 @@ class GPTClient:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=chat_session["messages"],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        # モデルに応じて適切なAPIを使用
+        if self._is_gpt5_model():
+            assistant_message = self._call_gpt5_chat(chat_session["messages"], None, max_tokens)
+        else:
+            completion_params = {
+                "model": self.model,
+                "messages": chat_session["messages"],
+                "temperature": temperature,
+            }
+            if self._supports_max_completion_tokens():
+                completion_params["max_completion_tokens"] = max_tokens
+            else:
+                completion_params["max_tokens"] = max_tokens
 
-        assistant_message = response.choices[0].message.content
+            response = self.client.chat.completions.create(**completion_params)
+            assistant_message = response.choices[0].message.content
         output_tokens = self._count_tokens(assistant_message)
 
         # 料金計算とログ記録
@@ -395,15 +558,23 @@ class GPTClient:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        # モデルに応じて適切なAPIを使用
+        if self._is_gpt5_model():
+            output_text = self._call_gpt5_chat(messages, system_instruction=None, max_tokens=max_tokens)
+        else:
+            completion_params = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+            }
+            if self._supports_max_completion_tokens():
+                completion_params["max_completion_tokens"] = max_tokens
+            else:
+                completion_params["max_tokens"] = max_tokens
 
-        # 出力トークン数の計算
-        output_text = response.choices[0].message.content
+            response = self.client.chat.completions.create(**completion_params)
+            # 出力トークン数の計算
+            output_text = response.choices[0].message.content
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算とログ記録
@@ -452,15 +623,23 @@ class GPTClient:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=all_messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        # モデルに応じて適切なAPIを使用
+        if self._is_gpt5_model():
+            output_text = self._call_gpt5_chat(all_messages, system_instruction=None, max_tokens=max_tokens)
+        else:
+            completion_params = {
+                "model": self.model,
+                "messages": all_messages,
+                "temperature": temperature,
+            }
+            if self._supports_max_completion_tokens():
+                completion_params["max_completion_tokens"] = max_tokens
+            else:
+                completion_params["max_tokens"] = max_tokens
 
-        # 出力トークン数の計算
-        output_text = response.choices[0].message.content
+            response = self.client.chat.completions.create(**completion_params)
+            # 出力トークン数の計算
+            output_text = response.choices[0].message.content
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算とログ記録
