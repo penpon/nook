@@ -10,8 +10,6 @@ import { WeatherWidget } from "../weather/WeatherWidget";
 interface SidebarProps {
 	selectedSource: string;
 	setSelectedSource: (source: string) => void;
-	currentPage: string;
-	setCurrentPage: (page: string) => void;
 	selectedDate: Date;
 	setSelectedDate: (date: Date) => void;
 	darkMode: boolean;
@@ -22,8 +20,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
 	selectedSource,
 	setSelectedSource,
-	currentPage,
-	setCurrentPage,
 	selectedDate,
 	setSelectedDate,
 	darkMode,
@@ -79,28 +75,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 				/>
 			</div>
 
-			{/* Navigation - スクロール可能 */}
-			<nav className="flex-1 p-3 md:p-4 overflow-y-auto">
-				{/* Dashboard Section */}
-				<div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">
-					Dashboard
-				</div>
-				<button
-					onClick={() => {
-						setCurrentPage("usage-dashboard");
-						onMenuItemClick();
-					}}
-					className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors min-h-touch touch-manipulation ${
-						currentPage === "usage-dashboard"
-							? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-							: "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30"
-					}`}
-				>
-					Usage Dashboard
-				</button>
-
+		{/* Navigation - スクロール可能 */}
+		<nav className="flex-1 p-3 md:p-4 overflow-y-auto">
 				{/* Sources Section */}
-				<div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400 mt-6">
+			<div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">
 					Sources
 				</div>
 				{sources.map((source) => {
@@ -110,12 +88,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 						<button
 							key={source}
 							onClick={() => {
-								setSelectedSource(source);
-								setCurrentPage("content");
-								onMenuItemClick();
+					setSelectedSource(source);
+					onMenuItemClick();
 							}}
 							className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors min-h-touch touch-manipulation ${
-								selectedSource === source && currentPage === "content"
+					selectedSource === source
 									? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
 									: "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30"
 							}`}

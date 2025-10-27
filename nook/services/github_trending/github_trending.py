@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from textwrap import dedent
 
 import tomli
 from bs4 import BeautifulSoup
@@ -190,20 +191,31 @@ class GithubTrending(BaseService):
             for language, repositories in repositories_by_language:
                 for repo in repositories:
                     if repo.description:
-                        prompt = f"""以下の英語のテキストを詳細かつ情報量の多い日本語に翻訳してください。
-                        技術用語や固有名詞は適切に翻訳し、専門的な内容が正確に伝わるようにしてください。
-                        必要に応じて、英語の専門用語を括弧内に残しても構いません。
-                        単なる直訳ではなく、内容を十分に詳しく説明してください。
+                        prompt = dedent(
+                            f"""
+                            以下のGitHubリポジトリの説明文を日本語で要約してください。
+                            制約:
+                            - 概要は1-2文、合計で120文字以内を目安に簡潔にまとめること。
+                            - 必要な場合のみ箇条書きを追加し、最大で2項目とすること。
+                            - 新しい情報を推測せず、原文の内容に基づいて説明すること。
+                            - 出力形式：
+                              概要: <概要>
+                              主なポイント:
+                              - <ポイント1>
+                              - <ポイント2>（必要な場合のみ）
 
-                        対象テキスト:
-                        {repo.description}
-                        """
+                            リポジトリ名: {repo.name}
+                            原文説明: {repo.description}
+                            """
+                        )
                         try:
                             repo.description = await self.gpt_client.generate_async(
                                 prompt=prompt,
                                 temperature=0.3,
-                                max_tokens=1000,  # max_tokensを追加
+                                max_tokens=300,
                             )
+                            if repo.description:
+                                repo.description = repo.description.strip()
                             await self.rate_limit()  # API呼び出し後のレート制限
                         except Exception as e:
                             self.logger.error(

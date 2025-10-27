@@ -1,6 +1,7 @@
 """ZennのRSSフィードを監視・収集・要約するサービス。"""
 
 import asyncio
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -41,6 +42,8 @@ class Article:
     soup: BeautifulSoup
     category: str | None = None
     summary: str = field(default="")
+    popularity_score: float = field(default=0.0)
+    published_at: datetime | None = None
 
 
 class ZennExplorer(BaseService):
@@ -58,6 +61,8 @@ class ZennExplorer(BaseService):
         "https://zenn.dev/topics/stablediffusion/feed",
         "https://zenn.dev/topics/画像生成/feed",
     ]
+
+    SUMMARY_LIMIT = 30
 
     def __init__(self, storage_dir: str = "data"):
         """
@@ -104,7 +109,7 @@ class ZennExplorer(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        all_articles = []
+        candidate_articles: list[Article] = []
         dedup_tracker = DedupTracker()  # カテゴリ横断のタイトル重複チェック用
 
         try:
@@ -154,18 +159,24 @@ class ZennExplorer(BaseService):
                                     continue
                                 dedup_tracker.add(article.title)
 
-                                # 記事を要約
-                                await self._summarize_article(article)
-                                all_articles.append(article)
+                                candidate_articles.append(article)
 
                     except Exception as e:
                         self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
 
-            self.logger.info(f"合計 {len(all_articles)} 件の記事を取得しました")
+            self.logger.info(f"合計 {len(candidate_articles)} 件の記事候補を取得しました")
+
+            selected_articles = self._select_top_articles(candidate_articles)
+            self.logger.info(
+                f"人気スコア上位 {len(selected_articles)} 件の記事を要約します"
+            )
+
+            for article in selected_articles:
+                await self._summarize_article(article)
 
             # 要約を保存
-            if all_articles:
-                await self._store_summaries(all_articles)
+            if selected_articles:
+                await self._store_summaries(selected_articles)
                 self.logger.info("記事の要約を保存しました")
             else:
                 self.logger.info("保存する記事がありません")
@@ -277,6 +288,9 @@ class ZennExplorer(BaseService):
                     if paragraphs:
                         text = "\n".join([p.get_text() for p in paragraphs[:5]])
 
+            popularity = self._extract_popularity(entry, soup)
+            published_at = self._parse_entry_date(entry)
+
             return Article(
                 feed_name=feed_name,
                 title=title,
@@ -284,6 +298,8 @@ class ZennExplorer(BaseService):
                 text=text,
                 soup=soup,
                 category=category,
+                popularity_score=popularity,
+                published_at=published_at,
             )
 
         except Exception as e:
@@ -383,3 +399,88 @@ class ZennExplorer(BaseService):
                 self.logger.info(f"再試行で保存に成功しました: {file_path}")
             except Exception as e2:
                 self.logger.error(f"再試行でも保存に失敗しました: {str(e2)}")
+
+    def _parse_entry_date(self, entry) -> datetime | None:
+        """フィードエントリから公開日時を抽出します。"""
+        try:
+            if hasattr(entry, "published_parsed") and entry.published_parsed:
+                return datetime(*entry.published_parsed[:6])
+            if hasattr(entry, "updated_parsed") and entry.updated_parsed:
+                return datetime(*entry.updated_parsed[:6])
+        except Exception as exc:
+            self.logger.debug(f"公開日時の解析に失敗しました: {exc}")
+        return None
+
+    def _extract_popularity(self, entry, soup: BeautifulSoup) -> float:
+        """記事の人気指標（いいね数）を抽出します。"""
+        # 1. メタタグ（最優先）
+        meta_like = soup.find("meta", attrs={"property": "zenn:likes_count"})
+        if meta_like and meta_like.get("content"):
+            value = self._safe_parse_int(meta_like.get("content"))
+            if value is not None:
+                return float(value)
+
+        candidates: list[int] = []
+
+        # 2. data属性を持つ要素
+        for element in soup.select("[data-like-count]"):
+            value = self._safe_parse_int(element.get("data-like-count"))
+            if value is not None:
+                candidates.append(value)
+
+        # 3. ボタンやスパンのテキストから抽出
+        for selector in ["button", "span", "div"]:
+            for element in soup.select(selector):
+                text = element.get_text(strip=True)
+                if not text:
+                    continue
+                if "いいね" in text:
+                    value = self._safe_parse_int(text)
+                    if value is not None:
+                        candidates.append(value)
+
+        if candidates:
+            return float(max(candidates))
+
+        # 4. フィードエントリに含まれる既知フィールド
+        try:
+            like_candidate = getattr(entry, "likes", None) or getattr(entry, "likes_count", None)
+            if like_candidate is None and hasattr(entry, "zenn_likes_count"):
+                like_candidate = getattr(entry, "zenn_likes_count")
+            value = self._safe_parse_int(like_candidate)
+            if value is not None:
+                return float(value)
+        except Exception as exc:
+            self.logger.debug(f"フィード内人気情報の抽出に失敗しました: {exc}")
+
+        return 0.0
+
+    def _safe_parse_int(self, value) -> int | None:
+        """さまざまな値から整数を抽出します。"""
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            match = re.search(r"(-?\d+)", value.replace(",", ""))
+            if match:
+                try:
+                    return int(match.group(1))
+                except ValueError:
+                    return None
+        return None
+
+    def _select_top_articles(self, articles: list[Article]) -> list[Article]:
+        """人気スコア順に記事をソートし、上位のみ返します。"""
+        if not articles:
+            return []
+
+        if len(articles) <= self.SUMMARY_LIMIT:
+            return articles
+
+        def sort_key(article: Article):
+            published = article.published_at or datetime.min
+            return (article.popularity_score, published)
+
+        sorted_articles = sorted(articles, key=sort_key, reverse=True)
+        return sorted_articles[: self.SUMMARY_LIMIT]

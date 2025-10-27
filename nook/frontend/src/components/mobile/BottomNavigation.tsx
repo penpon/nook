@@ -1,4 +1,4 @@
-import { Activity, Home, Search, TrendingUp, User } from "lucide-react";
+import { Home, Search, TrendingUp, User } from "lucide-react";
 import type React from "react";
 import { useVibration } from "../../hooks/useVibration";
 
@@ -25,7 +25,6 @@ const navItems: NavItem[] = [
 		pageId: "content",
 	},
 	{ icon: Search, label: "検索", pageId: "search" },
-	{ icon: Activity, label: "ダッシュボード", pageId: "usage-dashboard" },
 	{ icon: User, label: "設定", pageId: "settings" },
 ];
 

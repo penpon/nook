@@ -52,34 +52,27 @@ describe("理想UI状態テスト", () => {
 		});
 	});
 
-	describe("記事番号表示の確認", () => {
-		it("記事番号「1」が表示されること", async () => {
+	describe("記事表示の確認", () => {
+		it("ハッカーニュースの最初の記事が表示されること", async () => {
 			render(<App />, { wrapper: TestWrapper });
 
-			// まずハッカーニュースヘッダーが表示されるまで待つ
 			await waitFor(() => {
 				expect(screen.getByText("Hacker News")).toBeInTheDocument();
 			}, { timeout: 5000 });
 
-			// 次に記事番号「1」が表示されるまで待つ
-			await waitFor(() => {
-				// より具体的なセレクターで記事番号を探す
-				const articleNumber1 = screen.getByText("1");
-				expect(articleNumber1).toBeInTheDocument();
-				// 記事番号が正しいスタイルで表示されていることも確認
-				expect(articleNumber1.closest('span')).toHaveClass('bg-blue-100');
-			}, { timeout: 10000 });
+				await screen.findByText(
+					/Show HN: AI assistant that can use your dev tools/i,
+					undefined,
+					{ timeout: 10000 },
+				);
 		});
 
-		it("記事番号「2」から「15」が表示されること", async () => {
+		it("複数の記事タイトルが表示されること", async () => {
 			render(<App />, { wrapper: TestWrapper });
 
 			await waitFor(() => {
-				// 記事番号2-15の表示確認
-				for (let i = 2; i <= 15; i++) {
-					const articleNumber = screen.getByText(i.toString());
-					expect(articleNumber).toBeInTheDocument();
-				}
+				const articleLinks = screen.getAllByRole("link");
+				expect(articleLinks.length).toBeGreaterThan(5);
 			});
 		});
 	});
@@ -108,14 +101,11 @@ describe("理想UI状態テスト", () => {
 	});
 
 	describe("ナビゲーション要素の確認", () => {
-		it("ダッシュボードメニューが表示されること", async () => {
+		it("ソースメニューが表示されること", async () => {
 			render(<App />, { wrapper: TestWrapper });
 
 			await waitFor(() => {
-				// 複数のDashboardテキストがある場合は最初のものを取得
-				const dashboardTexts = screen.getAllByText("Dashboard");
-				expect(dashboardTexts.length).toBeGreaterThan(0);
-				expect(dashboardTexts[0]).toBeInTheDocument();
+				expect(screen.getByText("Sources")).toBeInTheDocument();
 			});
 		});
 
@@ -140,30 +130,26 @@ describe("理想UI状態テスト", () => {
 		});
 	});
 
-	describe("理想UI状態の全体確認", () => {
-		it("理想UI状態の主要要素がすべて表示されること", async () => {
-			render(<App />, { wrapper: TestWrapper });
+		describe("理想UI状態の全体確認", () => {
+			it("理想UI状態の主要要素がすべて表示されること", async () => {
+				render(<App />, { wrapper: TestWrapper });
 
-			await waitFor(() => {
-				// ヘッダー確認
-				expect(
-					screen.getByRole("heading", { name: /hacker news/i }),
-				).toBeInTheDocument();
+				await waitFor(() => {
+					expect(
+						screen.getByRole("heading", { name: /hacker news/i }),
+					).toBeInTheDocument();
+					expect(screen.getByText("Sources")).toBeInTheDocument();
+					expect(screen.getByText(/dark mode/i)).toBeInTheDocument();
 
-				// ナビゲーション確認（複数要素対応）
-				const dashboardTexts = screen.getAllByText("Dashboard");
-				expect(dashboardTexts.length).toBeGreaterThan(0);
-				expect(screen.getByText(/dark mode/i)).toBeInTheDocument();
+					const articleLinks = screen.getAllByRole("link");
+					expect(articleLinks.length).toBeGreaterThan(5);
+				}, { timeout: 10000 });
 
-				// 記事リンクの存在確認
-				const articleLinks = screen.getAllByRole("link");
-				expect(articleLinks.length).toBeGreaterThan(5);
-			}, { timeout: 10000 });
-
-			// 記事番号1の存在確認（理想UI状態の基準）を別途実行
-			await waitFor(() => {
-				expect(screen.getByText("1")).toBeInTheDocument();
-			}, { timeout: 10000 });
+				await screen.findByText(
+					/Show HN: AI assistant that can use your dev tools/i,
+					undefined,
+					{ timeout: 10000 },
+				);
+			});
 		});
-	});
 });

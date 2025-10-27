@@ -6,7 +6,6 @@ import { Sidebar } from "./components/layout/Sidebar";
 import { MobileHeader } from "./components/mobile/MobileHeader";
 import { NewsHeader } from "./components/NewsHeader";
 import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
-import UsageDashboard from "./components/UsageDashboard";
 import { useMobileMenu } from "./hooks/useMobileMenu";
 import { useSourceData } from "./hooks/useSourceData";
 import { useTheme } from "./hooks/useTheme";
@@ -38,7 +37,6 @@ function App() {
 	};
 
 	const [selectedSource, setSelectedSource] = useState(getInitialSource());
-	const [currentPage, setCurrentPage] = useState("content");
 	const [selectedDate, setSelectedDate] = useState(new Date());
 
 	const { darkMode, setDarkMode } = useTheme();
@@ -57,24 +55,22 @@ function App() {
 		}
 	}, [selectedSource]);
 
-	const { processedItems, isLoading, isError, error, refetch } = useSourceData(
-		selectedSource,
-		selectedDate,
-		currentPage === "content",
-	);
+ const { processedItems, isLoading, isError, error, refetch } = useSourceData(
+ 	selectedSource,
+ 	selectedDate,
+ );
 
 	// 動的タイトル生成
 
 	// Error handler for the main application
 	const handleAppError = (error: Error, errorInfo: React.ErrorInfo) => {
-		console.error("Application Error:", {
-			error: error.message,
-			stack: error.stack,
-			componentStack: errorInfo.componentStack,
-			timestamp: new Date().toISOString(),
-			source: selectedSource,
-			page: currentPage,
-		});
+	console.error("Application Error:", {
+		error: error.message,
+		stack: error.stack,
+		componentStack: errorInfo.componentStack,
+		timestamp: new Date().toISOString(),
+		source: selectedSource,
+	});
 	};
 
 	// Handle mobile menu item click
@@ -100,17 +96,15 @@ function App() {
 					flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-screen overflow-y-auto z-20
 					${isMobileMenuOpen ? 'flex' : 'hidden md:flex'}
 				`}>
-					<Sidebar
-						selectedSource={selectedSource}
-						setSelectedSource={setSelectedSource}
-						currentPage={currentPage}
-						setCurrentPage={setCurrentPage}
-						selectedDate={selectedDate}
-						setSelectedDate={setSelectedDate}
-						darkMode={darkMode}
-						setDarkMode={setDarkMode}
-						onMenuItemClick={handleMobileMenuItemClick}
-					/>
+				<Sidebar
+					selectedSource={selectedSource}
+					setSelectedSource={setSelectedSource}
+					selectedDate={selectedDate}
+					setSelectedDate={setSelectedDate}
+					darkMode={darkMode}
+					setDarkMode={setDarkMode}
+					onMenuItemClick={handleMobileMenuItemClick}
+				/>
 				</div>
 
 				{/* Mobile Overlay */}
@@ -126,31 +120,25 @@ function App() {
 
 				{/* Main Content */}
 				<div className="flex-1 pt-16 md:pt-0">
-					{currentPage === "usage-dashboard" ? (
-						<div className="dashboard-container">
-							<UsageDashboard />
-						</div>
-					) : (
-						<div className="p-4 sm:p-6 lg:p-8 pt-4 pb-4">
-							<NewsHeader
-								selectedSource={selectedSource}
-								selectedDate={selectedDate}
-								darkMode={darkMode}
-							/>
+					<div className="p-4 sm:p-6 lg:p-8 pt-4 pb-4">
+						<NewsHeader
+							selectedSource={selectedSource}
+							selectedDate={selectedDate}
+							darkMode={darkMode}
+						/>
 
-							<div className="grid grid-cols-1 gap-6">
-								<ContentRenderer
-									processedItems={processedItems}
-									selectedSource={selectedSource}
-									darkMode={darkMode}
-									isLoading={isLoading}
-									isError={isError}
-									error={error}
-									refetch={refetch}
-								/>
-							</div>
+						<div className="grid grid-cols-1 gap-6">
+							<ContentRenderer
+								processedItems={processedItems}
+								selectedSource={selectedSource}
+								darkMode={darkMode}
+								isLoading={isLoading}
+								isError={isError}
+								error={error}
+								refetch={refetch}
+							/>
 						</div>
-					)}
+					</div>
 				</div>
 
 

@@ -48,6 +48,8 @@ class RedditPost:
     comments: list[dict[str, str | int]] = field(default_factory=list)
     summary: str = field(init=False)
     thumbnail: str = "self"
+    popularity_score: float = field(default=0.0)
+    created_at: datetime | None = None
 
 
 class RedditExplorer(BaseService):
@@ -101,6 +103,8 @@ class RedditExplorer(BaseService):
         # asyncprawインスタンスは使用時に作成
         self.reddit = None
 
+        self.SUMMARY_LIMIT = 30
+
         self.http_client = None  # setup_http_clientで初期化
 
         # サブレディットの設定を読み込む
@@ -132,7 +136,7 @@ class RedditExplorer(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        all_posts = []
+        candidate_posts: list[tuple[str, str, RedditPost]] = []
 
         # Redditクライアントをコンテキストマネージャーで使用
         async with asyncpraw.Reddit(
@@ -156,27 +160,29 @@ class RedditExplorer(BaseService):
                             )
 
                             for post in posts:
-                                # トップコメントを取得
-                                comments = await self._retrieve_top_comments_of_post(
-                                    post, limit=5
-                                )
-                                post.comments = comments
-
-                                # 投稿を要約
-                                await self._summarize_reddit_post(post)
-
-                                all_posts.append((category, subreddit_name, post))
+                                candidate_posts.append((category, subreddit_name, post))
 
                         except Exception as e:
                             self.logger.error(
                                 f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"
                             )
 
-                self.logger.info(f"合計 {len(all_posts)} 件の投稿を取得しました")
+                self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
+
+                selected_posts = self._select_top_posts(candidate_posts)
+                self.logger.info(
+                    f"人気スコア上位 {len(selected_posts)} 件の投稿を要約します"
+                )
+
+                for category, subreddit_name, post in selected_posts:
+                    post.comments = await self._retrieve_top_comments_of_post(
+                        post, limit=5
+                    )
+                    await self._summarize_reddit_post(post)
 
                 # 要約を保存
-                if all_posts:
-                    await self._store_summaries(all_posts)
+                if selected_posts:
+                    await self._store_summaries(selected_posts)
                     self.logger.info("投稿の要約を保存しました")
                 else:
                     self.logger.info("保存する投稿がありません")
@@ -252,6 +258,10 @@ class RedditExplorer(BaseService):
                 thumbnail=submission.thumbnail
                 if hasattr(submission, "thumbnail")
                 else "self",
+                popularity_score=float(submission.score),
+                created_at=datetime.fromtimestamp(submission.created_utc)
+                if hasattr(submission, "created_utc")
+                else None,
             )
 
             posts.append(post)
@@ -413,3 +423,21 @@ class RedditExplorer(BaseService):
 
         # 保存
         self.storage.save_markdown(content, "", today)
+
+    def _select_top_posts(
+        self, posts: list[tuple[str, str, RedditPost]]
+    ) -> list[tuple[str, str, RedditPost]]:
+        """人気順に投稿を並べ替え、上位のみ返します。"""
+        if not posts:
+            return []
+
+        if len(posts) <= self.SUMMARY_LIMIT:
+            return posts
+
+        def sort_key(item: tuple[str, str, RedditPost]):
+            _, _, post = item
+            created = post.created_at or datetime.min
+            return (post.popularity_score, created)
+
+        sorted_posts = sorted(posts, key=sort_key, reverse=True)
+        return sorted_posts[: self.SUMMARY_LIMIT]

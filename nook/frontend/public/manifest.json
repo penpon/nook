@@ -82,13 +82,6 @@
 			"description": "View latest tech news",
 			"url": "/?source=tech-news",
 			"icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
-		},
-		{
-			"name": "Usage Dashboard",
-			"short_name": "Usage",
-			"description": "View API usage dashboard",
-			"url": "/?page=usage-dashboard",
-			"icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
 		}
 	]
 }

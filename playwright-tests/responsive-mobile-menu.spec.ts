@@ -24,7 +24,6 @@ test.describe('Responsive Mobile Menu', () => {
         
         // 全ての重要な項目が存在することを確認
         const importantItems = [
-          'Usage Dashboard',
           'ArXiv',
           'GitHub Trending', 
           'Hacker News',
