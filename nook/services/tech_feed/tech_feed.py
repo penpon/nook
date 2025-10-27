@@ -1,6 +1,7 @@
 """技術ニュースのRSSフィードを監視・収集・要約するサービス。"""
 
 import asyncio
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -10,6 +11,7 @@ import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
+from nook.common.dedup import DedupTracker
 
 
 @dataclass
@@ -103,6 +105,7 @@ class TechFeed(BaseService):
             await self.setup_http_client()
 
         candidate_articles: list[Article] = []
+        dedup_tracker = self._load_existing_titles()
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -128,11 +131,29 @@ class TechFeed(BaseService):
                         )
 
                         for entry in entries:
-                            # 記事を取得
+                            entry_title = (
+                                entry.title if hasattr(entry, "title") else "無題"
+                            )
+
+                            is_dup, normalized = dedup_tracker.is_duplicate(
+                                entry_title
+                            )
+                            if is_dup:
+                                original = dedup_tracker.get_original_title(
+                                    normalized
+                                ) or entry_title
+                                self.logger.info(
+                                    "重複記事をスキップ: '%s' (初出: '%s')",
+                                    entry_title,
+                                    original,
+                                )
+                                continue
+
                             article = await self._retrieve_article(
                                 entry, feed_name, category
                             )
                             if article:
+                                dedup_tracker.add(article.title)
                                 candidate_articles.append(article)
 
                     except Exception as e:
@@ -287,6 +308,17 @@ class TechFeed(BaseService):
                 f"Error retrieving article {entry.get('link', 'unknown')}: {str(e)}"
             )
             return None
+
+    def _load_existing_titles(self) -> DedupTracker:
+        tracker = DedupTracker()
+        try:
+            content = self.storage.load_markdown("", datetime.now())
+            if content:
+                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
+                    tracker.add(match.group(1))
+        except Exception as exc:
+            self.logger.debug(f"既存タイトルの読み込みに失敗しました: {exc}")
+        return tracker
 
     def _parse_entry_date(self, entry) -> datetime | None:
         try:

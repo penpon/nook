@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -12,6 +13,7 @@ from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
+from nook.common.dedup import DedupTracker
 
 
 @dataclass
@@ -85,7 +87,9 @@ class HackerNewsRetriever(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        stories = await self._get_top_stories(limit)
+        dedup_tracker = await self._load_existing_titles()
+
+        stories = await self._get_top_stories(limit, dedup_tracker)
         await self._store_summaries(stories)
 
     # 同期版の互換性のためのラッパー
@@ -93,8 +97,35 @@ class HackerNewsRetriever(BaseService):
         """同期的に実行するためのラッパー"""
         asyncio.run(self.collect(limit))
 
+    async def _load_existing_titles(self) -> DedupTracker:
+        tracker = DedupTracker()
+        today = datetime.now().strftime("%Y-%m-%d")
+        filename_json = f"{today}.json"
+        try:
+            if await self.storage.exists(filename_json):
+                data = await self.load_json(filename_json)
+                if data:
+                    for item in data:
+                        title = item.get("title")
+                        if title:
+                            tracker.add(title)
+            else:
+                content = self.storage.load_markdown("hacker_news", datetime.now())
+                if content:
+                    for match in re.finditer(r"^## \[(.+?)\]", content, re.MULTILINE):
+                        tracker.add(match.group(1))
+                    for match in re.finditer(
+                        r"^## (?!\[)(.+)$", content, re.MULTILINE
+                    ):
+                        tracker.add(match.group(1).strip())
+        except Exception as exc:
+            self.logger.debug(f"既存Hacker Newsタイトルの読み込みに失敗しました: {exc}")
+        return tracker
+
     @handle_errors(retries=3)
-    async def _get_top_stories(self, limit: int) -> list[Story]:
+    async def _get_top_stories(
+        self, limit: int, dedup_tracker: DedupTracker
+    ) -> list[Story]:
         """
         トップ記事を取得します。
         
@@ -148,8 +179,25 @@ class HackerNewsRetriever(BaseService):
         # 5. スコアで降順ソート
         filtered_stories.sort(key=lambda story: story.score, reverse=True)
 
+        unique_stories: list[Story] = []
+        for story in filtered_stories:
+            is_dup, normalized = dedup_tracker.is_duplicate(story.title)
+            if is_dup:
+                original = (
+                    dedup_tracker.get_original_title(normalized) or story.title
+                )
+                self.logger.info(
+                    "重複記事をスキップ: '%s' (初出: '%s')",
+                    story.title,
+                    original,
+                )
+                continue
+
+            dedup_tracker.add(story.title)
+            unique_stories.append(story)
+
         # 6. フィルタリング後の上位記事を選択（limitで指定された数）
-        selected_stories = filtered_stories[:limit]
+        selected_stories = unique_stories[:limit]
 
         # 7. ログに統計情報を出力
         self.logger.info(

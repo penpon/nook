@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +12,7 @@ import asyncpraw
 import tomli
 
 from nook.common.base_service import BaseService
+from nook.common.dedup import DedupTracker
 
 
 @dataclass
@@ -137,6 +139,7 @@ class RedditExplorer(BaseService):
             await self.setup_http_client()
 
         candidate_posts: list[tuple[str, str, RedditPost]] = []
+        dedup_tracker = await self._load_existing_titles()
 
         # Redditクライアントをコンテキストマネージャーで使用
         async with asyncpraw.Reddit(
@@ -156,7 +159,7 @@ class RedditExplorer(BaseService):
                                 f"サブレディット r/{subreddit_name} から投稿を取得しています..."
                             )
                             posts = await self._retrieve_hot_posts(
-                                subreddit_name, limit
+                                subreddit_name, limit, dedup_tracker
                             )
 
                             for post in posts:
@@ -193,7 +196,7 @@ class RedditExplorer(BaseService):
                 # asyncprawのコンテキストマネージャーが自動的にクローズする
 
     async def _retrieve_hot_posts(
-        self, subreddit_name: str, limit: int | None
+        self, subreddit_name: str, limit: int | None, dedup_tracker: DedupTracker
     ) -> list[RedditPost]:
         """
         サブレディットの人気投稿を取得します。
@@ -204,6 +207,8 @@ class RedditExplorer(BaseService):
             サブレディット名。
         limit : Optional[int]
             取得する投稿数。Noneの場合は制限なし。
+        dedup_tracker : DedupTracker
+            タイトル重複を追跡するトラッカー。
             
         Returns
         -------
@@ -241,6 +246,16 @@ class RedditExplorer(BaseService):
 
             # タイトルと本文を日本語に翻訳
             title = submission.title
+
+            is_dup, normalized = dedup_tracker.is_duplicate(title)
+            if is_dup:
+                original = dedup_tracker.get_original_title(normalized) or title
+                self.logger.info(
+                    "重複Reddit投稿をスキップ: '%s' (初出: '%s')",
+                    title,
+                    original,
+                )
+                continue
             text_ja = (
                 await self._translate_to_japanese(submission.selftext)
                 if submission.selftext
@@ -265,6 +280,7 @@ class RedditExplorer(BaseService):
             )
 
             posts.append(post)
+            dedup_tracker.add(post.title)
 
         return posts
 
@@ -441,3 +457,14 @@ class RedditExplorer(BaseService):
 
         sorted_posts = sorted(posts, key=sort_key, reverse=True)
         return sorted_posts[: self.SUMMARY_LIMIT]
+
+    async def _load_existing_titles(self) -> DedupTracker:
+        tracker = DedupTracker()
+        try:
+            content = self.storage.load_markdown("", datetime.now())
+            if content:
+                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
+                    tracker.add(match.group(1))
+        except Exception as exc:
+            self.logger.debug(f"既存Reddit投稿タイトルの読み込みに失敗しました: {exc}")
+        return tracker

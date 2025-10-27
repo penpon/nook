@@ -10,6 +10,7 @@ from typing import Any
 import tomli
 
 from nook.common.base_service import BaseService
+from nook.common.dedup import DedupTracker
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
@@ -154,13 +155,16 @@ class FourChanExplorer(BaseService):
 
         candidate_threads: list[Thread] = []
         selected_threads: list[Thread] = []
+        dedup_tracker = self._load_existing_titles()
 
         try:
             # 各ボードからスレッドを取得
             for board in self.target_boards:
                 try:
                     self.logger.info(f"ボード /{board}/ からのスレッド取得を開始します...")
-                    threads = await self._retrieve_ai_threads(board, thread_limit)
+                    threads = await self._retrieve_ai_threads(
+                        board, thread_limit, dedup_tracker
+                    )
                     self.logger.info(f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました")
                     candidate_threads.extend(threads)
 
@@ -194,7 +198,7 @@ class FourChanExplorer(BaseService):
             pass
 
     async def _retrieve_ai_threads(
-        self, board: str, limit: int | None
+        self, board: str, limit: int | None, dedup_tracker: DedupTracker
     ) -> list[Thread]:
         """
         特定のボードからAI関連スレッドを取得します。
@@ -235,6 +239,18 @@ class FourChanExplorer(BaseService):
                 )
 
                 if is_ai_related:
+                    is_dup, normalized = dedup_tracker.is_duplicate(title)
+                    if is_dup:
+                        original = dedup_tracker.get_original_title(
+                            normalized
+                        ) or title
+                        self.logger.info(
+                            "重複スレッドをスキップ: '%s' (初出: '%s')",
+                            title,
+                            original,
+                        )
+                        continue
+
                     thread_id = thread.get("no")
                     timestamp = thread.get("time", 0)
                     title = thread.get("sub", f"Untitled Thread {thread_id}")
@@ -249,6 +265,8 @@ class FourChanExplorer(BaseService):
                         thread_metadata=thread,
                         posts=thread_data,
                     )
+
+                    dedup_tracker.add(title)
 
                     ai_threads.append(
                         Thread(
@@ -302,6 +320,17 @@ class FourChanExplorer(BaseService):
         except Exception as e:
             self.logger.error(f"スレッドの取得に失敗しました: {str(e)}")
             return []
+
+    def _load_existing_titles(self) -> DedupTracker:
+        tracker = DedupTracker()
+        try:
+            content = self.storage.load_markdown("fourchan_explorer", datetime.now())
+            if content:
+                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
+                    tracker.add(match.group(1))
+        except Exception as exc:
+            self.logger.debug(f"既存スレッドタイトルの読み込みに失敗しました: {exc}")
+        return tracker
 
     def _calculate_popularity(
         self, thread_metadata: dict[str, Any], posts: list[dict[str, Any]]

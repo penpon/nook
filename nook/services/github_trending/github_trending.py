@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
+import re
 
 import tomli
 from bs4 import BeautifulSoup
@@ -11,6 +12,7 @@ from bs4 import BeautifulSoup
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.exceptions import APIException
+from nook.common.dedup import DedupTracker
 
 
 @dataclass
@@ -64,7 +66,7 @@ class GithubTrending(BaseService):
         with open(script_dir / "languages.toml", "rb") as f:
             self.languages_config = tomli.load(f)
 
-    async def collect(self, limit: int = 10) -> None:
+    async def collect(self, limit: int = 15) -> None:
         """
         GitHubのトレンドリポジトリを収集して保存します。
 
@@ -77,23 +79,24 @@ class GithubTrending(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
+        dedup_tracker = self._load_existing_repositories()
         all_repositories = []
 
         # 言語指定なしのリポジトリを取得（新規追加）
-        repositories = await self._retrieve_repositories("any", limit)
+        repositories = await self._retrieve_repositories("any", limit, dedup_tracker)
         all_repositories.append(("all", repositories))
         await self.rate_limit()  # レート制限を遵守
 
         # 一般的な言語のリポジトリを取得
         for language in self.languages_config["general"]:
-            repositories = await self._retrieve_repositories(language, limit)
+            repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
             all_repositories.append((language, repositories))
             await self.rate_limit()  # レート制限を遵守
 
         # 特定の言語のリポジトリを取得（limitと同じ数に変更）
         for language in self.languages_config["specific"]:
             # limit // 2 → limit
-            repositories = await self._retrieve_repositories(language, limit)
+            repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
             all_repositories.append((language, repositories))
             await self.rate_limit()  # レート制限を遵守
 
@@ -105,7 +108,7 @@ class GithubTrending(BaseService):
 
     @handle_errors(retries=3)
     async def _retrieve_repositories(
-        self, language: str, limit: int
+        self, language: str, limit: int, dedup_tracker: DedupTracker
     ) -> list[Repository]:
         """
         特定の言語のトレンドリポジトリを取得します。
@@ -131,7 +134,7 @@ class GithubTrending(BaseService):
             soup = BeautifulSoup(response.text, "html.parser")
 
             repositories = []
-            repo_elements = soup.select("article.Box-row")[:limit]
+            repo_elements = soup.select("article.Box-row")
 
             for repo_element in repo_elements:
                 # リポジトリ名を取得
@@ -141,6 +144,16 @@ class GithubTrending(BaseService):
 
                 name = name_element.text.strip().replace("\n", "").replace(" ", "")
                 link = f"https://github.com{name_element['href']}"
+
+                is_dup, normalized = dedup_tracker.is_duplicate(name)
+                if is_dup:
+                    original = dedup_tracker.get_original_title(normalized) or name
+                    self.logger.info(
+                        "重複リポジトリをスキップ: '%s' (初出: '%s')",
+                        name,
+                        original,
+                    )
+                    continue
 
                 # 説明を取得
                 description_element = repo_element.select_one("p")
@@ -162,6 +175,10 @@ class GithubTrending(BaseService):
                 )
 
                 repositories.append(repository)
+                dedup_tracker.add(name)
+
+                if len(repositories) >= limit:
+                    break
 
             return repositories
 
@@ -170,6 +187,19 @@ class GithubTrending(BaseService):
                 f"Error retrieving repositories for language {language}: {str(e)}"
             )
             raise APIException(f"Failed to retrieve repositories for {language}") from e
+
+    def _load_existing_repositories(self) -> DedupTracker:
+        tracker = DedupTracker()
+        try:
+            today = datetime.now().strftime("%Y-%m-%d")
+            file_path = Path(self.storage.base_dir) / f"{today}.md"
+            if file_path.exists():
+                content = file_path.read_text(encoding="utf-8")
+                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
+                    tracker.add(match.group(1))
+        except Exception as exc:
+            self.logger.debug(f"既存リポジトリの読み込みに失敗しました: {exc}")
+        return tracker
 
     async def _translate_repositories(
         self, repositories_by_language: list[tuple[str, list[Repository]]]

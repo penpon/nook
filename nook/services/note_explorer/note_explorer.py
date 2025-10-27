@@ -108,7 +108,7 @@ class NoteExplorer(BaseService):
             await self.setup_http_client()
 
         candidate_articles: list[Article] = []
-        dedup_tracker = DedupTracker()  # カテゴリ横断のタイトル重複チェック用
+        dedup_tracker = self._load_existing_titles()  # カテゴリ横断のタイトル重複チェック用
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -178,6 +178,17 @@ class NoteExplorer(BaseService):
         finally:
             # グローバルクライアントなのでクローズ不要
             pass
+
+    def _load_existing_titles(self) -> DedupTracker:
+        tracker = DedupTracker()
+        try:
+            content = self.storage.load_markdown("note_explorer", datetime.now())
+            if content:
+                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
+                    tracker.add(match.group(1))
+        except Exception as exc:
+            self.logger.debug(f"既存タイトルの読み込みに失敗しました: {exc}")
+        return tracker
 
     def _filter_entries(
         self, entries: list[dict], days: int, limit: int | None = None

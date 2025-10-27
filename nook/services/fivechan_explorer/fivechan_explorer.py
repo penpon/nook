@@ -1,4 +1,5 @@
 import asyncio
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -7,6 +8,7 @@ from typing import Any
 import cloudscraper
 
 from nook.common.base_service import BaseService
+from nook.common.dedup import DedupTracker
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
@@ -308,13 +310,16 @@ class FiveChanExplorer(BaseService):
 
         candidate_threads: list[Thread] = []
         selected_threads: list[Thread] = []
+        dedup_tracker = self._load_existing_titles()
 
         try:
             # 各板からスレッドを取得
             for board_id, board_name in self.target_boards.items():
                 try:
                     self.logger.info(f"板 /{board_id}/({board_name}) からのスレッド取得を開始します...")
-                    threads = await self._retrieve_ai_threads(board_id, thread_limit)
+                    threads = await self._retrieve_ai_threads(
+                        board_id, thread_limit, dedup_tracker
+                    )
                     self.logger.info(
                         f"板 /{board_id}/({board_name}) から {len(threads)} 件のスレッドを取得しました"
                     )
@@ -753,7 +758,7 @@ class FiveChanExplorer(BaseService):
         return []
 
     async def _retrieve_ai_threads(
-        self, board_id: str, limit: int | None
+        self, board_id: str, limit: int | None, dedup_tracker: DedupTracker
     ) -> list[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
@@ -794,6 +799,18 @@ class FiveChanExplorer(BaseService):
                 )
 
                 if is_ai_related:
+                    is_dup, normalized = dedup_tracker.is_duplicate(title)
+                    if is_dup:
+                        original = dedup_tracker.get_original_title(
+                            normalized
+                        ) or title
+                        self.logger.info(
+                            "重複スレッドをスキップ: '%s' (初出: '%s')",
+                            title,
+                            original,
+                        )
+                        continue
+
                     self.logger.info(f"AI関連スレッド発見: {title}")
 
                     # 3. dat形式で投稿データを取得（突破成功手法）
@@ -807,6 +824,8 @@ class FiveChanExplorer(BaseService):
                             sample_count=len(posts),
                             timestamp=int(thread_data["timestamp"]),
                         )
+
+                        dedup_tracker.add(title)
 
                         thread = Thread(
                             thread_id=int(thread_data["timestamp"]),
@@ -836,6 +855,17 @@ class FiveChanExplorer(BaseService):
         except Exception as e:
             self.logger.error(f"【突破手法エラー】板 {board_id}: {str(e)}")
             return []
+
+    def _load_existing_titles(self) -> DedupTracker:
+        tracker = DedupTracker()
+        try:
+            content = self.storage.load_markdown("fivechan_explorer", datetime.now())
+            if content:
+                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
+                    tracker.add(match.group(1))
+        except Exception as exc:
+            self.logger.debug(f"既存スレッドタイトルの読み込みに失敗しました: {exc}")
+        return tracker
 
     def _calculate_popularity(
         self, post_count: int, sample_count: int, timestamp: int
