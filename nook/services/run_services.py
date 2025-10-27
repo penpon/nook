@@ -55,7 +55,7 @@ class ServiceRunner:
         self.task_manager = AsyncTaskManager(max_concurrent=5)
         self.running = False
 
-    async def _run_sync_service(self, service_name: str, service):
+    async def _run_sync_service(self, service_name: str, service, days: int = 1):
         """同期サービスを非同期で実行"""
         logger.info(f"Starting service: {service_name}")
 
@@ -66,13 +66,17 @@ class ServiceRunner:
                 await service.collect(limit=15)
                 logger.info(f"Service {service_name} completed with limit=15")
             elif service_name in ["tech_news", "business_news"]:
-                # Tech News/Business Newsは各5記事に制限
-                await service.collect(limit=5)
-                logger.info(f"Service {service_name} completed with limit=5")
+                # Tech News/Business Newsは各5記事に制限し、daysパラメータを渡す
+                await service.collect(days=days, limit=5)
+                logger.info(f"Service {service_name} completed with limit=5, days={days}")
+            elif service_name in ["zenn", "qiita", "note"]:
+                # Zenn/Qiita/Noteは各3記事に制限し、daysパラメータを渡す
+                await service.collect(days=days, limit=3)
+                logger.info(f"Service {service_name} completed with limit=3, days={days}")
             elif service_name == "reddit":
                 # Redditは5記事に制限
                 await service.collect(limit=5)
-                logger.info(f"Service {service_name} completed with limit=10")
+                logger.info(f"Service {service_name} completed with limit=5")
             else:
                 # その他のサービスはデフォルト値を使用
                 await service.collect()
@@ -81,17 +85,17 @@ class ServiceRunner:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)
             raise
 
-    async def run_all(self) -> None:
+    async def run_all(self, days: int = 1) -> None:
         """すべてのサービスを並行実行"""
         self.running = True
         start_time = datetime.now()
 
-        logger.info(f"Starting {len(self.sync_services)} services")
+        logger.info(f"Starting {len(self.sync_services)} services with days={days}")
 
         try:
             # 各サービスを並行実行
             service_tasks = [
-                self._run_sync_service(name, service)
+                self._run_sync_service(name, service, days)
                 for name, service in self.sync_services.items()
             ]
 
@@ -130,26 +134,26 @@ class ServiceRunner:
             # HTTPクライアントをクリーンアップ
             await close_http_client()
 
-    async def run_service(self, service_name: str) -> None:
+    async def run_service(self, service_name: str, days: int = 1) -> None:
         """特定のサービスを実行"""
         if service_name not in self.sync_services:
             raise ValueError(f"Service {service_name} not found")
 
-        logger.info(f"Running service: {service_name}")
+        logger.info(f"Running service: {service_name} with days={days}")
 
         try:
-            await self._run_sync_service(service_name, self.sync_services[service_name])
+            await self._run_sync_service(service_name, self.sync_services[service_name], days)
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)
             raise
 
-    async def run_continuous(self, interval_seconds: int = 3600) -> None:
+    async def run_continuous(self, interval_seconds: int = 3600, days: int = 1) -> None:
         """定期的にサービスを実行"""
-        logger.info(f"Starting continuous run with interval: {interval_seconds}s")
+        logger.info(f"Starting continuous run with interval: {interval_seconds}s, days={days}")
 
         while self.running:
             try:
-                await self.run_all()
+                await self.run_all(days)
             except Exception as e:
                 logger.error(f"Run failed: {e}", exc_info=True)
 
@@ -203,6 +207,7 @@ async def main():
     )
     parser.add_argument("--continuous", action="store_true", help="サービスを定期的に実行します")
     parser.add_argument("--interval", type=int, default=3600, help="連続実行時の間隔（秒）")
+    parser.add_argument("--days", type=int, default=1, help="何日前までの記事を取得するか（RSSフィードサービスのみ）")
 
     args = parser.parse_args()
 
@@ -219,11 +224,11 @@ async def main():
 
     try:
         if args.continuous:
-            await runner.run_continuous(args.interval)
+            await runner.run_continuous(args.interval, args.days)
         elif args.service == "all":
-            await runner.run_all()
+            await runner.run_all(args.days)
         else:
-            await runner.run_service(args.service)
+            await runner.run_service(args.service, args.days)
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception as e:
