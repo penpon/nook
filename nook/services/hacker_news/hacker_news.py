@@ -42,7 +42,8 @@ class Story:
 SCORE_THRESHOLD = 20  # 最小スコア
 MIN_TEXT_LENGTH = 100  # 最小テキスト長
 MAX_TEXT_LENGTH = 10000  # 最大テキスト長
-FETCH_LIMIT = 100  # フィルタリング前に取得する記事数
+FETCH_LIMIT: int | None = None  # フィルタリング前に取得する記事数（Noneの場合は制限なし）
+MAX_STORY_LIMIT = 15  # 保存する記事数の上限
 
 
 class HackerNewsRetriever(BaseService):
@@ -69,15 +70,17 @@ class HackerNewsRetriever(BaseService):
         self.http_client = None  # setup_http_clientで初期化
         self.blocked_domains = self._load_blocked_domains()
 
-    async def collect(self, limit: int = 30) -> None:
+    async def collect(self, limit: int = MAX_STORY_LIMIT) -> None:
         """
         Hacker Newsの記事を収集して保存します。
         
         Parameters
         ----------
-        limit : int, default=30
+        limit : int, default=15
             取得する記事数。
         """
+        limit = min(limit, MAX_STORY_LIMIT)
+
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
@@ -86,7 +89,7 @@ class HackerNewsRetriever(BaseService):
         await self._store_summaries(stories)
 
     # 同期版の互換性のためのラッパー
-    def run(self, limit: int = 30) -> None:
+    def run(self, limit: int = MAX_STORY_LIMIT) -> None:
         """同期的に実行するためのラッパー"""
         asyncio.run(self.collect(limit))
 
@@ -107,7 +110,9 @@ class HackerNewsRetriever(BaseService):
         """
         # 1. topstoriesから多めに記事IDを取得（100件）
         response = await self.http_client.get(f"{self.base_url}/topstories.json")
-        story_ids = response.json()[:FETCH_LIMIT]  # 100件取得
+        story_ids = response.json()
+        if FETCH_LIMIT is not None:
+            story_ids = story_ids[:FETCH_LIMIT]
 
         # 2. 並行してストーリーを取得（既存の処理）
         tasks = []

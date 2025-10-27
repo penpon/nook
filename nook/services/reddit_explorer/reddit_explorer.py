@@ -103,7 +103,7 @@ class RedditExplorer(BaseService):
         # asyncprawインスタンスは使用時に作成
         self.reddit = None
 
-        self.SUMMARY_LIMIT = 30
+        self.SUMMARY_LIMIT = 15
 
         self.http_client = None  # setup_http_clientで初期化
 
@@ -112,25 +112,25 @@ class RedditExplorer(BaseService):
         with open(script_dir / "subreddits.toml", "rb") as f:
             self.subreddits_config = tomli.load(f)
 
-    def run(self, limit: int = 3) -> None:
+    def run(self, limit: int | None = None) -> None:
         """
         Redditの人気投稿を収集・要約して保存します。
         
         Parameters
         ----------
-        limit : int, default=3
-            各サブレディットから取得する投稿数。
+        limit : Optional[int], default=None
+            各サブレディットから取得する投稿数。Noneの場合は制限なし。
         """
         asyncio.run(self.collect(limit))
 
-    async def collect(self, limit: int = 3) -> None:
+    async def collect(self, limit: int | None = None) -> None:
         """
         Redditの人気投稿を収集・要約して保存します（非同期版）。
         
         Parameters
         ----------
-        limit : int, default=3
-            各サブレディットから取得する投稿数。
+        limit : Optional[int], default=None
+            各サブレディットから取得する投稿数。Noneの場合は制限なし。
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -193,7 +193,7 @@ class RedditExplorer(BaseService):
                 # asyncprawのコンテキストマネージャーが自動的にクローズする
 
     async def _retrieve_hot_posts(
-        self, subreddit_name: str, limit: int
+        self, subreddit_name: str, limit: int | None
     ) -> list[RedditPost]:
         """
         サブレディットの人気投稿を取得します。
@@ -202,8 +202,8 @@ class RedditExplorer(BaseService):
         ----------
         subreddit_name : str
             サブレディット名。
-        limit : int
-            取得する投稿数。
+        limit : Optional[int]
+            取得する投稿数。Noneの場合は制限なし。
             
         Returns
         -------

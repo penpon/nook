@@ -40,6 +40,8 @@ class Article:
     soup: BeautifulSoup
     category: str | None = None
     summary: str = field(default="")
+    popularity_score: float = field(default=0.0)
+    published_at: datetime | None = None
 
 
 class TechFeed(BaseService):
@@ -51,6 +53,8 @@ class TechFeed(BaseService):
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
     """
+
+    TOTAL_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data"):
         """
@@ -69,7 +73,7 @@ class TechFeed(BaseService):
         with open(script_dir / "feed.toml", "rb") as f:
             self.feed_config = tomli.load(f)
 
-    def run(self, days: int = 1, limit: int = 5) -> None:
+    def run(self, days: int = 1, limit: int | None = None) -> None:
         """
         技術ニュースのRSSフィードを監視・収集・要約して保存します。
         
@@ -77,12 +81,12 @@ class TechFeed(BaseService):
         ----------
         days : int, default=1
             何日前までの記事を取得するか。
-        limit : int, default=5
-            各フィードから取得する記事数。
+        limit : Optional[int], default=None
+            各フィードから取得する記事数。Noneの場合は制限なし。
         """
         asyncio.run(self.collect(days, limit))
 
-    async def collect(self, days: int = 1, limit: int = 5) -> None:
+    async def collect(self, days: int = 1, limit: int | None = None) -> None:
         """
         技術ニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
         
@@ -90,14 +94,15 @@ class TechFeed(BaseService):
         ----------
         days : int, default=1
             何日前までの記事を取得するか。
-        limit : int, default=5
-            各フィードから取得する記事数。
+        limit : Optional[int], default=None
+            各フィードから取得する記事数。Noneの場合は制限なし。
         """
+        total_limit = self.TOTAL_LIMIT
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
 
-        all_articles = []
+        candidate_articles: list[Article] = []
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -115,7 +120,9 @@ class TechFeed(BaseService):
                         )
 
                         # 新しいエントリをフィルタリング
-                        entries = self._filter_entries(feed.entries, days, limit)
+                        entries = self._filter_entries(
+                            feed.entries, days, limit
+                        )
                         self.logger.info(
                             f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました"
                         )
@@ -126,18 +133,24 @@ class TechFeed(BaseService):
                                 entry, feed_name, category
                             )
                             if article:
-                                # 記事を要約
-                                await self._summarize_article(article)
-                                all_articles.append(article)
+                                candidate_articles.append(article)
 
                     except Exception as e:
                         self.logger.error(f"Error processing feed {feed_url}: {str(e)}")
 
-            self.logger.info(f"合計 {len(all_articles)} 件の記事を取得しました")
+            self.logger.info(f"合計 {len(candidate_articles)} 件の記事候補を取得しました")
+
+            selected_articles = self._select_top_articles(candidate_articles, total_limit)
+            self.logger.info(
+                f"人気スコア上位 {len(selected_articles)} 件の記事を要約します"
+            )
+
+            for article in selected_articles:
+                await self._summarize_article(article)
 
             # 要約を保存
-            if all_articles:
-                await self._store_summaries(all_articles)
+            if selected_articles:
+                await self._store_summaries(selected_articles)
                 self.logger.info("記事の要約を保存しました")
             else:
                 self.logger.info("保存する記事がありません")
@@ -146,7 +159,9 @@ class TechFeed(BaseService):
             # グローバルクライアントなのでクローズ不要
             pass
 
-    def _filter_entries(self, entries: list[dict], days: int, limit: int) -> list[dict]:
+    def _filter_entries(
+        self, entries: list[dict], days: int, limit: int | None
+    ) -> list[dict]:
         """
         新しいエントリをフィルタリングします。
         
@@ -156,8 +171,8 @@ class TechFeed(BaseService):
             エントリのリスト。
         days : int
             何日前までの記事を取得するか。
-        limit : int
-            取得する記事数。
+        limit : Optional[int]
+            取得する記事数。Noneの場合は制限なし。
             
         Returns
         -------
@@ -189,7 +204,9 @@ class TechFeed(BaseService):
 
         self.logger.info(f"フィルタリング後のエントリ数: {len(recent_entries)}")
 
-        # 最新の記事を取得
+        if limit is None:
+            return recent_entries
+
         return recent_entries[:limit]
 
     async def _retrieve_article(
@@ -251,6 +268,9 @@ class TechFeed(BaseService):
                     if paragraphs:
                         text = "\n".join([p.get_text() for p in paragraphs[:5]])
 
+            published_at = self._parse_entry_date(entry)
+            popularity_score = self._extract_popularity(entry, soup)
+
             return Article(
                 feed_name=feed_name,
                 title=title,
@@ -258,6 +278,8 @@ class TechFeed(BaseService):
                 text=text,
                 soup=soup,
                 category=category,
+                popularity_score=popularity_score,
+                published_at=published_at,
             )
 
         except Exception as e:
@@ -265,6 +287,99 @@ class TechFeed(BaseService):
                 f"Error retrieving article {entry.get('link', 'unknown')}: {str(e)}"
             )
             return None
+
+    def _parse_entry_date(self, entry) -> datetime | None:
+        try:
+            if hasattr(entry, "published_parsed") and entry.published_parsed:
+                return datetime(*entry.published_parsed[:6])
+            if hasattr(entry, "updated_parsed") and entry.updated_parsed:
+                return datetime(*entry.updated_parsed[:6])
+        except Exception:
+            self.logger.debug("公開日時の解析に失敗しました")
+        return None
+
+    def _extract_popularity(self, entry, soup: BeautifulSoup) -> float:
+        candidates: list[int] = []
+
+        for attr in [
+            "slash_comments",
+            "comments",
+            "engagement",
+            "likes",
+            "favorites",
+        ]:
+            value = getattr(entry, attr, None)
+            if value is None and isinstance(entry, dict):
+                value = entry.get(attr)
+            parsed = self._safe_parse_int(value)
+            if parsed is not None:
+                candidates.append(parsed)
+
+        for meta_name in [
+            "og:likes",
+            "og:rating",
+            "twitter:data1",
+            "likes",
+            "favorites",
+        ]:
+            meta_tag = soup.find("meta", attrs={"name": meta_name}) or soup.find(
+                "meta", attrs={"property": meta_name}
+            )
+            if meta_tag and meta_tag.get("content"):
+                parsed = self._safe_parse_int(meta_tag.get("content"))
+                if parsed is not None:
+                    candidates.append(parsed)
+
+        for attr in ["data-like-count", "data-favorite-count", "data-score"]:
+            for element in soup.select(f"[{attr}]"):
+                parsed = self._safe_parse_int(element.get(attr))
+                if parsed is not None:
+                    candidates.append(parsed)
+
+        if candidates:
+            return float(max(candidates))
+
+        published = self._parse_entry_date(entry)
+        if published:
+            return published.timestamp()
+
+        return 0.0
+
+    def _safe_parse_int(self, value) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            cleaned = value.replace(",", "")
+            digits = ""
+            for char in cleaned:
+                if char.isdigit() or (char == "-" and not digits):
+                    digits += char
+                elif digits:
+                    break
+            if digits:
+                try:
+                    return int(digits)
+                except ValueError:
+                    return None
+        return None
+
+    def _select_top_articles(
+        self, articles: list[Article], limit: int
+    ) -> list[Article]:
+        if not articles:
+            return []
+
+        if len(articles) <= limit:
+            return articles
+
+        def sort_key(article: Article):
+            published = article.published_at or datetime.min
+            return (article.popularity_score, published)
+
+        sorted_articles = sorted(articles, key=sort_key, reverse=True)
+        return sorted_articles[:limit]
 
     def _detect_japanese_content(self, soup, title, entry) -> bool:
         """

@@ -58,13 +58,7 @@ class NoteExplorer(BaseService):
         ストレージディレクトリのパス。
     """
 
-    # 限度値を無視するフィードのURL
-    UNLIMITED_FEEDS = [
-        "https://note.com/hashtag/stablediffusion/rss",
-        "https://note.com/hashtag/画像生成/rss",
-    ]
-
-    SUMMARY_LIMIT = 30
+    SUMMARY_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data"):
         """
@@ -85,7 +79,7 @@ class NoteExplorer(BaseService):
         with open(script_dir / "feed.toml", "rb") as f:
             self.feed_config = tomli.load(f)
 
-    def run(self, days: int = 1, limit: int = 3) -> None:
+    def run(self, days: int = 1, limit: int | None = None) -> None:
         """
         noteのRSSフィードを監視・収集・要約して保存します。
         
@@ -93,12 +87,12 @@ class NoteExplorer(BaseService):
         ----------
         days : int, default=1
             何日前までの記事を取得するか。
-        limit : int, default=3
-            各フィードから取得する記事数。
+        limit : Optional[int], default=None
+            各フィードから取得する記事数。Noneの場合は制限なし。
         """
         asyncio.run(self.collect(days, limit))
 
-    async def collect(self, days: int = 1, limit: int = 3) -> None:
+    async def collect(self, days: int = 1, limit: int | None = None) -> None:
         """
         noteのRSSフィードを監視・収集・要約して保存します（非同期版）。
         
@@ -106,8 +100,8 @@ class NoteExplorer(BaseService):
         ----------
         days : int, default=1
             何日前までの記事を取得するか。
-        limit : int, default=3
-            各フィードから取得する記事数。
+        limit : Optional[int], default=None
+            各フィードから取得する記事数。Noneの場合は制限なし。
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -131,14 +125,10 @@ class NoteExplorer(BaseService):
                             else feed_url
                         )
 
-                        # 特定のフィードの場合は制限を解除
-                        current_limit = (
-                            None if feed_url in self.UNLIMITED_FEEDS else limit
-                        )
-                        if feed_url in self.UNLIMITED_FEEDS:
+                        current_limit = limit
+                        if current_limit is None:
                             self.logger.info(f"フィード {feed_url} は制限なしで取得します")
 
-                        # 新しいエントリをフィルタリング
                         entries = self._filter_entries(
                             feed.entries, days, current_limit
                         )

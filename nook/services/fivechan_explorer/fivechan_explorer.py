@@ -39,6 +39,7 @@ class Thread:
     posts: list[dict[str, Any]]
     timestamp: int
     summary: str = field(default="")
+    popularity_score: float = field(default=0.0)
 
 
 class FiveChanExplorer(BaseService):
@@ -50,6 +51,8 @@ class FiveChanExplorer(BaseService):
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
     """
+
+    TOTAL_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data"):
         """
@@ -277,31 +280,34 @@ class FiveChanExplorer(BaseService):
         # ここには到達しないはずですが、安全のため
         return response
 
-    def run(self, thread_limit: int = 5) -> None:
+    def run(self, thread_limit: int | None = None) -> None:
         """
         5chanからAI関連スレッドを収集して保存します。
         
         Parameters
         ----------
-        thread_limit : int, default=5
-            各板から取得するスレッド数。
+        thread_limit : Optional[int], default=None
+            各板から取得するスレッド数。Noneの場合は制限なし。
         """
         asyncio.run(self.collect(thread_limit))
 
-    async def collect(self, thread_limit: int = 5) -> None:
+    async def collect(self, thread_limit: int | None = None) -> None:
         """
         5chanからAI関連スレッドを収集して保存します（非同期版）。
         
         Parameters
         ----------
-        thread_limit : int, default=5
-            各板から取得するスレッド数。
+        thread_limit : Optional[int], default=None
+            各板から取得するスレッド数。Noneの場合は制限なし。
         """
+        total_limit = self.TOTAL_LIMIT
+
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
 
-        all_threads = []
+        candidate_threads: list[Thread] = []
+        selected_threads: list[Thread] = []
 
         try:
             # 各板からスレッドを取得
@@ -313,11 +319,7 @@ class FiveChanExplorer(BaseService):
                         f"板 /{board_id}/({board_name}) から {len(threads)} 件のスレッドを取得しました"
                     )
 
-                    # スレッドを要約
-                    for thread in threads:
-                        await self._summarize_thread(thread)
-
-                    all_threads.extend(threads)
+                    candidate_threads.extend(threads)
 
                     # 改善されたリクエスト間遅延（ランダム化）
                     import random
@@ -326,16 +328,27 @@ class FiveChanExplorer(BaseService):
                         self.min_request_delay, self.max_request_delay
                     )
                     self.logger.debug(f"リクエスト間遅延: {delay:.1f}秒")
+
                     await asyncio.sleep(delay)
 
                 except Exception as e:
                     self.logger.error(f"Error processing board /{board_id}/: {str(e)}")
 
-            self.logger.info(f"合計 {len(all_threads)} 件のスレッドを取得しました")
+            self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
+
+            selected_threads = self._select_top_threads(
+                candidate_threads, total_limit
+            )
+            self.logger.info(
+                f"人気スコア上位 {len(selected_threads)} 件のスレッドを要約します"
+            )
+
+            for thread in selected_threads:
+                await self._summarize_thread(thread)
 
             # 要約を保存
-            if all_threads:
-                await self._store_summaries(all_threads)
+            if selected_threads:
+                await self._store_summaries(selected_threads)
                 self.logger.info("スレッドの要約を保存しました")
             else:
                 self.logger.info("保存するスレッドがありません")
@@ -739,7 +752,9 @@ class FiveChanExplorer(BaseService):
 
         return []
 
-    async def _retrieve_ai_threads(self, board_id: str, limit: int) -> list[Thread]:
+    async def _retrieve_ai_threads(
+        self, board_id: str, limit: int | None
+    ) -> list[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
         【Cloudflare突破成功版】subject.txt + dat形式による完全実装
@@ -748,8 +763,8 @@ class FiveChanExplorer(BaseService):
         ----------
         board_id : str
             板のID。
-        limit : int
-            取得するスレッド数。
+        limit : Optional[int]
+            取得するスレッド数。Noneの場合は制限なし。
             
         Returns
         -------
@@ -787,6 +802,12 @@ class FiveChanExplorer(BaseService):
                     )
 
                     if posts:  # 投稿取得成功時のみスレッド作成
+                        popularity_score = self._calculate_popularity(
+                            post_count=thread_data.get("post_count", 0),
+                            sample_count=len(posts),
+                            timestamp=int(thread_data["timestamp"]),
+                        )
+
                         thread = Thread(
                             thread_id=int(thread_data["timestamp"]),
                             title=title,
@@ -794,13 +815,14 @@ class FiveChanExplorer(BaseService):
                             board=board_id,
                             posts=posts,
                             timestamp=int(thread_data["timestamp"]),
+                            popularity_score=popularity_score,
                         )
 
                         ai_threads.append(thread)
                         self.logger.info(f"スレッド追加成功: {title} ({len(posts)}投稿)")
 
                         # 制限数に達したら終了
-                        if len(ai_threads) >= limit:
+                        if limit is not None and len(ai_threads) >= limit:
                             break
                     else:
                         self.logger.warning(f"投稿取得失敗: {title}")
@@ -814,6 +836,36 @@ class FiveChanExplorer(BaseService):
         except Exception as e:
             self.logger.error(f"【突破手法エラー】板 {board_id}: {str(e)}")
             return []
+
+    def _calculate_popularity(
+        self, post_count: int, sample_count: int, timestamp: int
+    ) -> float:
+        recency_bonus = 0.0
+        try:
+            now = datetime.now()
+            created = datetime.fromtimestamp(timestamp)
+            hours = (now - created).total_seconds() / 3600
+            recency_bonus = 24 / max(1.0, hours)
+        except Exception:
+            pass
+
+        return float(post_count + sample_count + recency_bonus)
+
+    def _select_top_threads(
+        self, threads: list[Thread], limit: int
+    ) -> list[Thread]:
+        if not threads:
+            return []
+
+        if len(threads) <= limit:
+            return threads
+
+        def sort_key(thread: Thread):
+            created = datetime.fromtimestamp(thread.timestamp)
+            return (thread.popularity_score, created)
+
+        sorted_threads = sorted(threads, key=sort_key, reverse=True)
+        return sorted_threads[:limit]
 
     async def _summarize_thread(self, thread: Thread) -> None:
         """
