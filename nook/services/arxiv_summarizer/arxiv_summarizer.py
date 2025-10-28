@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
+from nook.common.daily_merge import merge_records
 
 
 def remove_tex_backticks(text: str) -> str:
@@ -125,7 +126,7 @@ class ArxivSummarizer(BaseService):
         await self._summarize_papers(papers)
 
         # 要約を保存
-        await self._store_summaries(papers)
+        await self._store_summaries(papers, limit)
 
         # 処理済みの論文IDを保存
         await self._save_processed_ids(paper_ids)
@@ -442,7 +443,7 @@ class ArxivSummarizer(BaseService):
                 )
             paper_info.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, papers: list[PaperInfo]) -> None:
+    async def _store_summaries(self, papers: list[PaperInfo], limit: int) -> None:
         """
         要約を保存します。
 
@@ -455,14 +456,76 @@ class ArxivSummarizer(BaseService):
             return
 
         today = datetime.now()
+        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
+        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
+
+        incoming_records = self._serialize_papers(papers)
+        existing_records = await self._load_existing_paper_data(filename_json, filename_md)
+
+        merged_records = merge_records(
+            existing_records,
+            incoming_records,
+            key=lambda item: item.get("title", ""),
+            limit=limit,
+        )
+
+        await self.save_json(merged_records, filename_json)
+
+        markdown = self._render_markdown(merged_records, today)
+        await self.save_markdown(markdown, filename_md)
+
+    def _serialize_papers(self, papers: list[PaperInfo]) -> list[dict]:
+        return [
+            {
+                "title": paper.title,
+                "abstract": paper.abstract,
+                "url": paper.url,
+                "summary": paper.summary,
+                "contents": paper.contents,
+            }
+            for paper in papers
+        ]
+
+    async def _load_existing_paper_data(
+        self, filename_json: str, filename_md: str
+    ) -> list[dict]:
+        existing_json = await self.load_json(filename_json)
+        if existing_json:
+            return existing_json
+
+        markdown = await self.storage.load(filename_md)
+        if not markdown:
+            return []
+
+        return self._parse_markdown(markdown)
+
+    def _render_markdown(self, records: list[dict], today: datetime) -> str:
         content = f"# arXiv 論文要約 ({today.strftime('%Y-%m-%d')})\n\n"
-
-        for paper in papers:
-            content += f"## [{paper.title}]({paper.url})\n\n"
-            content += f"**abstract**:\n{paper.abstract}\n\n"
-            content += f"**summary**:\n{paper.summary}\n\n"
+        for paper in records:
+            content += f"## [{paper['title']}]({paper['url']})\n\n"
+            content += f"**abstract**:\n{paper.get('abstract', '')}\n\n"
+            content += f"**summary**:\n{paper.get('summary', '')}\n\n"
             content += "---\n\n"
+        return content
 
-        # 保存
-        filename = f"{today.strftime('%Y-%m-%d')}.md"
-        await self.save_markdown(content, filename)
+    def _parse_markdown(self, markdown: str) -> list[dict]:
+        pattern = re.compile(
+            r"## \[(?P<title>.+?)\]\((?P<url>[^\)]+)\)\n\n"
+            r"\*\*abstract\*\*:\n(?P<abstract>.*?)(?:\n\n)?"
+            r"\*\*summary\*\*:\n(?P<summary>.*?)(?:\n\n)?---",
+            re.DOTALL,
+        )
+
+        records: list[dict] = []
+        for match in pattern.finditer(markdown + "---"):
+            records.append(
+                {
+                    "title": match.group("title").strip(),
+                    "url": match.group("url").strip(),
+                    "abstract": match.group("abstract").strip(),
+                    "summary": match.group("summary").strip(),
+                    "contents": None,
+                }
+            )
+
+        return records

@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.dedup import DedupTracker
+from nook.common.daily_merge import merge_records
 
 
 @dataclass
@@ -468,40 +469,109 @@ class HackerNewsRetriever(BaseService):
         """
         today = datetime.now()
 
-        # JSONでも保存（APIでの個別記事取得用）
-        stories_data = []
-        for story in stories:
-            story_data = {
+        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
+        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
+
+        new_records = [
+            {
                 "title": story.title,
                 "score": story.score,
                 "url": story.url,
                 "text": story.text,
                 "summary": story.summary,
             }
-            stories_data.append(story_data)
+            for story in stories
+        ]
 
-        # JSON形式で保存
-        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
-        await self.save_json(stories_data, filename_json)
+        existing_records = await self._load_existing_story_data(
+            filename_json, filename_md
+        )
 
-        # 従来のMarkdown形式も保存（互換性のため）
+        merged_records = merge_records(
+            existing_records,
+            new_records,
+            key=lambda item: item.get("title", ""),
+            sort_key=lambda item: (
+                item.get("score", 0),
+                item.get("summary") or "",
+            ),
+            limit=MAX_STORY_LIMIT,
+        )
+
+        await self.save_json(merged_records, filename_json)
+
+        merged_stories = [
+            Story(
+                title=record.get("title", ""),
+                score=record.get("score", 0),
+                url=record.get("url"),
+                text=record.get("text"),
+                summary=record.get("summary", ""),
+            )
+            for record in merged_records
+        ]
+
+        content = self._render_markdown(merged_stories, today)
+        await self.save_markdown(content, filename_md)
+
+    def _render_markdown(self, stories: list[Story], today: datetime) -> str:
         content = f"# Hacker News トップ記事 ({today.strftime('%Y-%m-%d')})\n\n"
 
         for story in stories:
-            title_link = f"[{story.title}]({story.url})" if story.url else story.title
+            title_link = (
+                f"[{story.title}]({story.url})" if story.url else story.title
+            )
             content += f"## {title_link}\n\n"
             content += f"スコア: {story.score}\n\n"
 
-            # 要約があれば表示、なければ本文を表示
             if story.summary:
                 content += f"**要約**:\n{story.summary}\n\n"
             elif story.text:
-                content += (
-                    f"{story.text[:500]}{'...' if len(story.text) > 500 else ''}\n\n"
-                )
+                trimmed = story.text[:500]
+                ellipsis = "..." if len(story.text) > 500 else ""
+                content += f"{trimmed}{ellipsis}\n\n"
 
             content += "---\n\n"
 
-        # 保存
-        filename = f"{today.strftime('%Y-%m-%d')}.md"
-        await self.save_markdown(content, filename)
+        return content
+
+    async def _load_existing_story_data(
+        self, filename_json: str, filename_md: str
+    ) -> list[dict[str, Any]]:
+        existing_json = await self.load_json(filename_json)
+        if existing_json:
+            return existing_json
+
+        markdown_content = await self.storage.load(filename_md)
+        if not markdown_content:
+            return []
+
+        return self._parse_markdown(markdown_content)
+
+    def _parse_markdown(self, content: str) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        pattern = re.compile(
+            r"##\s+(?:\[(?P<title>.+?)\]\((?P<url>[^\)]+)\)|(?P<title_only>.+?))\n\n"
+            r"スコア:\s*(?P<score>\d+)\n\n"
+            r"(?:(\*\*要約\*\*:\n(?P<summary>.*?))|(?P<text>.+?))?---",
+            re.DOTALL,
+        )
+
+        for match in pattern.finditer(content + "---"):
+            title = match.group("title") or match.group("title_only") or ""
+            url = match.group("url")
+            score = int(match.group("score") or 0)
+            summary = (match.group("summary") or "").strip()
+            text = (match.group("text") or "").strip()
+
+            records.append(
+                {
+                    "title": title.strip(),
+                    "url": url.strip() if url else None,
+                    "score": score,
+                    "summary": summary,
+                    "text": text,
+                }
+            )
+
+        return records

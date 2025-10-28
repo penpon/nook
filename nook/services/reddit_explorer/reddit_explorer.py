@@ -13,6 +13,7 @@ import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
+from nook.common.daily_merge import merge_grouped_records
 
 
 @dataclass
@@ -404,41 +405,166 @@ class RedditExplorer(BaseService):
             保存する投稿のリスト（カテゴリ、サブレディット名、投稿）。
         """
         today = datetime.now()
-        content = f"# Reddit 人気投稿 ({today.strftime('%Y-%m-%d')})\n\n"
+        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
+        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
 
-        # カテゴリごとに整理
-        categories = {}
+        incoming_map = self._serialize_posts(posts)
+        existing_map = await self._load_existing_posts_map(filename_json, filename_md)
+
+        merged_map = merge_grouped_records(
+            existing_map,
+            incoming_map,
+            key=lambda item: item.get("id", ""),
+            sort_key=self._post_sort_key,
+            limit_per_group=self.SUMMARY_LIMIT,
+        )
+
+        await self.save_json(merged_map, filename_json)
+
+        markdown = self._render_markdown(merged_map, today)
+        await self.save_markdown(markdown, filename_md)
+
+    def _serialize_posts(
+        self, posts: list[tuple[str, str, RedditPost]]
+    ) -> dict[str, list[dict]]:
+        grouped: dict[str, list[dict]] = {}
         for category, subreddit, post in posts:
-            if category not in categories:
-                categories[category] = {}
+            grouped.setdefault(subreddit, [])
+            grouped[subreddit].append(
+                {
+                    "id": post.id,
+                    "category": category,
+                    "title": post.title,
+                    "url": post.url,
+                    "permalink": post.permalink,
+                    "text": post.text,
+                    "upvotes": post.upvotes,
+                    "summary": post.summary,
+                    "type": post.type,
+                    "thumbnail": post.thumbnail,
+                    "comments": post.comments,
+                    "popularity_score": post.popularity_score,
+                    "created_at": post.created_at.isoformat()
+                    if post.created_at
+                    else None,
+                }
+            )
+        return grouped
 
-            if subreddit not in categories[category]:
-                categories[category][subreddit] = []
+    async def _load_existing_posts_map(
+        self, filename_json: str, filename_md: str
+    ) -> dict[str, list[dict]]:
+        existing_json = await self.load_json(filename_json)
+        if existing_json:
+            return existing_json
 
-            categories[category][subreddit].append(post)
+        markdown = await self.storage.load(filename_md)
+        if not markdown:
+            return {}
 
-        # Markdownを生成
-        for category, subreddits in categories.items():
-            # カテゴリ行を削除
+        return self._parse_markdown(markdown)
 
-            for subreddit, subreddit_posts in subreddits.items():
-                content += f"## r/{subreddit}\n\n"
+    def _post_sort_key(self, item: dict) -> tuple[float, datetime]:
+        popularity = float(item.get("popularity_score", 0.0) or 0.0)
+        created_raw = item.get("created_at")
+        if created_raw:
+            try:
+                created = datetime.fromisoformat(created_raw)
+            except ValueError:
+                created = datetime.min
+        else:
+            created = datetime.min
+        return (popularity, created)
 
-                for post in subreddit_posts:
-                    content += f"### [{post.title}]({post.permalink})\n\n"
+    def _extract_post_id_from_permalink(self, permalink: str) -> str:
+        if not permalink:
+            return ""
 
-                    if post.url and post.url != post.permalink:
-                        content += f"リンク: {post.url}\n\n"
+        trimmed = permalink.strip()
+        trimmed = trimmed.split("?", 1)[0]
+        trimmed = trimmed.rstrip("/")
 
-                    if post.text:
-                        content += f"本文: {post.text[:200]}{'...' if len(post.text) > 200 else ''}\n\n"
+        parts = trimmed.split("/")
+        try:
+            comments_index = parts.index("comments")
+        except ValueError:
+            comments_index = -1
 
-                    content += f"アップボート数: {post.upvotes}\n\n"
-                    content += f"**要約**:\n{post.summary}\n\n"
-                    content += "---\n\n"
+        if comments_index != -1 and comments_index + 1 < len(parts):
+            post_id = parts[comments_index + 1]
+            return post_id.strip()
 
-        # 保存
-        self.storage.save_markdown(content, "", today)
+        for part in reversed(parts):
+            if part:
+                return part.strip()
+
+        return ""
+
+    def _render_markdown(
+        self, grouped_posts: dict[str, list[dict]], today: datetime
+    ) -> str:
+        content = f"# Reddit 人気投稿 ({today.strftime('%Y-%m-%d')})\n\n"
+        for subreddit, posts in grouped_posts.items():
+            content += f"## r/{subreddit}\n\n"
+            for post in posts:
+                content += f"### [{post['title']}]({post.get('permalink')})\n\n"
+                url = post.get("url")
+                if url and url != post.get("permalink"):
+                    content += f"リンク: {url}\n\n"
+                text = post.get("text")
+                if text:
+                    trimmed = text[:200]
+                    ellipsis = "..." if len(text) > 200 else ""
+                    content += f"本文: {trimmed}{ellipsis}\n\n"
+                content += f"アップボート数: {post.get('upvotes', 0)}\n\n"
+                content += f"**要約**:\n{post.get('summary', '')}\n\n"
+                content += "---\n\n"
+        return content
+
+    def _parse_markdown(self, markdown: str) -> dict[str, list[dict]]:
+        result: dict[str, list[dict]] = {}
+        subreddit_pattern = re.compile(r"^##\s+r/(?P<subreddit>.+)$", re.MULTILINE)
+        post_pattern = re.compile(
+            r"### \[(?P<title>.+?)\]\((?P<permalink>[^\)]+)\)\n\n"
+            r"(?:リンク: (?P<link>.+?)\n\n)?"
+            r"(?:本文: (?P<text>.+?)\n\n)?"
+            r"アップボート数: (?P<upvotes>\d+)\n\n"
+            r"\*\*要約\*\*:\n(?P<summary>.*?)(?:\n\n)?---",
+            re.DOTALL,
+        )
+
+        sections = list(subreddit_pattern.finditer(markdown))
+        for idx, match in enumerate(sections):
+            start = match.end()
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            block = markdown[start:end]
+            subreddit = match.group("subreddit").strip()
+
+            items: list[dict] = []
+            for post_match in post_pattern.finditer(block + "---"):
+                permalink = post_match.group("permalink")
+                items.append(
+                    {
+                        "id": self._extract_post_id_from_permalink(permalink),
+                        "category": "unknown",
+                        "title": post_match.group("title").strip(),
+                        "url": (post_match.group("link") or "").strip() or None,
+                        "permalink": permalink.strip() if permalink else "",
+                        "text": (post_match.group("text") or "").strip(),
+                        "upvotes": int(post_match.group("upvotes") or 0),
+                        "summary": post_match.group("summary").strip(),
+                        "type": "text",
+                        "thumbnail": "self",
+                        "comments": [],
+                        "popularity_score": 0.0,
+                        "created_at": None,
+                    }
+                )
+
+            if items:
+                result[subreddit] = items
+
+        return result
 
     def _select_top_posts(
         self, posts: list[tuple[str, str, RedditPost]]

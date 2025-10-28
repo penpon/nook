@@ -9,6 +9,7 @@ import cloudscraper
 
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
+from nook.common.daily_merge import merge_grouped_records
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
@@ -961,65 +962,125 @@ class FiveChanExplorer(BaseService):
             thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(self, threads: list[Thread]) -> None:
-        """
-        要約を保存します。
-        
-        Parameters
-        ----------
-        threads : List[Thread]
-            保存するスレッドのリスト。
-        """
         today = datetime.now()
-        content = f"# 5chan AI関連スレッド ({today.strftime('%Y-%m-%d')})\n\n"
+        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
+        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
 
-        # 板ごとに整理
-        boards = {}
+        incoming_map = self._serialize_threads(threads)
+        existing_map = await self._load_existing_thread_map(filename_json, filename_md)
+
+        merged_map = merge_grouped_records(
+            existing_map,
+            incoming_map,
+            key=lambda item: item.get("thread_id"),
+            sort_key=self._thread_sort_key,
+            limit_per_group=self.TOTAL_LIMIT,
+        )
+
+        await self.save_json(merged_map, filename_json)
+
+        markdown = self._render_markdown(merged_map, today)
+        await self.save_markdown(markdown, filename_md)
+
+    def _serialize_threads(self, threads: list[Thread]) -> dict[str, list[dict]]:
+        grouped: dict[str, list[dict]] = {}
         for thread in threads:
-            if thread.board not in boards:
-                boards[thread.board] = []
+            grouped.setdefault(thread.board, [])
+            grouped[thread.board].append(
+                {
+                    "thread_id": thread.thread_id,
+                    "title": thread.title,
+                    "url": thread.url,
+                    "timestamp": thread.timestamp,
+                    "summary": thread.summary,
+                    "popularity_score": thread.popularity_score,
+                }
+            )
+        return grouped
 
-            boards[thread.board].append(thread)
+    async def _load_existing_thread_map(
+        self, filename_json: str, filename_md: str
+    ) -> dict[str, list[dict]]:
+        existing_json = await self.load_json(filename_json)
+        if existing_json:
+            return existing_json
 
-        # Markdownを生成
-        for board, board_threads in boards.items():
+        markdown = await self.storage.load(filename_md)
+        if not markdown:
+            return {}
+
+        return self._parse_markdown(markdown)
+
+    def _thread_sort_key(self, item: dict) -> tuple[float, int]:
+        return (
+            float(item.get("popularity_score", 0.0) or 0.0),
+            int(item.get("timestamp", 0)),
+        )
+
+    def _render_markdown(
+        self, grouped_threads: dict[str, list[dict]], today: datetime
+    ) -> str:
+        content = f"# 5chan AI関連スレッド ({today.strftime('%Y-%m-%d')})\n\n"
+        for board, threads in grouped_threads.items():
             board_name = self.target_boards.get(board, board)
             content += f"## {board_name} (/{board}/)\n\n"
-
-            for thread in board_threads:
-                formatted_title = (
-                    thread.title if thread.title else f"無題スレッド #{thread.thread_id}"
-                )
-                content += f"### [{formatted_title}]({thread.url})\n\n"
-
-                # 投稿日時
-                date_str = datetime.fromtimestamp(thread.timestamp).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+            for thread in threads:
+                title = thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
+                content += f"### [{title}]({thread.get('url')})\n\n"
+                timestamp = int(thread.get("timestamp", 0))
+                if timestamp:
+                    date_str = datetime.fromtimestamp(timestamp).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+                else:
+                    date_str = "N/A"
                 content += f"作成日時: {date_str}\n\n"
-
-                content += f"**要約**:\n{thread.summary}\n\n"
-
+                content += f"**要約**:\n{thread.get('summary', '')}\n\n"
                 content += "---\n\n"
+        return content
 
-        # 保存
-        self.logger.info(
-            f"fivechan_explorer ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md"
+    def _parse_markdown(self, markdown: str) -> dict[str, list[dict]]:
+        result: dict[str, list[dict]] = {}
+        board_pattern = re.compile(r"^##\s+(.+) \(/(.+)/\)$", re.MULTILINE)
+        thread_pattern = re.compile(
+            r"### \[(?P<title>.+?)\]\((?P<url>[^\)]+)\)\n\n"
+            r"作成日時: (?P<datetime>.+?)\n\n"
+            r"\*\*要約\*\*:\n(?P<summary>.*?)(?:\n\n)?---",
+            re.DOTALL,
         )
-        try:
-            self.storage.save_markdown(content, "fivechan_explorer", today)
-            self.logger.info("保存が完了しました")
-        except Exception as e:
-            self.logger.error(f"保存中にエラーが発生しました: {str(e)}")
-            # ディレクトリを作成して再試行
-            try:
-                fivechan_explorer_dir = (
-                    Path(self.storage.base_dir) / "fivechan_explorer"
-                )
-                fivechan_explorer_dir.mkdir(parents=True, exist_ok=True)
 
-                file_path = fivechan_explorer_dir / f"{today.strftime('%Y-%m-%d')}.md"
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-                self.logger.info(f"再試行で保存に成功しました: {file_path}")
-            except Exception as e2:
-                self.logger.error(f"再試行でも保存に失敗しました: {str(e2)}")
+        sections = list(board_pattern.finditer(markdown))
+        for idx, match in enumerate(sections):
+            start = match.end()
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            block = markdown[start:end]
+            board_id = match.group(2).strip()
+
+            items: list[dict] = []
+            for thread_match in thread_pattern.finditer(block + "---"):
+                title = thread_match.group("title")
+                url = thread_match.group("url")
+                summary = thread_match.group("summary").strip()
+                datetime_str = thread_match.group("datetime")
+                try:
+                    timestamp = int(
+                        datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S").timestamp()
+                    )
+                except ValueError:
+                    timestamp = 0
+
+                items.append(
+                    {
+                        "thread_id": timestamp,
+                        "title": title.strip(),
+                        "url": url.strip(),
+                        "timestamp": timestamp,
+                        "summary": summary,
+                        "popularity_score": 0.0,
+                    }
+                )
+
+            if items:
+                result[board_id] = items
+
+        return result

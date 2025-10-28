@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
+from nook.common.daily_merge import merge_records
 
 
 @dataclass
@@ -564,42 +565,114 @@ class BusinessFeed(BaseService):
             return
 
         today = datetime.now()
-        content = f"# ビジネスニュース記事 ({today.strftime('%Y-%m-%d')})\n\n"
+        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
+        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
 
-        # カテゴリごとに整理
-        categories = {}
+        incoming_records = self._serialize_articles(articles)
+        existing_records = await self._load_existing_articles(filename_json, filename_md)
+
+        merged_records = merge_records(
+            existing_records,
+            incoming_records,
+            key=lambda item: item.get("title", ""),
+            sort_key=self._article_sort_key,
+            limit=self.TOTAL_LIMIT,
+        )
+
+        await self.save_json(merged_records, filename_json)
+
+        markdown = self._render_markdown(merged_records, today)
+        await self.save_markdown(markdown, filename_md)
+
+    def _serialize_articles(self, articles: list[Article]) -> list[dict]:
+        records: list[dict] = []
         for article in articles:
-            if article.category not in categories:
-                categories[article.category] = []
+            category = article.category or "uncategorized"
+            records.append(
+                {
+                    "title": article.title,
+                    "url": article.url,
+                    "feed_name": article.feed_name,
+                    "summary": article.summary,
+                    "popularity_score": article.popularity_score,
+                    "published_at": article.published_at.isoformat()
+                    if article.published_at
+                    else None,
+                    "category": category,
+                }
+            )
+        return records
 
-            categories[article.category].append(article)
+    async def _load_existing_articles(
+        self, filename_json: str, filename_md: str
+    ) -> list[dict]:
+        existing_json = await self.load_json(filename_json)
+        if existing_json:
+            return existing_json
 
-        # Markdownを生成
-        for category, category_articles in categories.items():
-            content += f"## {category.replace('_', ' ').capitalize()}\n\n"
+        markdown = await self.storage.load(filename_md)
+        if not markdown:
+            return []
 
-            for article in category_articles:
-                content += f"### [{article.title}]({article.url})\n\n"
-                content += f"**フィード**: {article.feed_name}\n\n"
-                content += f"**要約**:\n{article.summary}\n\n"
+        return self._parse_markdown(markdown)
 
-                content += "---\n\n"
-
-        # 保存
-        self.logger.info(f"business_feed ディレクトリに保存します: {today.strftime('%Y-%m-%d')}.md")
-        try:
-            self.storage.save_markdown(content, "", today)
-            self.logger.info("保存が完了しました")
-        except Exception as e:
-            self.logger.error(f"保存中にエラーが発生しました: {str(e)}")
-            # ディレクトリを作成して再試行
+    def _article_sort_key(self, item: dict) -> tuple[float, datetime]:
+        popularity = float(item.get("popularity_score", 0.0) or 0.0)
+        published_raw = item.get("published_at")
+        if published_raw:
             try:
-                business_feed_dir = Path(self.storage.base_dir) / "business_feed"
-                business_feed_dir.mkdir(parents=True, exist_ok=True)
+                published = datetime.fromisoformat(published_raw)
+            except ValueError:
+                published = datetime.min
+        else:
+            published = datetime.min
+        return (popularity, published)
 
-                file_path = business_feed_dir / f"{today.strftime('%Y-%m-%d')}.md"
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-                self.logger.info(f"再試行で保存に成功しました: {file_path}")
-            except Exception as e2:
-                self.logger.error(f"再試行でも保存に失敗しました: {str(e2)}")
+    def _render_markdown(self, records: list[dict], today: datetime) -> str:
+        content = f"# ビジネスニュース記事 ({today.strftime('%Y-%m-%d')})\n\n"
+        grouped: dict[str, list[dict]] = {}
+        for record in records:
+            category = record.get("category", "uncategorized")
+            grouped.setdefault(category, []).append(record)
+
+        for category, articles in grouped.items():
+            heading = category.replace("_", " ").capitalize()
+            content += f"## {heading}\n\n"
+            for article in articles:
+                content += f"### [{article['title']}]({article['url']})\n\n"
+                content += f"**フィード**: {article.get('feed_name', '')}\n\n"
+                content += f"**要約**:\n{article.get('summary', '')}\n\n"
+                content += "---\n\n"
+        return content
+
+    def _parse_markdown(self, markdown: str) -> list[dict]:
+        result: list[dict] = []
+        category_pattern = re.compile(r"^##\s+(.+)$", re.MULTILINE)
+        article_pattern = re.compile(
+            r"### \[(?P<title>.+?)\]\((?P<url>[^\)]+)\)\n\n"
+            r"\*\*フィード\*\*: (?P<feed>.+?)\n\n"
+            r"\*\*要約\*\*:\n(?P<summary>.*?)(?:\n\n)?---",
+            re.DOTALL,
+        )
+
+        sections = list(category_pattern.finditer(markdown))
+        for idx, match in enumerate(sections):
+            start = match.end()
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            block = markdown[start:end]
+            category = match.group(1).strip().lower().replace(" ", "_")
+
+            for article_match in article_pattern.finditer(block + "---"):
+                result.append(
+                    {
+                        "title": article_match.group("title").strip(),
+                        "url": article_match.group("url").strip(),
+                        "feed_name": article_match.group("feed").strip(),
+                        "summary": article_match.group("summary").strip(),
+                        "popularity_score": 0.0,
+                        "published_at": None,
+                        "category": category,
+                    }
+                )
+
+        return result
