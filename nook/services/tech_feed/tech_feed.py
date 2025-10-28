@@ -11,8 +11,8 @@ import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.dedup import DedupTracker
-from nook.common.daily_merge import merge_records
 
 
 @dataclass
@@ -565,25 +565,23 @@ class TechFeed(BaseService):
             self.logger.info("保存する記事がありません")
             return
 
-        today = datetime.now()
-        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
-        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
-
+        default_date = datetime.now().date()
         incoming_records = self._serialize_articles(articles)
-        existing_records = await self._load_existing_articles(filename_json, filename_md)
-
-        merged_records = merge_records(
-            existing_records,
+        records_by_date = group_records_by_date(
             incoming_records,
+            default_date=default_date,
+        )
+
+        await store_daily_snapshots(
+            records_by_date,
+            load_existing=self._load_existing_articles,
+            save_json=self.save_json,
+            save_markdown=self.save_markdown,
+            render_markdown=self._render_markdown,
             key=lambda item: item.get("title", ""),
             sort_key=self._article_sort_key,
             limit=self.TOTAL_LIMIT,
         )
-
-        await self.save_json(merged_records, filename_json)
-
-        markdown = self._render_markdown(merged_records, today)
-        await self.save_markdown(markdown, filename_md)
 
     def _serialize_articles(self, articles: list[Article]) -> list[dict]:
         records: list[dict] = []
@@ -604,9 +602,11 @@ class TechFeed(BaseService):
             )
         return records
 
-    async def _load_existing_articles(
-        self, filename_json: str, filename_md: str
-    ) -> list[dict]:
+    async def _load_existing_articles(self, target_date: datetime) -> list[dict]:
+        date_str = target_date.strftime("%Y-%m-%d")
+        filename_json = f"{date_str}.json"
+        filename_md = f"{date_str}.md"
+
         existing_json = await self.load_json(filename_json)
         if existing_json:
             return existing_json
