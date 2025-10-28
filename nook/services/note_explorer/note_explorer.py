@@ -3,7 +3,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import feedparser
@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.feed_utils import parse_entry_datetime
 from nook.common.dedup import DedupTracker
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
@@ -214,16 +215,11 @@ class NoteExplorer(BaseService):
         self.logger.info(f"エントリのフィルタリングを開始します（{len(entries)}件）...")
 
         # 日付でフィルタリング
-        cutoff_date = datetime.now() - timedelta(days=days)
+        cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
         recent_entries = []
 
         for entry in entries:
-            entry_date = None
-
-            if hasattr(entry, "published_parsed") and entry.published_parsed:
-                entry_date = datetime(*entry.published_parsed[:6])
-            elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
-                entry_date = datetime(*entry.updated_parsed[:6])
+            entry_date = parse_entry_datetime(entry)
 
             if entry_date:
                 self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
@@ -295,7 +291,7 @@ class NoteExplorer(BaseService):
                         text = "\n".join([p.get_text() for p in paragraphs[:5]])
 
             popularity = self._extract_popularity(entry, soup)
-            published_at = self._parse_entry_date(entry)
+            published_at = parse_entry_datetime(entry)
 
             return Article(
                 feed_name=feed_name,
@@ -478,16 +474,6 @@ class NoteExplorer(BaseService):
 
         return result
 
-    def _parse_entry_date(self, entry) -> datetime | None:
-        """フィードエントリから公開日時を抽出します。"""
-        try:
-            if hasattr(entry, "published_parsed") and entry.published_parsed:
-                return datetime(*entry.published_parsed[:6])
-            if hasattr(entry, "updated_parsed") and entry.updated_parsed:
-                return datetime(*entry.updated_parsed[:6])
-        except Exception as exc:
-            self.logger.debug(f"公開日時の解析に失敗しました: {exc}")
-        return None
 
     def _extract_popularity(self, entry, soup: BeautifulSoup) -> float:
         """note記事の人気指標（スキ数など）を抽出します。"""

@@ -91,6 +91,7 @@ async def get_content(
 
     # 日付の処理
     target_date = None
+    explicit_date_requested = date is not None
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d")
@@ -212,6 +213,9 @@ async def get_content(
                     )
 
     if not items:
+        if explicit_date_requested:
+            return ContentResponse(items=[])
+
         # 利用可能な日付を確認
         available_dates = []
         if source != "all":
