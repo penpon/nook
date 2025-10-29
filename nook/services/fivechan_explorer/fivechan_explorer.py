@@ -1,7 +1,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +9,7 @@ import cloudscraper
 
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
-from nook.common.daily_merge import merge_grouped_records
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
@@ -962,31 +962,30 @@ class FiveChanExplorer(BaseService):
             thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(self, threads: list[Thread]) -> None:
-        today = datetime.now()
-        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
-        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
+        if not threads:
+            self.logger.info("保存するスレッドがありません")
+            return
 
-        incoming_map = self._serialize_threads(threads)
-        existing_map = await self._load_existing_thread_map(filename_json, filename_md)
+        default_date = datetime.now(timezone.utc).date()
+        records = self._serialize_threads(threads)
+        records_by_date = group_records_by_date(records, default_date=default_date)
 
-        merged_map = merge_grouped_records(
-            existing_map,
-            incoming_map,
+        await store_daily_snapshots(
+            records_by_date,
+            load_existing=self._load_existing_threads,
+            save_json=self.save_json,
+            save_markdown=self.save_markdown,
+            render_markdown=self._render_markdown,
             key=lambda item: item.get("thread_id"),
             sort_key=self._thread_sort_key,
-            limit_per_group=self.TOTAL_LIMIT,
+            limit=self.TOTAL_LIMIT,
         )
 
-        await self.save_json(merged_map, filename_json)
-
-        markdown = self._render_markdown(merged_map, today)
-        await self.save_markdown(markdown, filename_md)
-
-    def _serialize_threads(self, threads: list[Thread]) -> dict[str, list[dict]]:
-        grouped: dict[str, list[dict]] = {}
+    def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
+        records: list[dict] = []
         for thread in threads:
-            grouped.setdefault(thread.board, [])
-            grouped[thread.board].append(
+            published = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
+            records.append(
                 {
                     "thread_id": thread.thread_id,
                     "title": thread.title,
@@ -994,53 +993,90 @@ class FiveChanExplorer(BaseService):
                     "timestamp": thread.timestamp,
                     "summary": thread.summary,
                     "popularity_score": thread.popularity_score,
+                    "board": thread.board,
+                    "published_at": published.isoformat(),
                 }
             )
-        return grouped
+        return records
 
-    async def _load_existing_thread_map(
-        self, filename_json: str, filename_md: str
-    ) -> dict[str, list[dict]]:
+    async def _load_existing_threads(self, target_date: datetime) -> list[dict]:
+        date_str = target_date.strftime("%Y-%m-%d")
+        filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
         if existing_json:
+            if isinstance(existing_json, dict):
+                flattened: list[dict] = []
+                for board, items in existing_json.items():
+                    for item in items:
+                        flattened.append({"board": board, **item})
+                return flattened
             return existing_json
 
-        markdown = await self.storage.load(filename_md)
+        markdown = await self.storage.load(f"{date_str}.md")
         if not markdown:
-            return {}
+            return []
 
         return self._parse_markdown(markdown)
 
-    def _thread_sort_key(self, item: dict) -> tuple[float, int]:
-        return (
-            float(item.get("popularity_score", 0.0) or 0.0),
-            int(item.get("timestamp", 0)),
-        )
+    def _thread_sort_key(self, item: dict) -> tuple[float, datetime]:
+        popularity = float(item.get("popularity_score", 0.0) or 0.0)
+        published_raw = item.get("published_at")
+        published: datetime
+        if published_raw:
+            try:
+                published = datetime.fromisoformat(published_raw)
+            except ValueError:
+                published = datetime.min.replace(tzinfo=timezone.utc)
+        else:
+            timestamp = item.get("timestamp")
+            if timestamp:
+                try:
+                    published = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                except Exception:
+                    published = datetime.min.replace(tzinfo=timezone.utc)
+            else:
+                published = datetime.min.replace(tzinfo=timezone.utc)
+        return (popularity, published)
 
-    def _render_markdown(
-        self, grouped_threads: dict[str, list[dict]], today: datetime
-    ) -> str:
+    def _render_markdown(self, records: list[dict], today: datetime) -> str:
         content = f"# 5chan AI関連スレッド ({today.strftime('%Y-%m-%d')})\n\n"
-        for board, threads in grouped_threads.items():
+        grouped: dict[str, list[dict]] = {}
+        for record in records:
+            board = record.get("board", "unknown")
+            grouped.setdefault(board, []).append(record)
+
+        for board, threads in grouped.items():
             board_name = self.target_boards.get(board, board)
             content += f"## {board_name} (/{board}/)\n\n"
             for thread in threads:
                 title = thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
                 content += f"### [{title}]({thread.get('url')})\n\n"
-                timestamp = int(thread.get("timestamp", 0))
-                if timestamp:
-                    date_str = datetime.fromtimestamp(timestamp).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
+                published_raw = thread.get("published_at")
+                if published_raw:
+                    try:
+                        date_str = datetime.fromisoformat(published_raw).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+                    except ValueError:
+                        date_str = published_raw
                 else:
-                    date_str = "N/A"
+                    timestamp = thread.get("timestamp")
+                    if timestamp:
+                        try:
+                            date_str = datetime.fromtimestamp(int(timestamp)).strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            )
+                        except Exception:
+                            date_str = "N/A"
+                    else:
+                        date_str = "N/A"
                 content += f"作成日時: {date_str}\n\n"
                 content += f"**要約**:\n{thread.get('summary', '')}\n\n"
                 content += "---\n\n"
         return content
 
-    def _parse_markdown(self, markdown: str) -> dict[str, list[dict]]:
-        result: dict[str, list[dict]] = {}
+    def _parse_markdown(self, markdown: str) -> list[dict]:
+        records: list[dict] = []
         board_pattern = re.compile(r"^##\s+(.+) \(/(.+)/\)$", re.MULTILINE)
         thread_pattern = re.compile(
             r"### \[(?P<title>.+?)\]\((?P<url>[^\)]+)\)\n\n"
@@ -1056,31 +1092,31 @@ class FiveChanExplorer(BaseService):
             block = markdown[start:end]
             board_id = match.group(2).strip()
 
-            items: list[dict] = []
             for thread_match in thread_pattern.finditer(block + "---"):
                 title = thread_match.group("title")
                 url = thread_match.group("url")
                 summary = thread_match.group("summary").strip()
                 datetime_str = thread_match.group("datetime")
                 try:
-                    timestamp = int(
-                        datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S").timestamp()
+                    published = datetime.strptime(
+                        datetime_str, "%Y-%m-%d %H:%M:%S"
                     )
                 except ValueError:
-                    timestamp = 0
+                    published = None
 
-                items.append(
-                    {
-                        "thread_id": timestamp,
-                        "title": title.strip(),
-                        "url": url.strip(),
-                        "timestamp": timestamp,
-                        "summary": summary,
-                        "popularity_score": 0.0,
-                    }
-                )
+                record = {
+                    "thread_id": 0,
+                    "title": title.strip(),
+                    "url": url.strip(),
+                    "summary": summary,
+                    "popularity_score": 0.0,
+                    "board": board_id,
+                }
 
-            if items:
-                result[board_id] = items
+                if published:
+                    record["published_at"] = published.replace(tzinfo=timezone.utc).isoformat()
+                    record["timestamp"] = int(published.timestamp())
 
-        return result
+                records.append(record)
+
+        return records

@@ -1,7 +1,7 @@
 """GitHubのトレンドリポジトリを収集するサービス。"""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import dedent
 import re
@@ -15,7 +15,7 @@ from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.exceptions import APIException
 from nook.common.dedup import DedupTracker
-from nook.common.daily_merge import merge_grouped_records
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 
 
 @dataclass
@@ -275,70 +275,88 @@ class GithubTrending(BaseService):
         limit_per_language : int | None
             各言語の最大件数。None の場合は入力データの件数を利用。
         """
-        today = datetime.now()
-        filename = f"{today.strftime('%Y-%m-%d')}.md"
-        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
+        if not repositories_by_language:
+            self.logger.info("保存するリポジトリがありません")
+            return
 
-        incoming_map = self._serialize_repositories(repositories_by_language)
+        default_date = datetime.now(timezone.utc).date()
+        records = self._serialize_repositories(repositories_by_language)
+        records_by_date = group_records_by_date(records, default_date=default_date)
 
-        existing_map = await self._load_existing_repository_map(
-            filename_json, filename
-        )
-
-        limit_per_group = (
-            limit_per_language
-            if limit_per_language is not None
-            else len(next(iter(incoming_map.values()), [])) or 15
-        )
-
-        merged_map = merge_grouped_records(
-            existing_map,
-            incoming_map,
+        await store_daily_snapshots(
+            records_by_date,
+            load_existing=self._load_existing_repositories_by_date,
+            save_json=self.save_json,
+            save_markdown=self.save_markdown,
+            render_markdown=self._render_markdown,
             key=lambda item: item.get("name", ""),
-            sort_key=lambda item: item.get("stars", 0),
-            limit_per_group=limit_per_group,
+            sort_key=self._repository_sort_key,
+            limit=None,
         )
-
-        await self.save_json(merged_map, filename_json)
-
-        markdown_content = self._render_markdown(merged_map, today)
-        await self.save_markdown(markdown_content, filename)
 
     def _serialize_repositories(
         self, repositories_by_language: list[tuple[str, list[Repository]]]
-    ) -> dict[str, list[dict[str, Any]]]:
-        serialized: dict[str, list[dict[str, Any]]] = {}
+    ) -> list[dict[str, Any]]:
+        serialized: list[dict[str, Any]] = []
+        now_iso = datetime.now(timezone.utc).isoformat()
         for language, repositories in repositories_by_language:
-            serialized[language] = [
-                {
-                    "name": repo.name,
-                    "description": repo.description,
-                    "link": repo.link,
-                    "stars": repo.stars,
-                }
-                for repo in repositories
-            ]
+            for repo in repositories:
+                serialized.append(
+                    {
+                        "language": language,
+                        "name": repo.name,
+                        "description": repo.description,
+                        "link": repo.link,
+                        "stars": repo.stars,
+                        "published_at": now_iso,
+                    }
+                )
         return serialized
 
-    async def _load_existing_repository_map(
-        self, filename_json: str, filename_md: str
-    ) -> dict[str, list[dict[str, Any]]]:
+    async def _load_existing_repositories_by_date(
+        self, target_date: datetime
+    ) -> list[dict[str, Any]]:
+        date_str = target_date.strftime("%Y-%m-%d")
+        filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
         if existing_json:
+            if isinstance(existing_json, dict):
+                flattened: list[dict[str, Any]] = []
+                for language, repos in existing_json.items():
+                    for repo in repos:
+                        flattened.append({"language": language, **repo})
+                return flattened
             return existing_json
 
-        markdown_content = await self.storage.load(filename_md)
+        markdown_content = await self.storage.load(f"{date_str}.md")
         if not markdown_content:
-            return {}
+            return []
 
         return self._parse_markdown(markdown_content)
 
+    def _repository_sort_key(self, item: dict[str, Any]) -> tuple[int, datetime]:
+        stars = int(item.get("stars", 0) or 0)
+        published_raw = item.get("published_at")
+        if published_raw:
+            try:
+                published = datetime.fromisoformat(published_raw)
+            except ValueError:
+                published = datetime.min.replace(tzinfo=timezone.utc)
+        else:
+            published = datetime.min.replace(tzinfo=timezone.utc)
+        return (stars, published)
+
     def _render_markdown(
-        self, repositories_by_language: dict[str, list[dict[str, Any]]], today: datetime
+        self, records: list[dict[str, Any]], today: datetime
     ) -> str:
         content = f"# GitHub トレンドリポジトリ ({today.strftime('%Y-%m-%d')})\n\n"
 
-        for language, repositories in repositories_by_language.items():
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for record in records:
+            language = record.get("language", "all")
+            grouped.setdefault(language, []).append(record)
+
+        for language, repositories in grouped.items():
             if not repositories:
                 continue
 
@@ -346,7 +364,7 @@ class GithubTrending(BaseService):
             content += f"## {language_display.capitalize()}\n\n"
 
             for repo in repositories:
-                content += f"### [{repo['name']}]({repo['link']})\n\n"
+                content += f"### [{repo['name']}]({repo.get('link')})\n\n"
 
                 description = repo.get("description")
                 if description:
@@ -357,8 +375,8 @@ class GithubTrending(BaseService):
 
         return content
 
-    def _parse_markdown(self, content: str) -> dict[str, list[dict[str, Any]]]:
-        result: dict[str, list[dict[str, Any]]] = {}
+    def _parse_markdown(self, content: str) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
         language_pattern = re.compile(r"^##\s+(.+)$", re.MULTILINE)
         repo_pattern = re.compile(
             r"### \[(?P<name>.+?)\]\((?P<link>[^\)]+)\)\n\n"
@@ -379,7 +397,6 @@ class GithubTrending(BaseService):
                 else language_header.lower()
             )
 
-            repos: list[dict[str, Any]] = []
             for repo_match in repo_pattern.finditer(section_content):
                 name = repo_match.group("name").strip()
                 link = repo_match.group("link").strip()
@@ -387,8 +404,9 @@ class GithubTrending(BaseService):
                 stars_text = repo_match.group("stars")
                 stars = int(stars_text.replace(",", "")) if stars_text else 0
 
-                repos.append(
+                records.append(
                     {
+                        "language": language_key,
                         "name": name,
                         "link": link,
                         "description": description,
@@ -396,6 +414,4 @@ class GithubTrending(BaseService):
                     }
                 )
 
-            result[language_key] = repos
-
-        return result
+        return records

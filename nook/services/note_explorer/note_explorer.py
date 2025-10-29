@@ -131,9 +131,40 @@ class NoteExplorer(BaseService):
                         if current_limit is None:
                             self.logger.info(f"フィード {feed_url} は制限なしで取得します")
 
+                        effective_limit = None
+                        if current_limit is not None:
+                            effective_limit = current_limit * max(days, 1)
+
                         entries = self._filter_entries(
-                            feed.entries, days, current_limit
+                            feed.entries, days, effective_limit
                         )
+                        pages_to_inspect = 1
+                        while (
+                            effective_limit is not None
+                            and len(entries) < effective_limit
+                            and pages_to_inspect < 5
+                            and hasattr(feed, "feed")
+                            and hasattr(feed.feed, "links")
+                        ):
+                            next_link = next(
+                                (
+                                    link.get("href")
+                                    for link in feed.feed.links
+                                    if link.get("rel") == "next"
+                                ),
+                                None,
+                            )
+
+                            if not next_link:
+                                break
+
+                            next_feed = feedparser.parse(next_link)
+                            more_entries = self._filter_entries(
+                                next_feed.entries, days, effective_limit - len(entries)
+                            )
+                            entries.extend(more_entries)
+                            feed = next_feed
+                            pages_to_inspect += 1
                         self.logger.info(
                             f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました"
                         )
@@ -162,17 +193,24 @@ class NoteExplorer(BaseService):
 
             self.logger.info(f"合計 {len(candidate_articles)} 件の記事候補を取得しました")
 
-            selected_articles = self._select_top_articles(candidate_articles)
-            self.logger.info(
-                f"人気スコア上位 {len(selected_articles)} 件の記事を要約します"
-            )
+            # 日付ごとにグループ化
+            articles_by_date = self._group_articles_by_date(candidate_articles)
 
-            for article in selected_articles:
-                await self._summarize_article(article)
+            # 日付ごとに上位N件を選択して要約
+            all_selected_articles = []
+            for date_str in sorted(articles_by_date.keys(), reverse=True):
+                date_articles = articles_by_date[date_str]
+                selected = self._select_top_articles(date_articles)
+                self.logger.info(
+                    f"{date_str}: {len(date_articles)}件中 {len(selected)}件を選択"
+                )
+                for article in selected:
+                    await self._summarize_article(article)
+                all_selected_articles.extend(selected)
 
             # 要約を保存
-            if selected_articles:
-                await self._store_summaries(selected_articles)
+            if all_selected_articles:
+                await self._store_summaries(all_selected_articles)
                 self.logger.info("記事の要約を保存しました")
             else:
                 self.logger.info("保存する記事がありません")
@@ -180,6 +218,21 @@ class NoteExplorer(BaseService):
         finally:
             # グローバルクライアントなのでクローズ不要
             pass
+
+    def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
+        """記事を日付ごとにグループ化します。"""
+        by_date: dict[str, list[Article]] = {}
+        default_date = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        
+        for article in articles:
+            date_key = (
+                article.published_at.strftime('%Y-%m-%d')
+                if article.published_at
+                else default_date
+            )
+            by_date.setdefault(date_key, []).append(article)
+        
+        return by_date
 
     def _load_existing_titles(self) -> DedupTracker:
         tracker = DedupTracker()
@@ -225,9 +278,15 @@ class NoteExplorer(BaseService):
                 self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
                 if entry_date >= cutoff_date:
                     recent_entries.append(entry)
+                else:
+                    self.logger.debug(
+                        "指定期間外の記事をスキップします。 raw=%s",
+                        getattr(entry, "published", getattr(entry, "updated", "")),
+                    )
             else:
-                # 日付が取得できない場合は含める
-                self.logger.debug("エントリに日付情報がありません。含めます。")
+                self.logger.debug(
+                    "エントリに日付情報がありません。含めます。 raw=%s", getattr(entry, "published", getattr(entry, "updated", ""))
+                )
                 recent_entries.append(entry)
 
         self.logger.info(f"フィルタリング後のエントリ数: {len(recent_entries)}")
