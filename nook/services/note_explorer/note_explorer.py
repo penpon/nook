@@ -74,7 +74,11 @@ class NoteExplorer(BaseService):
         super().__init__("note_explorer")
         self.http_client = None  # setup_http_clientで初期化
         self.gpt_client = GPTClient()
-        self.storage = LocalStorage(storage_dir)
+
+        storage_path = Path(storage_dir)
+        if storage_path.name != self.service_name:
+            storage_path = storage_path / self.service_name
+        self.storage = LocalStorage(str(storage_path))
 
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
@@ -237,7 +241,7 @@ class NoteExplorer(BaseService):
     def _load_existing_titles(self) -> DedupTracker:
         tracker = DedupTracker()
         try:
-            content = self.storage.load_markdown("note_explorer", datetime.now())
+            content = self.storage.load_markdown("", datetime.now())
             if content:
                 for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
                     tracker.add(match.group(1))
