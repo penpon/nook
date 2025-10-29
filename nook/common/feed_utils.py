@@ -32,13 +32,29 @@ def _get_entry_value(entry: Any, field: str) -> Any:
     return None
 
 
+def _parse_iso_datetime(value: str) -> datetime | None:
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+
+    if cleaned.endswith("Z"):
+        cleaned = f"{cleaned[:-1]}+00:00"
+
+    if len(cleaned) == 10:
+        cleaned = f"{cleaned}T00:00:00"
+
+    try:
+        parsed = datetime.fromisoformat(cleaned)
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed
+
+    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+
+
 def parse_entry_datetime(entry: Any) -> datetime | None:
-    """Extract a publication datetime from a feedparser entry.
-
-    The returned ``datetime`` is naive UTC to align with existing storage
-    expectations across services.
-    """
-
     for field in _STRUCT_TIME_FIELDS:
         value = _get_entry_value(entry, field)
         if value is None:
@@ -56,17 +72,20 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         if not value:
             continue
 
+        text = str(value)
+
         try:
-            parsed = parsedate_to_datetime(str(value))
+            parsed = parsedate_to_datetime(text)
         except (TypeError, ValueError):
-            continue
+            parsed = None
 
-        if parsed is None:
-            continue
+        if parsed:
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=None)
+            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
 
-        if parsed.tzinfo is None:
-            return parsed.replace(tzinfo=None)
-
-        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        iso_parsed = _parse_iso_datetime(text)
+        if iso_parsed:
+            return iso_parsed
 
     return None
