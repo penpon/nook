@@ -5,7 +5,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.dedup import DedupTracker
-from nook.common.daily_merge import merge_records
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 
 
 @dataclass
@@ -39,6 +39,7 @@ class Story:
     url: str | None = None
     text: str | None = None
     summary: str = ""
+    created_at: datetime | None = None
 
 
 # フィルタリング条件の定数
@@ -313,6 +314,15 @@ class HackerNewsRetriever(BaseService):
                 text=item.get("text"),
             )
 
+            timestamp = item.get("time")
+            if timestamp is not None:
+                try:
+                    story.created_at = datetime.fromtimestamp(
+                        int(timestamp), tz=timezone.utc
+                    )
+                except Exception:
+                    story.created_at = None
+
             # URLがある場合は記事の内容を取得
             if story.url and not story.text:
                 await self._fetch_story_content(story)
@@ -459,94 +469,89 @@ class HackerNewsRetriever(BaseService):
             story.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(self, stories: list[Story]) -> None:
-        """
-        記事情報を保存します。
-        
-        Parameters
-        ----------
-        stories : List[Story]
-            保存する記事のリスト。
-        """
-        today = datetime.now()
+        """記事情報を日付別に保存します。"""
+        if not stories:
+            self.logger.info("保存する記事がありません")
+            return
 
-        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
-        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
+        default_date = datetime.now(timezone.utc).date()
+        records = self._serialize_stories(stories)
+        records_by_date = group_records_by_date(records, default_date=default_date)
 
-        new_records = [
-            {
-                "title": story.title,
-                "score": story.score,
-                "url": story.url,
-                "text": story.text,
-                "summary": story.summary,
-            }
-            for story in stories
-        ]
-
-        existing_records = await self._load_existing_story_data(
-            filename_json, filename_md
-        )
-
-        merged_records = merge_records(
-            existing_records,
-            new_records,
+        await store_daily_snapshots(
+            records_by_date,
+            load_existing=self._load_existing_stories,
+            save_json=self.save_json,
+            save_markdown=self.save_markdown,
+            render_markdown=self._render_markdown,
             key=lambda item: item.get("title", ""),
-            sort_key=lambda item: (
-                item.get("score", 0),
-                item.get("summary") or "",
-            ),
+            sort_key=self._story_sort_key,
             limit=MAX_STORY_LIMIT,
         )
 
-        await self.save_json(merged_records, filename_json)
-
-        merged_stories = [
-            Story(
-                title=record.get("title", ""),
-                score=record.get("score", 0),
-                url=record.get("url"),
-                text=record.get("text"),
-                summary=record.get("summary", ""),
+    def _serialize_stories(self, stories: list[Story]) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for story in stories:
+            created = story.created_at or datetime.now(timezone.utc)
+            records.append(
+                {
+                    "title": story.title,
+                    "score": story.score,
+                    "url": story.url,
+                    "text": story.text,
+                    "summary": story.summary,
+                    "published_at": created.isoformat(),
+                }
             )
-            for record in merged_records
-        ]
+        return records
 
-        content = self._render_markdown(merged_stories, today)
-        await self.save_markdown(content, filename_md)
+    async def _load_existing_stories(self, target_date: datetime) -> list[dict[str, Any]]:
+        date_str = target_date.strftime("%Y-%m-%d")
+        filename_json = f"{date_str}.json"
+        existing_json = await self.load_json(filename_json)
+        if existing_json:
+            return existing_json
 
-    def _render_markdown(self, stories: list[Story], today: datetime) -> str:
+        markdown_content = await self.storage.load(f"{date_str}.md")
+        if not markdown_content:
+            return []
+
+        return self._parse_markdown(markdown_content)
+
+    def _story_sort_key(self, item: dict[str, Any]) -> tuple[int, datetime]:
+        score = int(item.get("score", 0) or 0)
+        published_raw = item.get("published_at")
+        if published_raw:
+            try:
+                published = datetime.fromisoformat(published_raw)
+            except ValueError:
+                published = datetime.min.replace(tzinfo=timezone.utc)
+        else:
+            published = datetime.min.replace(tzinfo=timezone.utc)
+        return (score, published)
+
+    def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:
         content = f"# Hacker News トップ記事 ({today.strftime('%Y-%m-%d')})\n\n"
 
-        for story in stories:
-            title_link = (
-                f"[{story.title}]({story.url})" if story.url else story.title
-            )
+        for record in records:
+            title = record.get("title", "")
+            url = record.get("url")
+            title_link = f"[{title}]({url})" if url else title
             content += f"## {title_link}\n\n"
-            content += f"スコア: {story.score}\n\n"
+            content += f"スコア: {record.get('score', 0)}\n\n"
 
-            if story.summary:
-                content += f"**要約**:\n{story.summary}\n\n"
-            elif story.text:
-                trimmed = story.text[:500]
-                ellipsis = "..." if len(story.text) > 500 else ""
+            summary = record.get("summary")
+            text = record.get("text")
+            if summary:
+                content += f"**要約**:\n{summary}\n\n"
+            elif text:
+                trimmed = text[:500]
+                ellipsis = "..." if len(text) > 500 else ""
                 content += f"{trimmed}{ellipsis}\n\n"
 
             content += "---\n\n"
 
         return content
-
-    async def _load_existing_story_data(
-        self, filename_json: str, filename_md: str
-    ) -> list[dict[str, Any]]:
-        existing_json = await self.load_json(filename_json)
-        if existing_json:
-            return existing_json
-
-        markdown_content = await self.storage.load(filename_md)
-        if not markdown_content:
-            return []
-
-        return self._parse_markdown(markdown_content)
 
     def _parse_markdown(self, content: str) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []

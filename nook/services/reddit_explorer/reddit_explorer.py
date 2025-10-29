@@ -4,7 +4,7 @@ import asyncio
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -13,7 +13,7 @@ import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
-from nook.common.daily_merge import merge_grouped_records
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 
 
 @dataclass
@@ -184,7 +184,6 @@ class RedditExplorer(BaseService):
                     )
                     await self._summarize_reddit_post(post)
 
-                # 要約を保存
                 if selected_posts:
                     await self._store_summaries(selected_posts)
                     self.logger.info("投稿の要約を保存しました")
@@ -263,6 +262,12 @@ class RedditExplorer(BaseService):
                 else ""
             )
 
+            created_at = (
+                datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
+                if hasattr(submission, "created_utc")
+                else None
+            )
+
             post = RedditPost(
                 type=post_type,
                 id=submission.id,
@@ -275,9 +280,7 @@ class RedditExplorer(BaseService):
                 if hasattr(submission, "thumbnail")
                 else "self",
                 popularity_score=float(submission.score),
-                created_at=datetime.fromtimestamp(submission.created_utc)
-                if hasattr(submission, "created_utc")
-                else None,
+                created_at=created_at,
             )
 
             posts.append(post)
@@ -396,84 +399,81 @@ class RedditExplorer(BaseService):
             post.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(self, posts: list[tuple[str, str, RedditPost]]) -> None:
-        """
-        要約を保存します。
-        
-        Parameters
-        ----------
-        posts : List[tuple[str, str, RedditPost]]
-            保存する投稿のリスト（カテゴリ、サブレディット名、投稿）。
-        """
-        today = datetime.now()
-        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
-        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
+        if not posts:
+            self.logger.info("保存する投稿がありません")
+            return
 
-        incoming_map = self._serialize_posts(posts)
-        existing_map = await self._load_existing_posts_map(filename_json, filename_md)
+        default_date = datetime.now(timezone.utc).date()
+        records = self._serialize_posts(posts)
+        records_by_date = group_records_by_date(records, default_date=default_date)
 
-        merged_map = merge_grouped_records(
-            existing_map,
-            incoming_map,
+        await store_daily_snapshots(
+            records_by_date,
+            load_existing=self._load_existing_posts,
+            save_json=self.save_json,
+            save_markdown=self.save_markdown,
+            render_markdown=self._render_markdown,
             key=lambda item: item.get("id", ""),
             sort_key=self._post_sort_key,
-            limit_per_group=self.SUMMARY_LIMIT,
+            limit=self.SUMMARY_LIMIT,
         )
-
-        await self.save_json(merged_map, filename_json)
-
-        markdown = self._render_markdown(merged_map, today)
-        await self.save_markdown(markdown, filename_md)
 
     def _serialize_posts(
         self, posts: list[tuple[str, str, RedditPost]]
-    ) -> dict[str, list[dict]]:
-        grouped: dict[str, list[dict]] = {}
+    ) -> list[dict]:
+        records: list[dict] = []
         for category, subreddit, post in posts:
-            grouped.setdefault(subreddit, [])
-            grouped[subreddit].append(
+            created_at = post.created_at or datetime.now(timezone.utc)
+            records.append(
                 {
                     "id": post.id,
                     "category": category,
+                    "subreddit": subreddit,
                     "title": post.title,
                     "url": post.url,
                     "permalink": post.permalink,
                     "text": post.text,
                     "upvotes": post.upvotes,
-                    "summary": post.summary,
+                    "summary": getattr(post, "summary", ""),
                     "type": post.type,
                     "thumbnail": post.thumbnail,
                     "comments": post.comments,
                     "popularity_score": post.popularity_score,
-                    "created_at": post.created_at.isoformat()
-                    if post.created_at
-                    else None,
+                    "created_at": created_at.isoformat(),
+                    "published_at": created_at.isoformat(),
                 }
             )
-        return grouped
+        return records
 
-    async def _load_existing_posts_map(
-        self, filename_json: str, filename_md: str
-    ) -> dict[str, list[dict]]:
+    async def _load_existing_posts(self, target_date: datetime) -> list[dict]:
+        date_str = target_date.strftime("%Y-%m-%d")
+        filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
         if existing_json:
+            if isinstance(existing_json, dict):
+                flattened: list[dict] = []
+                for subreddit, items in existing_json.items():
+                    for item in items:
+                        flattened.append({"subreddit": subreddit, **item})
+                return flattened
             return existing_json
 
-        markdown = await self.storage.load(filename_md)
+        markdown = await self.storage.load(f"{date_str}.md")
         if not markdown:
-            return {}
+            return []
 
         return self._parse_markdown(markdown)
 
     def _post_sort_key(self, item: dict) -> tuple[float, datetime]:
         popularity = float(item.get("popularity_score", 0.0) or 0.0)
-        created_raw = item.get("created_at")
+        created_raw = item.get("created_at") or item.get("published_at")
         if created_raw:
             try:
                 created = datetime.fromisoformat(created_raw)
             except ValueError:
-                created = datetime.min
+                created = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            created = datetime.min
+            created = datetime.min.replace(tzinfo=timezone.utc)
         return (popularity, created)
 
     def _extract_post_id_from_permalink(self, permalink: str) -> str:
@@ -500,11 +500,14 @@ class RedditExplorer(BaseService):
 
         return ""
 
-    def _render_markdown(
-        self, grouped_posts: dict[str, list[dict]], today: datetime
-    ) -> str:
+    def _render_markdown(self, records: list[dict], today: datetime) -> str:
         content = f"# Reddit 人気投稿 ({today.strftime('%Y-%m-%d')})\n\n"
-        for subreddit, posts in grouped_posts.items():
+        grouped: dict[str, list[dict]] = {}
+        for record in records:
+            subreddit = record.get("subreddit", "unknown")
+            grouped.setdefault(subreddit, []).append(record)
+
+        for subreddit, posts in grouped.items():
             content += f"## r/{subreddit}\n\n"
             for post in posts:
                 content += f"### [{post['title']}]({post.get('permalink')})\n\n"
@@ -521,8 +524,8 @@ class RedditExplorer(BaseService):
                 content += "---\n\n"
         return content
 
-    def _parse_markdown(self, markdown: str) -> dict[str, list[dict]]:
-        result: dict[str, list[dict]] = {}
+    def _parse_markdown(self, markdown: str) -> list[dict]:
+        records: list[dict] = []
         subreddit_pattern = re.compile(r"^##\s+r/(?P<subreddit>.+)$", re.MULTILINE)
         post_pattern = re.compile(
             r"### \[(?P<title>.+?)\]\((?P<permalink>[^\)]+)\)\n\n"
@@ -540,31 +543,26 @@ class RedditExplorer(BaseService):
             block = markdown[start:end]
             subreddit = match.group("subreddit").strip()
 
-            items: list[dict] = []
             for post_match in post_pattern.finditer(block + "---"):
                 permalink = post_match.group("permalink")
-                items.append(
-                    {
-                        "id": self._extract_post_id_from_permalink(permalink),
-                        "category": "unknown",
-                        "title": post_match.group("title").strip(),
-                        "url": (post_match.group("link") or "").strip() or None,
-                        "permalink": permalink.strip() if permalink else "",
-                        "text": (post_match.group("text") or "").strip(),
-                        "upvotes": int(post_match.group("upvotes") or 0),
-                        "summary": post_match.group("summary").strip(),
-                        "type": "text",
-                        "thumbnail": "self",
-                        "comments": [],
-                        "popularity_score": 0.0,
-                        "created_at": None,
-                    }
-                )
+                record = {
+                    "id": self._extract_post_id_from_permalink(permalink),
+                    "category": "unknown",
+                    "title": post_match.group("title").strip(),
+                    "url": (post_match.group("link") or "").strip() or None,
+                    "permalink": permalink.strip() if permalink else "",
+                    "text": (post_match.group("text") or "").strip(),
+                    "upvotes": int(post_match.group("upvotes") or 0),
+                    "summary": post_match.group("summary").strip(),
+                    "type": "text",
+                    "thumbnail": "self",
+                    "comments": [],
+                    "popularity_score": 0.0,
+                    "subreddit": subreddit,
+                }
+                records.append(record)
 
-            if items:
-                result[subreddit] = items
-
-        return result
+        return records
 
     def _select_top_posts(
         self, posts: list[tuple[str, str, RedditPost]]

@@ -3,14 +3,14 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 import arxiv
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
-from nook.common.daily_merge import merge_records
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 
 
 def remove_tex_backticks(text: str) -> str:
@@ -68,6 +68,7 @@ class PaperInfo:
     url: str
     contents: str
     summary: str = field(init=False)
+    published_at: datetime | None = None
 
 
 class ArxivSummarizer(BaseService):
@@ -274,8 +275,16 @@ class ArxivSummarizer(BaseService):
             title = paper.title
             abstract_ja = await self._translate_to_japanese(paper.summary)
 
+            published_at = getattr(paper, "published", None)
+            if isinstance(published_at, datetime) and published_at.tzinfo is None:
+                published_at = published_at.replace(tzinfo=timezone.utc)
+
             return PaperInfo(
-                title=title, abstract=abstract_ja, url=paper.entry_id, contents=contents
+                title=title,
+                abstract=abstract_ja,
+                url=paper.entry_id,
+                contents=contents,
+                published_at=published_at,
             )
 
         except Exception as e:
@@ -455,49 +464,61 @@ class ArxivSummarizer(BaseService):
         if not papers:
             return
 
-        today = datetime.now()
-        filename_json = f"{today.strftime('%Y-%m-%d')}.json"
-        filename_md = f"{today.strftime('%Y-%m-%d')}.md"
+        default_date = datetime.now(timezone.utc).date()
+        records = self._serialize_papers(papers)
+        records_by_date = group_records_by_date(records, default_date=default_date)
 
-        incoming_records = self._serialize_papers(papers)
-        existing_records = await self._load_existing_paper_data(filename_json, filename_md)
-
-        merged_records = merge_records(
-            existing_records,
-            incoming_records,
+        await store_daily_snapshots(
+            records_by_date,
+            load_existing=self._load_existing_papers,
+            save_json=self.save_json,
+            save_markdown=self.save_markdown,
+            render_markdown=self._render_markdown,
             key=lambda item: item.get("title", ""),
+            sort_key=self._paper_sort_key,
             limit=limit,
         )
 
-        await self.save_json(merged_records, filename_json)
-
-        markdown = self._render_markdown(merged_records, today)
-        await self.save_markdown(markdown, filename_md)
-
     def _serialize_papers(self, papers: list[PaperInfo]) -> list[dict]:
-        return [
-            {
-                "title": paper.title,
-                "abstract": paper.abstract,
-                "url": paper.url,
-                "summary": paper.summary,
-                "contents": paper.contents,
-            }
-            for paper in papers
-        ]
+        records: list[dict] = []
+        for paper in papers:
+            published = paper.published_at or datetime.now(timezone.utc)
+            records.append(
+                {
+                    "title": paper.title,
+                    "abstract": paper.abstract,
+                    "url": paper.url,
+                    "summary": paper.summary,
+                    "contents": paper.contents,
+                    "published_at": published.isoformat(),
+                }
+            )
+        return records
 
-    async def _load_existing_paper_data(
-        self, filename_json: str, filename_md: str
-    ) -> list[dict]:
+    async def _load_existing_papers(self, target_date: datetime) -> list[dict]:
+        date_str = target_date.strftime("%Y-%m-%d")
+        filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
         if existing_json:
             return existing_json
 
-        markdown = await self.storage.load(filename_md)
+        markdown = await self.storage.load(f"{date_str}.md")
         if not markdown:
             return []
 
         return self._parse_markdown(markdown)
+
+    def _paper_sort_key(self, item: dict) -> tuple[int, datetime]:
+        # arXivではスコアが無いのでアップデート日時のみでソート
+        published_raw = item.get("published_at")
+        if published_raw:
+            try:
+                published = datetime.fromisoformat(published_raw)
+            except ValueError:
+                published = datetime.min.replace(tzinfo=timezone.utc)
+        else:
+            published = datetime.min.replace(tzinfo=timezone.utc)
+        return (0, published)
 
     def _render_markdown(self, records: list[dict], today: datetime) -> str:
         content = f"# arXiv 論文要約 ({today.strftime('%Y-%m-%d')})\n\n"
