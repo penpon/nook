@@ -162,3 +162,93 @@ class DedupTracker:
             追跡中のタイトル数。
         """
         return len(self.seen_normalized_titles)
+
+
+async def load_existing_titles_from_storage(
+    storage,
+    target_dates: set,
+    logger=None,
+) -> DedupTracker:
+    """
+    指定期間の既存ファイルから記事タイトルをロードして重複チェッカーを返す。
+
+    既存のJSON/Markdownファイルから記事タイトルを読み込み、
+    DedupTrackerオブジェクトを初期化します。これにより、
+    既に要約済みの記事を再度処理することを防ぎます。
+
+    Parameters
+    ----------
+    storage : LocalStorage
+        データ保存用のLocalStorageインスタンス。
+    target_dates : set[date]
+        チェック対象の日付のセット。
+    logger : logging.Logger, optional
+        ログ出力用のロガー（デバッグ用）。
+
+    Returns
+    -------
+    DedupTracker
+        既存タイトルが登録されたDedupTrackerインスタンス。
+
+    Examples
+    --------
+    >>> from datetime import date
+    >>> target_dates = {date(2025, 11, 1), date(2025, 11, 2)}
+    >>> tracker = await load_existing_titles_from_storage(storage, target_dates)
+    >>> is_dup, _ = tracker.is_duplicate("既存記事のタイトル")
+    >>> print(is_dup)
+    True
+    """
+    import json
+    from datetime import time, datetime
+
+    tracker = DedupTracker()
+
+    for target_date in sorted(target_dates):
+        date_str = target_date.strftime("%Y-%m-%d")
+
+        # JSONファイルから既存記事を読み込み
+        try:
+            json_content = await storage.load(f"{date_str}.json")
+            if json_content:
+                articles = json.loads(json_content)
+                for article in articles:
+                    title = article.get("title", "")
+                    if title:
+                        tracker.add(title)
+                if logger:
+                    logger.debug(
+                        f"📂 既存記事読み込み: {date_str}.json ({len(articles)}件)"
+                    )
+        except FileNotFoundError:
+            # ファイルが存在しない場合はスキップ
+            if logger:
+                logger.debug(f"📂 ファイル未検出: {date_str}.json")
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.warning(f"⚠️ JSON解析エラー: {date_str}.json - {e}")
+        except Exception as e:
+            if logger:
+                logger.debug(f"⚠️ ファイル読み込みエラー: {date_str}.json - {e}")
+
+        # Markdownファイルからも読み込み（フォールバック）
+        try:
+            markdown_content = storage.load_markdown(
+                "", datetime.combine(target_date, time.min)
+            )
+            if markdown_content:
+                # Markdownから記事タイトルを抽出（### [タイトル](URL) 形式）
+                import re
+
+                for match in re.finditer(
+                    r"^### \[(.+?)\]", markdown_content, re.MULTILINE
+                ):
+                    title = match.group(1)
+                    tracker.add(title)
+                if logger:
+                    logger.debug(f"📂 既存記事読み込み: {date_str}.md")
+        except Exception as e:
+            if logger:
+                logger.debug(f"⚠️ Markdown読み込みエラー: {date_str}.md - {e}")
+
+    return tracker
