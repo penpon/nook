@@ -3,7 +3,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import feedparser
@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.date_utils import is_within_target_dates, target_dates_set
 from nook.common.dedup import DedupTracker
 from nook.common.feed_utils import parse_entry_datetime
 
@@ -91,7 +92,11 @@ class BusinessFeed(BaseService):
         asyncio.run(self.collect(days, limit))
 
     async def collect(
-        self, days: int = 1, limit: int | None = None
+        self,
+        days: int = 1,
+        limit: int | None = None,
+        *,
+        target_dates: set[date] | None = None,
     ) -> list[tuple[str, str]]:
         """
         ビジネスニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
@@ -109,6 +114,7 @@ class BusinessFeed(BaseService):
             保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         total_limit = self.TOTAL_LIMIT
+        effective_target_dates = target_dates or target_dates_set(days)
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
@@ -137,7 +143,9 @@ class BusinessFeed(BaseService):
                             effective_limit = effective_limit * max(days, 1)
 
                         entries = self._filter_entries(
-                            feed.entries, days, effective_limit
+                            feed.entries,
+                            effective_target_dates,
+                            effective_limit,
                         )
                         self.logger.info(
                             f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました"
@@ -165,6 +173,10 @@ class BusinessFeed(BaseService):
                                 entry, feed_name, category
                             )
                             if article:
+                                if not is_within_target_dates(
+                                    article.published_at, effective_target_dates
+                                ):
+                                    continue
                                 dedup_tracker.add(article.title)
                                 candidate_articles.append(article)
 
@@ -195,7 +207,9 @@ class BusinessFeed(BaseService):
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
             if all_selected_articles:
-                saved_files = await self._store_summaries(all_selected_articles)
+                saved_files = await self._store_summaries(
+                    all_selected_articles, effective_target_dates
+                )
             else:
                 self.logger.info("保存する記事がありません")
 
@@ -223,7 +237,7 @@ class BusinessFeed(BaseService):
         return by_date
 
     def _filter_entries(
-        self, entries: list[dict], days: int, limit: int | None
+        self, entries: list[dict], target_dates: set[date], limit: int | None
     ) -> list[dict]:
         """
         新しいエントリをフィルタリングします。
@@ -245,21 +259,17 @@ class BusinessFeed(BaseService):
         self.logger.info(f"エントリのフィルタリングを開始します({len(entries)}件)...")
 
         # 日付でフィルタリング
-        cutoff_date = datetime.now().replace(tzinfo=None) - timedelta(days=days)
         recent_entries = []
 
         for entry in entries:
             entry_date = parse_entry_datetime(entry)
 
             if entry_date:
-                self.logger.debug(
-                    f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}"
-                )
-                if entry_date >= cutoff_date:
+                if is_within_target_dates(entry_date, target_dates):
                     recent_entries.append(entry)
                 else:
                     self.logger.debug(
-                        "指定期間外の記事をスキップします。 raw=%s",
+                        "対象外日付の記事をスキップします。 raw=%s",
                         getattr(entry, "published", getattr(entry, "updated", "")),
                     )
             else:
@@ -588,7 +598,9 @@ class BusinessFeed(BaseService):
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, articles: list[Article]) -> list[tuple[str, str]]:
+    async def _store_summaries(
+        self, articles: list[Article], target_dates: set[date]
+    ) -> list[tuple[str, str]]:
         """
         要約を保存します。
 
@@ -606,7 +618,7 @@ class BusinessFeed(BaseService):
             self.logger.info("保存する記事がありません")
             return []
 
-        default_date = datetime.now().date()
+        default_date = max(target_dates) if target_dates else datetime.now().date()
         incoming_records = self._serialize_articles(articles)
         records_by_date = group_records_by_date(
             incoming_records,

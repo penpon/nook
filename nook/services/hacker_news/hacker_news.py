@@ -5,7 +5,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -15,6 +15,7 @@ from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.date_utils import is_within_target_dates, target_dates_set
 
 
 @dataclass
@@ -76,7 +77,12 @@ class HackerNewsRetriever(BaseService):
         self.http_client = None  # setup_http_clientで初期化
         self.blocked_domains = self._load_blocked_domains()
 
-    async def collect(self, limit: int = MAX_STORY_LIMIT) -> list[tuple[str, str]]:
+    async def collect(
+        self,
+        limit: int = MAX_STORY_LIMIT,
+        *,
+        target_dates: set[date] | None = None,
+    ) -> list[tuple[str, str]]:
         """
         Hacker Newsの記事を収集して保存します。
 
@@ -84,6 +90,8 @@ class HackerNewsRetriever(BaseService):
         ----------
         limit : int, default=15
             取得する記事数。
+        target_dates : set[date] | None
+            保存対象とする日付。None の場合は当日を対象とします。
 
         Returns
         -------
@@ -91,6 +99,7 @@ class HackerNewsRetriever(BaseService):
             保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         limit = min(limit, MAX_STORY_LIMIT)
+        effective_target_dates = target_dates or target_dates_set(1)
 
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -98,8 +107,10 @@ class HackerNewsRetriever(BaseService):
 
         dedup_tracker = await self._load_existing_titles()
 
-        stories = await self._get_top_stories(limit, dedup_tracker)
-        saved_files = await self._store_summaries(stories)
+        stories = await self._get_top_stories(
+            limit, dedup_tracker, effective_target_dates
+        )
+        saved_files = await self._store_summaries(stories, effective_target_dates)
         return saved_files
 
     # 同期版の互換性のためのラッパー
@@ -132,7 +143,10 @@ class HackerNewsRetriever(BaseService):
 
     @handle_errors(retries=3)
     async def _get_top_stories(
-        self, limit: int, dedup_tracker: DedupTracker
+        self,
+        limit: int,
+        dedup_tracker: DedupTracker,
+        target_dates: set[date],
     ) -> list[Story]:
         """
         トップ記事を取得します。
@@ -180,6 +194,9 @@ class HackerNewsRetriever(BaseService):
             text_length = len(text_content)
 
             if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
+                continue
+
+            if not is_within_target_dates(story.created_at, target_dates):
                 continue
 
             filtered_stories.append(story)
@@ -326,6 +343,8 @@ class HackerNewsRetriever(BaseService):
                     )
                 except Exception:
                     story.created_at = None
+            if story.created_at is None:
+                story.created_at = datetime.now(timezone.utc)
 
             # URLがある場合は記事の内容を取得
             if story.url and not story.text:
@@ -468,13 +487,15 @@ class HackerNewsRetriever(BaseService):
         except Exception as e:
             story.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, stories: list[Story]) -> list[tuple[str, str]]:
+    async def _store_summaries(
+        self, stories: list[Story], target_dates: set[date]
+    ) -> list[tuple[str, str]]:
         """記事情報を日付別に保存します。"""
         if not stories:
             self.logger.info("保存する記事がありません")
             return []
 
-        default_date = datetime.now().date()
+        default_date = max(target_dates) if target_dates else datetime.now().date()
         records = self._serialize_stories(stories)
         records_by_date = group_records_by_date(records, default_date=default_date)
 

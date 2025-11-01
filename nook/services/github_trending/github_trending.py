@@ -1,7 +1,7 @@
 """GitHubのトレンドリポジトリを収集するサービス。"""
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from textwrap import dedent
 import re
@@ -16,6 +16,7 @@ from nook.common.decorators import handle_errors
 from nook.common.exceptions import APIException
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.date_utils import target_dates_set
 
 
 @dataclass
@@ -69,7 +70,12 @@ class GithubTrending(BaseService):
         with open(script_dir / "languages.toml", "rb") as f:
             self.languages_config = tomli.load(f)
 
-    async def collect(self, limit: int = 15) -> list[tuple[str, str]]:
+    async def collect(
+        self,
+        limit: int = 15,
+        *,
+        target_dates: set[date] | None = None,
+    ) -> list[tuple[str, str]]:
         """
         GitHubのトレンドリポジトリを収集して保存します。
 
@@ -86,6 +92,8 @@ class GithubTrending(BaseService):
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
+
+        effective_target_dates = target_dates or target_dates_set(1)
 
         dedup_tracker = self._load_existing_repositories()
         all_repositories = []
@@ -116,7 +124,9 @@ class GithubTrending(BaseService):
         all_repositories = await self._translate_repositories(all_repositories)
 
         # 保存
-        saved_files = await self._store_summaries(all_repositories, limit)
+        saved_files = await self._store_summaries(
+            all_repositories, limit, effective_target_dates
+        )
         return saved_files
 
     @handle_errors(retries=3)
@@ -274,6 +284,7 @@ class GithubTrending(BaseService):
         self,
         repositories_by_language: list[tuple[str, list[Repository]]],
         limit_per_language: int | None,
+        target_dates: set[date],
     ) -> list[tuple[str, str]]:
         """
         リポジトリ情報を保存します。
@@ -294,8 +305,8 @@ class GithubTrending(BaseService):
             self.logger.info("保存するリポジトリがありません")
             return []
 
-        default_date = datetime.now().date()
-        records = self._serialize_repositories(repositories_by_language)
+        default_date = max(target_dates) if target_dates else datetime.now().date()
+        records = self._serialize_repositories(repositories_by_language, default_date)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
         saved_files = await store_daily_snapshots(
@@ -313,10 +324,13 @@ class GithubTrending(BaseService):
         return saved_files
 
     def _serialize_repositories(
-        self, repositories_by_language: list[tuple[str, list[Repository]]]
+        self,
+        repositories_by_language: list[tuple[str, list[Repository]]],
+        default_date: date,
     ) -> list[dict[str, Any]]:
         serialized: list[dict[str, Any]] = []
-        now_iso = datetime.now(timezone.utc).isoformat()
+        base_dt = datetime.combine(default_date, time.min, tzinfo=timezone.utc)
+        now_iso = base_dt.isoformat()
         for language, repositories in repositories_by_language:
             for repo in repositories:
                 serialized.append(

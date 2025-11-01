@@ -3,7 +3,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +12,7 @@ import tomli
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.date_utils import is_within_target_dates, target_dates_set
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
@@ -145,7 +146,12 @@ class FourChanExplorer(BaseService):
         """
         asyncio.run(self.collect(thread_limit))
 
-    async def collect(self, thread_limit: int | None = None) -> list[tuple[str, str]]:
+    async def collect(
+        self,
+        thread_limit: int | None = None,
+        *,
+        target_dates: set[date] | None = None,
+    ) -> list[tuple[str, str]]:
         """
         4chanからAI関連スレッドを収集して保存します（非同期版）。
 
@@ -160,6 +166,7 @@ class FourChanExplorer(BaseService):
             保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         total_limit = self.TOTAL_LIMIT
+        effective_target_dates = target_dates or target_dates_set(1)
 
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -177,7 +184,10 @@ class FourChanExplorer(BaseService):
                         f"ボード /{board}/ からのスレッド取得を開始します..."
                     )
                     threads = await self._retrieve_ai_threads(
-                        board, thread_limit, dedup_tracker
+                        board,
+                        thread_limit,
+                        dedup_tracker,
+                        effective_target_dates,
                     )
                     self.logger.info(
                         f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました"
@@ -205,7 +215,9 @@ class FourChanExplorer(BaseService):
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
             if selected_threads:
-                saved_files = await self._store_summaries(selected_threads)
+                saved_files = await self._store_summaries(
+                    selected_threads, effective_target_dates
+                )
             else:
                 self.logger.info("保存するスレッドがありません")
 
@@ -216,7 +228,11 @@ class FourChanExplorer(BaseService):
             pass
 
     async def _retrieve_ai_threads(
-        self, board: str, limit: int | None, dedup_tracker: DedupTracker
+        self,
+        board: str,
+        limit: int | None,
+        dedup_tracker: DedupTracker,
+        target_dates: set[date],
     ) -> list[Thread]:
         """
         特定のボードからAI関連スレッドを取得します。
@@ -227,6 +243,8 @@ class FourChanExplorer(BaseService):
             ボード名。
         limit : Optional[int]
             取得するスレッド数。Noneの場合は制限なし。
+        target_dates : set[date]
+            保存対象とする日付集合。
 
         Returns
         -------
@@ -257,6 +275,19 @@ class FourChanExplorer(BaseService):
                 )
 
                 if is_ai_related:
+                    thread_id = thread.get("no")
+                    timestamp_raw = thread.get("time")
+                    thread_created = (
+                        datetime.fromtimestamp(int(timestamp_raw), tz=timezone.utc)
+                        if timestamp_raw
+                        else None
+                    )
+
+                    if not is_within_target_dates(thread_created, target_dates):
+                        continue
+
+                    title = thread.get("sub", f"Untitled Thread {thread_id}")
+
                     is_dup, normalized = dedup_tracker.is_duplicate(title)
                     if is_dup:
                         original = dedup_tracker.get_original_title(normalized) or title
@@ -267,9 +298,7 @@ class FourChanExplorer(BaseService):
                         )
                         continue
 
-                    thread_id = thread.get("no")
-                    timestamp = thread.get("time", 0)
-                    title = thread.get("sub", f"Untitled Thread {thread_id}")
+                    timestamp = int(timestamp_raw or 0)
 
                     # スレッドのURLを構築
                     thread_url = f"https://boards.4chan.org/{board}/thread/{thread_id}"
@@ -450,12 +479,14 @@ class FourChanExplorer(BaseService):
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, threads: list[Thread]) -> list[tuple[str, str]]:
+    async def _store_summaries(
+        self, threads: list[Thread], target_dates: set[date]
+    ) -> list[tuple[str, str]]:
         if not threads:
             self.logger.info("保存するスレッドがありません")
             return []
 
-        default_date = datetime.now().date()
+        default_date = max(target_dates) if target_dates else datetime.now().date()
         records = self._serialize_threads(threads)
         records_by_date = group_records_by_date(records, default_date=default_date)
 

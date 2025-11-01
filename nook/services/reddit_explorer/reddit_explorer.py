@@ -4,7 +4,7 @@ import asyncio
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -14,6 +14,7 @@ import tomli
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.date_utils import is_within_target_dates, target_dates_set
 
 
 @dataclass
@@ -126,7 +127,12 @@ class RedditExplorer(BaseService):
         """
         asyncio.run(self.collect(limit))
 
-    async def collect(self, limit: int | None = None) -> list[tuple[str, str]]:
+    async def collect(
+        self,
+        limit: int | None = None,
+        *,
+        target_dates: set[date] | None = None,
+    ) -> list[tuple[str, str]]:
         """
         Redditの人気投稿を収集・要約して保存します（非同期版）。
 
@@ -140,6 +146,7 @@ class RedditExplorer(BaseService):
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
+        effective_target_dates = target_dates or target_dates_set(1)
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
@@ -165,7 +172,10 @@ class RedditExplorer(BaseService):
                                 f"サブレディット r/{subreddit_name} から投稿を取得しています..."
                             )
                             posts = await self._retrieve_hot_posts(
-                                subreddit_name, limit, dedup_tracker
+                                subreddit_name,
+                                limit,
+                                dedup_tracker,
+                                effective_target_dates,
                             )
 
                             for post in posts:
@@ -193,7 +203,9 @@ class RedditExplorer(BaseService):
 
                 saved_files: list[tuple[str, str]] = []
                 if selected_posts:
-                    saved_files = await self._store_summaries(selected_posts)
+                    saved_files = await self._store_summaries(
+                        selected_posts, effective_target_dates
+                    )
                 else:
                     self.logger.info("保存する投稿がありません")
 
@@ -205,7 +217,11 @@ class RedditExplorer(BaseService):
                 # asyncprawのコンテキストマネージャーが自動的にクローズする
 
     async def _retrieve_hot_posts(
-        self, subreddit_name: str, limit: int | None, dedup_tracker: DedupTracker
+        self,
+        subreddit_name: str,
+        limit: int | None,
+        dedup_tracker: DedupTracker,
+        target_dates: set[date],
     ) -> list[RedditPost]:
         """
         サブレディットの人気投稿を取得します。
@@ -218,6 +234,8 @@ class RedditExplorer(BaseService):
             取得する投稿数。Noneの場合は制限なし。
         dedup_tracker : DedupTracker
             タイトル重複を追跡するトラッカー。
+        target_dates : set[date]
+            保存対象とする日付集合。
 
         Returns
         -------
@@ -291,6 +309,9 @@ class RedditExplorer(BaseService):
                 popularity_score=float(submission.score),
                 created_at=created_at,
             )
+
+            if not is_within_target_dates(post.created_at, target_dates):
+                continue
 
             posts.append(post)
             dedup_tracker.add(post.title)
@@ -408,13 +429,15 @@ class RedditExplorer(BaseService):
             post.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(
-        self, posts: list[tuple[str, str, RedditPost]]
+        self,
+        posts: list[tuple[str, str, RedditPost]],
+        target_dates: set[date],
     ) -> list[tuple[str, str]]:
         if not posts:
             self.logger.info("保存する投稿がありません")
             return []
 
-        default_date = datetime.now().date()
+        default_date = max(target_dates) if target_dates else datetime.now().date()
         records = self._serialize_posts(posts)
         records_by_date = group_records_by_date(records, default_date=default_date)
 

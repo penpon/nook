@@ -6,13 +6,15 @@ Nookの各サービスを非同期で実行するスクリプト。
 import asyncio
 import signal
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime
+from typing import Set
 
 from dotenv import load_dotenv
 
 from nook.common.async_utils import AsyncTaskManager, gather_with_errors
 from nook.common.http_client import close_http_client
 from nook.common.logging import setup_logger
+from nook.common.date_utils import target_dates_set
 
 # 環境変数の読み込み
 load_dotenv()
@@ -55,42 +57,58 @@ class ServiceRunner:
         self.task_manager = AsyncTaskManager(max_concurrent=5)
         self.running = False
 
-    async def _run_sync_service(self, service_name: str, service, days: int = 1):
+    async def _run_sync_service(
+        self,
+        service_name: str,
+        service,
+        days: int = 1,
+        target_dates: Set[date] | None = None,
+    ):
         """同期サービスを非同期で実行"""
         # days パラメータを使用するサービスの場合、対象期間を表示
-        services_with_days = ["tech_news", "business_news", "zenn", "qiita", "note"]
-        if service_name in services_with_days and days > 0:
-            end_date = datetime.now().date()
-            start_date = end_date - timedelta(days=days - 1)
-            logger.info("\n" + "━" * 60)
-            logger.info(f"📅 対象期間: {start_date} 〜 {end_date} ({days}日間)")
-            logger.info(f"🚀 サービス開始: {service_name}")
-            logger.info("━" * 60)
+        effective_dates = target_dates or target_dates_set(days)
+        sorted_dates = sorted(effective_dates)
+
+        logger.info("\n" + "━" * 60)
+        if len(sorted_dates) <= 1:
+            logger.info(
+                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}"
+            )
         else:
-            logger.info(f"\n🚀 サービス開始: {service_name}")
+            start_date = sorted_dates[0]
+            end_date = sorted_dates[-1]
+            logger.info(
+                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間)"
+            )
+        logger.info(f"🚀 サービス開始: {service_name}")
+        logger.info("━" * 60)
 
         saved_files: list[tuple[str, str]] = []
         try:
             # サービスごとに異なるlimitパラメータを設定
             if service_name == "hacker_news":
-                # Hacker Newsは15記事に制限
-                result = await service.collect(limit=15)
+                # Hacker Newsは15記事に制限し、target_dates を渡す
+                result = await service.collect(limit=15, target_dates=effective_dates)
                 saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
-                # Tech News/Business Newsは各5記事に制限し、daysパラメータを渡す
-                result = await service.collect(days=days, limit=5)
+                # Tech News/Business Newsは各5記事に制限し、target_dates を渡す
+                result = await service.collect(
+                    days=days, limit=5, target_dates=effective_dates
+                )
                 saved_files = result if result else []
             elif service_name in ["zenn", "qiita", "note"]:
                 # Zenn/Qiita/Noteは各3記事に制限し、daysパラメータを渡す
-                result = await service.collect(days=days, limit=3)
+                result = await service.collect(
+                    days=days, limit=3, target_dates=effective_dates
+                )
                 saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは5記事に制限
-                result = await service.collect(limit=5)
+                result = await service.collect(limit=5, target_dates=effective_dates)
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
-                result = await service.collect()
+                result = await service.collect(target_dates=effective_dates)
                 saved_files = result if result else []
 
             # 保存されたファイルのサマリーを表示
@@ -117,10 +135,12 @@ class ServiceRunner:
 
         logger.info(f"Starting {len(self.sync_services)} services with days={days}")
 
+        target_dates = target_dates_set(days)
+
         try:
             # 各サービスを並行実行
             service_tasks = [
-                self._run_sync_service(name, service, days)
+                self._run_sync_service(name, service, days, target_dates)
                 for name, service in self.sync_services.items()
             ]
 
@@ -166,9 +186,11 @@ class ServiceRunner:
 
         logger.info(f"Running service: {service_name} with days={days}")
 
+        target_dates = target_dates_set(days)
+
         try:
             await self._run_sync_service(
-                service_name, self.sync_services[service_name], days
+                service_name, self.sync_services[service_name], days, target_dates
             )
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)

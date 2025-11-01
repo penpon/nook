@@ -3,7 +3,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import arxiv
 from bs4 import BeautifulSoup
@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.date_utils import is_within_target_dates, target_dates_set
 
 
 def remove_tex_backticks(text: str) -> str:
@@ -93,7 +94,12 @@ class ArxivSummarizer(BaseService):
         super().__init__("arxiv_summarizer")
         self.http_client = None  # setup_http_clientで初期化
 
-    async def collect(self, limit: int = 5) -> list[tuple[str, str]]:
+    async def collect(
+        self,
+        limit: int = 5,
+        *,
+        target_dates: set[date] | None = None,
+    ) -> list[tuple[str, str]]:
         """
         arXiv論文を収集・要約して保存します。
 
@@ -111,6 +117,8 @@ class ArxivSummarizer(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
+        effective_target_dates = target_dates or target_dates_set(1)
+
         # Hugging Faceでキュレーションされた論文IDを取得
         paper_ids = await self._get_curated_paper_ids(limit)
 
@@ -124,7 +132,8 @@ class ArxivSummarizer(BaseService):
         papers = []
         for result in paper_results:
             if isinstance(result, PaperInfo):
-                papers.append(result)
+                if is_within_target_dates(result.published_at, effective_target_dates):
+                    papers.append(result)
             elif isinstance(result, Exception):
                 self.logger.error(f"Error retrieving paper: {result}")
 
@@ -132,7 +141,7 @@ class ArxivSummarizer(BaseService):
         await self._summarize_papers(papers)
 
         # 要約を保存
-        saved_files = await self._store_summaries(papers, limit)
+        saved_files = await self._store_summaries(papers, limit, effective_target_dates)
 
         # 処理済みの論文IDを保存
         await self._save_processed_ids(paper_ids)
@@ -283,8 +292,11 @@ class ArxivSummarizer(BaseService):
             abstract_ja = await self._translate_to_japanese(paper.summary)
 
             published_at = getattr(paper, "published", None)
-            if isinstance(published_at, datetime) and published_at.tzinfo is None:
-                published_at = published_at.replace(tzinfo=timezone.utc)
+            if isinstance(published_at, datetime):
+                if published_at.tzinfo is None:
+                    published_at = published_at.replace(tzinfo=timezone.utc)
+            else:
+                published_at = datetime.now(timezone.utc)
 
             return PaperInfo(
                 title=title,
@@ -460,7 +472,10 @@ class ArxivSummarizer(BaseService):
             paper_info.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(
-        self, papers: list[PaperInfo], limit: int
+        self,
+        papers: list[PaperInfo],
+        limit: int,
+        target_dates: set[date],
     ) -> list[tuple[str, str]]:
         """
         要約を保存します。
@@ -478,7 +493,7 @@ class ArxivSummarizer(BaseService):
         if not papers:
             return []
 
-        default_date = datetime.now().date()
+        default_date = max(target_dates) if target_dates else datetime.now().date()
         records = self._serialize_papers(papers)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
