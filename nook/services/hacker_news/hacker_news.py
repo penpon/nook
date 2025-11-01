@@ -470,7 +470,7 @@ class HackerNewsRetriever(BaseService):
             self.logger.info("保存する記事がありません")
             return
 
-        default_date = datetime.now(timezone.utc).date()
+        default_date = datetime.now().date()
         records = self._serialize_stories(stories)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
