@@ -20,7 +20,7 @@ from nook.common.feed_utils import parse_entry_datetime
 class Article:
     """
     Zenn記事の情報。
-    
+
     Parameters
     ----------
     feed_name : str
@@ -51,7 +51,7 @@ class Article:
 class ZennExplorer(BaseService):
     """
     ZennのRSSフィードを監視・収集・要約するクラス。
-    
+
     Parameters
     ----------
     storage_dir : str, default="data"
@@ -63,7 +63,7 @@ class ZennExplorer(BaseService):
     def __init__(self, storage_dir: str = "data"):
         """
         ZennExplorerを初期化します。
-        
+
         Parameters
         ----------
         storage_dir : str, default="data"
@@ -80,7 +80,7 @@ class ZennExplorer(BaseService):
     def run(self, days: int = 1, limit: int | None = None) -> None:
         """
         ZennのRSSフィードを監視・収集・要約して保存します。
-        
+
         Parameters
         ----------
         days : int, default=1
@@ -93,7 +93,7 @@ class ZennExplorer(BaseService):
     async def collect(self, days: int = 1, limit: int | None = None) -> None:
         """
         ZennのRSSフィードを監視・収集・要約して保存します（非同期版）。
-        
+
         Parameters
         ----------
         days : int, default=1
@@ -106,7 +106,9 @@ class ZennExplorer(BaseService):
             await self.setup_http_client()
 
         candidate_articles: list[Article] = []
-        dedup_tracker = self._load_existing_titles()  # カテゴリ横断のタイトル重複チェック用
+        dedup_tracker = (
+            self._load_existing_titles()
+        )  # カテゴリ横断のタイトル重複チェック用
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -125,7 +127,9 @@ class ZennExplorer(BaseService):
 
                         current_limit = limit
                         if current_limit is None:
-                            self.logger.info(f"フィード {feed_url} は制限なしで取得します")
+                            self.logger.info(
+                                f"フィード {feed_url} は制限なしで取得します"
+                            )
 
                         effective_limit = None
                         if current_limit is not None:
@@ -145,9 +149,13 @@ class ZennExplorer(BaseService):
                             )
                             if article:
                                 # 重複タイトルをスキップ（カテゴリ横断・正規化済み）
-                                is_dup, normalized_title = dedup_tracker.is_duplicate(article.title)
+                                is_dup, normalized_title = dedup_tracker.is_duplicate(
+                                    article.title
+                                )
                                 if is_dup:
-                                    original = dedup_tracker.get_original_title(normalized_title)
+                                    original = dedup_tracker.get_original_title(
+                                        normalized_title
+                                    )
                                     self.logger.info(
                                         f"重複記事をスキップ: '{article.title}' "
                                         f"(正規化後: '{normalized_title}', 初出: '{original}')"
@@ -158,9 +166,13 @@ class ZennExplorer(BaseService):
                                 candidate_articles.append(article)
 
                     except Exception as e:
-                        self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
+                        self.logger.error(
+                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
+                        )
 
-            self.logger.info(f"合計 {len(candidate_articles)} 件の記事候補を取得しました")
+            self.logger.info(
+                f"合計 {len(candidate_articles)} 件の記事候補を取得しました"
+            )
 
             # 日付ごとにグループ化
             articles_by_date = self._group_articles_by_date(candidate_articles)
@@ -188,19 +200,21 @@ class ZennExplorer(BaseService):
             # グローバルクライアントなのでクローズ不要
             pass
 
-    def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
+    def _group_articles_by_date(
+        self, articles: list[Article]
+    ) -> dict[str, list[Article]]:
         """記事を日付ごとにグループ化します。"""
         by_date: dict[str, list[Article]] = {}
-        default_date = datetime.now().strftime('%Y-%m-%d')
-        
+        default_date = datetime.now().strftime("%Y-%m-%d")
+
         for article in articles:
             date_key = (
-                article.published_at.strftime('%Y-%m-%d')
+                article.published_at.strftime("%Y-%m-%d")
                 if article.published_at
                 else default_date
             )
             by_date.setdefault(date_key, []).append(article)
-        
+
         return by_date
 
     def _load_existing_titles(self) -> DedupTracker:
@@ -219,7 +233,7 @@ class ZennExplorer(BaseService):
     ) -> list[dict]:
         """
         新しいエントリをフィルタリングします。
-        
+
         Parameters
         ----------
         entries : List[dict]
@@ -228,7 +242,7 @@ class ZennExplorer(BaseService):
             何日前までの記事を取得するか。
         limit : Optional[int], default=None
             取得する記事数。Noneの場合は全て取得。
-            
+
         Returns
         -------
         List[dict]
@@ -244,7 +258,9 @@ class ZennExplorer(BaseService):
             entry_date = parse_entry_datetime(entry)
 
             if entry_date:
-                self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
+                self.logger.debug(
+                    f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}"
+                )
                 if entry_date >= cutoff_date:
                     recent_entries.append(entry)
                 else:
@@ -272,7 +288,7 @@ class ZennExplorer(BaseService):
     ) -> Article | None:
         """
         記事を取得します。
-    
+
         Parameters
         ----------
         entry : dict
@@ -281,7 +297,7 @@ class ZennExplorer(BaseService):
             フィード名。
         category : str
             カテゴリ。
-    
+
         Returns
         -------
         Article or None
@@ -334,7 +350,9 @@ class ZennExplorer(BaseService):
             )
 
         except Exception as e:
-            self.logger.error(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
+            self.logger.error(
+                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
+            )
             return None
 
     async def _summarize_article(self, article: Article) -> None:
@@ -411,9 +429,11 @@ class ZennExplorer(BaseService):
                     "feed_name": article.feed_name,
                     "summary": article.summary,
                     "popularity_score": article.popularity_score,
-                    "published_at": article.published_at.isoformat()
-                    if article.published_at
-                    else None,
+                    "published_at": (
+                        article.published_at.isoformat()
+                        if article.published_at
+                        else None
+                    ),
                     "category": category,
                 }
             )
@@ -477,7 +497,9 @@ class ZennExplorer(BaseService):
         sections = list(category_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            end = (
+                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            )
             block = markdown[start:end]
             category = match.group(1).strip().lower().replace(" ", "_")
 
@@ -495,7 +517,6 @@ class ZennExplorer(BaseService):
                 )
 
         return result
-
 
     def _extract_popularity(self, entry, soup: BeautifulSoup) -> float:
         """記事の人気指標（いいね数）を抽出します。"""
@@ -530,7 +551,9 @@ class ZennExplorer(BaseService):
 
         # 4. フィードエントリに含まれる既知フィールド
         try:
-            like_candidate = getattr(entry, "likes", None) or getattr(entry, "likes_count", None)
+            like_candidate = getattr(entry, "likes", None) or getattr(
+                entry, "likes_count", None
+            )
             if like_candidate is None and hasattr(entry, "zenn_likes_count"):
                 like_candidate = getattr(entry, "zenn_likes_count")
             value = self._safe_parse_int(like_candidate)

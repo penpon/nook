@@ -20,7 +20,7 @@ from nook.common.storage import LocalStorage
 class Thread:
     """
     4chanスレッド情報。
-    
+
     Parameters
     ----------
     thread_id : int
@@ -50,7 +50,7 @@ class Thread:
 class FourChanExplorer(BaseService):
     """
     4chanからAI関連スレッドを収集するクラス。
-    
+
     Parameters
     ----------
     storage_dir : str, default="data"
@@ -62,7 +62,7 @@ class FourChanExplorer(BaseService):
     def __init__(self, storage_dir: str = "data"):
         """
         FourChanExplorerを初期化します。
-        
+
         Parameters
         ----------
         storage_dir : str, default="data"
@@ -107,7 +107,7 @@ class FourChanExplorer(BaseService):
     def _load_boards(self) -> list[str]:
         """
         対象となるボードの設定を読み込みます。
-        
+
         Returns
         -------
         List[str]
@@ -118,7 +118,9 @@ class FourChanExplorer(BaseService):
 
         # boards.tomlが存在しない場合はデフォルト値を使用
         if not boards_file.exists():
-            self.logger.warning(f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。")
+            self.logger.warning(
+                f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。"
+            )
             return ["g", "sci", "biz", "pol"]
 
         try:
@@ -135,7 +137,7 @@ class FourChanExplorer(BaseService):
     def run(self, thread_limit: int | None = None) -> None:
         """
         4chanからAI関連スレッドを収集して保存します。
-        
+
         Parameters
         ----------
         thread_limit : Optional[int], default=None
@@ -146,7 +148,7 @@ class FourChanExplorer(BaseService):
     async def collect(self, thread_limit: int | None = None) -> None:
         """
         4chanからAI関連スレッドを収集して保存します（非同期版）。
-        
+
         Parameters
         ----------
         thread_limit : Optional[int], default=None
@@ -166,11 +168,15 @@ class FourChanExplorer(BaseService):
             # 各ボードからスレッドを取得
             for board in self.target_boards:
                 try:
-                    self.logger.info(f"ボード /{board}/ からのスレッド取得を開始します...")
+                    self.logger.info(
+                        f"ボード /{board}/ からのスレッド取得を開始します..."
+                    )
                     threads = await self._retrieve_ai_threads(
                         board, thread_limit, dedup_tracker
                     )
-                    self.logger.info(f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました")
+                    self.logger.info(
+                        f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました"
+                    )
                     candidate_threads.extend(threads)
 
                     # APIリクエスト間の遅延
@@ -179,11 +185,11 @@ class FourChanExplorer(BaseService):
                 except Exception as e:
                     self.logger.error(f"Error processing board /{board}/: {str(e)}")
 
-            self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
-
-            selected_threads = self._select_top_threads(
-                candidate_threads, total_limit
+            self.logger.info(
+                f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました"
             )
+
+            selected_threads = self._select_top_threads(candidate_threads, total_limit)
             self.logger.info(
                 f"人気スコア上位 {len(selected_threads)} 件のスレッドを要約します"
             )
@@ -207,14 +213,14 @@ class FourChanExplorer(BaseService):
     ) -> list[Thread]:
         """
         特定のボードからAI関連スレッドを取得します。
-        
+
         Parameters
         ----------
         board : str
             ボード名。
         limit : Optional[int]
             取得するスレッド数。Noneの場合は制限なし。
-            
+
         Returns
         -------
         List[Thread]
@@ -246,9 +252,7 @@ class FourChanExplorer(BaseService):
                 if is_ai_related:
                     is_dup, normalized = dedup_tracker.is_duplicate(title)
                     if is_dup:
-                        original = dedup_tracker.get_original_title(
-                            normalized
-                        ) or title
+                        original = dedup_tracker.get_original_title(normalized) or title
                         self.logger.info(
                             "重複スレッドをスキップ: '%s' (初出: '%s')",
                             title,
@@ -299,14 +303,14 @@ class FourChanExplorer(BaseService):
     ) -> list[dict[str, Any]]:
         """
         スレッドの投稿を取得します。
-        
+
         Parameters
         ----------
         board : str
             ボード名。
         thread_id : int
             スレッドID。
-            
+
         Returns
         -------
         List[Dict[str, Any]]
@@ -359,9 +363,7 @@ class FourChanExplorer(BaseService):
 
         return float(replies + images * 2 + bumps + len(posts) + recency_bonus)
 
-    def _select_top_threads(
-        self, threads: list[Thread], limit: int
-    ) -> list[Thread]:
+    def _select_top_threads(self, threads: list[Thread], limit: int) -> list[Thread]:
         if not threads:
             return []
 
@@ -378,7 +380,7 @@ class FourChanExplorer(BaseService):
     async def _summarize_thread(self, thread: Thread) -> None:
         """
         スレッドを要約します。
-        
+
         Parameters
         ----------
         thread : Thread
@@ -543,7 +545,9 @@ class FourChanExplorer(BaseService):
         for board, threads in grouped.items():
             content += f"## /{board}/\n\n"
             for thread in threads:
-                title = thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
+                title = (
+                    thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
+                )
                 content += f"### [{title}]({thread.get('url')})\n\n"
                 published_raw = thread.get("published_at")
                 if published_raw:
@@ -572,7 +576,9 @@ class FourChanExplorer(BaseService):
         sections = list(board_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            end = (
+                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            )
             block = markdown[start:end]
             board = match.group(1).strip()
 

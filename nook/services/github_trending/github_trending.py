@@ -92,14 +92,18 @@ class GithubTrending(BaseService):
 
         # 一般的な言語のリポジトリを取得
         for language in self.languages_config["general"]:
-            repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
+            repositories = await self._retrieve_repositories(
+                language, limit, dedup_tracker
+            )
             all_repositories.append((language, repositories))
             await self.rate_limit()  # レート制限を遵守
 
         # 特定の言語のリポジトリを取得（limitと同じ数に変更）
         for language in self.languages_config["specific"]:
             # limit // 2 → limit
-            repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
+            repositories = await self._retrieve_repositories(
+                language, limit, dedup_tracker
+            )
             all_repositories.append((language, repositories))
             await self.rate_limit()  # レート制限を遵守
 
@@ -346,9 +350,7 @@ class GithubTrending(BaseService):
             published = datetime.min.replace(tzinfo=timezone.utc)
         return (stars, published)
 
-    def _render_markdown(
-        self, records: list[dict[str, Any]], today: datetime
-    ) -> str:
+    def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:
         content = f"# GitHub トレンドリポジトリ ({today.strftime('%Y-%m-%d')})\n\n"
 
         grouped: dict[str, list[dict[str, Any]]] = {}

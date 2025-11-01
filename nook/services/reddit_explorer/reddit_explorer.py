@@ -20,7 +20,7 @@ from nook.common.daily_snapshot import group_records_by_date, store_daily_snapsh
 class RedditPost:
     """
     Reddit投稿情報。
-    
+
     Parameters
     ----------
     type : Literal["image", "gallery", "video", "poll", "crosspost", "text", "link"]
@@ -58,7 +58,7 @@ class RedditPost:
 class RedditExplorer(BaseService):
     """
     Redditの人気投稿を収集・要約するクラス。
-    
+
     Parameters
     ----------
     client_id : str, optional
@@ -80,7 +80,7 @@ class RedditExplorer(BaseService):
     ):
         """
         RedditExplorerを初期化します。
-        
+
         Parameters
         ----------
         client_id : str, optional
@@ -118,7 +118,7 @@ class RedditExplorer(BaseService):
     def run(self, limit: int | None = None) -> None:
         """
         Redditの人気投稿を収集・要約して保存します。
-        
+
         Parameters
         ----------
         limit : Optional[int], default=None
@@ -129,7 +129,7 @@ class RedditExplorer(BaseService):
     async def collect(self, limit: int | None = None) -> None:
         """
         Redditの人気投稿を収集・要約して保存します（非同期版）。
-        
+
         Parameters
         ----------
         limit : Optional[int], default=None
@@ -171,7 +171,9 @@ class RedditExplorer(BaseService):
                                 f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"
                             )
 
-                self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
+                self.logger.info(
+                    f"合計 {len(candidate_posts)} 件の投稿候補を取得しました"
+                )
 
                 selected_posts = self._select_top_posts(candidate_posts)
                 self.logger.info(
@@ -200,7 +202,7 @@ class RedditExplorer(BaseService):
     ) -> list[RedditPost]:
         """
         サブレディットの人気投稿を取得します。
-        
+
         Parameters
         ----------
         subreddit_name : str
@@ -209,7 +211,7 @@ class RedditExplorer(BaseService):
             取得する投稿数。Noneの場合は制限なし。
         dedup_tracker : DedupTracker
             タイトル重複を追跡するトラッカー。
-            
+
         Returns
         -------
         List[RedditPost]
@@ -276,9 +278,9 @@ class RedditExplorer(BaseService):
                 upvotes=submission.score,
                 text=text_ja,
                 permalink=f"https://www.reddit.com{submission.permalink}",
-                thumbnail=submission.thumbnail
-                if hasattr(submission, "thumbnail")
-                else "self",
+                thumbnail=(
+                    submission.thumbnail if hasattr(submission, "thumbnail") else "self"
+                ),
                 popularity_score=float(submission.score),
                 created_at=created_at,
             )
@@ -291,12 +293,12 @@ class RedditExplorer(BaseService):
     async def _translate_to_japanese(self, text: str) -> str:
         """
         テキストを日本語に翻訳します。
-        
+
         Parameters
         ----------
         text : str
             翻訳するテキスト。
-            
+
         Returns
         -------
         str
@@ -322,14 +324,14 @@ class RedditExplorer(BaseService):
     ) -> list[dict[str, str | int]]:
         """
         投稿のトップコメントを取得します。
-        
+
         Parameters
         ----------
         post : RedditPost
             投稿情報。
         limit : int, default=5
             取得するコメント数。
-            
+
         Returns
         -------
         List[Dict[str, str | int]]
@@ -357,7 +359,7 @@ class RedditExplorer(BaseService):
     async def _summarize_reddit_post(self, post: RedditPost) -> None:
         """
         Reddit投稿を要約します。
-        
+
         Parameters
         ----------
         post : RedditPost
@@ -418,9 +420,7 @@ class RedditExplorer(BaseService):
             limit=self.SUMMARY_LIMIT,
         )
 
-    def _serialize_posts(
-        self, posts: list[tuple[str, str, RedditPost]]
-    ) -> list[dict]:
+    def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:
         records: list[dict] = []
         for category, subreddit, post in posts:
             created_at = post.created_at or datetime.now(timezone.utc)
@@ -539,7 +539,9 @@ class RedditExplorer(BaseService):
         sections = list(subreddit_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            end = (
+                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            )
             block = markdown[start:end]
             subreddit = match.group("subreddit").strip()
 

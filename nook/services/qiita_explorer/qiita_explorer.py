@@ -20,7 +20,7 @@ from nook.common.dedup import DedupTracker
 class Article:
     """
     Qiitaの技術記事情報。
-    
+
     Parameters
     ----------
     feed_name : str
@@ -51,7 +51,7 @@ class Article:
 class QiitaExplorer(BaseService):
     """
     QiitaのRSSフィードを監視・収集・要約するクラス。
-    
+
     Parameters
     ----------
     storage_dir : str, default="data"
@@ -63,7 +63,7 @@ class QiitaExplorer(BaseService):
     def __init__(self, storage_dir: str = "data"):
         """
         QiitaExplorerを初期化します。
-        
+
         Parameters
         ----------
         storage_dir : str, default="data"
@@ -80,7 +80,7 @@ class QiitaExplorer(BaseService):
     def run(self, days: int = 1, limit: int | None = None) -> None:
         """
         QiitaのRSSフィードを監視・収集・要約して保存します。
-        
+
         Parameters
         ----------
         days : int, default=1
@@ -93,7 +93,7 @@ class QiitaExplorer(BaseService):
     async def collect(self, days: int = 1, limit: int | None = None) -> None:
         """
         QiitaのRSSフィードを監視・収集・要約して保存します（非同期版）。
-        
+
         Parameters
         ----------
         days : int, default=1
@@ -107,7 +107,9 @@ class QiitaExplorer(BaseService):
 
         candidate_articles: list[Article] = []
         seen_urls = set()  # URL重複チェック用
-        dedup_tracker = self._load_existing_titles()  # カテゴリ横断のタイトル重複チェック用
+        dedup_tracker = (
+            self._load_existing_titles()
+        )  # カテゴリ横断のタイトル重複チェック用
 
         try:
             # 各カテゴリのフィードから記事を取得
@@ -126,7 +128,9 @@ class QiitaExplorer(BaseService):
 
                         current_limit = limit
                         if current_limit is None:
-                            self.logger.info(f"フィード {feed_url} は制限なしで取得します")
+                            self.logger.info(
+                                f"フィード {feed_url} は制限なしで取得します"
+                            )
 
                         effective_limit = None
                         if current_limit is not None:
@@ -147,13 +151,19 @@ class QiitaExplorer(BaseService):
                             if article:
                                 # URL重複チェック（最優先）
                                 if article.url in seen_urls:
-                                    self.logger.info(f"重複URLをスキップ: {article.title}")
+                                    self.logger.info(
+                                        f"重複URLをスキップ: {article.title}"
+                                    )
                                     continue
 
                                 # タイトル重複チェック（カテゴリ横断・正規化済み）
-                                is_dup, normalized_title = dedup_tracker.is_duplicate(article.title)
+                                is_dup, normalized_title = dedup_tracker.is_duplicate(
+                                    article.title
+                                )
                                 if is_dup:
-                                    original = dedup_tracker.get_original_title(normalized_title)
+                                    original = dedup_tracker.get_original_title(
+                                        normalized_title
+                                    )
                                     self.logger.info(
                                         f"重複記事をスキップ: '{article.title}' "
                                         f"(正規化後: '{normalized_title}', 初出: '{original}')"
@@ -166,9 +176,13 @@ class QiitaExplorer(BaseService):
                                 candidate_articles.append(article)
 
                     except Exception as e:
-                        self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
+                        self.logger.error(
+                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
+                        )
 
-            self.logger.info(f"合計 {len(candidate_articles)} 件の記事候補を取得しました")
+            self.logger.info(
+                f"合計 {len(candidate_articles)} 件の記事候補を取得しました"
+            )
 
             # 日付ごとにグループ化
             articles_by_date = self._group_articles_by_date(candidate_articles)
@@ -196,19 +210,21 @@ class QiitaExplorer(BaseService):
             # グローバルクライアントなのでクローズ不要
             pass
 
-    def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
+    def _group_articles_by_date(
+        self, articles: list[Article]
+    ) -> dict[str, list[Article]]:
         """記事を日付ごとにグループ化します。"""
         by_date: dict[str, list[Article]] = {}
-        default_date = datetime.now().strftime('%Y-%m-%d')
-        
+        default_date = datetime.now().strftime("%Y-%m-%d")
+
         for article in articles:
             date_key = (
-                article.published_at.strftime('%Y-%m-%d')
+                article.published_at.strftime("%Y-%m-%d")
                 if article.published_at
                 else default_date
             )
             by_date.setdefault(date_key, []).append(article)
-        
+
         return by_date
 
     def _load_existing_titles(self) -> DedupTracker:
@@ -227,7 +243,7 @@ class QiitaExplorer(BaseService):
     ) -> list[dict]:
         """
         新しいエントリをフィルタリングします。
-        
+
         Parameters
         ----------
         entries : List[dict]
@@ -236,7 +252,7 @@ class QiitaExplorer(BaseService):
             何日前までの記事を取得するか。
         limit : Optional[int], default=None
             取得する記事数。Noneの場合は全て取得。
-            
+
         Returns
         -------
         List[dict]
@@ -252,7 +268,9 @@ class QiitaExplorer(BaseService):
             entry_date = parse_entry_datetime(entry)
 
             if entry_date:
-                self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
+                self.logger.debug(
+                    f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}"
+                )
                 if entry_date >= cutoff_date:
                     recent_entries.append(entry)
                 else:
@@ -280,7 +298,7 @@ class QiitaExplorer(BaseService):
     ) -> Article | None:
         """
         記事を取得します。
-    
+
         Parameters
         ----------
         entry : dict
@@ -289,7 +307,7 @@ class QiitaExplorer(BaseService):
             フィード名。
         category : str
             カテゴリ。
-    
+
         Returns
         -------
         Article or None
@@ -342,7 +360,9 @@ class QiitaExplorer(BaseService):
             )
 
         except Exception as e:
-            self.logger.error(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
+            self.logger.error(
+                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
+            )
             return None
 
     async def _summarize_article(self, article: Article) -> None:
@@ -388,7 +408,7 @@ class QiitaExplorer(BaseService):
     async def _store_summaries(self, articles: list[Article]) -> None:
         """
         要約を保存します。
-    
+
         Parameters
         ----------
         articles : List[Article]
@@ -427,9 +447,11 @@ class QiitaExplorer(BaseService):
                     "feed_name": article.feed_name,
                     "summary": article.summary,
                     "popularity_score": article.popularity_score,
-                    "published_at": article.published_at.isoformat()
-                    if article.published_at
-                    else None,
+                    "published_at": (
+                        article.published_at.isoformat()
+                        if article.published_at
+                        else None
+                    ),
                     "category": category,
                 }
             )
@@ -493,7 +515,9 @@ class QiitaExplorer(BaseService):
         sections = list(category_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            end = (
+                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            )
             block = markdown[start:end]
             category = match.group(1).strip().lower().replace(" ", "_")
 
@@ -511,7 +535,6 @@ class QiitaExplorer(BaseService):
                 )
 
         return result
-
 
     def _extract_popularity(self, entry, soup: BeautifulSoup) -> float:
         """Qiita記事の人気指標（LGTM数）を抽出します。"""

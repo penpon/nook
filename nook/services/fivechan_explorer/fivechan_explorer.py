@@ -18,7 +18,7 @@ from nook.common.storage import LocalStorage
 class Thread:
     """
     5chanスレッド情報。
-    
+
     Parameters
     ----------
     thread_id : int
@@ -48,7 +48,7 @@ class Thread:
 class FiveChanExplorer(BaseService):
     """
     5chan（旧2ちゃんねる）から情報を収集するクラス。
-    
+
     Parameters
     ----------
     storage_dir : str, default="data"
@@ -60,7 +60,7 @@ class FiveChanExplorer(BaseService):
     def __init__(self, storage_dir: str = "data"):
         """
         FiveChanExplorerを初期化します。
-        
+
         Parameters
         ----------
         storage_dir : str, default="data"
@@ -157,7 +157,7 @@ class FiveChanExplorer(BaseService):
     def _load_boards(self) -> dict[str, str]:
         """
         対象となる板の設定を読み込みます。
-        
+
         Returns
         -------
         Dict[str, str]
@@ -192,7 +192,7 @@ class FiveChanExplorer(BaseService):
     def _get_random_user_agent(self) -> str:
         """
         ランダムなUser-Agentを取得します。
-        
+
         Returns
         -------
         str
@@ -205,32 +205,32 @@ class FiveChanExplorer(BaseService):
     def _calculate_backoff_delay(self, retry_count: int) -> float:
         """
         指数バックオフによる遅延時間を計算します。
-        
+
         Parameters
         ----------
         retry_count : int
             リトライ回数。
-            
+
         Returns
         -------
         float
             遅延時間（秒）。
         """
         # 基本遅延時間: 2^retry_count秒、最大300秒
-        base_delay = min(2 ** retry_count, 300)
+        base_delay = min(2**retry_count, 300)
         return base_delay
 
     async def _get_with_retry(self, url: str, max_retries: int = 3, **kwargs) -> any:
         """
         リトライ機能付きHTTP GETリクエスト。
-        
+
         Parameters
         ----------
         url : str
             リクエストURL。
         max_retries : int, default=3
             最大リトライ回数。
-            
+
         Returns
         -------
         any
@@ -258,7 +258,9 @@ class FiveChanExplorer(BaseService):
                     else:
                         wait_time = self._calculate_backoff_delay(attempt)
 
-                    self.logger.warning(f"レート制限検知 (429): {wait_time}秒待機します")
+                    self.logger.warning(
+                        f"レート制限検知 (429): {wait_time}秒待機します"
+                    )
                     await asyncio.sleep(wait_time)
                     continue
 
@@ -281,7 +283,9 @@ class FiveChanExplorer(BaseService):
                     raise e
 
                 wait_time = self._calculate_backoff_delay(attempt)
-                self.logger.warning(f"リクエストエラー: {e}, {wait_time}秒後にリトライします")
+                self.logger.warning(
+                    f"リクエストエラー: {e}, {wait_time}秒後にリトライします"
+                )
                 await asyncio.sleep(wait_time)
 
         # ここには到達しないはずですが、安全のため
@@ -290,7 +294,7 @@ class FiveChanExplorer(BaseService):
     def run(self, thread_limit: int | None = None) -> None:
         """
         5chanからAI関連スレッドを収集して保存します。
-        
+
         Parameters
         ----------
         thread_limit : Optional[int], default=None
@@ -301,7 +305,7 @@ class FiveChanExplorer(BaseService):
     async def collect(self, thread_limit: int | None = None) -> None:
         """
         5chanからAI関連スレッドを収集して保存します（非同期版）。
-        
+
         Parameters
         ----------
         thread_limit : Optional[int], default=None
@@ -321,7 +325,9 @@ class FiveChanExplorer(BaseService):
             # 各板からスレッドを取得
             for board_id, board_name in self.target_boards.items():
                 try:
-                    self.logger.info(f"板 /{board_id}/({board_name}) からのスレッド取得を開始します...")
+                    self.logger.info(
+                        f"板 /{board_id}/({board_name}) からのスレッド取得を開始します..."
+                    )
                     threads = await self._retrieve_ai_threads(
                         board_id, thread_limit, dedup_tracker
                     )
@@ -344,11 +350,11 @@ class FiveChanExplorer(BaseService):
                 except Exception as e:
                     self.logger.error(f"Error processing board /{board_id}/: {str(e)}")
 
-            self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
-
-            selected_threads = self._select_top_threads(
-                candidate_threads, total_limit
+            self.logger.info(
+                f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました"
             )
+
+            selected_threads = self._select_top_threads(candidate_threads, total_limit)
             self.logger.info(
                 f"人気スコア上位 {len(selected_threads)} 件のスレッドを要約します"
             )
@@ -370,14 +376,14 @@ class FiveChanExplorer(BaseService):
     def _build_board_url(self, board_id: str, server: str) -> str:
         """
         板URLを構築します。
-        
+
         Parameters
         ----------
         board_id : str
             板のID。
         server : str
             サーバーのホスト名。
-            
+
         Returns
         -------
         str
@@ -389,12 +395,12 @@ class FiveChanExplorer(BaseService):
         """
         boards.tomlから板のサーバー情報を取得します。
         TASK-068: bbsmenu.html依存を除去し、静的設定から取得
-        
+
         Parameters
         ----------
         board_id : str
             板のID。
-            
+
         Returns
         -------
         str
@@ -409,14 +415,14 @@ class FiveChanExplorer(BaseService):
         """
         403エラー耐性HTTP GETリクエスト - think harderの結果
         複数のUser-Agent、ヘッダー戦略、間隔調整を試行
-        
+
         Parameters
         ----------
         url : str
             リクエストURL
         board_id : str
             板ID（ログ用）
-            
+
         Returns
         -------
         any
@@ -470,10 +476,14 @@ class FiveChanExplorer(BaseService):
                             self.logger.info(f"成功: 戦略{i+1}で正常アクセス")
                             return response
                         else:
-                            self.logger.warning(f"戦略{i+1}: Cloudflareチャレンジページ検出")
+                            self.logger.warning(
+                                f"戦略{i+1}: Cloudflareチャレンジページ検出"
+                            )
                     elif response.status_code == 403:
                         if is_cloudflare:
-                            self.logger.warning(f"戦略{i+1}: Cloudflare保護により403エラー")
+                            self.logger.warning(
+                                f"戦略{i+1}: Cloudflare保護により403エラー"
+                            )
                             # Cloudflareの場合は長時間待機後にリトライ
                             if i < 2:  # 最初の2戦略のみリトライ
                                 self.logger.info("Cloudflare回避: 30秒待機後にリトライ")
@@ -489,9 +499,13 @@ class FiveChanExplorer(BaseService):
                             )
                             return response
                         else:
-                            self.logger.warning(f"戦略{i+1}: 403エラー（利用不可コンテンツ）")
+                            self.logger.warning(
+                                f"戦略{i+1}: 403エラー（利用不可コンテンツ）"
+                            )
                     else:
-                        self.logger.warning(f"戦略{i+1}: HTTPエラー {response.status_code}")
+                        self.logger.warning(
+                            f"戦略{i+1}: HTTPエラー {response.status_code}"
+                        )
 
                 except Exception as e:
                     self.logger.warning(f"戦略{i+1}: リクエストエラー - {str(e)}")
@@ -514,14 +528,14 @@ class FiveChanExplorer(BaseService):
     async def _try_alternative_endpoints(self, original_url: str, board_id: str) -> any:
         """
         代替エンドポイント戦略 - 最終手段のアクセス方法
-        
+
         Parameters
         ----------
         original_url : str
             元のURL
         board_id : str
             板ID
-            
+
         Returns
         -------
         any
@@ -555,7 +569,9 @@ class FiveChanExplorer(BaseService):
 
         for i, alt_url in enumerate(alternative_strategies):
             try:
-                self.logger.info(f"代替戦略 {i+1}/{len(alternative_strategies)}: {alt_url}")
+                self.logger.info(
+                    f"代替戦略 {i+1}/{len(alternative_strategies)}: {alt_url}"
+                )
                 await asyncio.sleep(3)  # 短い間隔
 
                 response = await self.http_client._client.get(
@@ -580,9 +596,13 @@ class FiveChanExplorer(BaseService):
                         )
                         return response
                     else:
-                        self.logger.warning(f"代替戦略{i+1}: 無効コンテンツ ({len(content)}文字)")
+                        self.logger.warning(
+                            f"代替戦略{i+1}: 無効コンテンツ ({len(content)}文字)"
+                        )
                 else:
-                    self.logger.warning(f"代替戦略{i+1}: HTTPエラー {response.status_code}")
+                    self.logger.warning(
+                        f"代替戦略{i+1}: HTTPエラー {response.status_code}"
+                    )
 
             except Exception as e:
                 self.logger.warning(f"代替戦略{i+1}: エラー - {str(e)}")
@@ -593,12 +613,12 @@ class FiveChanExplorer(BaseService):
     async def _get_subject_txt_data(self, board_id: str) -> list[dict]:
         """
         subject.txt形式でスレッド一覧を取得（Cloudflare突破成功手法）
-        
+
         Parameters
         ----------
         board_id : str
             板ID
-            
+
         Returns
         -------
         List[dict]
@@ -671,7 +691,9 @@ class FiveChanExplorer(BaseService):
                                     }
                                 )
 
-                    self.logger.info(f"subject.txt成功: {len(threads_data)}スレッド取得")
+                    self.logger.info(
+                        f"subject.txt成功: {len(threads_data)}スレッド取得"
+                    )
                     return threads_data
 
             except Exception as e:
@@ -741,7 +763,9 @@ class FiveChanExplorer(BaseService):
 
                             posts.append(post_data)
 
-                self.logger.info(f"dat解析完了: 総行数{len(lines)}, 有効投稿{len(posts)}件")
+                self.logger.info(
+                    f"dat解析完了: 総行数{len(lines)}, 有効投稿{len(posts)}件"
+                )
                 if posts:
                     self.logger.info(f"dat取得成功: {len(posts)}投稿")
                     return posts[:10]  # 最初の10投稿
@@ -768,21 +792,23 @@ class FiveChanExplorer(BaseService):
         """
         特定の板からAI関連スレッドを取得します。
         【Cloudflare突破成功版】subject.txt + dat形式による完全実装
-        
+
         Parameters
         ----------
         board_id : str
             板のID。
         limit : Optional[int]
             取得するスレッド数。Noneの場合は制限なし。
-            
+
         Returns
         -------
         List[Thread]
             取得したスレッドのリスト。
         """
         try:
-            self.logger.info(f"【突破手法】板 {board_id} からAI関連スレッドを取得します")
+            self.logger.info(
+                f"【突破手法】板 {board_id} からAI関連スレッドを取得します"
+            )
 
             # 1. subject.txtからスレッド一覧を取得（突破成功手法）
             threads_data = await self._get_subject_txt_data(board_id)
@@ -792,7 +818,9 @@ class FiveChanExplorer(BaseService):
 
             # 2. AI関連スレッドをフィルタリング
             ai_threads = []
-            self.logger.info(f"AI関連スレッド検索中... 対象: {len(threads_data)}スレッド")
+            self.logger.info(
+                f"AI関連スレッド検索中... 対象: {len(threads_data)}スレッド"
+            )
 
             for thread_data in threads_data:
                 title = thread_data["title"]
@@ -806,9 +834,7 @@ class FiveChanExplorer(BaseService):
                 if is_ai_related:
                     is_dup, normalized = dedup_tracker.is_duplicate(title)
                     if is_dup:
-                        original = dedup_tracker.get_original_title(
-                            normalized
-                        ) or title
+                        original = dedup_tracker.get_original_title(normalized) or title
                         self.logger.info(
                             "重複スレッドをスキップ: '%s' (初出: '%s')",
                             title,
@@ -843,7 +869,9 @@ class FiveChanExplorer(BaseService):
                         )
 
                         ai_threads.append(thread)
-                        self.logger.info(f"スレッド追加成功: {title} ({len(posts)}投稿)")
+                        self.logger.info(
+                            f"スレッド追加成功: {title} ({len(posts)}投稿)"
+                        )
 
                         # 制限数に達したら終了
                         if limit is not None and len(ai_threads) >= limit:
@@ -854,7 +882,9 @@ class FiveChanExplorer(BaseService):
                     # アクセス間隔（丁寧なアクセス）
                     await asyncio.sleep(2)
 
-            self.logger.info(f"【突破成功】板 {board_id}: {len(ai_threads)}件のAI関連スレッド取得完了")
+            self.logger.info(
+                f"【突破成功】板 {board_id}: {len(ai_threads)}件のAI関連スレッド取得完了"
+            )
             return ai_threads
 
         except Exception as e:
@@ -886,9 +916,7 @@ class FiveChanExplorer(BaseService):
 
         return float(post_count + sample_count + recency_bonus)
 
-    def _select_top_threads(
-        self, threads: list[Thread], limit: int
-    ) -> list[Thread]:
+    def _select_top_threads(self, threads: list[Thread], limit: int) -> list[Thread]:
         if not threads:
             return []
 
@@ -905,7 +933,7 @@ class FiveChanExplorer(BaseService):
     async def _summarize_thread(self, thread: Thread) -> None:
         """
         スレッドを要約します。
-        
+
         Parameters
         ----------
         thread : Thread
@@ -1053,7 +1081,9 @@ class FiveChanExplorer(BaseService):
             board_name = self.target_boards.get(board, board)
             content += f"## {board_name} (/{board}/)\n\n"
             for thread in threads:
-                title = thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
+                title = (
+                    thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
+                )
                 content += f"### [{title}]({thread.get('url')})\n\n"
                 published_raw = thread.get("published_at")
                 if published_raw:
@@ -1092,7 +1122,9 @@ class FiveChanExplorer(BaseService):
         sections = list(board_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            end = (
+                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            )
             block = markdown[start:end]
             board_id = match.group(2).strip()
 
@@ -1102,9 +1134,7 @@ class FiveChanExplorer(BaseService):
                 summary = thread_match.group("summary").strip()
                 datetime_str = thread_match.group("datetime")
                 try:
-                    published = datetime.strptime(
-                        datetime_str, "%Y-%m-%d %H:%M:%S"
-                    )
+                    published = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
                 except ValueError:
                     published = None
 
@@ -1118,7 +1148,9 @@ class FiveChanExplorer(BaseService):
                 }
 
                 if published:
-                    record["published_at"] = published.replace(tzinfo=timezone.utc).isoformat()
+                    record["published_at"] = published.replace(
+                        tzinfo=timezone.utc
+                    ).isoformat()
                     record["timestamp"] = int(published.timestamp())
 
                 records.append(record)

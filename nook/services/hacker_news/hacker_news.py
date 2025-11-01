@@ -21,7 +21,7 @@ from nook.common.daily_snapshot import group_records_by_date, store_daily_snapsh
 class Story:
     """
     Hacker News記事情報。
-    
+
     Parameters
     ----------
     title : str
@@ -46,14 +46,16 @@ class Story:
 SCORE_THRESHOLD = 20  # 最小スコア
 MIN_TEXT_LENGTH = 100  # 最小テキスト長
 MAX_TEXT_LENGTH = 10000  # 最大テキスト長
-FETCH_LIMIT: int | None = None  # フィルタリング前に取得する記事数（Noneの場合は制限なし）
+FETCH_LIMIT: int | None = (
+    None  # フィルタリング前に取得する記事数（Noneの場合は制限なし）
+)
 MAX_STORY_LIMIT = 15  # 保存する記事数の上限
 
 
 class HackerNewsRetriever(BaseService):
     """
     Hacker Newsの記事を収集するクラス。
-    
+
     Parameters
     ----------
     storage_dir : str, default="data"
@@ -63,7 +65,7 @@ class HackerNewsRetriever(BaseService):
     def __init__(self, storage_dir: str = "data"):
         """
         HackerNewsRetrieverを初期化します。
-        
+
         Parameters
         ----------
         storage_dir : str, default="data"
@@ -77,7 +79,7 @@ class HackerNewsRetriever(BaseService):
     async def collect(self, limit: int = MAX_STORY_LIMIT) -> None:
         """
         Hacker Newsの記事を収集して保存します。
-        
+
         Parameters
         ----------
         limit : int, default=15
@@ -116,9 +118,7 @@ class HackerNewsRetriever(BaseService):
                 if content:
                     for match in re.finditer(r"^## \[(.+?)\]", content, re.MULTILINE):
                         tracker.add(match.group(1))
-                    for match in re.finditer(
-                        r"^## (?!\[)(.+)$", content, re.MULTILINE
-                    ):
+                    for match in re.finditer(r"^## (?!\[)(.+)$", content, re.MULTILINE):
                         tracker.add(match.group(1).strip())
         except Exception as exc:
             self.logger.debug(f"既存Hacker Newsタイトルの読み込みに失敗しました: {exc}")
@@ -130,12 +130,12 @@ class HackerNewsRetriever(BaseService):
     ) -> list[Story]:
         """
         トップ記事を取得します。
-        
+
         Parameters
         ----------
         limit : int
             取得する記事数。
-            
+
         Returns
         -------
         List[Story]
@@ -185,9 +185,7 @@ class HackerNewsRetriever(BaseService):
         for story in filtered_stories:
             is_dup, normalized = dedup_tracker.is_duplicate(story.title)
             if is_dup:
-                original = (
-                    dedup_tracker.get_original_title(normalized) or story.title
-                )
+                original = dedup_tracker.get_original_title(normalized) or story.title
                 self.logger.info(
                     "重複記事をスキップ: '%s' (初出: '%s')",
                     story.title,
@@ -342,7 +340,9 @@ class HackerNewsRetriever(BaseService):
 
             reason = self.blocked_domains.get("reasons", {}).get(domain, "アクセス制限")
             story.text = f"このサイト（{domain}）は{reason}のためブロックされています。"
-            self.logger.debug(f"ブロックされたドメインをスキップ: {story.url} - {reason}")
+            self.logger.debug(
+                f"ブロックされたドメインをスキップ: {story.url} - {reason}"
+            )
             return
 
         # HTTP/1.1が必要なドメインをチェック
@@ -351,9 +351,7 @@ class HackerNewsRetriever(BaseService):
             self.logger.info(f"Using HTTP/1.1 for {story.url} (required domain)")
 
         try:
-            response = await self.http_client.get(
-                story.url, force_http1=force_http1
-            )
+            response = await self.http_client.get(story.url, force_http1=force_http1)
 
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -501,7 +499,9 @@ class HackerNewsRetriever(BaseService):
             )
         return records
 
-    async def _load_existing_stories(self, target_date: datetime) -> list[dict[str, Any]]:
+    async def _load_existing_stories(
+        self, target_date: datetime
+    ) -> list[dict[str, Any]]:
         date_str = target_date.strftime("%Y-%m-%d")
         filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)

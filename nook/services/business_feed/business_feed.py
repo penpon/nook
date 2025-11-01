@@ -20,7 +20,7 @@ from nook.common.feed_utils import parse_entry_datetime
 class Article:
     """
     ビジネスニュースの記事情報。
-    
+
     Parameters
     ----------
     feed_name : str
@@ -51,7 +51,7 @@ class Article:
 class BusinessFeed(BaseService):
     """
     ビジネスニュースのRSSフィードを監視・収集・要約するクラス。
-    
+
     Parameters
     ----------
     storage_dir : str, default="data"
@@ -63,7 +63,7 @@ class BusinessFeed(BaseService):
     def __init__(self, storage_dir: str = "data"):
         """
         BusinessFeedを初期化します。
-        
+
         Parameters
         ----------
         storage_dir : str, default="data"
@@ -80,7 +80,7 @@ class BusinessFeed(BaseService):
     def run(self, days: int = 1, limit: int | None = None) -> None:
         """
         ビジネスニュースのRSSフィードを監視・収集・要約して保存します。
-        
+
         Parameters
         ----------
         days : int, default=1
@@ -93,7 +93,7 @@ class BusinessFeed(BaseService):
     async def collect(self, days: int = 1, limit: int | None = None) -> None:
         """
         ビジネスニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
-        
+
         Parameters
         ----------
         days : int, default=1
@@ -141,13 +141,12 @@ class BusinessFeed(BaseService):
                                 entry.title if hasattr(entry, "title") else "無題"
                             )
 
-                            is_dup, normalized = dedup_tracker.is_duplicate(
-                                entry_title
-                            )
+                            is_dup, normalized = dedup_tracker.is_duplicate(entry_title)
                             if is_dup:
-                                original = dedup_tracker.get_original_title(
-                                    normalized
-                                ) or entry_title
+                                original = (
+                                    dedup_tracker.get_original_title(normalized)
+                                    or entry_title
+                                )
                                 self.logger.info(
                                     "重複記事をスキップ: '%s' (初出: '%s')",
                                     entry_title,
@@ -163,9 +162,13 @@ class BusinessFeed(BaseService):
                                 candidate_articles.append(article)
 
                     except Exception as e:
-                        self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
+                        self.logger.error(
+                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
+                        )
 
-            self.logger.info(f"合計 {len(candidate_articles)} 件の記事候補を取得しました")
+            self.logger.info(
+                f"合計 {len(candidate_articles)} 件の記事候補を取得しました"
+            )
 
             # 日付ごとにグループ化
             articles_by_date = self._group_articles_by_date(candidate_articles)
@@ -193,19 +196,21 @@ class BusinessFeed(BaseService):
             # グローバルクライアントなのでクローズ不要
             pass
 
-    def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
+    def _group_articles_by_date(
+        self, articles: list[Article]
+    ) -> dict[str, list[Article]]:
         """記事を日付ごとにグループ化します。"""
         by_date: dict[str, list[Article]] = {}
-        default_date = datetime.now().strftime('%Y-%m-%d')
-        
+        default_date = datetime.now().strftime("%Y-%m-%d")
+
         for article in articles:
             date_key = (
-                article.published_at.strftime('%Y-%m-%d')
+                article.published_at.strftime("%Y-%m-%d")
                 if article.published_at
                 else default_date
             )
             by_date.setdefault(date_key, []).append(article)
-        
+
         return by_date
 
     def _filter_entries(
@@ -213,7 +218,7 @@ class BusinessFeed(BaseService):
     ) -> list[dict]:
         """
         新しいエントリをフィルタリングします。
-        
+
         Parameters
         ----------
         entries : List[dict]
@@ -222,7 +227,7 @@ class BusinessFeed(BaseService):
             何日前までの記事を取得するか。
         limit : Optional[int]
             取得する記事数。Noneの場合は制限なし。
-            
+
         Returns
         -------
         List[dict]
@@ -238,7 +243,9 @@ class BusinessFeed(BaseService):
             entry_date = parse_entry_datetime(entry)
 
             if entry_date:
-                self.logger.debug(f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}")
+                self.logger.debug(
+                    f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}"
+                )
                 if entry_date >= cutoff_date:
                     recent_entries.append(entry)
                 else:
@@ -265,7 +272,7 @@ class BusinessFeed(BaseService):
     ) -> Article | None:
         """
         記事を取得します。
-    
+
         Parameters
         ----------
         entry : dict
@@ -274,7 +281,7 @@ class BusinessFeed(BaseService):
             フィード名。
         category : str
             カテゴリ。
-    
+
         Returns
         -------
         Article or None
@@ -334,7 +341,9 @@ class BusinessFeed(BaseService):
             )
 
         except Exception as e:
-            self.logger.error(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
+            self.logger.error(
+                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
+            )
             return None
 
     def _load_existing_titles(self) -> DedupTracker:
@@ -434,7 +443,7 @@ class BusinessFeed(BaseService):
     def _detect_japanese_content(self, soup, title, entry) -> bool:
         """
         記事が日本語であるかどうかを判定します。
-        
+
         Parameters
         ----------
         soup : BeautifulSoup
@@ -443,7 +452,7 @@ class BusinessFeed(BaseService):
             記事のタイトル。
         entry : dict
             エントリ情報。
-            
+
         Returns
         -------
         bool
@@ -573,7 +582,7 @@ class BusinessFeed(BaseService):
     async def _store_summaries(self, articles: list[Article]) -> None:
         """
         要約を保存します。
-    
+
         Parameters
         ----------
         articles : List[Article]
@@ -612,9 +621,11 @@ class BusinessFeed(BaseService):
                     "feed_name": article.feed_name,
                     "summary": article.summary,
                     "popularity_score": article.popularity_score,
-                    "published_at": article.published_at.isoformat()
-                    if article.published_at
-                    else None,
+                    "published_at": (
+                        article.published_at.isoformat()
+                        if article.published_at
+                        else None
+                    ),
                     "category": category,
                 }
             )
@@ -677,7 +688,9 @@ class BusinessFeed(BaseService):
         sections = list(category_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            end = (
+                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            )
             block = markdown[start:end]
             category = match.group(1).strip().lower().replace(" ", "_")
 
