@@ -199,7 +199,7 @@ class QiitaExplorer(BaseService):
     def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
         """記事を日付ごとにグループ化します。"""
         by_date: dict[str, list[Article]] = {}
-        default_date = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        default_date = datetime.now().strftime('%Y-%m-%d')
         
         for article in articles:
             date_key = (
@@ -242,10 +242,10 @@ class QiitaExplorer(BaseService):
         List[dict]
             フィルタリングされたエントリのリスト。
         """
-        self.logger.info(f"エントリのフィルタリングを開始します（{len(entries)}件）...")
+        self.logger.info(f"エントリのフィルタリングを開始します({len(entries)}件)...")
 
         # 日付でフィルタリング
-        cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+        cutoff_date = datetime.now().replace(tzinfo=None) - timedelta(days=days)
         recent_entries = []
 
         for entry in entries:
