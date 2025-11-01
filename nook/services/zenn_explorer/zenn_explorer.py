@@ -190,10 +190,15 @@ class ZennExplorer(BaseService):
             all_selected_articles = []
             for date_str in sorted(articles_by_date.keys()):
                 date_articles = articles_by_date[date_str]
+
+                # 日付情報を先頭に表示
+                self.logger.info(f"\n📰 [{date_str}] の記事を処理中...")
+                self.logger.info(f"   🔍 候補記事: {len(date_articles)}件")
+
                 selected = self._select_top_articles(date_articles)
 
                 self.logger.info(
-                    f"\n   ✅ 選択された記事 ({len(selected)}/{len(date_articles)}):"
+                    f"   ✅ 選択された記事 ({len(selected)}/{len(date_articles)}):"
                 )
                 for idx, article in enumerate(selected, 1):
                     self.logger.info(
@@ -217,6 +222,7 @@ class ZennExplorer(BaseService):
                 saved_files = await self._store_summaries(
                     all_selected_articles, effective_target_dates
                 )
+                self.logger.info(f"\n💾 {len(saved_files)}日分のデータを保存完了")
             else:
                 self.logger.info("\n保存する記事がありません")
 
@@ -433,7 +439,7 @@ class ZennExplorer(BaseService):
             key=lambda item: item.get("title", ""),
             sort_key=self._article_sort_key,
             limit=self.SUMMARY_LIMIT,
-            logger=self.logger,
+            logger=None,  # 日付情報の二重表示を防ぐ
         )
 
         return saved_files
