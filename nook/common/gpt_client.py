@@ -23,7 +23,7 @@ PRICING = {"input": 0.20, "cached_input": 0.05, "output": 0.80}
 class GPTClient:
     """
     OpenAI GPT APIとの通信を担当するクライアントクラス。
-    
+
     Parameters
     ----------
     api_key : str, optional
@@ -35,7 +35,7 @@ class GPTClient:
     def __init__(self, api_key: str | None = None, model: str | None = None):
         """
         GPTClientを初期化します。
-        
+
         Parameters
         ----------
         api_key : str, optional
@@ -48,7 +48,7 @@ class GPTClient:
             raise ValueError(
                 "OPENAI_API_KEY must be provided or set as an environment variable"
             )
-        
+
         self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4.1-nano")
         if not self.model:
             raise ValueError(
@@ -84,7 +84,9 @@ class GPTClient:
         output_cost = (output_tokens / 1_000_000) * PRICING["output"]
         return input_cost + output_cost
 
-    def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
+    def _messages_to_responses_input(
+        self, messages: list[dict[str, str]]
+    ) -> list[dict[str, Any]]:
         """
         Chat CompletionsのmessagesをResponses APIのinput形式へ変換します。
         """
@@ -143,7 +145,9 @@ class GPTClient:
         pieces = [p for p in collect(data) if isinstance(p, str) and p.strip()]
         return "\n".join(pieces)
 
-    def _call_gpt5(self, prompt: str, system_instruction: str | None, max_tokens: int) -> str:
+    def _call_gpt5(
+        self, prompt: str, system_instruction: str | None, max_tokens: int
+    ) -> str:
         """
         GPT-5系モデル用のResponses API呼び出し。
         必要に応じてprevious_response_idで継続生成を試みます。
@@ -172,11 +176,18 @@ class GPTClient:
                     params["instructions"] = system_instruction
 
             resp = self.client.responses.create(**params)
-            output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
+            output_text = getattr(
+                resp, "output_text", ""
+            ) or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
 
-    def _call_gpt5_chat(self, messages: list[dict[str, str]], system_instruction: str | None, max_tokens: int) -> str:
+    def _call_gpt5_chat(
+        self,
+        messages: list[dict[str, str]],
+        system_instruction: str | None,
+        max_tokens: int,
+    ) -> str:
         """
         GPT-5系向けにチャット形式のmessagesをResponses APIで処理。
         必要に応じてprevious_response_idで継続生成。
@@ -200,7 +211,9 @@ class GPTClient:
                     params["instructions"] = system_instruction
 
             resp = self.client.responses.create(**params)
-            output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
+            output_text = getattr(
+                resp, "output_text", ""
+            ) or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
             prev_id = getattr(resp, "id", None)
@@ -210,19 +223,17 @@ class GPTClient:
     def _supports_max_completion_tokens(self) -> bool:
         """
         モデルがmax_completion_tokensパラメータをサポートしているか判定します。
-        
+
         gpt-5シリーズとgpt-4.1シリーズは max_completion_tokens を使用します。
         それ以外のモデルは max_tokens を使用します。
         """
         model_lower = self.model.lower()
-        return model_lower.startswith("gpt-5") or model_lower.startswith(
-            "gpt-4.1"
-        )
+        return model_lower.startswith("gpt-5") or model_lower.startswith("gpt-4.1")
 
     def _is_gpt5_model(self) -> bool:
         """
         GPT-5モデルかどうかを判定します。
-        
+
         GPT-5モデルはtemperature、top_p、logprobsをサポートせず、
         代わりにreasoning_effortとverbosityを使用します。
         """
@@ -317,7 +328,7 @@ class GPTClient:
     ) -> str:
         """
         テキストを生成します。
-        
+
         Parameters
         ----------
         prompt : str
@@ -328,7 +339,7 @@ class GPTClient:
             生成の多様性を制御するパラメータ。
         max_tokens : int, default=1000
             生成するトークンの最大数。
-            
+
         Returns
         -------
         str
@@ -386,7 +397,7 @@ class GPTClient:
     ) -> str:
         """
         非同期でテキストを生成します。
-        
+
         Parameters
         ----------
         prompt : str
@@ -397,7 +408,7 @@ class GPTClient:
             生成の多様性を制御するパラメータ。
         max_tokens : int, default=1000
             生成するトークンの最大数。
-            
+
         Returns
         -------
         str
@@ -421,12 +432,12 @@ class GPTClient:
     def create_chat(self, system_instruction: str | None = None) -> dict[str, Any]:
         """
         チャットセッションを作成します。
-        
+
         Parameters
         ----------
         system_instruction : str, optional
             システム指示。
-            
+
         Returns
         -------
         Dict[str, Any]
@@ -451,7 +462,7 @@ class GPTClient:
     ) -> str:
         """
         チャットセッションにメッセージを送信します。
-        
+
         Parameters
         ----------
         chat_session : Dict[str, Any]
@@ -462,7 +473,7 @@ class GPTClient:
             生成の多様性を制御するパラメータ。
         max_tokens : int, default=1000
             生成するトークンの最大数。
-            
+
         Returns
         -------
         str
@@ -479,7 +490,9 @@ class GPTClient:
 
         # モデルに応じて適切なAPIを使用
         if self._is_gpt5_model():
-            assistant_message = self._call_gpt5_chat(chat_session["messages"], None, max_tokens)
+            assistant_message = self._call_gpt5_chat(
+                chat_session["messages"], None, max_tokens
+            )
         else:
             completion_params = {
                 "model": self.model,
@@ -518,7 +531,7 @@ class GPTClient:
     ) -> str:
         """
         検索機能付きチャットを実行します。
-        
+
         Parameters
         ----------
         message : str
@@ -531,7 +544,7 @@ class GPTClient:
             生成の多様性を制御するパラメータ。
         max_tokens : int, default=1000
             生成するトークンの最大数。
-            
+
         Returns
         -------
         str
@@ -560,7 +573,9 @@ class GPTClient:
 
         # モデルに応じて適切なAPIを使用
         if self._is_gpt5_model():
-            output_text = self._call_gpt5_chat(messages, system_instruction=None, max_tokens=max_tokens)
+            output_text = self._call_gpt5_chat(
+                messages, system_instruction=None, max_tokens=max_tokens
+            )
         else:
             completion_params = {
                 "model": self.model,
@@ -592,7 +607,7 @@ class GPTClient:
     ) -> str:
         """
         チャットを実行します。
-        
+
         Parameters
         ----------
         messages : List[Dict[str, str]]
@@ -603,7 +618,7 @@ class GPTClient:
             生成の多様性を制御するパラメータ。
         max_tokens : int, default=1000
             生成するトークンの最大数。
-            
+
         Returns
         -------
         str
@@ -625,7 +640,9 @@ class GPTClient:
 
         # モデルに応じて適切なAPIを使用
         if self._is_gpt5_model():
-            output_text = self._call_gpt5_chat(all_messages, system_instruction=None, max_tokens=max_tokens)
+            output_text = self._call_gpt5_chat(
+                all_messages, system_instruction=None, max_tokens=max_tokens
+            )
         else:
             completion_params = {
                 "model": self.model,

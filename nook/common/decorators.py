@@ -30,7 +30,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
 
                 except Exception as e:
                     last_exception = e
-                    wait_time = delay * (backoff ** attempt)
+                    wait_time = delay * (backoff**attempt)
 
                     logger.warning(
                         f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {e}",
@@ -72,7 +72,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
 
                 except Exception as e:
                     last_exception = e
-                    wait_time = delay * (backoff ** attempt)
+                    wait_time = delay * (backoff**attempt)
 
                     logger.warning(
                         f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {e}"

@@ -166,11 +166,7 @@ class AsyncHTTPClient:
 
         except httpx.HTTPStatusError as e:
             # 422エラーの場合はHTTP/1.1でフォールバック
-            if (
-                e.response.status_code == 422
-                and not force_http1
-                and retry_http1
-            ):
+            if e.response.status_code == 422 and not force_http1 and retry_http1:
                 logger.info(f"422 error for {url}, retrying with HTTP/1.1")
                 return await self.get(
                     url,

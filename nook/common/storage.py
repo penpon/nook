@@ -11,7 +11,7 @@ import aiofiles
 class LocalStorage:
     """
     ローカルファイルシステムでのデータ操作を担当するクラス。
-    
+
     Parameters
     ----------
     base_dir : str
@@ -21,7 +21,7 @@ class LocalStorage:
     def __init__(self, base_dir: str):
         """
         LocalStorageを初期化します。
-        
+
         Parameters
         ----------
         base_dir : str
@@ -35,7 +35,7 @@ class LocalStorage:
     ) -> Path:
         """
         Markdownコンテンツを保存します。
-        
+
         Parameters
         ----------
         content : str
@@ -44,7 +44,7 @@ class LocalStorage:
             サービス名（ディレクトリ名）。
         date : datetime, optional
             日付。指定しない場合は現在の日付。
-            
+
         Returns
         -------
         Path
@@ -69,14 +69,14 @@ class LocalStorage:
     ) -> str | None:
         """
         Markdownコンテンツを読み込みます。
-        
+
         Parameters
         ----------
         service_name : str
             サービス名（ディレクトリ名）。
         date : datetime, optional
             日付。指定しない場合は現在の日付。
-            
+
         Returns
         -------
         str or None
@@ -97,12 +97,12 @@ class LocalStorage:
     def list_dates(self, service_name: str) -> list[datetime]:
         """
         利用可能な日付の一覧を取得します。
-        
+
         Parameters
         ----------
         service_name : str
             サービス名（ディレクトリ名）。
-            
+
         Returns
         -------
         List[datetime]
@@ -127,14 +127,14 @@ class LocalStorage:
     async def save(self, data: Any, filename: str) -> Path:
         """
         データを非同期で保存します。
-        
+
         Parameters
         ----------
         data : Any
             保存するデータ（JSONシリアライズ可能）。
         filename : str
             保存するファイル名。
-            
+
         Returns
         -------
         Path
@@ -180,14 +180,14 @@ class LocalStorage:
     ) -> list[Any] | None:
         """
         JSONコンテンツを読み込みます。
-        
+
         Parameters
         ----------
         service_name : str
             サービス名（ディレクトリ名）。
         date : datetime, optional
             日付。指定しない場合は現在の日付。
-            
+
         Returns
         -------
         List[Any] or None
