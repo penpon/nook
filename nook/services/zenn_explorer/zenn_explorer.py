@@ -90,7 +90,9 @@ class ZennExplorer(BaseService):
         """
         asyncio.run(self.collect(days, limit))
 
-    async def collect(self, days: int = 1, limit: int | None = None) -> None:
+    async def collect(
+        self, days: int = 1, limit: int | None = None
+    ) -> list[tuple[str, str]]:
         """
         ZennのRSSフィードを監視・収集・要約して保存します（非同期版）。
 
@@ -100,6 +102,11 @@ class ZennExplorer(BaseService):
             何日前までの記事を取得するか。
         limit : Optional[int], default=None
             各フィードから取得する記事数。Noneの場合は制限なし。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -110,14 +117,15 @@ class ZennExplorer(BaseService):
             self._load_existing_titles()
         )  # カテゴリ横断のタイトル重複チェック用
 
+        self.logger.info("\n📡 フィード取得中...")
+
         try:
             # 各カテゴリのフィードから記事を取得
+            total_entries = 0
             for category, feeds in self.feed_config.items():
-                self.logger.info(f"カテゴリ {category} の処理を開始します...")
                 for feed_url in feeds:
                     try:
                         # フィードを解析
-                        self.logger.info(f"フィード {feed_url} を解析しています...")
                         feed = feedparser.parse(feed_url)
                         feed_name = (
                             feed.feed.title
@@ -125,22 +133,15 @@ class ZennExplorer(BaseService):
                             else feed_url
                         )
 
-                        current_limit = limit
-                        if current_limit is None:
-                            self.logger.info(
-                                f"フィード {feed_url} は制限なしで取得します"
-                            )
-
                         effective_limit = None
-                        if current_limit is not None:
-                            effective_limit = current_limit * max(days, 1)
+                        if limit is not None:
+                            effective_limit = limit * max(days, 1)
 
                         entries = self._filter_entries(
                             feed.entries, days, effective_limit
                         )
-                        self.logger.info(
-                            f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました"
-                        )
+                        total_entries += len(entries)
+                        self.logger.info(f"   • {feed_name}: {len(entries)}件取得")
 
                         for entry in entries:
                             # 記事を取得
@@ -170,31 +171,42 @@ class ZennExplorer(BaseService):
                             f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
                         )
 
-            self.logger.info(
-                f"合計 {len(candidate_articles)} 件の記事候補を取得しました"
-            )
-
             # 日付ごとにグループ化
             articles_by_date = self._group_articles_by_date(candidate_articles)
 
-            # 日付ごとに上位N件を選択して要約
+            # 日付ごとに上位N件を選択して要約（古い日付から新しい日付へ）
             all_selected_articles = []
-            for date_str in sorted(articles_by_date.keys(), reverse=True):
+            for date_str in sorted(articles_by_date.keys()):
                 date_articles = articles_by_date[date_str]
                 selected = self._select_top_articles(date_articles)
+
                 self.logger.info(
-                    f"{date_str}: {len(date_articles)}件中 {len(selected)}件を選択"
+                    f"\n   ✅ 選択された記事 ({len(selected)}/{len(date_articles)}):"
                 )
-                for article in selected:
-                    await self._summarize_article(article)
+                for idx, article in enumerate(selected, 1):
+                    self.logger.info(
+                        f"      {idx}. 「{article.title}」(スコア: {article.popularity_score:.0f})"
+                    )
+
+                # 要約生成
+                if selected:
+                    self.logger.info(f"\n   🤖 要約生成中...")
+                    for idx, article in enumerate(selected, 1):
+                        await self._summarize_article(article)
+                        self.logger.info(
+                            f"      ✓ {idx}/{len(selected)}: 「{article.title[:50]}...」"
+                        )
+
                 all_selected_articles.extend(selected)
 
             # 要約を保存
+            saved_files: list[tuple[str, str]] = []
             if all_selected_articles:
-                await self._store_summaries(all_selected_articles)
-                self.logger.info("記事の要約を保存しました")
+                saved_files = await self._store_summaries(all_selected_articles)
             else:
-                self.logger.info("保存する記事がありません")
+                self.logger.info("\n保存する記事がありません")
+
+            return saved_files
 
         finally:
             # グローバルクライアントなのでクローズ不要
@@ -248,8 +260,6 @@ class ZennExplorer(BaseService):
         List[dict]
             フィルタリングされたエントリのリスト。
         """
-        self.logger.info(f"エントリのフィルタリングを開始します({len(entries)}件)...")
-
         # 日付でフィルタリング
         cutoff_date = datetime.now().replace(tzinfo=None) - timedelta(days=days)
         recent_entries = []
@@ -258,24 +268,11 @@ class ZennExplorer(BaseService):
             entry_date = parse_entry_datetime(entry)
 
             if entry_date:
-                self.logger.debug(
-                    f"エントリ日付: {entry_date}, カットオフ日付: {cutoff_date}"
-                )
                 if entry_date >= cutoff_date:
                     recent_entries.append(entry)
-                else:
-                    self.logger.debug(
-                        "指定期間外の記事をスキップします。 raw=%s",
-                        getattr(entry, "published", getattr(entry, "updated", "")),
-                    )
             else:
-                self.logger.debug(
-                    "エントリに日付情報がありません。含めます。 raw=%s",
-                    getattr(entry, "published", getattr(entry, "updated", "")),
-                )
+                # 日付情報がない場合は含める
                 recent_entries.append(entry)
-
-        self.logger.info(f"フィルタリング後のエントリ数: {len(recent_entries)}")
 
         # limitがNoneの場合は全てのエントリを返す
         if limit is None:
@@ -395,10 +392,10 @@ class ZennExplorer(BaseService):
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, articles: list[Article]) -> None:
+    async def _store_summaries(self, articles: list[Article]) -> list[tuple[str, str]]:
         if not articles:
             self.logger.info("保存する記事がありません")
-            return
+            return []
 
         default_date = datetime.now().date()
         incoming_records = self._serialize_articles(articles)
@@ -407,7 +404,7 @@ class ZennExplorer(BaseService):
             default_date=default_date,
         )
 
-        await store_daily_snapshots(
+        saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_articles,
             save_json=self.save_json,
@@ -418,6 +415,8 @@ class ZennExplorer(BaseService):
             limit=self.SUMMARY_LIMIT,
             logger=self.logger,
         )
+
+        return saved_files
 
     def _serialize_articles(self, articles: list[Article]) -> list[dict]:
         records: list[dict] = []

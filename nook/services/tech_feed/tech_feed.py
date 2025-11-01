@@ -90,7 +90,9 @@ class TechFeed(BaseService):
         """
         asyncio.run(self.collect(days, limit))
 
-    async def collect(self, days: int = 1, limit: int | None = None) -> None:
+    async def collect(
+        self, days: int = 1, limit: int | None = None
+    ) -> list[tuple[str, str]]:
         """
         技術ニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
 
@@ -100,6 +102,11 @@ class TechFeed(BaseService):
             何日前までの記事を取得するか。
         limit : Optional[int], default=None
             各フィードから取得する記事数。Noneの場合は制限なし。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         total_limit = self.TOTAL_LIMIT
         # HTTPクライアントの初期化を確認
@@ -171,9 +178,9 @@ class TechFeed(BaseService):
             # 日付ごとにグループ化
             articles_by_date = self._group_articles_by_date(candidate_articles)
 
-            # 日付ごとに上位N件を選択して要約
+            # 日付ごとに上位N件を選択して要約（古い日付から新しい日付へ）
             all_selected_articles = []
-            for date_str in sorted(articles_by_date.keys(), reverse=True):
+            for date_str in sorted(articles_by_date.keys()):
                 date_articles = articles_by_date[date_str]
                 selected = self._select_top_articles(date_articles, total_limit)
                 self.logger.info(
@@ -184,11 +191,13 @@ class TechFeed(BaseService):
                 all_selected_articles.extend(selected)
 
             # 要約を保存
+            saved_files: list[tuple[str, str]] = []
             if all_selected_articles:
-                await self._store_summaries(all_selected_articles)
-                self.logger.info("記事の要約を保存しました")
+                saved_files = await self._store_summaries(all_selected_articles)
             else:
                 self.logger.info("保存する記事がありません")
+
+            return saved_files
 
         finally:
             # グローバルクライアントなのでクローズ不要
@@ -576,7 +585,7 @@ class TechFeed(BaseService):
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, articles: list[Article]) -> None:
+    async def _store_summaries(self, articles: list[Article]) -> list[tuple[str, str]]:
         """
         要約を保存します。
 
@@ -584,10 +593,15 @@ class TechFeed(BaseService):
         ----------
         articles : List[Article]
             保存する記事のリスト。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         if not articles:
             self.logger.info("保存する記事がありません")
-            return
+            return []
 
         default_date = datetime.now().date()
         incoming_records = self._serialize_articles(articles)
@@ -596,7 +610,7 @@ class TechFeed(BaseService):
             default_date=default_date,
         )
 
-        await store_daily_snapshots(
+        saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_articles,
             save_json=self.save_json,
@@ -607,6 +621,8 @@ class TechFeed(BaseService):
             limit=self.TOTAL_LIMIT,
             logger=self.logger,
         )
+
+        return saved_files
 
     def _serialize_articles(self, articles: list[Article]) -> list[dict]:
         records: list[dict] = []

@@ -126,7 +126,7 @@ class RedditExplorer(BaseService):
         """
         asyncio.run(self.collect(limit))
 
-    async def collect(self, limit: int | None = None) -> None:
+    async def collect(self, limit: int | None = None) -> list[tuple[str, str]]:
         """
         Redditの人気投稿を収集・要約して保存します（非同期版）。
 
@@ -134,6 +134,11 @@ class RedditExplorer(BaseService):
         ----------
         limit : Optional[int], default=None
             各サブレディットから取得する投稿数。Noneの場合は制限なし。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -186,11 +191,13 @@ class RedditExplorer(BaseService):
                     )
                     await self._summarize_reddit_post(post)
 
+                saved_files: list[tuple[str, str]] = []
                 if selected_posts:
-                    await self._store_summaries(selected_posts)
-                    self.logger.info("投稿の要約を保存しました")
+                    saved_files = await self._store_summaries(selected_posts)
                 else:
                     self.logger.info("保存する投稿がありません")
+
+                return saved_files
 
             finally:
                 # グローバルHTTPクライアントなのでクローズ不要
@@ -400,16 +407,18 @@ class RedditExplorer(BaseService):
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             post.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, posts: list[tuple[str, str, RedditPost]]) -> None:
+    async def _store_summaries(
+        self, posts: list[tuple[str, str, RedditPost]]
+    ) -> list[tuple[str, str]]:
         if not posts:
             self.logger.info("保存する投稿がありません")
-            return
+            return []
 
         default_date = datetime.now().date()
         records = self._serialize_posts(posts)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
-        await store_daily_snapshots(
+        saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_posts,
             save_json=self.save_json,
@@ -420,6 +429,8 @@ class RedditExplorer(BaseService):
             limit=self.SUMMARY_LIMIT,
             logger=self.logger,
         )
+
+        return saved_files
 
     def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:
         records: list[dict] = []
