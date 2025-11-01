@@ -62,41 +62,52 @@ class ServiceRunner:
         if service_name in services_with_days and days > 0:
             end_date = datetime.now().date()
             start_date = end_date - timedelta(days=days - 1)
-            logger.info("=" * 60)
+            logger.info("\n" + "━" * 60)
             logger.info(f"📅 対象期間: {start_date} 〜 {end_date} ({days}日間)")
             logger.info(f"🚀 サービス開始: {service_name}")
-            logger.info("=" * 60)
+            logger.info("━" * 60)
         else:
-            logger.info(f"Starting service: {service_name}")
+            logger.info(f"\n🚀 サービス開始: {service_name}")
 
+        saved_files: list[tuple[str, str]] = []
         try:
             # サービスごとに異なるlimitパラメータを設定
             if service_name == "hacker_news":
                 # Hacker Newsは15記事に制限
-                await service.collect(limit=15)
-                logger.info(f"Service {service_name} completed with limit=15")
+                result = await service.collect(limit=15)
+                saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
                 # Tech News/Business Newsは各5記事に制限し、daysパラメータを渡す
-                await service.collect(days=days, limit=5)
-                logger.info(
-                    f"Service {service_name} completed with limit=5, days={days}"
-                )
+                result = await service.collect(days=days, limit=5)
+                saved_files = result if result else []
             elif service_name in ["zenn", "qiita", "note"]:
                 # Zenn/Qiita/Noteは各3記事に制限し、daysパラメータを渡す
-                await service.collect(days=days, limit=3)
-                logger.info(
-                    f"Service {service_name} completed with limit=3, days={days}"
-                )
+                result = await service.collect(days=days, limit=3)
+                saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは5記事に制限
-                await service.collect(limit=5)
-                logger.info(f"Service {service_name} completed with limit=5")
+                result = await service.collect(limit=5)
+                saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
-                await service.collect()
-                logger.info(f"Service {service_name} completed successfully")
+                result = await service.collect()
+                saved_files = result if result else []
+
+            # 保存されたファイルのサマリーを表示
+            if saved_files:
+                logger.info("\n" + "━" * 60)
+                logger.info("💾 保存完了したファイル:")
+                for json_path, md_path in saved_files:
+                    logger.info(f"   • {json_path}")
+                    logger.info(f"   • {md_path}")
+                logger.info("━" * 60)
+                total_articles = len(saved_files)
+                logger.info(
+                    f"✨ 完了: 合計{total_articles}日分のデータを処理しました\n"
+                )
+
         except Exception as e:
-            logger.error(f"Service {service_name} failed: {e}", exc_info=True)
+            logger.error(f"\n❌ Service {service_name} failed: {e}", exc_info=True)
             raise
 
     async def run_all(self, days: int = 1) -> None:
