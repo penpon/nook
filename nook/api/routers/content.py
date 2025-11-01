@@ -83,9 +83,9 @@ async def get_content(
 
     # キャッシュ制御ヘッダーを設定（キャッシュを無効化）
     if response:
-        response.headers[
-            "Cache-Control"
-        ] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
 

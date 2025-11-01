@@ -18,12 +18,12 @@ router = APIRouter()
 async def get_weather_data() -> WeatherResponse:
     """
     天気データを取得します。
-    
+
     Returns
     -------
     WeatherResponse
         天気レスポンス。
-        
+
     Raises
     ------
     HTTPException

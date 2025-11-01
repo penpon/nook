@@ -14,24 +14,27 @@ from nook.common.gpt_client import GPTClient
 # 環境変数の読み込み
 load_dotenv()
 
-router = APIRouter(prefix="/chat", tags=["chat"],)
+router = APIRouter(
+    prefix="/chat",
+    tags=["chat"],
+)
 
 
 @router.post("", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
     """
     チャットメッセージを処理し、レスポンスを返します。
-    
+
     Parameters
     ----------
     request : ChatRequest
         チャットリクエスト
-        
+
     Returns
     -------
     ChatResponse
         チャットレスポンス
-        
+
     Raises
     ------
     HTTPException
@@ -59,7 +62,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # システムプロンプトの作成
         system_prompt = "あなたは親切なアシスタントです。ユーザーが提供したコンテンツについて質問に答えてください。"
         if request.markdown:
-            system_prompt += f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"
+            system_prompt += (
+                f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"
+            )
 
         # GPT APIを呼び出し
         response = client.chat(
@@ -73,5 +78,6 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"チャットリクエストの処理中にエラーが発生しました: {str(e)}"
+            status_code=500,
+            detail=f"チャットリクエストの処理中にエラーが発生しました: {str(e)}",
         )

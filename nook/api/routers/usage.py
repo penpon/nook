@@ -192,7 +192,7 @@ def calculate_summary(logs: list[dict]) -> dict:
 async def get_usage_summary():
     """
     使用量のサマリー情報を返します。
-    
+
     Returns
     -------
     Dict
@@ -216,7 +216,7 @@ async def get_usage_summary():
 async def get_usage_by_service():
     """
     サービス別の使用量を返します。
-    
+
     Returns
     -------
     List[Dict]
@@ -242,12 +242,12 @@ async def get_usage_by_service():
 async def get_daily_usage(days: int = 30):
     """
     日別の使用量を返します。
-    
+
     Parameters
     ----------
     days : int, default=30
         取得する日数
-        
+
     Returns
     -------
     List[Dict]

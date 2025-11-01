@@ -36,6 +36,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # エラーハンドラーの登録
 @app.exception_handler(NookHTTPException)
 async def nook_exception_handler(request: Request, exc: NookHTTPException):
@@ -57,20 +58,24 @@ app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
 async def root():
     """
     ルートエンドポイント。
-    
+
     Returns
     -------
     dict
         APIの基本情報。
     """
-    return {"name": "Nook API", "version": "0.1.0", "description": "パーソナル情報ハブのAPI"}
+    return {
+        "name": "Nook API",
+        "version": "0.1.0",
+        "description": "パーソナル情報ハブのAPI",
+    }
 
 
 @app.get("/health")
 async def health():
     """
     ヘルスチェックエンドポイント。
-    
+
     Returns
     -------
     dict
@@ -83,7 +88,7 @@ async def health():
 async def get_error_stats():
     """
     エラー統計を取得するエンドポイント。
-    
+
     Returns
     -------
     dict

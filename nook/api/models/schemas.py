@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class ContentRequest(BaseModel):
     """
     コンテンツリクエスト。
-    
+
     Parameters
     ----------
     date : str, optional
@@ -22,7 +22,7 @@ class ContentRequest(BaseModel):
 class ContentItem(BaseModel):
     """
     コンテンツ項目。
-    
+
     Parameters
     ----------
     title : str
@@ -46,7 +46,7 @@ class ContentItem(BaseModel):
 class ContentResponse(BaseModel):
     """
     コンテンツレスポンス。
-    
+
     Parameters
     ----------
     items : List[ContentItem]
@@ -59,7 +59,7 @@ class ContentResponse(BaseModel):
 class WeatherResponse(BaseModel):
     """
     天気レスポンス。
-    
+
     Parameters
     ----------
     temperature : float
@@ -75,7 +75,7 @@ class WeatherResponse(BaseModel):
 class ChatMessage(BaseModel):
     """
     チャットメッセージ。
-    
+
     Parameters
     ----------
     role : str
@@ -91,7 +91,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     """
     チャットリクエスト。
-    
+
     Parameters
     ----------
     topic_id : str
@@ -115,7 +115,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """
     チャットレスポンス。
-    
+
     Parameters
     ----------
     response : str
