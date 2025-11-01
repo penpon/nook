@@ -8,6 +8,7 @@ from logging import Logger
 from typing import Any, Awaitable, Callable, Iterable, Mapping, Sequence
 
 from nook.common.daily_merge import merge_records
+from nook.common.date_utils import normalize_datetime_to_local
 
 
 Record = dict[str, Any]
@@ -17,14 +18,16 @@ def _parse_record_date(value: object) -> date | None:
     """Attempt to parse a record's published date component."""
 
     if isinstance(value, datetime):
-        return value.date()
+        local_dt = normalize_datetime_to_local(value)
+        return local_dt.date() if local_dt else None
 
     if isinstance(value, str) and value:
         try:
             parsed = datetime.fromisoformat(value)
         except ValueError:
             return None
-        return parsed.date()
+        local_dt = normalize_datetime_to_local(parsed)
+        return local_dt.date() if local_dt else None
 
     return None
 
