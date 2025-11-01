@@ -68,11 +68,15 @@ class ServiceRunner:
             elif service_name in ["tech_news", "business_news"]:
                 # Tech News/Business Newsは各5記事に制限し、daysパラメータを渡す
                 await service.collect(days=days, limit=5)
-                logger.info(f"Service {service_name} completed with limit=5, days={days}")
+                logger.info(
+                    f"Service {service_name} completed with limit=5, days={days}"
+                )
             elif service_name in ["zenn", "qiita", "note"]:
                 # Zenn/Qiita/Noteは各3記事に制限し、daysパラメータを渡す
                 await service.collect(days=days, limit=3)
-                logger.info(f"Service {service_name} completed with limit=3, days={days}")
+                logger.info(
+                    f"Service {service_name} completed with limit=3, days={days}"
+                )
             elif service_name == "reddit":
                 # Redditは5記事に制限
                 await service.collect(limit=5)
@@ -142,14 +146,18 @@ class ServiceRunner:
         logger.info(f"Running service: {service_name} with days={days}")
 
         try:
-            await self._run_sync_service(service_name, self.sync_services[service_name], days)
+            await self._run_sync_service(
+                service_name, self.sync_services[service_name], days
+            )
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)
             raise
 
     async def run_continuous(self, interval_seconds: int = 3600, days: int = 1) -> None:
         """定期的にサービスを実行"""
-        logger.info(f"Starting continuous run with interval: {interval_seconds}s, days={days}")
+        logger.info(
+            f"Starting continuous run with interval: {interval_seconds}s, days={days}"
+        )
 
         while self.running:
             try:
@@ -205,9 +213,18 @@ async def main():
         default="all",
         help="実行するサービスを指定します",
     )
-    parser.add_argument("--continuous", action="store_true", help="サービスを定期的に実行します")
-    parser.add_argument("--interval", type=int, default=3600, help="連続実行時の間隔（秒）")
-    parser.add_argument("--days", type=int, default=1, help="何日前までの記事を取得するか（RSSフィードサービスのみ）")
+    parser.add_argument(
+        "--continuous", action="store_true", help="サービスを定期的に実行します"
+    )
+    parser.add_argument(
+        "--interval", type=int, default=3600, help="連続実行時の間隔（秒）"
+    )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=1,
+        help="何日前までの記事を取得するか（RSSフィードサービスのみ）",
+    )
 
     args = parser.parse_args()
 
