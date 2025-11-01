@@ -27,9 +27,16 @@ def test_group_records_by_date_handles_missing_and_parsed_dates():
 
     grouped = group_records_by_date(records, default_date=reference.date())
 
-    assert sorted(grouped.keys()) == [reference.date() - timedelta(days=1), reference.date()]
+    assert sorted(grouped.keys()) == [
+        reference.date() - timedelta(days=1),
+        reference.date(),
+    ]
     today_records = grouped[reference.date()]
-    assert {item["title"] for item in today_records} == {"today", "no-date", "already-datetime"}
+    assert {item["title"] for item in today_records} == {
+        "today",
+        "no-date",
+        "already-datetime",
+    }
     yesterday_records = grouped[reference.date() - timedelta(days=1)]
     assert {item["title"] for item in yesterday_records} == {"yesterday"}
 
