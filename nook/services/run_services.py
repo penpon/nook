@@ -6,7 +6,7 @@ Nookの各サービスを非同期で実行するスクリプト。
 import asyncio
 import signal
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 
@@ -57,7 +57,17 @@ class ServiceRunner:
 
     async def _run_sync_service(self, service_name: str, service, days: int = 1):
         """同期サービスを非同期で実行"""
-        logger.info(f"Starting service: {service_name}")
+        # days パラメータを使用するサービスの場合、対象期間を表示
+        services_with_days = ["tech_news", "business_news", "zenn", "qiita", "note"]
+        if service_name in services_with_days and days > 0:
+            end_date = datetime.now().date()
+            start_date = end_date - timedelta(days=days - 1)
+            logger.info("=" * 60)
+            logger.info(f"📅 対象期間: {start_date} 〜 {end_date} ({days}日間)")
+            logger.info(f"🚀 サービス開始: {service_name}")
+            logger.info("=" * 60)
+        else:
+            logger.info(f"Starting service: {service_name}")
 
         try:
             # サービスごとに異なるlimitパラメータを設定
