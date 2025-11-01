@@ -69,7 +69,7 @@ class GithubTrending(BaseService):
         with open(script_dir / "languages.toml", "rb") as f:
             self.languages_config = tomli.load(f)
 
-    async def collect(self, limit: int = 15) -> None:
+    async def collect(self, limit: int = 15) -> list[tuple[str, str]]:
         """
         GitHubのトレンドリポジトリを収集して保存します。
 
@@ -77,6 +77,11 @@ class GithubTrending(BaseService):
         ----------
         limit : int, default=10
             各言語から取得するリポジトリ数。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -111,7 +116,8 @@ class GithubTrending(BaseService):
         all_repositories = await self._translate_repositories(all_repositories)
 
         # 保存
-        await self._store_summaries(all_repositories, limit)
+        saved_files = await self._store_summaries(all_repositories, limit)
+        return saved_files
 
     @handle_errors(retries=3)
     async def _retrieve_repositories(
@@ -268,7 +274,7 @@ class GithubTrending(BaseService):
         self,
         repositories_by_language: list[tuple[str, list[Repository]]],
         limit_per_language: int | None,
-    ) -> None:
+    ) -> list[tuple[str, str]]:
         """
         リポジトリ情報を保存します。
 
@@ -278,16 +284,21 @@ class GithubTrending(BaseService):
             言語ごとのリポジトリリスト。
         limit_per_language : int | None
             各言語の最大件数。None の場合は入力データの件数を利用。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         if not repositories_by_language:
             self.logger.info("保存するリポジトリがありません")
-            return
+            return []
 
         default_date = datetime.now().date()
         records = self._serialize_repositories(repositories_by_language)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
-        await store_daily_snapshots(
+        saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_repositories_by_date,
             save_json=self.save_json,
@@ -298,6 +309,8 @@ class GithubTrending(BaseService):
             limit=None,
             logger=self.logger,
         )
+
+        return saved_files
 
     def _serialize_repositories(
         self, repositories_by_language: list[tuple[str, list[Repository]]]

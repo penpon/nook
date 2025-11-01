@@ -76,7 +76,7 @@ class HackerNewsRetriever(BaseService):
         self.http_client = None  # setup_http_clientで初期化
         self.blocked_domains = self._load_blocked_domains()
 
-    async def collect(self, limit: int = MAX_STORY_LIMIT) -> None:
+    async def collect(self, limit: int = MAX_STORY_LIMIT) -> list[tuple[str, str]]:
         """
         Hacker Newsの記事を収集して保存します。
 
@@ -84,6 +84,11 @@ class HackerNewsRetriever(BaseService):
         ----------
         limit : int, default=15
             取得する記事数。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         limit = min(limit, MAX_STORY_LIMIT)
 
@@ -94,7 +99,8 @@ class HackerNewsRetriever(BaseService):
         dedup_tracker = await self._load_existing_titles()
 
         stories = await self._get_top_stories(limit, dedup_tracker)
-        await self._store_summaries(stories)
+        saved_files = await self._store_summaries(stories)
+        return saved_files
 
     # 同期版の互換性のためのラッパー
     def run(self, limit: int = MAX_STORY_LIMIT) -> None:
@@ -462,17 +468,17 @@ class HackerNewsRetriever(BaseService):
         except Exception as e:
             story.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, stories: list[Story]) -> None:
+    async def _store_summaries(self, stories: list[Story]) -> list[tuple[str, str]]:
         """記事情報を日付別に保存します。"""
         if not stories:
             self.logger.info("保存する記事がありません")
-            return
+            return []
 
         default_date = datetime.now().date()
         records = self._serialize_stories(stories)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
-        await store_daily_snapshots(
+        saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_stories,
             save_json=self.save_json,
@@ -483,6 +489,8 @@ class HackerNewsRetriever(BaseService):
             limit=MAX_STORY_LIMIT,
             logger=self.logger,
         )
+
+        return saved_files
 
     def _serialize_stories(self, stories: list[Story]) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []

@@ -302,7 +302,7 @@ class FiveChanExplorer(BaseService):
         """
         asyncio.run(self.collect(thread_limit))
 
-    async def collect(self, thread_limit: int | None = None) -> None:
+    async def collect(self, thread_limit: int | None = None) -> list[tuple[str, str]]:
         """
         5chanからAI関連スレッドを収集して保存します（非同期版）。
 
@@ -310,6 +310,11 @@ class FiveChanExplorer(BaseService):
         ----------
         thread_limit : Optional[int], default=None
             各板から取得するスレッド数。Noneの場合は制限なし。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         total_limit = self.TOTAL_LIMIT
 
@@ -363,11 +368,13 @@ class FiveChanExplorer(BaseService):
                 await self._summarize_thread(thread)
 
             # 要約を保存
+            saved_files: list[tuple[str, str]] = []
             if selected_threads:
-                await self._store_summaries(selected_threads)
-                self.logger.info("スレッドの要約を保存しました")
+                saved_files = await self._store_summaries(selected_threads)
             else:
                 self.logger.info("保存するスレッドがありません")
+
+            return saved_files
 
         finally:
             # グローバルクライアントなのでクローズ不要
@@ -993,16 +1000,16 @@ class FiveChanExplorer(BaseService):
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, threads: list[Thread]) -> None:
+    async def _store_summaries(self, threads: list[Thread]) -> list[tuple[str, str]]:
         if not threads:
             self.logger.info("保存するスレッドがありません")
-            return
+            return []
 
         default_date = datetime.now().date()
         records = self._serialize_threads(threads)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
-        await store_daily_snapshots(
+        saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_threads,
             save_json=self.save_json,
@@ -1013,6 +1020,8 @@ class FiveChanExplorer(BaseService):
             limit=self.TOTAL_LIMIT,
             logger=self.logger,
         )
+
+        return saved_files
 
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
         records: list[dict] = []

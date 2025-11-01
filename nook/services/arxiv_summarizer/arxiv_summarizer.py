@@ -93,7 +93,7 @@ class ArxivSummarizer(BaseService):
         super().__init__("arxiv_summarizer")
         self.http_client = None  # setup_http_clientで初期化
 
-    async def collect(self, limit: int = 5) -> None:
+    async def collect(self, limit: int = 5) -> list[tuple[str, str]]:
         """
         arXiv論文を収集・要約して保存します。
 
@@ -101,6 +101,11 @@ class ArxivSummarizer(BaseService):
         ----------
         limit : int, default=5
             取得する論文数。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -127,10 +132,12 @@ class ArxivSummarizer(BaseService):
         await self._summarize_papers(papers)
 
         # 要約を保存
-        await self._store_summaries(papers, limit)
+        saved_files = await self._store_summaries(papers, limit)
 
         # 処理済みの論文IDを保存
         await self._save_processed_ids(paper_ids)
+
+        return saved_files
 
     # 同期版の互換性のためのラッパー
     def run(self, limit: int = 5) -> None:
@@ -452,7 +459,9 @@ class ArxivSummarizer(BaseService):
                 )
             paper_info.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
-    async def _store_summaries(self, papers: list[PaperInfo], limit: int) -> None:
+    async def _store_summaries(
+        self, papers: list[PaperInfo], limit: int
+    ) -> list[tuple[str, str]]:
         """
         要約を保存します。
 
@@ -460,15 +469,20 @@ class ArxivSummarizer(BaseService):
         ----------
         papers : List[PaperInfo]
             保存する論文のリスト。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
         if not papers:
-            return
+            return []
 
         default_date = datetime.now().date()
         records = self._serialize_papers(papers)
         records_by_date = group_records_by_date(records, default_date=default_date)
 
-        await store_daily_snapshots(
+        saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_papers,
             save_json=self.save_json,
@@ -479,6 +493,8 @@ class ArxivSummarizer(BaseService):
             limit=limit,
             logger=self.logger,
         )
+
+        return saved_files
 
     def _serialize_papers(self, papers: list[PaperInfo]) -> list[dict]:
         records: list[dict] = []
