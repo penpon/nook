@@ -4,7 +4,7 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
 import feedparser
@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.daily_merge import merge_records
 from nook.common.feed_utils import parse_entry_datetime
 from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
 from nook.common.gpt_client import GPTClient
@@ -231,7 +232,7 @@ class NoteExplorer(BaseService):
             articles_by_date = self._group_articles_by_date(candidate_articles)
 
             # 日付ごとに上位N件を選択して要約（古い日付から新しい日付へ）
-            all_selected_articles = []
+            saved_files: list[tuple[str, str]] = []
             for date_str in sorted(articles_by_date.keys()):
                 date_articles = articles_by_date[date_str]
 
@@ -266,19 +267,21 @@ class NoteExplorer(BaseService):
                     self.logger.info(f"   ✅ 選択: {len(selected)}件")
                     for article in selected:
                         await self._summarize_article(article)
-                    all_selected_articles.extend(selected)
+
+                    # この日付の記事をすぐに保存
+                    json_path, md_path = await self._store_summaries_for_date(
+                        selected, date_str
+                    )
+                    self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+                    saved_files.append((json_path, md_path))
                 else:
                     self.logger.info(f"   ℹ️  新規記事がありません")
 
-            # 要約を保存
-            saved_files: list[tuple[str, str]] = []
-            if all_selected_articles:
-                saved_files = await self._store_summaries(
-                    all_selected_articles, effective_target_dates
-                )
+            # 処理完了メッセージ
+            if saved_files:
                 self.logger.info(f"\n💾 {len(saved_files)}日分のデータを保存完了")
             else:
-                self.logger.info("保存する記事がありません")
+                self.logger.info("\n保存する記事がありません")
 
             return saved_files
 
@@ -479,6 +482,57 @@ class NoteExplorer(BaseService):
         except Exception as e:
             self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
             article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+
+    async def _store_summaries_for_date(
+        self, articles: list[Article], date_str: str
+    ) -> tuple[str, str]:
+        """
+        単一日付の記事をJSONとMarkdownファイルに保存します。
+
+        Parameters
+        ----------
+        articles : list[Article]
+            保存する記事のリスト。
+        date_str : str
+            日付文字列（"YYYY-MM-DD" 形式）。
+
+        Returns
+        -------
+        tuple[str, str]
+            保存されたファイルパスの組み合わせ (json_path, md_path)
+        """
+        if not articles:
+            return ("", "")
+
+        # 日付をdatetimeに変換
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        snapshot_datetime = datetime.combine(target_date, time.min)
+
+        # 記事をシリアライズ
+        records = self._serialize_articles(articles)
+
+        # 既存記事を読み込んでマージ
+        existing = await self._load_existing_articles(snapshot_datetime)
+
+        merged = merge_records(
+            existing,
+            records,
+            key=lambda item: item.get("title", ""),
+            sort_key=self._article_sort_key,
+            limit=self.SUMMARY_LIMIT,
+            reverse=True,
+        )
+
+        # JSONファイルを保存
+        filename_json = f"{date_str}.json"
+        json_path = await self.save_json(merged, filename_json)
+
+        # Markdownファイルを保存
+        filename_md = f"{date_str}.md"
+        markdown = self._render_markdown(merged, snapshot_datetime)
+        md_path = await self.save_markdown(markdown, filename_md)
+
+        return (str(json_path), str(md_path))
 
     async def _store_summaries(
         self, articles: list[Article], target_dates: set[date]
