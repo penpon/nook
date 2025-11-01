@@ -27,18 +27,21 @@ class BaseService(ABC):
         """データ収集のメイン処理（各サービスで実装）"""
         pass
 
-    async def save_data(self, data: Any, filename: str) -> None:
+    async def save_data(self, data: Any, filename: str) -> Path:
         """共通のデータ保存処理"""
         try:
-            await self.storage.save(data, filename)
+            file_path = await self.storage.save(data, filename)
             self.logger.info(f"Data saved successfully: {filename}")
+            return file_path
         except Exception as e:
             self.logger.error(f"Failed to save data {filename}: {e}")
             raise
 
-    async def save_markdown(self, content: str, filename: str) -> None:
+    async def save_markdown(self, content: str, filename: str) -> Path:
         """Markdownファイルの保存"""
-        await self.save_data(content, filename)
+        file_path = await self.save_data(content, filename)
+        self.logger.info(f"📝 Markdown saved: {file_path}")
+        return file_path
 
     @handle_errors(retries=3)
     async def fetch_with_retry(self, url: str) -> str:
@@ -54,9 +57,11 @@ class BaseService(ABC):
         """サービス固有の設定ファイルパスを取得"""
         return Path(f"nook/services/{self.service_name}/{filename}")
 
-    async def save_json(self, data: Any, filename: str) -> None:
+    async def save_json(self, data: Any, filename: str) -> Path:
         """JSONデータを保存"""
-        await self.storage.save(data, filename)
+        file_path = await self.storage.save(data, filename)
+        self.logger.info(f"💾 JSON saved: {file_path}")
+        return file_path
 
     async def load_json(self, filename: str) -> Any:
         """JSONデータを読み込み"""

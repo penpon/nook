@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, datetime, time
+from logging import Logger
 from typing import Any, Awaitable, Callable, Iterable, Mapping, Sequence
 
 from nook.common.daily_merge import merge_records
@@ -54,11 +55,17 @@ async def store_daily_snapshots(
     sort_key: Callable[[Record], object] | None,
     limit: int | None,
     reverse: bool = True,
+    logger: Logger | None = None,
 ) -> None:
     """Persist grouped records into per-day JSON and Markdown snapshots."""
 
     for record_date, records in sorted(records_by_date.items()):
         snapshot_datetime = datetime.combine(record_date, time.min)
+        date_str = snapshot_datetime.strftime("%Y-%m-%d")
+
+        if logger:
+            logger.info(f"📰 [{date_str}] の記事を処理中...")
+
         existing = await load_existing(snapshot_datetime)
 
         merged = merge_records(
@@ -70,10 +77,16 @@ async def store_daily_snapshots(
             reverse=reverse,
         )
 
-        date_str = snapshot_datetime.strftime("%Y-%m-%d")
         filename_json = f"{date_str}.json"
         filename_md = f"{date_str}.md"
 
-        await save_json(merged, filename_json)
+        json_path = await save_json(merged, filename_json)
         markdown = render_markdown(merged, snapshot_datetime)
-        await save_markdown(markdown, filename_md)
+        md_path = await save_markdown(markdown, filename_md)
+
+        if logger:
+            logger.info(
+                f"✅ [{date_str}] 完了: {len(merged)}件を保存\n"
+                f"   📄 JSON: {json_path}\n"
+                f"   📝 MD: {md_path}"
+            )
