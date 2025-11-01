@@ -56,15 +56,25 @@ async def store_daily_snapshots(
     limit: int | None,
     reverse: bool = True,
     logger: Logger | None = None,
-) -> None:
-    """Persist grouped records into per-day JSON and Markdown snapshots."""
+) -> list[tuple[str, str]]:
+    """
+    Persist grouped records into per-day JSON and Markdown snapshots.
+
+    Returns
+    -------
+    list[tuple[str, str]]
+        保存されたファイルパスのリスト [(json_path, md_path), ...]
+    """
+
+    saved_files: list[tuple[str, str]] = []
 
     for record_date, records in sorted(records_by_date.items()):
         snapshot_datetime = datetime.combine(record_date, time.min)
         date_str = snapshot_datetime.strftime("%Y-%m-%d")
 
         if logger:
-            logger.info(f"📰 [{date_str}] の記事を処理中...")
+            logger.info(f"\n📰 [{date_str}] の記事を処理中...")
+            logger.info(f"   🔍 候補記事: {len(records)}件")
 
         existing = await load_existing(snapshot_datetime)
 
@@ -84,9 +94,9 @@ async def store_daily_snapshots(
         markdown = render_markdown(merged, snapshot_datetime)
         md_path = await save_markdown(markdown, filename_md)
 
+        saved_files.append((str(json_path), str(md_path)))
+
         if logger:
-            logger.info(
-                f"✅ [{date_str}] 完了: {len(merged)}件を保存\n"
-                f"   📄 JSON: {json_path}\n"
-                f"   📝 MD: {md_path}"
-            )
+            logger.info(f"   ✅ {len(merged)}件を保存完了")
+
+    return saved_files

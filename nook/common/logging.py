@@ -6,6 +6,13 @@ from datetime import datetime
 from typing import Any
 
 
+class SimpleConsoleFormatter(logging.Formatter):
+    """コンソール用のシンプルなフォーマッタ（メッセージのみ）"""
+
+    def format(self, record: logging.LogRecord) -> str:
+        return record.getMessage()
+
+
 class JSONFormatter(logging.Formatter):
     """JSON形式でログを出力するフォーマッタ"""
 
@@ -51,7 +58,30 @@ class JSONFormatter(logging.Formatter):
 def setup_logger(
     name: str, level: str = "INFO", log_dir: str = "logs", use_json: bool = True
 ) -> logging.Logger:
-    """ロガーのセットアップ"""
+    """
+    ロガーのセットアップ
+
+    Parameters
+    ----------
+    name : str
+        ロガー名
+    level : str
+        ログレベル（デフォルト: "INFO"）
+    log_dir : str
+        ログファイルの保存ディレクトリ（デフォルト: "logs"）
+    use_json : bool
+        ファイル出力にJSON形式を使用するか（デフォルト: True）
+
+    Returns
+    -------
+    logging.Logger
+        設定済みのロガー
+
+    Notes
+    -----
+    - コンソール出力: 常にシンプルなテキスト形式（視認性重視）
+    - ファイル出力: JSON形式（use_json=True）または標準形式（use_json=False）
+    """
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level.upper()))
 
@@ -61,14 +91,9 @@ def setup_logger(
     # ログディレクトリの作成
     os.makedirs(log_dir, exist_ok=True)
 
-    # コンソールハンドラー
+    # コンソールハンドラー（常にシンプル形式）
     console_handler = logging.StreamHandler()
-    if use_json:
-        console_handler.setFormatter(JSONFormatter())
-    else:
-        console_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
+    console_handler.setFormatter(SimpleConsoleFormatter())
     logger.addHandler(console_handler)
 
     # ファイルハンドラー（ローテーション付き）
