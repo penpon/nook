@@ -351,12 +351,8 @@ class HackerNewsRetriever(BaseService):
             self.logger.info(f"Using HTTP/1.1 for {story.url} (required domain)")
 
         try:
-            # ユーザーエージェントを設定してアクセス制限を回避
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
             response = await self.http_client.get(
-                story.url, headers=headers, force_http1=force_http1
+                story.url, force_http1=force_http1
             )
 
             if response.status_code == 200:

@@ -110,6 +110,8 @@ class AsyncHTTPClient:
         **kwargs,
     ) -> httpx.Response:
         """GET リクエスト（HTTP/1.1フォールバック対応）"""
+        retry_http1 = kwargs.pop("_retry_http1", True)
+
         # ブラウザヘッダーを使用
         if use_browser_headers and headers is None:
             headers = self.get_browser_headers()
@@ -163,17 +165,34 @@ class AsyncHTTPClient:
                 raise APIException(f"Stream error: {str(e)}") from e
 
         except httpx.HTTPStatusError as e:
-            # 403エラーの場合、cloudscraper��リトライ
+            # 422エラーの場合はHTTP/1.1でフォールバック
+            if (
+                e.response.status_code == 422
+                and not force_http1
+                and retry_http1
+            ):
+                logger.info(f"422 error for {url}, retrying with HTTP/1.1")
+                return await self.get(
+                    url,
+                    headers=headers,
+                    params=params,
+                    force_http1=True,
+                    use_browser_headers=use_browser_headers,
+                    _retry_http1=False,
+                    **kwargs,
+                )
+
+            # 403エラーの場合、cloudscraperで再試行
             if e.response.status_code == 403:
                 logger.info(f"403 error for {url}, trying cloudscraper")
                 return await self._cloudscraper_fallback(url, params, **kwargs)
-            else:
-                logger.error(f"HTTP error for {url}: {e}")
-                raise APIException(
-                    f"HTTP {e.response.status_code} error",
-                    status_code=e.response.status_code,
-                    response_body=e.response.text,
-                ) from e
+
+            logger.error(f"HTTP error for {url}: {e}")
+            raise APIException(
+                f"HTTP {e.response.status_code} error",
+                status_code=e.response.status_code,
+                response_body=e.response.text,
+            ) from e
 
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {e}")
