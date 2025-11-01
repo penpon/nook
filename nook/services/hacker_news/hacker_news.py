@@ -481,6 +481,7 @@ class HackerNewsRetriever(BaseService):
             key=lambda item: item.get("title", ""),
             sort_key=self._story_sort_key,
             limit=MAX_STORY_LIMIT,
+            logger=self.logger,
         )
 
     def _serialize_stories(self, stories: list[Story]) -> list[dict[str, Any]]:

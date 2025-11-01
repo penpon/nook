@@ -418,6 +418,7 @@ class RedditExplorer(BaseService):
             key=lambda item: item.get("id", ""),
             sort_key=self._post_sort_key,
             limit=self.SUMMARY_LIMIT,
+            logger=self.logger,
         )
 
     def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:

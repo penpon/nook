@@ -296,6 +296,7 @@ class GithubTrending(BaseService):
             key=lambda item: item.get("name", ""),
             sort_key=self._repository_sort_key,
             limit=None,
+            logger=self.logger,
         )
 
     def _serialize_repositories(

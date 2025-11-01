@@ -461,6 +461,7 @@ class FourChanExplorer(BaseService):
             key=lambda item: item.get("thread_id"),
             sort_key=self._thread_sort_key,
             limit=self.TOTAL_LIMIT,
+            logger=self.logger,
         )
 
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:

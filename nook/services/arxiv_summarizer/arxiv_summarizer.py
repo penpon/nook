@@ -477,6 +477,7 @@ class ArxivSummarizer(BaseService):
             key=lambda item: item.get("title", ""),
             sort_key=self._paper_sort_key,
             limit=limit,
+            logger=self.logger,
         )
 
     def _serialize_papers(self, papers: list[PaperInfo]) -> list[dict]:

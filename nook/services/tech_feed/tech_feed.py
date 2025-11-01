@@ -605,6 +605,7 @@ class TechFeed(BaseService):
             key=lambda item: item.get("title", ""),
             sort_key=self._article_sort_key,
             limit=self.TOTAL_LIMIT,
+            logger=self.logger,
         )
 
     def _serialize_articles(self, articles: list[Article]) -> list[dict]:
