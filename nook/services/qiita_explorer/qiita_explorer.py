@@ -1,6 +1,7 @@
 """Qiitaの技術ブログのRSSフィードを監視・収集・要約するサービス。"""
 
 import asyncio
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -13,7 +14,7 @@ from bs4 import BeautifulSoup
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.feed_utils import parse_entry_datetime
-from nook.common.dedup import DedupTracker
+from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
 from nook.common.date_utils import is_within_target_dates, target_dates_set
 
 
@@ -119,10 +120,12 @@ class QiitaExplorer(BaseService):
 
         candidate_articles: list[Article] = []
         seen_urls = set()  # URL重複チェック用
-        dedup_tracker = (
-            self._load_existing_titles()
-        )  # カテゴリ横断のタイトル重複チェック用
         effective_target_dates = target_dates or target_dates_set(days)
+
+        # カテゴリ横断のタイトル重複チェック用（既存ファイルからロード）
+        dedup_tracker = await load_existing_titles_from_storage(
+            self.storage, effective_target_dates, self.logger
+        )
 
         self.logger.info("\n📡 フィード取得中...")
 
@@ -203,22 +206,43 @@ class QiitaExplorer(BaseService):
             for date_str in sorted(articles_by_date.keys()):
                 date_articles = articles_by_date[date_str]
 
-                # 日付情報を先頭に表示
-                self.logger.info(f"\n📰 [{date_str}] の記事を処理中...")
-                self.logger.info(f"   🔍 候補記事: {len(date_articles)}件")
-
-                selected = self._select_top_articles(date_articles)
-
-                self.logger.info(
-                    f"   ✅ 選択された記事 ({len(selected)}/{len(date_articles)}):"
-                )
-                for idx, article in enumerate(selected, 1):
-                    self.logger.info(
-                        f"      {idx}. 「{article.title}」(スコア: {article.popularity_score:.0f})"
+                # その日の既存記事タイトルを取得
+                existing_titles_for_date = set()
+                try:
+                    json_content = await self.storage.load(f"{date_str}.json")
+                    if json_content:
+                        existing_articles = json.loads(json_content)
+                        existing_titles_for_date = {
+                            article.get("title", "") for article in existing_articles
+                        }
+                except Exception as e:
+                    # ファイルが存在しない場合は空のセット
+                    self.logger.debug(
+                        f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}"
                     )
 
-                # 要約生成
+                # 既存/新規記事数をカウント
+                existing_count = len(existing_titles_for_date)
+                new_count = len(date_articles)
+
+                # 日付情報を先頭に表示
+                self.logger.info(
+                    f"\n📰 [{date_str}] の記事を処理中... (既存: {existing_count}件, 新規: {new_count}件)"
+                )
+
+                # 新規記事のみを要約対象として選択
+                selected = self._select_top_articles(date_articles)
+
                 if selected:
+                    self.logger.info(
+                        f"   ✅ 選択された記事 ({len(selected)}/{new_count}):"
+                    )
+                    for idx, article in enumerate(selected, 1):
+                        self.logger.info(
+                            f"      {idx}. 「{article.title}」(スコア: {article.popularity_score:.0f})"
+                        )
+
+                    # 要約生成
                     self.logger.info(f"\n   🤖 要約生成中...")
                     for idx, article in enumerate(selected, 1):
                         await self._summarize_article(article)
@@ -226,7 +250,9 @@ class QiitaExplorer(BaseService):
                             f"      ✓ {idx}/{len(selected)}: 「{article.title[:50]}...」"
                         )
 
-                all_selected_articles.extend(selected)
+                    all_selected_articles.extend(selected)
+                else:
+                    self.logger.info(f"   ℹ️  新規記事がありません")
 
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
