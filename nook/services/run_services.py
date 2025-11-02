@@ -39,20 +39,23 @@ class ServiceRunner:
         from nook.services.tech_feed.tech_feed import TechFeed
         from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
 
-        # サービスインスタンスを保持
-        self.sync_services = {
-            "github_trending": GithubTrending(),
-            "hacker_news": HackerNewsRetriever(),
-            "reddit": RedditExplorer(),
-            "zenn": ZennExplorer(),
-            "qiita": QiitaExplorer(),
-            "note": NoteExplorer(),
-            "tech_news": TechFeed(),
-            "business_news": BusinessFeed(),
-            "arxiv": ArxivSummarizer(),
-            "4chan": FourChanExplorer(),
-            "5chan": FiveChanExplorer(),
+        # サービスクラスを保持（遅延読み込み用）
+        self.service_classes = {
+            "github_trending": GithubTrending,
+            "hacker_news": HackerNewsRetriever,
+            "reddit": RedditExplorer,
+            "zenn": ZennExplorer,
+            "qiita": QiitaExplorer,
+            "note": NoteExplorer,
+            "tech_news": TechFeed,
+            "business_news": BusinessFeed,
+            "arxiv": ArxivSummarizer,
+            "4chan": FourChanExplorer,
+            "5chan": FiveChanExplorer,
         }
+        
+        # サービスインスタンスを保持（必要時にのみ作成）
+        self.sync_services = {}
 
         self.task_manager = AsyncTaskManager(max_concurrent=5)
         self.running = False
@@ -133,6 +136,11 @@ class ServiceRunner:
         self.running = True
         start_time = datetime.now()
 
+        # 全サービスを遅延読み込み
+        for service_name in self.service_classes:
+            if service_name not in self.sync_services:
+                self.sync_services[service_name] = self.service_classes[service_name]()
+
         logger.info(f"Starting {len(self.sync_services)} services with days={days}")
 
         target_dates = target_dates_set(days)
@@ -181,8 +189,12 @@ class ServiceRunner:
 
     async def run_service(self, service_name: str, days: int = 1) -> None:
         """特定のサービスを実行"""
-        if service_name not in self.sync_services:
+        if service_name not in self.service_classes:
             raise ValueError(f"Service {service_name} not found")
+
+        # 遅延読み込み：必要なサービスのみ初期化
+        if service_name not in self.sync_services:
+            self.sync_services[service_name] = self.service_classes[service_name]()
 
         logger.info(f"Running service: {service_name} with days={days}")
 
