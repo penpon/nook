@@ -457,6 +457,106 @@ class HackerNewsRetriever(BaseService):
 
         await asyncio.gather(*tasks, return_exceptions=True)
 
+        # 要約完了後にエラードメインをブロックリストに追記
+        await self._update_blocked_domains_from_errors(stories)
+
+    async def _update_blocked_domains_from_errors(self, stories: list[Story]) -> None:
+        """エラーになったドメインをブロックドメインリストに追記します。"""
+        error_domains = {}
+        
+        for story in stories:
+            if not story.url:
+                continue
+                
+            # エラー状態のチェック - より広範囲に
+            is_error = (
+                not story.text or 
+                story.text == "記事の内容を取得できませんでした。" or
+                "Function get failed after 3 attempts" in story.text or
+                "RetryException" in story.text or
+                "HTTP error" in story.text or
+                "Request error" in story.text or
+                "APIException" in story.text
+            )
+            
+            if is_error:
+                self.logger.debug(f"Error detected for domain: {story.url}")
+                
+                try:
+                    parsed_url = urlparse(story.url)
+                    domain = parsed_url.netloc.lower()
+                    
+                    # www.を除去して正規化
+                    if domain.startswith("www."):
+                        domain = domain[4:]
+                    
+                    # 既存のブロックドメインは除外
+                    if domain in [d.lower() for d in self.blocked_domains.get("blocked_domains", [])]:
+                        continue
+                    
+                    # エラー理由を特定
+                    if "522" in story.text or "Server error" in story.text:
+                        reason = "522 - Server error"
+                    elif "429" in story.text:
+                        reason = "429 - Too Many Requests"
+                    elif "403" in story.text:
+                        reason = "403 - Access denied"
+                    elif "404" in story.text:
+                        reason = "404 - Not found"
+                    elif "timeout" in story.text.lower():
+                        reason = "Timeout error"
+                    elif "SSL" in story.text or "handshake" in story.text:
+                        reason = "SSL/TLS error"
+                    elif "Request error" in story.text:
+                        reason = "Request error"
+                    else:
+                        reason = "Connection error"
+                    
+                    error_domains[domain] = reason
+                    self.logger.info(f"検出されたエラードメイン: {domain} ({reason})")
+                    
+                except Exception as e:
+                    self.logger.debug(f"Failed to parse domain from {story.url}: {e}")
+        
+        # ブロックドメインリストを更新
+        if error_domains:
+            await self._add_to_blocked_domains(error_domains)
+
+    async def _add_to_blocked_domains(self, new_domains: dict[str, str]) -> None:
+        """新しいドメインをブロックドメインリストに追加します。"""
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            blocked_domains_path = os.path.join(current_dir, "blocked_domains.json")
+            
+            # 現在のリストを読み込み
+            if os.path.exists(blocked_domains_path):
+                with open(blocked_domains_path, encoding="utf-8") as f:
+                    blocked_data = json.load(f)
+            else:
+                blocked_data = {"blocked_domains": [], "reasons": {}}
+            
+            # 新しいドメインを追加
+            added_count = 0
+            for domain, reason in new_domains.items():
+                if domain not in [d.lower() for d in blocked_data.get("blocked_domains", [])]:
+                    blocked_data.setdefault("blocked_domains", []).append(domain)
+                    blocked_data.setdefault("reasons", {})[domain] = reason
+                    added_count += 1
+                    self.logger.info(f"ブロックドメインを追加: {domain} ({reason})")
+            
+            # ファイルに保存
+            if added_count > 0:
+                with open(blocked_domains_path, "w", encoding="utf-8") as f:
+                    json.dump(blocked_data, f, indent=4, ensure_ascii=False)
+                
+                # メモリ上のリストも更新
+                self.blocked_domains = blocked_data
+                
+                self.logger.info(f"ブロックドメインリストを更新: {added_count}件追加")
+            
+        except Exception as e:
+            self.logger.error(f"ブロックドメインリストの更新に失敗しました: {e}")
+
     async def _summarize_story(self, story: Story) -> None:
         """
         Hacker News記事を要約します。
