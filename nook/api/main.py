@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from nook.api.exceptions import NookHTTPException
 from nook.api.middleware.error_handler import error_handler_middleware, handle_exception
 from nook.api.models.errors import ErrorResponse
-from nook.api.routers import chat, content, usage, weather
+from nook.api.routers import chat, content, weather
 from nook.common.error_metrics import error_metrics
 
 # 環境変数の読み込み
@@ -51,7 +51,6 @@ async def nook_exception_handler(request: Request, exc: NookHTTPException):
 app.include_router(content.router, prefix="/api")
 app.include_router(weather.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
-app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
 
 
 @app.get("/")

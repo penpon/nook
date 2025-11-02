@@ -64,12 +64,6 @@ class GPTClient:
         except KeyError:
             self.encoding = tiktoken.get_encoding("cl100k_base")
 
-        # ログファイルパスの設定
-        self.log_file = Path("data/api_usage/llm_usage_log.jsonl")
-        self.log_file.parent.mkdir(parents=True, exist_ok=True)
-
-        # 累計コストの管理
-        self.cumulative_cost = self._load_cumulative_cost()
 
     def _count_tokens(self, text: str) -> int:
         """テキストのトークン数を計算します。"""
@@ -270,51 +264,6 @@ class GPTClient:
         except Exception:
             return "unknown"
 
-    def _load_cumulative_cost(self) -> float:
-        """累計コストを読み込みます。"""
-        if not self.log_file.exists():
-            return 0.0
-
-        try:
-            with open(self.log_file, encoding="utf-8") as f:
-                lines = f.readlines()
-                if lines:
-                    last_line = lines[-1].strip()
-                    if last_line:
-                        last_record = json.loads(last_line)
-                        return last_record.get("cumulative_cost_usd", 0.0)
-        except Exception:
-            pass
-
-        return 0.0
-
-    def _log_usage(
-        self,
-        service: str,
-        model: str,
-        input_tokens: int,
-        output_tokens: int,
-        cost: float,
-    ):
-        """使用量をログに記録します。"""
-        try:
-            self.cumulative_cost += cost
-
-            log_entry = {
-                "timestamp": datetime.now().isoformat(),
-                "service": service,
-                "model": model,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "cost_usd": cost,
-                "cumulative_cost_usd": self.cumulative_cost,
-            }
-
-            with open(self.log_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
-        except Exception as e:
-            print(f"Warning: Failed to log API usage: {e}")
-
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
     )
@@ -381,9 +330,8 @@ class GPTClient:
         # 出力トークン数の計算
         output_tokens = self._count_tokens(output_text)
 
-        # 料金計算とログ記録
+        # 料金計算
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         return output_text
 
@@ -508,9 +456,8 @@ class GPTClient:
             assistant_message = response.choices[0].message.content
         output_tokens = self._count_tokens(assistant_message)
 
-        # 料金計算とログ記録
+        # 料金計算
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         chat_session["messages"].append(
             {"role": "assistant", "content": assistant_message}
@@ -592,9 +539,8 @@ class GPTClient:
             output_text = response.choices[0].message.content
         output_tokens = self._count_tokens(output_text)
 
-        # 料金計算とログ記録
+        # 料金計算
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         return output_text
 
@@ -659,8 +605,7 @@ class GPTClient:
             output_text = response.choices[0].message.content
         output_tokens = self._count_tokens(output_text)
 
-        # 料金計算とログ記録
+        # 料金計算
         cost = self._calculate_cost(input_tokens, output_tokens)
-        self._log_usage(service, self.model, input_tokens, output_tokens, cost)
 
         return output_text
