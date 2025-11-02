@@ -15,7 +15,7 @@ from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
-from nook.common.date_utils import is_within_target_dates, target_dates_set
+from nook.common.date_utils import is_within_target_dates, target_dates_set, normalize_datetime_to_local
 
 
 @dataclass
@@ -198,31 +198,41 @@ class HackerNewsRetriever(BaseService):
         # 4. フィルタリング処理を追加
         filtered_stories = []
         for story in all_stories:
-            # スコアフィルタリング
-            if story.score < SCORE_THRESHOLD:
-                continue
+            if story.created_at:
+                story_date = normalize_datetime_to_local(story.created_at).date()
+                
+                # スコアフィルタリング
+                if story.score < SCORE_THRESHOLD:
+                    continue
 
-            # テキスト長フィルタリング
-            text_content = story.text or ""
-            text_length = len(text_content)
+                # テキスト長フィルタリング
+                text_content = story.text or ""
+                text_length = len(text_content)
 
-            if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
-                continue
+                if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
+                    continue
 
-            if not is_within_target_dates(story.created_at, target_dates):
-                continue
+                if not is_within_target_dates(story.created_at, target_dates):
+                    continue
 
-            filtered_stories.append(story)
+                filtered_stories.append(story)
 
         # 5. スコアで降順ソート
         filtered_stories.sort(key=lambda story: story.score, reverse=True)
 
         unique_stories: list[Story] = []
+        
+        # デバッグ用：日付別の重複チェック結果をカウント
+        duplicate_date_counts = {}
+        
         for story in filtered_stories:
             is_dup, normalized = dedup_tracker.is_duplicate(story.title)
             if is_dup:
+                if story.created_at:
+                    story_date = normalize_datetime_to_local(story.created_at).date()
+                    duplicate_date_counts[story_date] = duplicate_date_counts.get(story_date, 0) + 1
                 original = dedup_tracker.get_original_title(normalized) or story.title
-                self.logger.info(
+                self.logger.debug(
                     "重複記事をスキップ: '%s' (初出: '%s')",
                     story.title,
                     original,
@@ -231,9 +241,41 @@ class HackerNewsRetriever(BaseService):
 
             dedup_tracker.add(story.title)
             unique_stories.append(story)
+        
+        # 重複チェック結果の詳細出力
+        self.logger.info("🔍 重複チェック結果の詳細:")
+        for target_date in sorted(target_dates):
+            filtered_count = filtered_date_counts.get(target_date, 0)
+            duplicate_count = duplicate_date_counts.get(target_date, 0)
+            unique_count = filtered_count - duplicate_count
+            self.logger.info(f"   {target_date}: フィルタリング後{filtered_count}件 → 重複除外{duplicate_count}件 → ユニーク{unique_count}件")
 
-        # 6. フィルタリング後の上位記事を選択（limitで指定された数）
-        selected_stories = unique_stories[:limit]
+        # 6. 各日から最低限の記事を確保しつつ、上位記事を選択
+        # 日付別に記事をグループ化
+        stories_by_date = {}
+        for story in unique_stories:
+            if story.created_at:
+                story_date = normalize_datetime_to_local(story.created_at).date()
+                if story_date not in stories_by_date:
+                    stories_by_date[story_date] = []
+                stories_by_date[story_date].append(story)
+        
+        # 各日から最大5件ずつ選択（合計がlimitを超えないように調整）
+        selected_stories = []
+        remaining_limit = limit
+        
+        for target_date in sorted(target_dates):
+            if target_date in stories_by_date and remaining_limit > 0:
+                date_stories = sorted(stories_by_date[target_date], key=lambda s: s.score, reverse=True)
+                take_count = min(5, len(date_stories), remaining_limit)
+                selected_stories.extend(date_stories[:take_count])
+                remaining_limit -= take_count
+        
+        # 残りの枠があればスコア順に追加
+        if remaining_limit > 0:
+            remaining_stories = [s for s in unique_stories if s not in selected_stories]
+            remaining_stories.sort(key=lambda s: s.score, reverse=True)
+            selected_stories.extend(remaining_stories[:remaining_limit])
 
         # 7. ログに統計情報を出力
         self.logger.info(
@@ -612,7 +654,32 @@ class HackerNewsRetriever(BaseService):
 
         default_date = max(target_dates) if target_dates else datetime.now().date()
         records = self._serialize_stories(stories)
+        
+        # デバッグ用：シリアライズされたレコードの日付を確認
+        self.logger.info("🔍 シリアライズされた記事の日付分布:")
+        record_date_counts = {}
+        for record in records:
+            published = record.get("published_at")
+            if published:
+                try:
+                    parsed = datetime.fromisoformat(published)
+                    local_dt = normalize_datetime_to_local(parsed)
+                    record_date = local_dt.date() if local_dt else None
+                    if record_date:
+                        record_date_counts[record_date] = record_date_counts.get(record_date, 0) + 1
+                except ValueError:
+                    pass
+        
+        for target_date in sorted(target_dates):
+            count = record_date_counts.get(target_date, 0)
+            self.logger.info(f"   📝 {target_date}: {count}件のレコード")
+        
         records_by_date = group_records_by_date(records, default_date=default_date)
+        
+        # デバッグ用：グループ化された結果を確認
+        self.logger.info("🔍 グループ化された記事:")
+        for group_date, group_records in sorted(records_by_date.items()):
+            self.logger.info(f"   📅 {group_date}: {len(group_records)}件")
 
         saved_files = await store_daily_snapshots(
             records_by_date,

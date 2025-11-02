@@ -17,9 +17,7 @@
         "overclock3d.net",
         "jidonline.org",
         "commonwealmagazine.org",
-        "friendsjournal.org",
-        "shadowglassgame.com",
-        "phys.org"
+        "friendsjournal.org"
     ],
     "reasons": {
         "reuters.com": "401 - Authentication required",
@@ -39,9 +37,7 @@
         "overclock3d.net": "403 - Bot protection",
         "jidonline.org": "403 - Bot protection",
         "commonwealmagazine.org": "403 - Bot protection",
-        "friendsjournal.org": "403 - Bot protection",
-        "shadowglassgame.com": "Connection error",
-        "phys.org": "429 - Too Many Requests"
+        "friendsjournal.org": "403 - Bot protection"
     },
     "http1_required_domains": [
         "htmlrev.com",
