@@ -426,25 +426,27 @@ class HackerNewsRetriever(BaseService):
         except Exception as e:
             # HTTPエラーに応じてログレベルを調整
             error_str = str(e)
+            error_type = type(e).__name__
 
             if "401" in error_str or "403" in error_str or "Forbidden" in error_str:
                 # 401/403エラーは想定内のため、debugレベル
-                status_code = (
-                    "401/403"
-                    if ("401" in error_str or "403" in error_str)
-                    else "Forbidden"
-                )
-                self.logger.debug(
-                    f"Expected access restriction for {story.url}: {status_code}"
-                )
+                self.logger.debug(f"Access denied for {story.url}")
                 story.text = "アクセス制限により記事の内容を取得できませんでした。"
             elif "404" in error_str or "Not Found" in error_str:
                 # 404エラーはinfoレベル
-                self.logger.info(f"Content not found for {story.url}: 404")
+                self.logger.info(f"Content not found for {story.url}")
                 story.text = "記事が見つかりませんでした。"
+            elif "SSL" in error_str or "handshake" in error_str.lower():
+                # SSLエラーはwarningレベル
+                self.logger.warning(f"SSL/TLS error for {story.url}")
+                story.text = "記事の内容を取得できませんでした。"
+            elif "timeout" in error_str.lower():
+                # タイムアウトエラーはwarningレベル
+                self.logger.warning(f"Timeout error for {story.url}")
+                story.text = "記事の内容を取得できませんでした。"
             else:
-                # その他の予期しないエラーはerrorレベル
-                self.logger.error(f"Unexpected error fetching {story.url}: {str(e)}")
+                # その他の予期しないエラーはwarningレベルで簡潔に
+                self.logger.warning(f"Error fetching {story.url}: {error_type}")
                 story.text = "記事の内容を取得できませんでした。"
 
     async def _summarize_stories(self, stories: list[Story]) -> None:

@@ -33,7 +33,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     wait_time = delay * (backoff**attempt)
 
                     logger.warning(
-                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {e}",
+                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {type(e).__name__}: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}",
                         extra={
                             "function": func.__name__,
                             "attempt": attempt + 1,
@@ -47,8 +47,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                         await asyncio.sleep(wait_time)
                     else:
                         logger.error(
-                            f"Function {func.__name__} failed after {retries} attempts",
-                            exc_info=True,
+                            f"Function {func.__name__} failed after {retries} attempts"
                         )
                         raise RetryException(
                             f"Failed after {retries} attempts: {e}"
@@ -75,15 +74,14 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     wait_time = delay * (backoff**attempt)
 
                     logger.warning(
-                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {e}"
+                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {type(e).__name__}: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}"
                     )
 
                     if attempt < retries - 1:
                         asyncio.sleep(wait_time)
                     else:
                         logger.error(
-                            f"Function {func.__name__} failed after {retries} attempts",
-                            exc_info=True,
+                            f"Function {func.__name__} failed after {retries} attempts"
                         )
                         raise RetryException(
                             f"Failed after {retries} attempts: {e}"
@@ -125,11 +123,9 @@ def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
                 extra={
                     "function": func.__name__,
                     "execution_time": execution_time,
-                    "error": str(e),
                 },
-                exc_info=True,
             )
-            raise
+            raise e  # トレースバック出力を抑制するために、raise eに変更
 
     if asyncio.iscoroutinefunction(func):
         return cast(Callable[..., T], async_wrapper)

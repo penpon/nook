@@ -261,7 +261,18 @@ class AsyncHTTPClient:
             return self._convert_to_httpx_response(response)
 
         except Exception as e:
-            logger.error(f"Cloudscraper failed for {url}: {e}")
+            # エラーの種類を特定して簡潔に出力
+            error_type = type(e).__name__
+            if "SSL" in str(e) or "handshake" in str(e).lower():
+                error_summary = f"SSL/TLS handshake error"
+            elif "timeout" in str(e).lower():
+                error_summary = f"Timeout error"
+            elif "403" in str(e) or "forbidden" in str(e).lower():
+                error_summary = f"Access denied (403)"
+            else:
+                error_summary = f"Connection error"
+            
+            logger.warning(f"Cloudscraper failed for {url}: {error_summary}")
             # 元の403エラーを再発生
             raise APIException(
                 "HTTP 403 error (cloudscraper also failed)", status_code=403
