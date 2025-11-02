@@ -221,16 +221,9 @@ class HackerNewsRetriever(BaseService):
         filtered_stories.sort(key=lambda story: story.score, reverse=True)
 
         unique_stories: list[Story] = []
-        
-        # デバッグ用：日付別の重複チェック結果をカウント
-        duplicate_date_counts = {}
-        
         for story in filtered_stories:
             is_dup, normalized = dedup_tracker.is_duplicate(story.title)
             if is_dup:
-                if story.created_at:
-                    story_date = normalize_datetime_to_local(story.created_at).date()
-                    duplicate_date_counts[story_date] = duplicate_date_counts.get(story_date, 0) + 1
                 original = dedup_tracker.get_original_title(normalized) or story.title
                 self.logger.debug(
                     "重複記事をスキップ: '%s' (初出: '%s')",
@@ -241,14 +234,6 @@ class HackerNewsRetriever(BaseService):
 
             dedup_tracker.add(story.title)
             unique_stories.append(story)
-        
-        # 重複チェック結果の詳細出力
-        self.logger.info("🔍 重複チェック結果の詳細:")
-        for target_date in sorted(target_dates):
-            filtered_count = filtered_date_counts.get(target_date, 0)
-            duplicate_count = duplicate_date_counts.get(target_date, 0)
-            unique_count = filtered_count - duplicate_count
-            self.logger.info(f"   {target_date}: フィルタリング後{filtered_count}件 → 重複除外{duplicate_count}件 → ユニーク{unique_count}件")
 
         # 6. 各日独立で最大15件ずつ選択
         # 日付別に記事をグループ化
@@ -644,32 +629,7 @@ class HackerNewsRetriever(BaseService):
 
         default_date = max(target_dates) if target_dates else datetime.now().date()
         records = self._serialize_stories(stories)
-        
-        # デバッグ用：シリアライズされたレコードの日付を確認
-        self.logger.info("🔍 シリアライズされた記事の日付分布:")
-        record_date_counts = {}
-        for record in records:
-            published = record.get("published_at")
-            if published:
-                try:
-                    parsed = datetime.fromisoformat(published)
-                    local_dt = normalize_datetime_to_local(parsed)
-                    record_date = local_dt.date() if local_dt else None
-                    if record_date:
-                        record_date_counts[record_date] = record_date_counts.get(record_date, 0) + 1
-                except ValueError:
-                    pass
-        
-        for target_date in sorted(target_dates):
-            count = record_date_counts.get(target_date, 0)
-            self.logger.info(f"   📝 {target_date}: {count}件のレコード")
-        
         records_by_date = group_records_by_date(records, default_date=default_date)
-        
-        # デバッグ用：グループ化された結果を確認
-        self.logger.info("🔍 グループ化された記事:")
-        for group_date, group_records in sorted(records_by_date.items()):
-            self.logger.info(f"   📅 {group_date}: {len(group_records)}件")
 
         saved_files = await store_daily_snapshots(
             records_by_date,

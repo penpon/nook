@@ -195,7 +195,31 @@ class RedditExplorer(BaseService):
                     f"合計 {len(candidate_posts)} 件の投稿候補を取得しました"
                 )
 
-                selected_posts = self._select_top_posts(candidate_posts)
+                # 日付ごとにグループ化して各日独立で上位15件を選択
+                posts_by_date = {}
+                for category, subreddit_name, post in candidate_posts:
+                    if post.created_at:
+                        post_date = post.created_at.date()
+                        if post_date not in posts_by_date:
+                            posts_by_date[post_date] = []
+                        posts_by_date[post_date].append((category, subreddit_name, post))
+                
+                # 各日独立で上位15件を選択して結合
+                selected_posts = []
+                for target_date in sorted(effective_target_dates):
+                    if target_date in posts_by_date:
+                        date_posts = posts_by_date[target_date]
+                        if len(date_posts) <= self.SUMMARY_LIMIT:
+                            selected_posts.extend(date_posts)
+                        else:
+                            def sort_key(item: tuple[str, str, RedditPost]):
+                                _, _, post = item
+                                created = post.created_at or datetime.min
+                                return (post.popularity_score, created)
+                            
+                            sorted_posts = sorted(date_posts, key=sort_key, reverse=True)
+                            selected_posts.extend(sorted_posts[:self.SUMMARY_LIMIT])
+                
                 self.logger.info(
                     f"人気スコア上位 {len(selected_posts)} 件の投稿を要約します"
                 )

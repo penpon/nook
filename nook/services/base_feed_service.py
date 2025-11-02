@@ -2,6 +2,7 @@
 
 import re
 from abc import abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from pathlib import Path
@@ -339,15 +340,29 @@ class BaseFeedService(BaseService):
         if not articles:
             return []
 
-        if len(articles) <= self.TOTAL_LIMIT:
-            return articles
-
-        def sort_key(article: Article):
-            published = article.published_at or datetime.min
-            return (article.popularity_score, published)
-
-        sorted_articles = sorted(articles, key=sort_key, reverse=True)
-        return sorted_articles[: self.TOTAL_LIMIT]
+        # 日付別に記事をグループ化
+        articles_by_date = defaultdict(list)
+        for article in articles:
+            if article.published_at:
+                local_dt = normalize_datetime_to_local(article.published_at)
+                if local_dt:
+                    date_key = local_dt.date()
+                    articles_by_date[date_key].append(article)
+        
+        # 各日独立で上位記事を選択
+        selected_articles = []
+        for date_key, date_articles in articles_by_date.items():
+            if len(date_articles) <= self.TOTAL_LIMIT:
+                selected_articles.extend(date_articles)
+            else:
+                def sort_key(article: Article):
+                    published = article.published_at or datetime.min
+                    return (article.popularity_score, published)
+                
+                sorted_articles = sorted(date_articles, key=sort_key, reverse=True)
+                selected_articles.extend(sorted_articles[:self.TOTAL_LIMIT])
+        
+        return selected_articles
 
     async def _store_summaries_for_date(
         self, articles: list[Article], date_str: str

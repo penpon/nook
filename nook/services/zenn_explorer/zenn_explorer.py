@@ -197,7 +197,7 @@ class ZennExplorer(BaseFeedService):
                 )
 
                 # 新規記事のみを要約対象として選択
-                selected = self._select_top_articles(truly_new_articles)
+                selected = self._select_top_articles(truly_new_articles, limit)
 
                 if selected:
                     self.logger.info(f"   ✅ 要約対象: {len(selected)}件を選択")
@@ -246,6 +246,32 @@ class ZennExplorer(BaseFeedService):
         except Exception as exc:
             self.logger.debug(f"既存タイトルの読み込みに失敗しました: {exc}")
         return tracker
+
+    def _select_top_articles(self, articles: list[Article], limit: int | None = None) -> list[Article]:
+        """
+        記事を人気スコアでソートし、上位N件を選択します。
+
+        Parameters
+        ----------
+        articles : list[Article]
+            選択対象の記事リスト
+        limit : Optional[int]
+            選択する記事数。Noneの場合はSUMMARY_LIMITを使用
+
+        Returns
+        -------
+        list[Article]
+            選択された記事リスト
+        """
+        if not articles:
+            return []
+        
+        # 人気スコアで降順ソート
+        sorted_articles = sorted(articles, key=lambda x: x.popularity_score, reverse=True)
+        
+        # 上位N件を選択（limitが指定されていればそれを使用、なければSUMMARY_LIMIT）
+        selection_limit = limit if limit is not None else self.SUMMARY_LIMIT
+        return sorted_articles[:selection_limit]
 
     async def _retrieve_article(
         self, entry: dict, feed_name: str, category: str

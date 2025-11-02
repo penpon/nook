@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from nook.services.base_feed_service import BaseFeedService, Article
 from nook.common.daily_snapshot import group_records_by_date
 from nook.common.feed_utils import parse_entry_datetime
-from nook.common.dedup import load_existing_titles_from_storage
+from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
 from nook.common.date_utils import is_within_target_dates, target_dates_set
 
 
@@ -193,7 +193,7 @@ class QiitaExplorer(BaseFeedService):
                 )
 
                 # 新規記事のみを要約対象として選択
-                selected = self._select_top_articles(truly_new_articles)
+                selected = self._select_top_articles(truly_new_articles, limit)
 
                 if selected:
                     self.logger.info(f"   ✅ 要約対象: {len(selected)}件を選択")
@@ -229,6 +229,32 @@ class QiitaExplorer(BaseFeedService):
 
         finally:
             pass
+
+    def _select_top_articles(self, articles: list[Article], limit: int | None = None) -> list[Article]:
+        """
+        記事を人気スコアでソートし、上位N件を選択します。
+
+        Parameters
+        ----------
+        articles : list[Article]
+            選択対象の記事リスト
+        limit : Optional[int]
+            選択する記事数。Noneの場合はSUMMARY_LIMITを使用
+
+        Returns
+        -------
+        list[Article]
+            選択された記事リスト
+        """
+        if not articles:
+            return []
+        
+        # 人気スコアで降順ソート
+        sorted_articles = sorted(articles, key=lambda x: x.popularity_score, reverse=True)
+        
+        # 上位N件を選択（limitが指定されていればそれを使用、なければSUMMARY_LIMIT）
+        selection_limit = limit if limit is not None else self.SUMMARY_LIMIT
+        return sorted_articles[:selection_limit]
 
     async def _retrieve_article(
         self, entry: dict, feed_name: str, category: str

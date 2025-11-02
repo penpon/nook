@@ -378,7 +378,29 @@ class FiveChanExplorer(BaseService):
                 f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました"
             )
 
-            selected_threads = self._select_top_threads(candidate_threads, total_limit)
+            # 日付ごとにグループ化して各日独立で上位15件を選択
+            threads_by_date = {}
+            for thread in candidate_threads:
+                thread_date = datetime.fromtimestamp(thread.timestamp).date()
+                if thread_date not in threads_by_date:
+                    threads_by_date[thread_date] = []
+                threads_by_date[thread_date].append(thread)
+            
+            # 各日独立で上位15件を選択して結合
+            selected_threads = []
+            for target_date in sorted(effective_target_dates):
+                if target_date in threads_by_date:
+                    date_threads = threads_by_date[target_date]
+                    if len(date_threads) <= total_limit:
+                        selected_threads.extend(date_threads)
+                    else:
+                        def sort_key(thread: Thread):
+                            created = datetime.fromtimestamp(thread.timestamp)
+                            return (thread.popularity_score, created)
+                        
+                        sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
+                        selected_threads.extend(sorted_threads[:total_limit])
+            
             self.logger.info(
                 f"人気スコア上位 {len(selected_threads)} 件のスレッドを要約します"
             )
