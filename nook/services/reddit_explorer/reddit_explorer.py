@@ -131,7 +131,7 @@ class RedditExplorer(BaseService):
         self,
         limit: int | None = None,
         *,
-        target_dates: set[date] | None = None,
+        target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
         """
         Redditの人気投稿を収集・要約して保存します（非同期版）。
@@ -236,7 +236,7 @@ class RedditExplorer(BaseService):
         subreddit_name: str,
         limit: int | None,
         dedup_tracker: DedupTracker,
-        target_dates: set[date],
+        target_dates: list[date],
     ) -> list[RedditPost]:
         """
         サブレディットの人気投稿を取得します。
@@ -249,7 +249,7 @@ class RedditExplorer(BaseService):
             取得する投稿数。Noneの場合は制限なし。
         dedup_tracker : DedupTracker
             タイトル重複を追跡するトラッカー。
-        target_dates : set[date]
+        target_dates : list[date]
             保存対象とする日付集合。
 
         Returns
@@ -446,7 +446,7 @@ class RedditExplorer(BaseService):
     async def _store_summaries(
         self,
         posts: list[tuple[str, str, RedditPost]],
-        target_dates: set[date],
+        target_dates: list[date],
     ) -> list[tuple[str, str]]:
         if not posts:
             self.logger.info("保存する投稿がありません")

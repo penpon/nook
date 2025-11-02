@@ -74,7 +74,7 @@ class GithubTrending(BaseService):
         self,
         limit: int = 5,
         *,
-        target_dates: set[date] | None = None,
+        target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
         """
         GitHubのトレンドリポジトリを収集して保存します。
@@ -297,7 +297,7 @@ class GithubTrending(BaseService):
         self,
         repositories_by_language: list[tuple[str, list[Repository]]],
         limit_per_language: int | None,
-        target_dates: set[date],
+        target_dates: list[date],
     ) -> list[tuple[str, str]]:
         """
         リポジトリ情報を保存します。

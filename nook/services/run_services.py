@@ -71,6 +71,8 @@ class ServiceRunner:
         # days パラメータを使用するサービスの場合、対象期間を表示
         effective_dates = target_dates or target_dates_set(days)
         sorted_dates = sorted(effective_dates)
+        # target_datesをsortedのlist型に変換して各サービスに渡す
+        sorted_target_dates = sorted_dates
 
         logger.info("\n" + "━" * 60)
         if len(sorted_dates) <= 1:
@@ -90,28 +92,28 @@ class ServiceRunner:
         try:
             # サービスごとに異なるlimitパラメータを設定
             if service_name == "hacker_news":
-                # Hacker Newsは15記事に制限し、target_dates を渡す
-                result = await service.collect(limit=15, target_dates=effective_dates)
+                # Hacker Newsは15記事に制限し、sorted_target_dates を渡す
+                result = await service.collect(limit=15, target_dates=sorted_target_dates)
                 saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
-                # Tech News/Business Newsは各5記事に制限し、target_dates を渡す
+                # Tech News/Business Newsは各5記事に制限し、sorted_target_dates を渡す
                 result = await service.collect(
-                    days=days, limit=5, target_dates=effective_dates
+                    days=days, limit=5, target_dates=sorted_target_dates
                 )
                 saved_files = result if result else []
             elif service_name in ["zenn", "qiita", "note"]:
                 # Zenn/Qiita/Noteは各3記事に制限し、daysパラメータを渡す
                 result = await service.collect(
-                    days=days, limit=3, target_dates=effective_dates
+                    days=days, limit=3, target_dates=sorted_target_dates
                 )
                 saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは5記事に制限
-                result = await service.collect(limit=5, target_dates=effective_dates)
+                result = await service.collect(limit=5, target_dates=sorted_target_dates)
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
-                result = await service.collect(target_dates=effective_dates)
+                result = await service.collect(target_dates=sorted_target_dates)
                 saved_files = result if result else []
 
             # 保存されたファイルのサマリーを表示
@@ -144,11 +146,13 @@ class ServiceRunner:
         logger.info(f"Starting {len(self.sync_services)} services with days={days}")
 
         target_dates = target_dates_set(days)
+        # target_datesをsortedのlist型に変換して各サービスに渡す
+        sorted_target_dates = sorted(target_dates)
 
         try:
             # 各サービスを並行実行
             service_tasks = [
-                self._run_sync_service(name, service, days, target_dates)
+                self._run_sync_service(name, service, days, sorted_target_dates)
                 for name, service in self.sync_services.items()
             ]
 
@@ -199,10 +203,12 @@ class ServiceRunner:
         logger.info(f"Running service: {service_name} with days={days}")
 
         target_dates = target_dates_set(days)
+        # target_datesをsortedのlist型に変換して各サービスに渡す
+        sorted_target_dates = sorted(target_dates)
 
         try:
             await self._run_sync_service(
-                service_name, self.sync_services[service_name], days, target_dates
+                service_name, self.sync_services[service_name], days, sorted_target_dates
             )
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)

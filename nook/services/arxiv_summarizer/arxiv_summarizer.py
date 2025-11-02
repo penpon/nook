@@ -101,7 +101,7 @@ class ArxivSummarizer(BaseService):
         self,
         limit: int = 5,
         *,
-        target_dates: set[date] | None = None,
+        target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
         """
         arXiv論文を収集・要約して保存します。
@@ -370,7 +370,7 @@ class ArxivSummarizer(BaseService):
 
         return [line.strip() for line in content.split("\n") if line.strip()]
 
-    async def _save_processed_ids_by_date(self, paper_ids: list[str], target_dates: set[date]) -> None:
+    async def _save_processed_ids_by_date(self, paper_ids: list[str], target_dates: list[date]) -> None:
         """
         処理済みの論文IDを日付ごとに保存します。
 
@@ -863,7 +863,7 @@ class ArxivSummarizer(BaseService):
         self,
         papers: list[PaperInfo],
         limit: int,
-        target_dates: set[date],
+        target_dates: list[date],
     ) -> list[tuple[str, str]]:
         """
         要約を保存します。

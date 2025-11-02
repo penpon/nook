@@ -92,7 +92,7 @@ class BaseFeedService(BaseService):
     def _filter_entries(
         self,
         entries: list[dict],
-        target_dates: set[date],
+        target_dates: list[date],
         limit: int | None = None,
     ) -> list[dict]:
         """
@@ -102,8 +102,8 @@ class BaseFeedService(BaseService):
         ----------
         entries : list[dict]
             エントリのリスト。
-        target_dates : set[date]
-            対象日付のセット。
+        target_dates : list[date]
+            対象日付のリスト。
         limit : int | None
             取得する記事数。Noneの場合は全て取得。
 

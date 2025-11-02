@@ -63,7 +63,7 @@ class TechFeed(BaseFeedService):
         days: int = 1,
         limit: int | None = None,
         *,
-        target_dates: set[date] | None = None,
+        target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
         """
         技術ニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
@@ -307,7 +307,7 @@ class TechFeed(BaseFeedService):
             return None
 
     async def _store_summaries(
-        self, articles: list[Article], target_dates: set[date]
+        self, articles: list[Article], target_dates: list[date]
     ) -> list[tuple[str, str]]:
         if not articles:
             self.logger.info("保存する記事がありません")

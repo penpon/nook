@@ -81,7 +81,7 @@ class HackerNewsRetriever(BaseService):
         self,
         limit: int = MAX_STORY_LIMIT,
         *,
-        target_dates: set[date] | None = None,
+        target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
         """
         Hacker Newsの記事を収集して保存します。
@@ -90,7 +90,7 @@ class HackerNewsRetriever(BaseService):
         ----------
         limit : int, default=15
             取得する記事数。
-        target_dates : set[date] | None
+        target_dates : list[date] | None
             保存対象とする日付。None の場合は当日を対象とします。
 
         Returns
@@ -101,9 +101,9 @@ class HackerNewsRetriever(BaseService):
         limit = min(limit, MAX_STORY_LIMIT)
         effective_target_dates = target_dates or target_dates_set(1)
 
-        # 対象日付のログ出力
-        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
-        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+        # 対象日付のログ出力 - 最古の日付から処理することを明示
+        date_str = min(effective_target_dates).strftime("%Y-%m-%d")
+        self.logger.info(f"📰 [{date_str}] から最古の日付順で処理中...")
 
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -159,7 +159,7 @@ class HackerNewsRetriever(BaseService):
         self,
         limit: int,
         dedup_tracker: DedupTracker,
-        target_dates: set[date],
+        target_dates: list[date],
     ) -> list[Story]:
         """
         トップ記事を取得します。
@@ -603,7 +603,7 @@ class HackerNewsRetriever(BaseService):
             story.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(
-        self, stories: list[Story], target_dates: set[date]
+        self, stories: list[Story], target_dates: list[date]
     ) -> list[tuple[str, str]]:
         """記事情報を日付別に保存します。"""
         if not stories:

@@ -312,7 +312,7 @@ class FiveChanExplorer(BaseService):
         self,
         thread_limit: int | None = None,
         *,
-        target_dates: set[date] | None = None,
+        target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
         """
         5chanからAI関連スレッドを収集して保存します（非同期版）。
@@ -842,7 +842,7 @@ class FiveChanExplorer(BaseService):
         board_id: str,
         limit: int | None,
         dedup_tracker: DedupTracker,
-        target_dates: set[date],
+        target_dates: list[date],
     ) -> list[Thread]:
         """
         特定の板からAI関連スレッドを取得します。
@@ -854,7 +854,7 @@ class FiveChanExplorer(BaseService):
             板のID。
         limit : Optional[int]
             取得するスレッド数。Noneの場合は制限なし。
-        target_dates : set[date]
+        target_dates : list[date]
             保存対象とする日付集合。
 
         Returns
@@ -1073,7 +1073,7 @@ class FiveChanExplorer(BaseService):
             thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(
-        self, threads: list[Thread], target_dates: set[date]
+        self, threads: list[Thread], target_dates: list[date]
     ) -> list[tuple[str, str]]:
         if not threads:
             self.logger.info("保存するスレッドがありません")
