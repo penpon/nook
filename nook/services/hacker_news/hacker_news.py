@@ -250,7 +250,7 @@ class HackerNewsRetriever(BaseService):
             unique_count = filtered_count - duplicate_count
             self.logger.info(f"   {target_date}: フィルタリング後{filtered_count}件 → 重複除外{duplicate_count}件 → ユニーク{unique_count}件")
 
-        # 6. 各日から最低限の記事を確保しつつ、上位記事を選択
+        # 6. 各日独立で最大15件ずつ選択
         # 日付別に記事をグループ化
         stories_by_date = {}
         for story in unique_stories:
@@ -260,22 +260,12 @@ class HackerNewsRetriever(BaseService):
                     stories_by_date[story_date] = []
                 stories_by_date[story_date].append(story)
         
-        # 各日から最大5件ずつ選択（合計がlimitを超えないように調整）
+        # 各日独立で上位15件を選択して結合
         selected_stories = []
-        remaining_limit = limit
-        
         for target_date in sorted(target_dates):
-            if target_date in stories_by_date and remaining_limit > 0:
+            if target_date in stories_by_date:
                 date_stories = sorted(stories_by_date[target_date], key=lambda s: s.score, reverse=True)
-                take_count = min(5, len(date_stories), remaining_limit)
-                selected_stories.extend(date_stories[:take_count])
-                remaining_limit -= take_count
-        
-        # 残りの枠があればスコア順に追加
-        if remaining_limit > 0:
-            remaining_stories = [s for s in unique_stories if s not in selected_stories]
-            remaining_stories.sort(key=lambda s: s.score, reverse=True)
-            selected_stories.extend(remaining_stories[:remaining_limit])
+                selected_stories.extend(date_stories[:limit])
 
         # 7. ログに統計情報を出力
         self.logger.info(
