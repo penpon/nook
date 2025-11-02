@@ -3,22 +3,9 @@
 # 一般的な言語
 general = [
     "python",
+    "go",
+    "rust",
 ]
 
 # 特定の言語
-specific = [
-     "go",
-     "rust",
-#     "javascript",
-#     "typescript",
-#     "c",
-#     "cpp",
-#     "java"
-#     "kotlin",
-#     "swift",
-#     "dart",
-#     "ruby",
-#     "php",
-#     "csharp",
-#     "julia"
-] 
+specific = [] 

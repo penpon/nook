@@ -72,7 +72,7 @@ class GithubTrending(BaseService):
 
     async def collect(
         self,
-        limit: int = 15,
+        limit: int = 5,
         *,
         target_dates: set[date] | None = None,
     ) -> list[tuple[str, str]]:
@@ -81,7 +81,7 @@ class GithubTrending(BaseService):
 
         Parameters
         ----------
-        limit : int, default=10
+        limit : int, default=5
             各言語から取得するリポジトリ数。
 
         Returns
