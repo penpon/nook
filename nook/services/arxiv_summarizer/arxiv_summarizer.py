@@ -587,7 +587,8 @@ class ArxivSummarizer(BaseService):
             self.logger.debug(f"HTMLから本文を抽出: {arxiv_id}")
             return html_text
         
-        # 2. PDF形式を試す
+        # 2. HTMLが取得できない場合はPDFを試す
+        self.logger.info(f"HTML形式が利用できません: {arxiv_id} - PDF抽出に移行します")
         pdf_text = await self._extract_from_pdf(arxiv_id, min_line_length)
         if pdf_text:
             self.logger.info(f"PDFから本文を抽出: {arxiv_id}")
@@ -596,6 +597,34 @@ class ArxivSummarizer(BaseService):
         # 3. どちらも失敗した場合は空文字列（呼び出し元でアブストラクトを使用）
         self.logger.warning(f"本文抽出失敗: {arxiv_id} - アブストラクトを使用します")
         return ""
+
+    async def _download_html_without_retry(self, html_url: str) -> str:
+        """
+        リトライなしでHTMLをダウンロード（デコレータを回避）
+        
+        Parameters
+        ----------
+        html_url : str
+            HTMLのURL
+            
+        Returns
+        -------
+        str
+            HTMLコンテンツ
+        """
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(html_url)
+                response.raise_for_status()
+                return response.text
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                # 404は正常なケースなので静かに処理
+                return ""
+            raise
+        except Exception as e:
+            # その他のエラーは再発生
+            raise
 
     async def _extract_from_html(self, arxiv_id: str, min_line_length: int = 40) -> str:
         """
@@ -614,8 +643,14 @@ class ArxivSummarizer(BaseService):
             抽出されたテキスト
         """
         try:
-            response = await self.http_client.get(f"https://arxiv.org/html/{arxiv_id}")
-            soup = BeautifulSoup(response.text, "html.parser")
+            # HTMLをダウンロード（リトライなし）
+            html_url = f"https://arxiv.org/html/{arxiv_id}"
+            html_content = await self._download_html_without_retry(html_url)
+            
+            if not html_content:
+                return ""
+            
+            soup = BeautifulSoup(html_content, "html.parser")
 
             body = soup.body
             if body:
