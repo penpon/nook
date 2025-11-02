@@ -6,11 +6,16 @@ from pathlib import Path
 from typing import Any
 
 import cloudscraper
+from dateutil import parser
 
 from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
-from nook.common.date_utils import is_within_target_dates, target_dates_set
+from nook.common.date_utils import (
+    is_within_target_dates,
+    normalize_datetime_to_local,
+    target_dates_set,
+)
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
 
@@ -657,7 +662,7 @@ class FiveChanExplorer(BaseService):
         """
         # 成功確認済みサーバーマッピング（実際のテスト結果に基づく）
         server_mapping = {
-            "ai": ["egg.5ch.net", "mevius.5ch.net"],
+            "ai": ["krsw.5ch.net", "egg.5ch.net", "mevius.5ch.net"],
             "prog": ["medaka.5ch.net", "mevius.5ch.net"],
             "tech": ["mevius.5ch.net"],  # 修正: techはmevius.5ch.netのみ
             "esite": ["mevius.5ch.net"],  # 修正: esiteはmevius.5ch.netのみ
@@ -733,7 +738,9 @@ class FiveChanExplorer(BaseService):
 
         return []
 
-    async def _get_thread_posts_from_dat(self, dat_url: str) -> list[dict[str, Any]]:
+    async def _get_thread_posts_from_dat(
+        self, dat_url: str
+    ) -> tuple[list[dict[str, Any]], datetime | None]:
         """
         dat形式でスレッドの投稿を取得（cloudscraper使用版）
         """
@@ -771,7 +778,8 @@ class FiveChanExplorer(BaseService):
                     except:
                         content = response.text
 
-                posts = []
+                posts: list[dict[str, Any]] = []
+                latest_post_at: datetime | None = None
                 lines = content.split("\n")
 
                 for i, line in enumerate(lines):
@@ -794,20 +802,32 @@ class FiveChanExplorer(BaseService):
 
                             posts.append(post_data)
 
+                            date_field = parts[2]
+                            try:
+                                parsed = parser.parse(date_field, fuzzy=True, ignoretz=True)
+                            except (ValueError, OverflowError):
+                                parsed = None
+
+                            if parsed and (
+                                latest_post_at is None or parsed > latest_post_at
+                            ):
+                                latest_post_at = parsed
+
                 self.logger.info(
                     f"dat解析完了: 総行数{len(lines)}, 有効投稿{len(posts)}件"
                 )
                 if posts:
                     self.logger.info(f"dat取得成功: {len(posts)}投稿")
-                    return posts[:10]  # 最初の10投稿
+                    limited_posts = posts[:10]
+                    return limited_posts, latest_post_at
                 else:
                     self.logger.warning("dat内容は取得したが投稿データなし")
-                    return []
+                    return [], latest_post_at
             else:
                 self.logger.error(f"dat取得HTTP error: {response.status_code}")
                 if "Just a moment" in response.text:
                     self.logger.error("Cloudflareチャレンジページが検出されました")
-                return []
+                return [], None
 
         except Exception as e:
             self.logger.error(f"dat取得エラー {dat_url}: {e}")
@@ -815,7 +835,7 @@ class FiveChanExplorer(BaseService):
 
             self.logger.error(f"詳細なエラー情報: {traceback.format_exc()}")
 
-        return []
+        return [], None
 
     async def _retrieve_ai_threads(
         self,
@@ -876,9 +896,6 @@ class FiveChanExplorer(BaseService):
                         else None
                     )
 
-                    if not is_within_target_dates(thread_created, target_dates):
-                        continue
-
                     is_dup, normalized = dedup_tracker.is_duplicate(title)
                     if is_dup:
                         original = dedup_tracker.get_original_title(normalized) or title
@@ -892,15 +909,30 @@ class FiveChanExplorer(BaseService):
                     self.logger.info(f"AI関連スレッド発見: {title}")
 
                     # 3. dat形式で投稿データを取得（突破成功手法）
-                    posts = await self._get_thread_posts_from_dat(
+                    posts, latest_post_at = await self._get_thread_posts_from_dat(
                         thread_data["dat_url"]
+                    )
+
+                    effective_dt = latest_post_at or thread_created
+                    if not effective_dt or not is_within_target_dates(
+                        effective_dt, target_dates
+                    ):
+                        continue
+
+                    effective_local = normalize_datetime_to_local(effective_dt)
+                    timestamp_value = (
+                        int(effective_local.timestamp())
+                        if effective_local is not None
+                        else int(timestamp_raw)
+                        if timestamp_raw
+                        else 0
                     )
 
                     if posts:  # 投稿取得成功時のみスレッド作成
                         popularity_score = self._calculate_popularity(
                             post_count=thread_data.get("post_count", 0),
                             sample_count=len(posts),
-                            timestamp=int(thread_data["timestamp"]),
+                            timestamp=timestamp_value,
                         )
 
                         dedup_tracker.add(title)
@@ -911,7 +943,7 @@ class FiveChanExplorer(BaseService):
                             url=thread_data["html_url"],  # HTML版URL
                             board=board_id,
                             posts=posts,
-                            timestamp=int(thread_data["timestamp"]),
+                            timestamp=timestamp_value,
                             popularity_score=popularity_score,
                         )
 

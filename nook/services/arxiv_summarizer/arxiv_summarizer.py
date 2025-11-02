@@ -123,8 +123,10 @@ class ArxivSummarizer(BaseService):
         date_str = max(effective_target_dates).strftime("%Y-%m-%d")
         self.logger.info(f"📰 [{date_str}] の記事を処理中...")
 
+        snapshot_date = max(effective_target_dates)
+
         # Hugging Faceでキュレーションされた論文IDを取得
-        paper_ids = await self._get_curated_paper_ids(limit)
+        paper_ids = await self._get_curated_paper_ids(limit, snapshot_date)
 
         # 論文情報を並行して取得
         tasks = []
@@ -183,7 +185,7 @@ class ArxivSummarizer(BaseService):
         return False if "." not in line else True
 
     @handle_errors(retries=3)
-    async def _get_curated_paper_ids(self, limit: int) -> list[str]:
+    async def _get_curated_paper_ids(self, limit: int, snapshot_date: date) -> list[str]:
         """
         Hugging Faceでキュレーションされた論文IDを取得します。
 
@@ -191,30 +193,77 @@ class ArxivSummarizer(BaseService):
         ----------
         limit : int
             取得する論文数。
+        snapshot_date : date
+            参照するHugging Faceページの日付。
 
         Returns
         -------
         List[str]
             論文IDのリスト。
         """
-        # Hugging Faceの論文ページから最新の論文IDを取得
-        url = "https://huggingface.co/papers"
-        response = await self.http_client.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
+        paper_ids: list[str] = []
 
-        paper_ids = []
-        paper_links = soup.select("a[href^='/papers/']")
+        # Upvote順で並んでいる日付ページから論文IDを抽出
+        page_url = f"https://huggingface.co/papers/date/{snapshot_date:%Y-%m-%d}"
+        try:
+            response = await self.http_client.get(page_url)
+            soup = BeautifulSoup(response.text, "html.parser")
 
-        for link in paper_links:
-            href = link.get("href", "")
-            if "/papers/" in href:
+            for article in soup.select("article"):
+                link = article.find("a", href=re.compile(r"^/papers/\d+\.\d+"))
+                if not link:
+                    continue
+
+                href = link.get("href", "")
                 paper_id_match = re.search(r"/papers/(\d+\.\d+)", href)
-                if paper_id_match:
-                    paper_id = paper_id_match.group(1)
-                    if paper_id not in paper_ids:
-                        paper_ids.append(paper_id)
-                        if len(paper_ids) >= limit:
-                            break
+                if not paper_id_match:
+                    continue
+
+                paper_id = paper_id_match.group(1)
+                if paper_id in paper_ids:
+                    continue
+
+                paper_ids.append(paper_id)
+                if len(paper_ids) >= limit:
+                    break
+
+            if not paper_ids:
+                self.logger.warning(
+                    "Hugging Face日付ページから論文IDを取得できませんでした: %s",
+                    page_url,
+                )
+        except Exception as exc:
+            self.logger.error(
+                "Hugging Face日付ページの取得に失敗しました (%s): %s",
+                page_url,
+                exc,
+            )
+
+        # フォールバック: 旧来のトップページから取得
+        if not paper_ids:
+            fallback_url = "https://huggingface.co/papers"
+            response = await self.http_client.get(fallback_url)
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            paper_links = soup.select("a[href^='/papers/']")
+            for link in paper_links:
+                href = link.get("href", "")
+                paper_id_match = re.search(r"/papers/(\d+\.\d+)", href)
+                if not paper_id_match:
+                    continue
+
+                paper_id = paper_id_match.group(1)
+                if paper_id in paper_ids:
+                    continue
+
+                paper_ids.append(paper_id)
+                if len(paper_ids) >= limit:
+                    break
+
+            if paper_ids:
+                self.logger.warning(
+                    "トップページから論文IDを取得しました (フォールバック)"
+                )
 
         # 既に処理済みの論文IDを除外
         processed_ids = await self._get_processed_ids()

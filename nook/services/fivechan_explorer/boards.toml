@@ -8,7 +8,7 @@
 # 主要板のサーバー情報（調査済み）
 prog = { name = "プログラミング", server = "mevius.5ch.net" }
 tech = { name = "技術", server = "egg.5ch.net" }
-ai = { name = "人工知能", server = "egg.5ch.net" }
+ai = { name = "人工知能", server = "krsw.5ch.net" }
 esite = { name = "ネットサービス", server = "egg.5ch.net" }
 
 # 緊急修正版では最小限の板のみ設定
