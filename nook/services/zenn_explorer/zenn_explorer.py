@@ -170,8 +170,9 @@ class ZennExplorer(BaseFeedService):
 
             # 日付ごとに上位N件を選択して要約（古い日付から新しい日付へ）
             saved_files: list[tuple[str, str]] = []
-            for date_str in sorted(articles_by_date.keys()):
-                date_articles = articles_by_date[date_str]
+            for target_date in sorted(effective_target_dates):
+                date_str = target_date.strftime("%Y-%m-%d")
+                date_articles = articles_by_date.get(date_str, [])
 
                 # その日の既存記事タイトルを取得
                 existing_titles_for_date = set()
@@ -223,7 +224,19 @@ class ZennExplorer(BaseFeedService):
                     log_storage_complete(self.logger, json_path, md_path)
                     saved_files.append((json_path, md_path))
                 else:
-                    log_no_new_articles(self.logger)
+                    # 新規記事がない場合でも既存ファイルがあれば処理完了として記録
+                    if existing_count > 0:
+                        self.logger.info(f"   📊 既存の{existing_count}件の記事を保持（新規記事なし）")
+                        # 既存ファイルのパスを保存ファイルリストに追加
+                        try:
+                            json_path = f"data/zenn_explorer/{date_str}.json"
+                            md_path = f"data/zenn_explorer/{date_str}.md"
+                            if await self.storage.load(f"{date_str}.json"):
+                                saved_files.append((json_path, md_path))
+                        except Exception:
+                            pass
+                    else:
+                        log_no_new_articles(self.logger)
 
             # 処理完了メッセージ
             if saved_files:
