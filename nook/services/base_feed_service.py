@@ -1,6 +1,5 @@
 """RSSフィードベースのサービスの共通基底クラス。"""
 
-import json
 import re
 from abc import abstractmethod
 from dataclasses import dataclass, field
@@ -8,10 +7,9 @@ from datetime import date, datetime, time
 from pathlib import Path
 
 from bs4 import BeautifulSoup
-
 from nook.common.base_service import BaseService
 from nook.common.daily_merge import merge_records
-from nook.common.date_utils import is_within_target_dates
+from nook.common.date_utils import is_within_target_dates, normalize_datetime_to_local
 from nook.common.feed_utils import parse_entry_datetime
 
 
@@ -153,11 +151,12 @@ class BaseFeedService(BaseService):
         default_date = datetime.now().strftime("%Y-%m-%d")
 
         for article in articles:
-            date_key = (
-                article.published_at.strftime("%Y-%m-%d")
-                if article.published_at
-                else default_date
-            )
+            if article.published_at:
+                normalized = normalize_datetime_to_local(article.published_at)
+                article.published_at = normalized.replace(tzinfo=None)
+                date_key = article.published_at.strftime("%Y-%m-%d")
+            else:
+                date_key = default_date
             by_date.setdefault(date_key, []).append(article)
 
         return by_date

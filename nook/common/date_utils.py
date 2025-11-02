@@ -46,8 +46,9 @@ def normalize_datetime_to_local(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
 
-    tz = dt.tzinfo or timezone.utc
-    return dt.replace(tzinfo=tz).astimezone(_local_timezone())
+    local_tz = _local_timezone()
+    tz = dt.tzinfo or local_tz
+    return dt.replace(tzinfo=tz).astimezone(local_tz)
 
 
 def is_within_target_dates(dt: datetime | None, target_dates: Iterable[date]) -> bool:
