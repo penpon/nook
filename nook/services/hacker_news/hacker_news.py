@@ -103,7 +103,7 @@ class HackerNewsRetriever(BaseService):
 
         # 対象日付のログ出力 - 最古の日付から処理することを明示
         date_str = min(effective_target_dates).strftime("%Y-%m-%d")
-        self.logger.info(f"📰 [{date_str}] から最古の日付順で処理中...")
+        self.logger.info(f"📰 [{date_str}] で処理中...")
 
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
