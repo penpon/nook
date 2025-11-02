@@ -7,9 +7,9 @@ from typing import Iterable, Set
 
 
 def _local_timezone() -> timezone:
-    """Return the current local timezone."""
-
-    return datetime.now().astimezone().tzinfo or timezone.utc
+    """Return JST (Japan Standard Time) timezone."""
+    
+    return timezone(timedelta(hours=9))  # JST = UTC+9
 
 
 def compute_target_dates(
@@ -23,11 +23,11 @@ def compute_target_dates(
         Number of days to include. ``None`` or values < 1 default to 1.
     base_date:
         The most recent date (typically "today") to include. Defaults to the
-        current local date.
+        current JST date.
     """
 
     normalized_days = max(1, days or 1)
-    start = base_date or datetime.now().astimezone().date()
+    start = base_date or datetime.now(_local_timezone()).date()
 
     return [start - timedelta(days=offset) for offset in range(normalized_days)]
 
@@ -41,7 +41,7 @@ def target_dates_set(
 
 
 def normalize_datetime_to_local(dt: datetime | None) -> datetime | None:
-    """Convert ``dt`` to the local timezone, assuming UTC for naive values."""
+    """Convert ``dt`` to JST timezone, assuming UTC for naive values."""
 
     if dt is None:
         return None
@@ -52,7 +52,7 @@ def normalize_datetime_to_local(dt: datetime | None) -> datetime | None:
 
 
 def is_within_target_dates(dt: datetime | None, target_dates: Iterable[date]) -> bool:
-    """Return ``True`` when ``dt`` falls on one of ``target_dates`` in local time."""
+    """Return ``True`` when ``dt`` falls on one of ``target_dates`` in JST time."""
 
     normalized = normalize_datetime_to_local(dt)
     if normalized is None:

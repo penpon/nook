@@ -4,8 +4,11 @@ import asyncio
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
+from io import BytesIO
 
 import arxiv
+import httpx
+import pdfplumber
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
@@ -118,19 +121,65 @@ class ArxivSummarizer(BaseService):
             await self.setup_http_client()
 
         effective_target_dates = target_dates or target_dates_set(1)
+        sorted_dates = sorted(effective_target_dates)
 
-        # 対象日付のログ出力
-        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
-        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+        # 対象期間のログ出力
+        if not sorted_dates:
+            self.logger.info("対象日が指定されていないため処理を終了します")
+            return []
 
-        snapshot_date = max(effective_target_dates)
+        if len(sorted_dates) == 1:
+            self.logger.info(f"📰 [{sorted_dates[0]:%Y-%m-%d}] の記事を処理中...")
+        else:
+            start_str = sorted_dates[0].strftime("%Y-%m-%d")
+            end_str = sorted_dates[-1].strftime("%Y-%m-%d")
+            self.logger.info(
+                "📰 対象期間: %s 〜 %s (%d日間) を処理中...",
+                start_str,
+                end_str,
+                len(sorted_dates),
+            )
 
-        # Hugging Faceでキュレーションされた論文IDを取得
-        paper_ids = await self._get_curated_paper_ids(limit, snapshot_date)
+        # 対象日ごとにHugging Faceから論文IDを取得
+        collected_ids: list[str] = []
+        seen_ids: set[str] = set()
+        for snapshot_date in reversed(sorted_dates):
+            snapshot_str = snapshot_date.strftime("%Y-%m-%d")
+            self.logger.info(f"\n🗓️ {snapshot_str} の候補論文IDを収集中...")
+
+            daily_ids = await self._get_curated_paper_ids(limit, snapshot_date)
+
+            if daily_ids is None:
+                self.logger.info("   ℹ️ URLが見つかりませんでした")
+                continue
+
+            if not daily_ids:
+                self.logger.info("   ℹ️ 取得できるIDがありませんでした")
+                continue
+
+            new_ids = [paper_id for paper_id in daily_ids if paper_id not in seen_ids]
+
+            if not new_ids:
+                self.logger.info("   ℹ️ すべて既存IDのためスキップしました")
+                continue
+
+            for paper_id in new_ids:
+                seen_ids.add(paper_id)
+                collected_ids.append(paper_id)
+
+            self.logger.info(
+                "   ✅ 新規ID %d件 (累計%d件)",
+                len(new_ids),
+                len(collected_ids),
+            )
+
+        if not collected_ids:
+            self.logger.info("\n保存する論文がありません")
+            return []
 
         # 論文情報を並行して取得
         tasks = []
-        for paper_id in paper_ids:
+        for paper_id in collected_ids:
             tasks.append(self._retrieve_paper_info(paper_id))
 
         paper_results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -157,8 +206,8 @@ class ArxivSummarizer(BaseService):
         else:
             self.logger.info("\n保存する論文がありません")
 
-        # 処理済みの論文IDを保存
-        await self._save_processed_ids(paper_ids)
+        # 処理済みの論文IDを保存（日付ごとに分けて保存）
+        await self._save_processed_ids_by_date(collected_ids, effective_target_dates)
 
         return saved_files
 
@@ -185,7 +234,7 @@ class ArxivSummarizer(BaseService):
         return False if "." not in line else True
 
     @handle_errors(retries=3)
-    async def _get_curated_paper_ids(self, limit: int, snapshot_date: date) -> list[str]:
+    async def _get_curated_paper_ids(self, limit: int, snapshot_date: date) -> list[str] | None:
         """
         Hugging Faceでキュレーションされた論文IDを取得します。
 
@@ -198,8 +247,8 @@ class ArxivSummarizer(BaseService):
 
         Returns
         -------
-        List[str]
-            論文IDのリスト。
+        List[str] or None
+            論文IDのリスト。URLが存在しない場合はNoneを返す。
         """
         paper_ids: list[str] = []
 
@@ -207,6 +256,16 @@ class ArxivSummarizer(BaseService):
         page_url = f"https://huggingface.co/papers/date/{snapshot_date:%Y-%m-%d}"
         try:
             response = await self.http_client.get(page_url)
+            response.raise_for_status()
+            
+            # リダイレクトを検出（実際のURLとリクエストしたURLが異なる場合はリダイレクト）
+            if str(response.url) != page_url:
+                self.logger.info(
+                    "Hugging Face日付ページが見つかりませんでした: %s",
+                    page_url,
+                )
+                return None
+                
             soup = BeautifulSoup(response.text, "html.parser")
 
             for article in soup.select("article"):
@@ -231,6 +290,20 @@ class ArxivSummarizer(BaseService):
                 self.logger.warning(
                     "Hugging Face日付ページから論文IDを取得できませんでした: %s",
                     page_url,
+                )
+        except httpx.HTTPStatusError as exc:
+            # 404エラーの場合はURLが存在しないことを示す
+            if exc.response.status_code == 404:
+                self.logger.info(
+                    "Hugging Face日付ページが見つかりませんでした: %s",
+                    page_url,
+                )
+                return None
+            else:
+                self.logger.error(
+                    "Hugging Face日付ページの取得に失敗しました (%s): %s",
+                    page_url,
+                    exc,
                 )
         except Exception as exc:
             self.logger.error(
@@ -265,23 +338,30 @@ class ArxivSummarizer(BaseService):
                     "トップページから論文IDを取得しました (フォールバック)"
                 )
 
-        # 既に処理済みの論文IDを除外
-        processed_ids = await self._get_processed_ids()
+        # 既に処理済みの論文IDを除外（対象日付のファイルから取得）
+        processed_ids = await self._get_processed_ids(snapshot_date)
         paper_ids = [pid for pid in paper_ids if pid not in processed_ids]
 
-        return paper_ids[:limit]
+        return paper_ids[:limit] if paper_ids else []
 
-    async def _get_processed_ids(self) -> list[str]:
+    async def _get_processed_ids(self, target_date: date | None = None) -> list[str]:
         """
         既に処理済みの論文IDを取得します。
+
+        Parameters
+        ----------
+        target_date : date, optional
+            対象日付。指定しない場合は今日の日付を使用。
 
         Returns
         -------
         List[str]
             処理済みの論文IDのリスト。
         """
-        today = datetime.now()
-        date_str = today.strftime("%Y-%m-%d")
+        if target_date is None:
+            target_date = datetime.now().date()
+            
+        date_str = target_date.strftime("%Y-%m-%d")
         filename = f"arxiv_ids-{date_str}.txt"
 
         content = await self.storage.load(filename)
@@ -290,28 +370,111 @@ class ArxivSummarizer(BaseService):
 
         return [line.strip() for line in content.split("\n") if line.strip()]
 
-    async def _save_processed_ids(self, paper_ids: list[str]) -> None:
+    async def _save_processed_ids_by_date(self, paper_ids: list[str], target_dates: set[date]) -> None:
         """
-        処理済みの論文IDを保存します。
+        処理済みの論文IDを日付ごとに保存します。
 
         Parameters
         ----------
         paper_ids : List[str]
             処理済みの論文IDのリスト。
+        target_dates : Set[date]
+            対象の日付セット。
         """
-        today = datetime.now()
-        date_str = today.strftime("%Y-%m-%d")
-        filename = f"arxiv_ids-{date_str}.txt"
-
-        # 既存のIDを読み込む
-        existing_ids = await self._get_processed_ids()
-
-        # 新しいIDを追加
-        all_ids = existing_ids + paper_ids
-        all_ids = list(dict.fromkeys(all_ids))  # 重複を削除
-
-        content = "\n".join(all_ids)
-        await self.save_data(content, filename)
+        # 論文情報を取得して公開日を確認
+        tasks = []
+        for paper_id in paper_ids:
+            tasks.append(self._get_paper_date(paper_id))
+        
+        paper_dates = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 日付ごとにIDをグループ化
+        ids_by_date = {}
+        for paper_id, paper_date in zip(paper_ids, paper_dates, strict=True):
+            if isinstance(paper_date, date):
+                date_str = paper_date.strftime("%Y-%m-%d")
+                if date_str not in ids_by_date:
+                    ids_by_date[date_str] = []
+                ids_by_date[date_str].append(paper_id)
+            else:
+                # 日付が不明の場合は今日の日付を使用
+                today = datetime.now()
+                date_str = today.strftime("%Y-%m-%d")
+                if date_str not in ids_by_date:
+                    ids_by_date[date_str] = []
+                ids_by_date[date_str].append(paper_id)
+        
+        # 日付ごとにファイルに保存
+        for date_str, ids in ids_by_date.items():
+            filename = f"arxiv_ids-{date_str}.txt"
+            
+            # 既存のIDを読み込む
+            existing_ids = await self._load_ids_from_file(filename)
+            
+            # 新しいIDを追加
+            all_ids = existing_ids + ids
+            all_ids = list(dict.fromkeys(all_ids))  # 重複を削除
+            
+            content = "\n".join(all_ids)
+            await self.save_data(content, filename)
+    
+    async def _load_ids_from_file(self, filename: str) -> list[str]:
+        """
+        指定されたファイルからIDを読み込みます。
+        
+        Parameters
+        ----------
+        filename : str
+            ファイル名。
+            
+        Returns
+        -------
+        List[str]
+            IDのリスト。
+        """
+        content = await self.storage.load(filename)
+        if not content:
+            return []
+        
+        return [line.strip() for line in content.split("\n") if line.strip()]
+    
+    async def _get_paper_date(self, paper_id: str) -> date | None:
+        """
+        論文の公開日を取得します。
+        
+        Parameters
+        ----------
+        paper_id : str
+            論文ID。
+            
+        Returns
+        -------
+        date or None
+            論文の公開日。取得できない場合はNone。
+        """
+        try:
+            # arxivライブラリは同期的なので、別スレッドで実行
+            loop = asyncio.get_event_loop()
+            
+            def get_paper():
+                client = arxiv.Client()
+                search = arxiv.Search(id_list=[paper_id])
+                results = list(client.results(search))
+                return results[0] if results else None
+            
+            paper = await loop.run_in_executor(None, get_paper)
+            
+            if not paper:
+                return None
+                
+            published = getattr(paper, "published", None)
+            if isinstance(published, datetime):
+                return published.date()
+            
+            return None
+        except Exception as e:
+            self.logger.error(f"Error getting paper date for {paper_id}: {str(e)}")
+            return None
 
     async def _retrieve_paper_info(self, paper_id: str) -> PaperInfo | None:
         """
@@ -403,10 +566,56 @@ class ArxivSummarizer(BaseService):
             return text  # 翻訳に失敗した場合は原文を返す
 
     async def _extract_body_text(self, arxiv_id: str, min_line_length: int = 40) -> str:
-        """ArXivのHTMLから本文を抽出"""
+        """
+        ArXivから本文を抽出（HTML→PDF→アブストラクトのフォールバックチェーン）
+        
+        Parameters
+        ----------
+        arxiv_id : str
+            arXiv論文ID
+        min_line_length : int, default=40
+            本文として扱う最小行長
+            
+        Returns
+        -------
+        str
+            抽出された本文テキスト
+        """
+        # 1. HTML形式を試す
+        html_text = await self._extract_from_html(arxiv_id, min_line_length)
+        if html_text:
+            self.logger.debug(f"HTMLから本文を抽出: {arxiv_id}")
+            return html_text
+        
+        # 2. PDF形式を試す
+        pdf_text = await self._extract_from_pdf(arxiv_id, min_line_length)
+        if pdf_text:
+            self.logger.info(f"PDFから本文を抽出: {arxiv_id}")
+            return pdf_text
+        
+        # 3. どちらも失敗した場合は空文字列（呼び出し元でアブストラクトを使用）
+        self.logger.warning(f"本文抽出失敗: {arxiv_id} - アブストラクトを使用します")
+        return ""
+
+    async def _extract_from_html(self, arxiv_id: str, min_line_length: int = 40) -> str:
+        """
+        HTML形式から本文を抽出
+        
+        Parameters
+        ----------
+        arxiv_id : str
+            arXiv論文ID
+        min_line_length : int
+            最小行長
+            
+        Returns
+        -------
+        str
+            抽出されたテキスト
+        """
         try:
             response = await self.http_client.get(f"https://arxiv.org/html/{arxiv_id}")
-            soup = BeautifulSoup(response, "html.parser")
+            soup = BeautifulSoup(response.text, "html.parser")
 
             body = soup.body
             if body:
@@ -442,8 +651,91 @@ class ArxivSummarizer(BaseService):
                     filtered_lines.append(line.strip())
             return "\n".join(filtered_lines)
         except Exception as e:
-            self.logger.error(f"Error extracting body text: {str(e)}")
-            return ""  # エラー時は空文字列を返す
+            self.logger.debug(f"HTML抽出失敗: {arxiv_id} - {str(e)}")
+            return ""
+
+    async def _download_pdf_without_retry(self, pdf_url: str) -> httpx.Response:
+        """
+        リトライなしでPDFをダウンロード（デコレータを回避）
+        
+        Parameters
+        ----------
+        pdf_url : str
+            PDFのURL
+            
+        Returns
+        -------
+        httpx.Response
+            HTTPレスポンス
+        """
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(pdf_url)
+            response.raise_for_status()
+            return response
+
+    async def _extract_from_pdf(self, arxiv_id: str, min_line_length: int = 40) -> str:
+        """
+        PDF形式から本文を抽出
+        
+        Parameters
+        ----------
+        arxiv_id : str
+            arXiv論文ID
+        min_line_length : int
+            最小行長
+            
+        Returns
+        -------
+        str
+            抽出されたテキスト
+        """
+        try:
+            # PDFをダウンロード（リトライなし）
+            pdf_url = f"https://arxiv.org/pdf/{arxiv_id}"
+            
+            # リトライなしのダウンロードメソッドを使用
+            response = await self._download_pdf_without_retry(pdf_url)
+            
+            if not response.content:
+                return ""
+            
+            # pdfplumberでテキスト抽出
+            with pdfplumber.open(BytesIO(response.content)) as pdf:
+                text_parts = []
+                
+                for _page_num, page in enumerate(pdf.pages):
+                    try:
+                        page_text = page.extract_text()
+                        if page_text and len(page_text.strip()) > 100:  # 有意なテキストのみ
+                            # ページ番号やヘッダー/フッターを除去
+                            lines = page_text.split('\n')
+                            filtered_lines = []
+                            
+                            for line in lines:
+                                clean_line = line.strip()
+                                # ページ番号や短すぎる行を除外
+                                if (len(clean_line) >= min_line_length and 
+                                    not clean_line.isdigit() and 
+                                    not clean_line.startswith('arXiv:') and
+                                    'References' not in clean_line[:20]):  # 参考文献セクションを除外
+                                    filtered_lines.append(clean_line)
+                            
+                            if filtered_lines:
+                                text_parts.append('\n'.join(filtered_lines))
+                                
+                    except Exception as page_error:
+                        self.logger.debug(f"ページ抽出失敗: {arxiv_id} page {_page_num} - {page_error}")
+                        continue
+                
+                if text_parts:
+                    full_text = '\n\n'.join(text_parts)
+                    return full_text
+                else:
+                    return ""
+                    
+        except Exception as e:
+            self.logger.debug(f"PDF抽出失敗: {arxiv_id} - {str(e)}")
+            return ""
 
     async def _summarize_papers(self, papers: list[PaperInfo]) -> None:
         """複数の論文を並行して要約"""

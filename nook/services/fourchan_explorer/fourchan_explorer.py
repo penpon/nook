@@ -295,9 +295,6 @@ class FourChanExplorer(BaseService):
                         else None
                     )
 
-                    if not is_within_target_dates(thread_created, target_dates):
-                        continue
-
                     title = thread.get("sub", f"Untitled Thread {thread_id}")
 
                     is_dup, normalized = dedup_tracker.is_duplicate(title)
@@ -310,13 +307,77 @@ class FourChanExplorer(BaseService):
                         )
                         continue
 
-                    timestamp = int(timestamp_raw or 0)
+                    last_modified_raw = thread.get("last_modified")
+                    last_modified_dt = (
+                        datetime.fromtimestamp(int(last_modified_raw), tz=timezone.utc)
+                        if last_modified_raw
+                        else thread_created
+                    )
 
-                    # スレッドのURLを構築
-                    thread_url = f"https://boards.4chan.org/{board}/thread/{thread_id}"
+                    if last_modified_dt and not is_within_target_dates(
+                        last_modified_dt, target_dates
+                    ):
+                        self.logger.debug(
+                            "更新日時が対象外のためスキップ: /%s/ %s (%s)",
+                            board,
+                            title,
+                            last_modified_dt,
+                        )
+                        continue
 
                     # スレッドの投稿を取得
                     thread_data = await self._retrieve_thread_posts(board, thread_id)
+
+                    if not thread_data:
+                        self.logger.debug(
+                            "投稿が取得できなかったためスキップ: /%s/ %s",
+                            board,
+                            title,
+                        )
+                        continue
+
+                    latest_post_ts = max(
+                        (
+                            int(post.get("time"))
+                            for post in thread_data
+                            if post.get("time") is not None
+                        ),
+                        default=None,
+                    )
+
+                    latest_post_at = (
+                        datetime.fromtimestamp(latest_post_ts, tz=timezone.utc)
+                        if latest_post_ts is not None
+                        else None
+                    )
+
+                    effective_dt = latest_post_at or thread_created
+                    if not effective_dt or not is_within_target_dates(
+                        effective_dt, target_dates
+                    ):
+                        self.logger.debug(
+                            "最新投稿日時が対象外のためスキップ: /%s/ %s (%s)",
+                            board,
+                            title,
+                            effective_dt,
+                        )
+                        continue
+
+                    if effective_dt is not None:
+                        if effective_dt.tzinfo is None:
+                            effective_dt = effective_dt.replace(tzinfo=timezone.utc)
+                        effective_utc = effective_dt.astimezone(timezone.utc)
+                        timestamp_value = int(effective_utc.timestamp())
+                    else:
+                        # これは355行目の検証により理論的には発生しないが、防御的に処理
+                        self.logger.warning(
+                            "スレッド %s の有効日時とタイムスタンプが両方とも取得できませんでした",
+                            thread_id,
+                        )
+                        continue
+
+                    # スレッドのURLを構築
+                    thread_url = f"https://boards.4chan.org/{board}/thread/{thread_id}"
 
                     popularity_score = self._calculate_popularity(
                         thread_metadata=thread,
@@ -332,7 +393,7 @@ class FourChanExplorer(BaseService):
                             url=thread_url,
                             board=board,
                             posts=thread_data,
-                            timestamp=timestamp,
+                            timestamp=timestamp_value,
                             popularity_score=popularity_score,
                         )
                     )
