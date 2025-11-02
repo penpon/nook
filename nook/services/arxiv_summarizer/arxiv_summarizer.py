@@ -119,6 +119,10 @@ class ArxivSummarizer(BaseService):
 
         effective_target_dates = target_dates or target_dates_set(1)
 
+        # 対象日付のログ出力
+        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
+        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+
         # Hugging Faceでキュレーションされた論文IDを取得
         paper_ids = await self._get_curated_paper_ids(limit)
 
@@ -142,6 +146,14 @@ class ArxivSummarizer(BaseService):
 
         # 要約を保存
         saved_files = await self._store_summaries(papers, limit, effective_target_dates)
+
+        # 処理完了メッセージ
+        if saved_files:
+            self.logger.info(f"\n💾 {len(saved_files)}日分のデータを保存完了")
+            for json_path, md_path in saved_files:
+                self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+        else:
+            self.logger.info("\n保存する論文がありません")
 
         # 処理済みの論文IDを保存
         await self._save_processed_ids(paper_ids)

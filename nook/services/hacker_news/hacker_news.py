@@ -101,6 +101,10 @@ class HackerNewsRetriever(BaseService):
         limit = min(limit, MAX_STORY_LIMIT)
         effective_target_dates = target_dates or target_dates_set(1)
 
+        # 対象日付のログ出力
+        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
+        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
@@ -111,6 +115,15 @@ class HackerNewsRetriever(BaseService):
             limit, dedup_tracker, effective_target_dates
         )
         saved_files = await self._store_summaries(stories, effective_target_dates)
+
+        # 処理完了メッセージ
+        if saved_files:
+            self.logger.info(f"\n💾 {len(saved_files)}日分のデータを保存完了")
+            for json_path, md_path in saved_files:
+                self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+        else:
+            self.logger.info("\n保存する記事がありません")
+
         return saved_files
 
     # 同期版の互換性のためのラッパー

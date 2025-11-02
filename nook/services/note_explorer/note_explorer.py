@@ -2,58 +2,21 @@
 
 import asyncio
 import json
-import re
-from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime
 from pathlib import Path
 
 import feedparser
 import tomli
 from bs4 import BeautifulSoup
 
-from nook.common.base_service import BaseService
-from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
-from nook.common.daily_merge import merge_records
+from nook.services.base_feed_service import BaseFeedService, Article
+from nook.common.daily_snapshot import group_records_by_date
 from nook.common.feed_utils import parse_entry_datetime
-from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
-from nook.common.gpt_client import GPTClient
-from nook.common.storage import LocalStorage
+from nook.common.dedup import load_existing_titles_from_storage
 from nook.common.date_utils import is_within_target_dates, target_dates_set
 
 
-@dataclass
-class Article:
-    """
-    note記事の情報。
-
-    Parameters
-    ----------
-    feed_name : str
-        フィード名。
-    title : str
-        タイトル。
-    url : str
-        URL。
-    text : str
-        本文。
-    soup : BeautifulSoup
-        BeautifulSoupオブジェクト。
-    category : str | None
-        カテゴリ。
-    """
-
-    feed_name: str
-    title: str
-    url: str
-    text: str
-    soup: BeautifulSoup
-    category: str | None = None
-    summary: str = field(default="")
-    popularity_score: float = field(default=0.0)
-    published_at: datetime | None = None
-
-
-class NoteExplorer(BaseService):
+class NoteExplorer(BaseFeedService):
     """
     noteのRSSフィードを監視・収集・要約するクラス。
 
@@ -64,6 +27,7 @@ class NoteExplorer(BaseService):
     """
 
     SUMMARY_LIMIT = 15
+    TOTAL_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data"):
         """
@@ -76,12 +40,6 @@ class NoteExplorer(BaseService):
         """
         super().__init__("note_explorer")
         self.http_client = None  # setup_http_clientで初期化
-        self.gpt_client = GPTClient()
-
-        storage_path = Path(storage_dir)
-        if storage_path.name != self.service_name:
-            storage_path = storage_path / self.service_name
-        self.storage = LocalStorage(str(storage_path))
 
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
@@ -131,18 +89,20 @@ class NoteExplorer(BaseService):
         effective_target_dates = target_dates or target_dates_set(days)
 
         # カテゴリ横断のタイトル重複チェック用（既存ファイルからロード）
+        # バグ修正：全ての既存ファイルから重複チェック
+        all_existing_dates = await self._get_all_existing_dates()
         dedup_tracker = await load_existing_titles_from_storage(
-            self.storage, effective_target_dates, self.logger
+            self.storage, all_existing_dates, self.logger
         )
+
+        self.logger.info("\n📡 フィード取得中...")
 
         try:
             # 各カテゴリのフィードから記事を取得
             for category, feeds in self.feed_config.items():
-                self.logger.info(f"カテゴリ {category} の処理を開始します...")
                 for feed_url in feeds:
                     try:
                         # フィードを解析
-                        self.logger.info(f"フィード {feed_url} を解析しています...")
                         feed = feedparser.parse(feed_url)
                         feed_name = (
                             feed.feed.title
@@ -150,51 +110,14 @@ class NoteExplorer(BaseService):
                             else feed_url
                         )
 
-                        current_limit = limit
-                        if current_limit is None:
-                            self.logger.info(
-                                f"フィード {feed_url} は制限なしで取得します"
-                            )
-
                         effective_limit = None
-                        if current_limit is not None:
-                            effective_limit = current_limit * max(days, 1)
+                        if limit is not None:
+                            effective_limit = limit * max(days, 1)
 
                         entries = self._filter_entries(
-                            feed.entries,
-                            effective_target_dates,
-                            effective_limit,
+                            feed.entries, effective_target_dates, effective_limit
                         )
-                        pages_to_inspect = 1
-                        while (
-                            effective_limit is not None
-                            and len(entries) < effective_limit
-                            and pages_to_inspect < 5
-                            and hasattr(feed, "feed")
-                            and hasattr(feed.feed, "links")
-                        ):
-                            next_link = next(
-                                (
-                                    link.get("href")
-                                    for link in feed.feed.links
-                                    if link.get("rel") == "next"
-                                ),
-                                None,
-                            )
-
-                            if not next_link:
-                                break
-
-                            next_feed = feedparser.parse(next_link)
-                            more_entries = self._filter_entries(
-                                next_feed.entries, days, effective_limit - len(entries)
-                            )
-                            entries.extend(more_entries)
-                            feed = next_feed
-                            pages_to_inspect += 1
-                        self.logger.info(
-                            f"フィード {feed_name} から {len(entries)} 件のエントリを取得しました"
-                        )
+                        self.logger.info(f"   • {feed_name}: {len(entries)}件取得")
 
                         for entry in entries:
                             # 記事を取得
@@ -215,12 +138,14 @@ class NoteExplorer(BaseService):
                                         f"(正規化後: '{normalized_title}', 初出: '{original}')"
                                     )
                                     continue
+
+                                # 日付範囲チェック
                                 if not is_within_target_dates(
                                     article.published_at, effective_target_dates
                                 ):
                                     continue
-                                dedup_tracker.add(article.title)
 
+                                dedup_tracker.add(article.title)
                                 candidate_articles.append(article)
 
                     except Exception as e:
@@ -231,7 +156,7 @@ class NoteExplorer(BaseService):
             # 日付ごとにグループ化
             articles_by_date = self._group_articles_by_date(candidate_articles)
 
-            # 日付ごとに上位N件を選択して要約（古い日付から新しい日付へ）
+            # 日付ごとに上位N件を選択して要約
             saved_files: list[tuple[str, str]] = []
             for date_str in sorted(articles_by_date.keys()):
                 date_articles = articles_by_date[date_str]
@@ -246,7 +171,6 @@ class NoteExplorer(BaseService):
                             article.get("title", "") for article in existing_articles
                         }
                 except Exception as e:
-                    # ファイルが存在しない場合は空のセット
                     self.logger.debug(
                         f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}"
                     )
@@ -255,24 +179,42 @@ class NoteExplorer(BaseService):
                 existing_count = len(existing_titles_for_date)
                 new_count = len(date_articles)
 
-                # 日付情報を先頭に表示
+                # ログ改善：真に新規の記事を確認
+                truly_new_articles = [
+                    article
+                    for article in date_articles
+                    if article.title not in existing_titles_for_date
+                ]
+
+                # 日付情報を先頭に表示（ログ改善版）
                 self.logger.info(
-                    f"\n📰 [{date_str}] の記事を処理中... (既存: {existing_count}件, 新規: {new_count}件)"
+                    f"\n📰 [{date_str}] の記事を処理中...\n"
+                    f"   📊 既存: {existing_count}件（保持） | 新規: {len(truly_new_articles)}件（重複除外済み）"
                 )
 
                 # 新規記事のみを要約対象として選択
-                selected = self._select_top_articles(date_articles)
+                selected = self._select_top_articles(truly_new_articles)
 
                 if selected:
-                    self.logger.info(f"   ✅ 選択: {len(selected)}件")
-                    for article in selected:
-                        await self._summarize_article(article)
+                    self.logger.info(f"   ✅ 要約対象: {len(selected)}件を選択")
+                    for idx, article in enumerate(selected, 1):
+                        self.logger.info(
+                            f"      {idx}. 「{article.title}」(スコア: {article.popularity_score:.0f})"
+                        )
 
-                    # この日付の記事をすぐに保存
+                    # 要約生成
+                    self.logger.info(f"\n   🤖 要約生成中...")
+                    for idx, article in enumerate(selected, 1):
+                        await self._summarize_article(article)
+                        self.logger.info(
+                            f"      ✓ {idx}/{len(selected)}: 「{article.title[:50]}...」"
+                        )
+
+                    # ログ改善：保存完了の前に改行
                     json_path, md_path = await self._store_summaries_for_date(
                         selected, date_str
                     )
-                    self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+                    self.logger.info(f"\n   💾 保存完了: {json_path}, {md_path}")
                     saved_files.append((json_path, md_path))
                 else:
                     self.logger.info(f"   ℹ️  新規記事がありません")
@@ -286,90 +228,7 @@ class NoteExplorer(BaseService):
             return saved_files
 
         finally:
-            # グローバルクライアントなのでクローズ不要
             pass
-
-    def _group_articles_by_date(
-        self, articles: list[Article]
-    ) -> dict[str, list[Article]]:
-        """記事を日付ごとにグループ化します。"""
-        by_date: dict[str, list[Article]] = {}
-        default_date = datetime.now().strftime("%Y-%m-%d")
-
-        for article in articles:
-            date_key = (
-                article.published_at.strftime("%Y-%m-%d")
-                if article.published_at
-                else default_date
-            )
-            by_date.setdefault(date_key, []).append(article)
-
-        return by_date
-
-    def _load_existing_titles(self) -> DedupTracker:
-        tracker = DedupTracker()
-        try:
-            content = self.storage.load_markdown("", datetime.now())
-            if content:
-                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
-                    tracker.add(match.group(1))
-        except Exception as exc:
-            self.logger.debug(f"既存タイトルの読み込みに失敗しました: {exc}")
-        return tracker
-
-    def _filter_entries(
-        self,
-        entries: list[dict],
-        target_dates: set[date],
-        limit: int | None = None,
-    ) -> list[dict]:
-        """
-        新しいエントリをフィルタリングします。
-
-        Parameters
-        ----------
-        entries : List[dict]
-            エントリのリスト。
-        days : int
-            何日前までの記事を取得するか。
-        limit : Optional[int], default=None
-            取得する記事数。Noneの場合は全て取得。
-
-        Returns
-        -------
-        List[dict]
-            フィルタリングされたエントリのリスト。
-        """
-        self.logger.info(f"エントリのフィルタリングを開始します({len(entries)}件)...")
-
-        # 日付でフィルタリング
-        recent_entries = []
-
-        for entry in entries:
-            entry_date = parse_entry_datetime(entry)
-
-            if entry_date:
-                if is_within_target_dates(entry_date, target_dates):
-                    recent_entries.append(entry)
-                else:
-                    self.logger.debug(
-                        "対象外日付の記事をスキップします。 raw=%s",
-                        getattr(entry, "published", getattr(entry, "updated", "")),
-                    )
-            else:
-                self.logger.debug(
-                    "エントリに日付情報がありません。含めます。 raw=%s",
-                    getattr(entry, "published", getattr(entry, "updated", "")),
-                )
-                recent_entries.append(entry)
-
-        self.logger.info(f"フィルタリング後のエントリ数: {len(recent_entries)}")
-
-        # limitがNoneの場合は全てのエントリを返す
-        if limit is None:
-            return recent_entries
-        # そうでなければ指定された数だけ返す
-        return recent_entries[:limit]
 
     async def _retrieve_article(
         self, entry: dict, feed_name: str, category: str
@@ -443,113 +302,9 @@ class NoteExplorer(BaseService):
             )
             return None
 
-    async def _summarize_article(self, article: Article) -> None:
-        """
-        記事を要約します。
-
-        Parameters
-        ----------
-        article : Article
-            要約する記事。
-        """
-        prompt = f"""
-        以下のnote記事を要約してください。
-
-        タイトル: {article.title}
-        本文: {article.text[:2000]}
-
-        要約は以下の形式で行い、日本語で回答してください:
-        1. 記事の主な内容（1-2文）
-        2. 重要なポイント（箇条書き3-5点）
-        3. 筆者の視点または洞察
-        """
-
-        system_instruction = """
-        あなたはnote記事の要約を行うアシスタントです。
-        与えられた記事を分析し、簡潔で情報量の多い要約を作成してください。
-        専門的な内容は正確に、一般的な内容は分かりやすく要約してください。
-        回答は必ず日本語で行ってください。
-        """
-
-        try:
-            summary = self.gpt_client.generate_content(
-                prompt=prompt,
-                system_instruction=system_instruction,
-                temperature=0.3,
-                max_tokens=1000,
-            )
-            article.summary = summary
-        except Exception as e:
-            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
-            article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
-
-    async def _store_summaries_for_date(
-        self, articles: list[Article], date_str: str
-    ) -> tuple[str, str]:
-        """
-        単一日付の記事をJSONとMarkdownファイルに保存します。
-
-        Parameters
-        ----------
-        articles : list[Article]
-            保存する記事のリスト。
-        date_str : str
-            日付文字列（"YYYY-MM-DD" 形式）。
-
-        Returns
-        -------
-        tuple[str, str]
-            保存されたファイルパスの組み合わせ (json_path, md_path)
-        """
-        if not articles:
-            return ("", "")
-
-        # 日付をdatetimeに変換
-        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-        snapshot_datetime = datetime.combine(target_date, time.min)
-
-        # 記事をシリアライズ
-        records = self._serialize_articles(articles)
-
-        # 既存記事を読み込んでマージ
-        existing = await self._load_existing_articles(snapshot_datetime)
-
-        merged = merge_records(
-            existing,
-            records,
-            key=lambda item: item.get("title", ""),
-            sort_key=self._article_sort_key,
-            limit=self.SUMMARY_LIMIT,
-            reverse=True,
-        )
-
-        # JSONファイルを保存
-        filename_json = f"{date_str}.json"
-        json_path = await self.save_json(merged, filename_json)
-
-        # Markdownファイルを保存
-        filename_md = f"{date_str}.md"
-        markdown = self._render_markdown(merged, snapshot_datetime)
-        md_path = await self.save_markdown(markdown, filename_md)
-
-        return (str(json_path), str(md_path))
-
     async def _store_summaries(
         self, articles: list[Article], target_dates: set[date]
     ) -> list[tuple[str, str]]:
-        """
-        要約を保存します。
-
-        Parameters
-        ----------
-        articles : List[Article]
-            保存する記事のリスト。
-
-        Returns
-        -------
-        list[tuple[str, str]]
-            保存されたファイルパスのリスト [(json_path, md_path), ...]
-        """
         if not articles:
             self.logger.info("保存する記事がありません")
             return []
@@ -561,6 +316,8 @@ class NoteExplorer(BaseService):
             default_date=default_date,
         )
 
+        from nook.common.daily_snapshot import store_daily_snapshots
+
         saved_files = await store_daily_snapshots(
             records_by_date,
             load_existing=self._load_existing_articles,
@@ -570,109 +327,14 @@ class NoteExplorer(BaseService):
             key=lambda item: item.get("title", ""),
             sort_key=self._article_sort_key,
             limit=self.SUMMARY_LIMIT,
-            logger=None,  # 日付情報の二重表示を防ぐ
+            logger=None,
         )
 
         return saved_files
 
-    def _serialize_articles(self, articles: list[Article]) -> list[dict]:
-        records: list[dict] = []
-        for article in articles:
-            category = article.category or "uncategorized"
-            records.append(
-                {
-                    "title": article.title,
-                    "url": article.url,
-                    "feed_name": article.feed_name,
-                    "summary": article.summary,
-                    "popularity_score": article.popularity_score,
-                    "published_at": (
-                        article.published_at.isoformat()
-                        if article.published_at
-                        else None
-                    ),
-                    "category": category,
-                }
-            )
-        return records
-
-    async def _load_existing_articles(self, target_date: datetime) -> list[dict]:
-        date_str = target_date.strftime("%Y-%m-%d")
-        filename_json = f"{date_str}.json"
-        filename_md = f"{date_str}.md"
-
-        existing_json = await self.load_json(filename_json)
-        if existing_json:
-            return existing_json
-
-        markdown = await self.storage.load(filename_md)
-        if not markdown:
-            return []
-
-        return self._parse_markdown(markdown)
-
-    def _article_sort_key(self, item: dict) -> tuple[float, datetime]:
-        popularity = float(item.get("popularity_score", 0.0) or 0.0)
-        published_raw = item.get("published_at")
-        if published_raw:
-            try:
-                published = datetime.fromisoformat(published_raw)
-            except ValueError:
-                published = datetime.min
-        else:
-            published = datetime.min
-        return (popularity, published)
-
-    def _render_markdown(self, records: list[dict], today: datetime) -> str:
-        content = f"# note記事 ({today.strftime('%Y-%m-%d')})\n\n"
-        grouped: dict[str, list[dict]] = {}
-        for record in records:
-            category = record.get("category", "uncategorized")
-            grouped.setdefault(category, []).append(record)
-
-        for category, articles in grouped.items():
-            heading = category.replace("_", " ").capitalize()
-            content += f"## {heading}\n\n"
-            for article in articles:
-                content += f"### [{article['title']}]({article['url']})\n\n"
-                content += f"**フィード**: {article.get('feed_name', '')}\n\n"
-                content += f"**要約**:\n{article.get('summary', '')}\n\n"
-                content += "---\n\n"
-        return content
-
-    def _parse_markdown(self, markdown: str) -> list[dict]:
-        result: list[dict] = []
-        category_pattern = re.compile(r"^##\s+(.+)$", re.MULTILINE)
-        article_pattern = re.compile(
-            r"### \[(?P<title>.+?)\]\((?P<url>[^\)]+)\)\n\n"
-            r"\*\*フィード\*\*: (?P<feed>.+?)\n\n"
-            r"\*\*要約\*\*:\n(?P<summary>.*?)(?:\n\n)?---",
-            re.DOTALL,
-        )
-
-        sections = list(category_pattern.finditer(markdown))
-        for idx, match in enumerate(sections):
-            start = match.end()
-            end = (
-                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
-            )
-            block = markdown[start:end]
-            category = match.group(1).strip().lower().replace(" ", "_")
-
-            for article_match in article_pattern.finditer(block + "---"):
-                result.append(
-                    {
-                        "title": article_match.group("title").strip(),
-                        "url": article_match.group("url").strip(),
-                        "feed_name": article_match.group("feed").strip(),
-                        "summary": article_match.group("summary").strip(),
-                        "popularity_score": 0.0,
-                        "published_at": None,
-                        "category": category,
-                    }
-                )
-
-        return result
+    # ========================================
+    # 抽象メソッドの実装
+    # ========================================
 
     def _extract_popularity(self, entry, soup: BeautifulSoup) -> float:
         """note記事の人気指標（スキ数など）を抽出します。"""
@@ -724,32 +386,29 @@ class NoteExplorer(BaseService):
 
         return 0.0
 
-    def _safe_parse_int(self, value) -> int | None:
-        """さまざまな値から整数を抽出します。"""
-        if value is None:
-            return None
-        if isinstance(value, (int, float)):
-            return int(value)
-        if isinstance(value, str):
-            match = re.search(r"(-?\d+)", value.replace(",", ""))
-            if match:
-                try:
-                    return int(match.group(1))
-                except ValueError:
-                    return None
-        return None
+    def _get_markdown_header(self) -> str:
+        """Markdownファイルのヘッダーテキストを返します。"""
+        return "note記事"
 
-    def _select_top_articles(self, articles: list[Article]) -> list[Article]:
-        """人気スコア順に記事をソートし、上位のみ返します。"""
-        if not articles:
-            return []
+    def _get_summary_system_instruction(self) -> str:
+        """要約生成用のシステムインストラクションを返します。"""
+        return """
+        あなたはnoteの記事の要約を行うアシスタントです。
+        与えられた記事を分析し、簡潔で情報量の多い要約を作成してください。
+        記事の内容に応じて、技術的な内容は正確に、エッセイ的な内容は雰囲気を残しつつ要約してください。
+        回答は必ず日本語で行ってください。
+        """
 
-        if len(articles) <= self.SUMMARY_LIMIT:
-            return articles
+    def _get_summary_prompt_template(self, article: Article) -> str:
+        """要約生成用のプロンプトテンプレートを返します。"""
+        return f"""
+        以下のnote記事を要約してください。
 
-        def sort_key(article: Article):
-            published = article.published_at or datetime.min
-            return (article.popularity_score, published)
+        タイトル: {article.title}
+        本文: {article.text[:2000]}
 
-        sorted_articles = sorted(articles, key=sort_key, reverse=True)
-        return sorted_articles[: self.SUMMARY_LIMIT]
+        要約は以下の形式で行い、日本語で回答してください:
+        1. 記事の主な内容（1-2文）
+        2. 重要なポイント（箇条書き3-5点）
+        3. 記事から得られる洞察
+        """

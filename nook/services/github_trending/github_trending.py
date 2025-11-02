@@ -95,6 +95,10 @@ class GithubTrending(BaseService):
 
         effective_target_dates = target_dates or target_dates_set(1)
 
+        # 対象日付のログ出力
+        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
+        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+
         dedup_tracker = self._load_existing_repositories()
         all_repositories = []
 
@@ -127,6 +131,15 @@ class GithubTrending(BaseService):
         saved_files = await self._store_summaries(
             all_repositories, limit, effective_target_dates
         )
+
+        # 処理完了メッセージ
+        if saved_files:
+            self.logger.info(f"\n💾 {len(saved_files)}日分のデータを保存完了")
+            for json_path, md_path in saved_files:
+                self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+        else:
+            self.logger.info("\n保存するリポジトリがありません")
+
         return saved_files
 
     @handle_errors(retries=3)
