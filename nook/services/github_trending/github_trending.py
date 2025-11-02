@@ -17,6 +17,13 @@ from nook.common.exceptions import APIException
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import target_dates_set
+from nook.common.logging_utils import (
+    log_processing_start,
+    log_article_counts,
+    log_summary_candidates,
+    log_summarization_start,
+    log_storage_complete,
+)
 
 
 @dataclass
@@ -93,44 +100,117 @@ class GithubTrending(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        effective_target_dates = target_dates or target_dates_set(1)
+        effective_target_dates = target_dates if target_dates is not None else target_dates_set(1)
 
-        # 対象日付のログ出力
-        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
-        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+        # 日付ごとに処理
+        saved_files: list[tuple[str, str]] = []
+        for target_date in sorted(effective_target_dates):
+            date_str = target_date.strftime("%Y-%m-%d")
+            
+            # その日の既存リポジトリ名を取得
+            existing_names_for_date = set()
+            try:
+                existing_repos = await self._load_existing_repositories_by_date(
+                    datetime.combine(target_date, time.min)
+                )
+                existing_names_for_date = {
+                    repo.get("name", "") for repo in existing_repos
+                }
+            except Exception as e:
+                self.logger.debug(
+                    f"既存リポジトリファイル {date_str}.json の読み込みに失敗しました: {e}"
+                )
 
-        dedup_tracker = self._load_existing_repositories()
-        all_repositories = []
+            # 重複トラッカーを初期化
+            dedup_tracker = DedupTracker()
+            for name in existing_names_for_date:
+                dedup_tracker.add(name)
 
-        # 言語指定なしのリポジトリを取得（新規追加）
-        repositories = await self._retrieve_repositories("any", limit, dedup_tracker)
-        all_repositories.append(("all", repositories))
-        await self.rate_limit()  # レート制限を遵守
+            all_repositories = []
 
-        # 一般的な言語のリポジトリを取得
-        for language in self.languages_config["general"]:
-            repositories = await self._retrieve_repositories(
-                language, limit, dedup_tracker
-            )
-            all_repositories.append((language, repositories))
+            # 言語指定なしのリポジトリを取得
+            repositories = await self._retrieve_repositories("any", limit, dedup_tracker)
+            all_repositories.append(("all", repositories))
             await self.rate_limit()  # レート制限を遵守
 
-        # 特定の言語のリポジトリを取得（limitと同じ数に変更）
-        for language in self.languages_config["specific"]:
-            # limit // 2 → limit
-            repositories = await self._retrieve_repositories(
-                language, limit, dedup_tracker
-            )
-            all_repositories.append((language, repositories))
-            await self.rate_limit()  # レート制限を遵守
+            # 一般的な言語のリポジトリを取得
+            for language in self.languages_config["general"]:
+                repositories = await self._retrieve_repositories(
+                    language, limit, dedup_tracker
+                )
+                all_repositories.append((language, repositories))
+                await self.rate_limit()  # レート制限を遵守
 
-        # 翻訳処理
-        all_repositories = await self._translate_repositories(all_repositories)
+            # 特定の言語のリポジトリを取得
+            for language in self.languages_config["specific"]:
+                repositories = await self._retrieve_repositories(
+                    language, limit, dedup_tracker
+                )
+                all_repositories.append((language, repositories))
+                await self.rate_limit()  # レート制限を遵守
 
-        # 保存
-        saved_files = await self._store_summaries(
-            all_repositories, limit, effective_target_dates
-        )
+            # 全リポジトリをフラット化
+            all_repos_flat = []
+            for language, repositories in all_repositories:
+                for repo in repositories:
+                    all_repos_flat.append(repo)
+
+            # 既存/新規リポジトリ数をカウント
+            existing_count = len(existing_names_for_date)
+
+            # 真に新規のリポジトリを確認
+            truly_new_repositories = [
+                repo
+                for repo in all_repos_flat
+                if repo.name not in existing_names_for_date
+            ]
+
+            # 日付情報を先頭に表示
+            log_processing_start(self.logger, date_str)
+            log_article_counts(self.logger, existing_count, len(truly_new_repositories))
+
+            if truly_new_repositories:
+                # 上位15件を選択して表示
+                selected_repos = sorted(
+                    truly_new_repositories, key=lambda x: x.stars, reverse=True
+                )[:15]
+
+                log_summary_candidates(self.logger, selected_repos, "stars")
+
+                # 要約生成
+                log_summarization_start(self.logger)
+                
+                # 言語ごとに再グループ化して翻訳
+                repos_by_language = {}
+                for language, repositories in all_repositories:
+                    repos_by_language[language] = [
+                        repo for repo in repositories 
+                        if repo in truly_new_repositories
+                    ]
+                
+                repos_for_translation = [
+                    (lang, repos) for lang, repos in repos_by_language.items() 
+                    if repos
+                ]
+                
+                translated_repos = await self._translate_repositories(repos_for_translation)
+                
+                # 進捗表示
+                total_translated = sum(len(repos) for _, repos in translated_repos)
+                for idx, (language, repositories) in enumerate(translated_repos, 1):
+                    for repo in repositories:
+                        self.logger.info(
+                            f"      ✓ {idx}/{total_translated}: 「{repo.name[:50]}...」"
+                        )
+
+                # 保存処理
+                json_path, md_path = await self._store_summaries_for_date(
+                    translated_repos, target_date
+                )
+                self.logger.info(f"\n   💾 保存完了: {json_path}, {md_path}")
+                saved_files.append((json_path, md_path))
+            else:
+                self.logger.info(f"   ℹ️  新規リポジトリがありません")
 
         # 処理完了メッセージ
         if saved_files:
@@ -292,6 +372,49 @@ class GithubTrending(BaseService):
             self.logger.error(f"Error in translation process: {str(e)}")
 
         return repositories_by_language
+
+    async def _store_summaries_for_date(
+        self,
+        repositories_by_language: list[tuple[str, list[Repository]]],
+        target_date: date,
+    ) -> tuple[str, str]:
+        """
+        特定の日付のリポジトリ情報を保存します。
+
+        Parameters
+        ----------
+        repositories_by_language : List[tuple[str, List[Repository]]]
+            言語ごとのリポジトリリスト。
+        target_date : date
+            対象日付。
+
+        Returns
+        -------
+        tuple[str, str]
+            保存されたファイルパス (json_path, md_path)
+        """
+        if not repositories_by_language:
+            raise ValueError("保存するリポジトリがありません")
+
+        records = self._serialize_repositories(repositories_by_language, target_date)
+        records_by_date = group_records_by_date(records, default_date=target_date)
+
+        saved_files = await store_daily_snapshots(
+            records_by_date,
+            load_existing=self._load_existing_repositories_by_date,
+            save_json=self.save_json,
+            save_markdown=self.save_markdown,
+            render_markdown=self._render_markdown,
+            key=lambda item: item.get("name", ""),
+            sort_key=self._repository_sort_key,
+            limit=None,
+            logger=None,  # 日付情報の二重表示を防ぐ
+        )
+
+        if saved_files and len(saved_files) > 0:
+            return saved_files[0]  # 最初の（唯一の）ファイルパスを返す
+        else:
+            raise ValueError("保存に失敗しました")
 
     async def _store_summaries(
         self,

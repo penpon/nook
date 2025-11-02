@@ -15,6 +15,15 @@ from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
 from nook.common.daily_snapshot import group_records_by_date
 from nook.common.date_utils import is_within_target_dates, target_dates_set
 from nook.common.feed_utils import parse_entry_datetime
+from nook.common.logging_utils import (
+    log_processing_start,
+    log_article_counts,
+    log_summary_candidates,
+    log_summarization_start,
+    log_summarization_progress,
+    log_storage_complete,
+    log_no_new_articles,
+)
 
 
 class ZennExplorer(BaseFeedService):
@@ -191,38 +200,30 @@ class ZennExplorer(BaseFeedService):
                 ]
 
                 # 日付情報を先頭に表示（ログ改善版）
-                self.logger.info(
-                    f"\n📰 [{date_str}] の記事を処理中...\n"
-                    f"   📊 既存: {existing_count}件（保持） | 新規: {len(truly_new_articles)}件（重複除外済み）"
-                )
+                log_processing_start(self.logger, date_str)
+                log_article_counts(self.logger, existing_count, len(truly_new_articles))
 
                 # 新規記事のみを要約対象として選択
                 selected = self._select_top_articles(truly_new_articles, limit)
 
                 if selected:
-                    self.logger.info(f"   ✅ 要約対象: {len(selected)}件を選択")
-                    for idx, article in enumerate(selected, 1):
-                        self.logger.info(
-                            f"      {idx}. 「{article.title}」(スコア: {article.popularity_score:.0f})"
-                        )
+                    log_summary_candidates(self.logger, selected)
 
                     # 要約生成
-                    self.logger.info(f"\n   🤖 要約生成中...")
+                    log_summarization_start(self.logger)
                     for idx, article in enumerate(selected, 1):
                         await self._summarize_article(article)
-                        self.logger.info(
-                            f"      ✓ {idx}/{len(selected)}: 「{article.title[:50]}...」"
-                        )
+                        log_summarization_progress(self.logger, idx, len(selected), article.title)
 
                     # ログ改善：保存完了の前に改行
                     # この日付の記事をすぐに保存
                     json_path, md_path = await self._store_summaries_for_date(
                         selected, date_str
                     )
-                    self.logger.info(f"\n   💾 保存完了: {json_path}, {md_path}")
+                    log_storage_complete(self.logger, json_path, md_path)
                     saved_files.append((json_path, md_path))
                 else:
-                    self.logger.info(f"   ℹ️  新規記事がありません")
+                    log_no_new_articles(self.logger)
 
             # 処理完了メッセージ
             if saved_files:

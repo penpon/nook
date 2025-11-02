@@ -15,6 +15,14 @@ from nook.common.daily_snapshot import group_records_by_date, store_daily_snapsh
 from nook.common.date_utils import is_within_target_dates, target_dates_set
 from nook.common.gpt_client import GPTClient
 from nook.common.storage import LocalStorage
+from nook.common.logging_utils import (
+    log_processing_start,
+    log_article_counts,
+    log_summary_candidates,
+    log_summarization_start,
+    log_storage_complete,
+    log_no_new_articles,
+)
 
 
 @dataclass
@@ -170,7 +178,7 @@ class FourChanExplorer(BaseService):
 
         # 対象日付のログ出力
         date_str = max(effective_target_dates).strftime("%Y-%m-%d")
-        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+        log_processing_start(self.logger, date_str)
 
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
