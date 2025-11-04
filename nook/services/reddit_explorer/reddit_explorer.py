@@ -4,7 +4,7 @@ import asyncio
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Literal
 
@@ -160,6 +160,9 @@ class RedditExplorer(BaseService):
         # 対象日付のログ出力
         date_str = max(effective_target_dates).strftime("%Y-%m-%d")
         log_processing_start(self.logger, date_str)
+        
+        # デバッグ：対象日付の詳細を表示
+        self.logger.info(f"📅 対象日付: {sorted(effective_target_dates)}")
 
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -167,6 +170,9 @@ class RedditExplorer(BaseService):
 
         candidate_posts: list[tuple[str, str, RedditPost]] = []
         dedup_tracker = await self._load_existing_titles()
+        
+        # デバッグ：重複トラッカーの状態を表示
+        self.logger.info(f"🔍 既存タイトル数: {dedup_tracker.count()}件")
 
         # Redditクライアントをコンテキストマネージャーで使用
         async with asyncpraw.Reddit(
@@ -208,10 +214,16 @@ class RedditExplorer(BaseService):
                 posts_by_date = {}
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
-                        post_date = post.created_at.date()
+                        # JSTタイムゾーンに変換して日付を取得
+                        jst_time = post.created_at.astimezone(timezone(timedelta(hours=9)))
+                        post_date = jst_time.date()
                         if post_date not in posts_by_date:
                             posts_by_date[post_date] = []
                         posts_by_date[post_date].append((category, subreddit_name, post))
+                
+                # デバッグ：グループ化結果を表示
+                for post_date, posts in posts_by_date.items():
+                    self.logger.info(f"📅 {post_date}: {len(posts)}件の投稿")
                 
                 # 各日独立で処理
                 saved_files: list[tuple[str, str]] = []
@@ -300,11 +312,14 @@ class RedditExplorer(BaseService):
         """
         subreddit = await self.reddit.subreddit(subreddit_name)
         posts = []
+        filtered_count = {"date": 0, "duplicate": 0, "total": 0}
 
         async for submission in subreddit.hot(limit=limit):
             if submission.stickied:
                 continue
 
+            filtered_count["total"] += 1
+            
             # 投稿タイプを判定
             post_type = "text"
             if hasattr(submission, "is_video") and submission.is_video:
@@ -338,6 +353,7 @@ class RedditExplorer(BaseService):
                     title,
                     original,
                 )
+                filtered_count["duplicate"] += 1
                 continue
             text_ja = (
                 await self._translate_to_japanese(submission.selftext)
@@ -350,6 +366,13 @@ class RedditExplorer(BaseService):
                 if hasattr(submission, "created_utc")
                 else None
             )
+
+            # デバッグ：投稿の詳細情報を表示
+            if created_at:
+                jst_time = created_at.astimezone(timezone(timedelta(hours=9)))
+                self.logger.info(
+                    f"📝 投稿: '{title[:50]}...' | UTC: {created_at.strftime('%Y-%m-%d %H:%M')} | JST: {jst_time.strftime('%Y-%m-%d %H:%M')} | 対象日: {sorted(target_dates)}"
+                )
 
             post = RedditPost(
                 type=post_type,
@@ -367,10 +390,27 @@ class RedditExplorer(BaseService):
             )
 
             if not is_within_target_dates(post.created_at, target_dates):
+                if created_at:
+                    jst_time = created_at.astimezone(timezone(timedelta(hours=9)))
+                    self.logger.info(
+                        f"❌ 日付フィルタで除外: '{title[:30]}...' | JST: {jst_time.strftime('%Y-%m-%d')} | 対象外"
+                    )
+                filtered_count["date"] += 1
                 continue
 
             posts.append(post)
             dedup_tracker.add(post.title)
+            
+            # デバッグ：投稿を追加したことを表示
+            self.logger.info(f"✅ 投稿を追加: '{title[:30]}...' (スコア: {submission.score})")
+
+        # デバッグ：フィルタリング結果を表示
+        self.logger.info(
+            f"📊 r/{subreddit_name} フィルタリング結果: 全{filtered_count['total']}件 → "
+            f"日付フィルタで{filtered_count['date']}件除外 → "
+            f"重複で{filtered_count['duplicate']}件除外 → "
+            f"残り{len(posts)}件"
+        )
 
         return posts
 
