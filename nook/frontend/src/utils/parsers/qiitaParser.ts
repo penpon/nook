@@ -1,24 +1,26 @@
 import type { ContentItem } from "../../types";
 
+// Qiitaのフィード情報から適切なフィード名を抽出
+function extractQiitaFeedName(feedInfo: string): string {
+	// "Frontend Weekly", "weekly-js", etc. の形式から名前を抽出
+	if (feedInfo.includes("(") && feedInfo.includes(")")) {
+		// カッコ内の情報を削除してフィード名を取得
+		return feedInfo.split("(")[0].trim();
+	}
+
+	// カッコがない場合はそのまま返す
+	return feedInfo || "未分類";
+}
+
 export function parseQiitaArticlesMarkdown(markdown: string): ContentItem[] {
 	const lines = markdown.split("\n");
 	const contentItems: ContentItem[] = [];
-	
-	// 重複チェック用のセット
-	const seenUrls = new Set<string>();
-	const seenTitles = new Set<string>();
+	const feedGroups = new Map<
+		string,
+		{ title: string; url: string; content: string; feedInfo: string; tags: string }[]
+	>();
 
-	// 最初に「Qiita」カテゴリヘッダーを追加
-	contentItems.push({
-		title: "Qiita",
-		content: "",
-		source: "qiita",
-		isCategoryHeader: true,
-	});
-
-	let articleNumber = 1;
-
-	// 記事の解析
+	// 記事の解析とフィード別グループ化
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i].trim();
 
@@ -34,11 +36,12 @@ export function parseQiitaArticlesMarkdown(markdown: string): ContentItem[] {
 				const title = titleMatch[1];
 				const url = titleMatch[2];
 
-				// タグと要約を抽出
+				// フィード情報、タグ、要約を抽出
+				let feedInfo = "";
 				let tags = "";
 				let summary = "";
 
-				// タグと要約を取得（次の行以降）
+				// フィード情報、タグ、要約を取得（次の行以降）
 				for (let j = i + 1; j < lines.length; j++) {
 					const nextLine = lines[j].trim();
 
@@ -47,7 +50,10 @@ export function parseQiitaArticlesMarkdown(markdown: string): ContentItem[] {
 						break;
 					}
 
-					if (nextLine.startsWith("**タグ**:")) {
+					if (nextLine.startsWith("**フィード**:")) {
+						// フィード情報の行
+						feedInfo = nextLine.replace("**フィード**:", "").trim();
+					} else if (nextLine.startsWith("**タグ**:")) {
 						// タグ情報の行
 						tags = nextLine.replace("**タグ**:", "").trim();
 					} else if (nextLine.startsWith("**要約**:")) {
@@ -74,38 +80,58 @@ export function parseQiitaArticlesMarkdown(markdown: string): ContentItem[] {
 					}
 				}
 
-				// 重複チェック
-				if (seenUrls.has(url) || seenTitles.has(title)) {
-					// 重複記事をスキップ
-					continue;
+				const feedName = extractQiitaFeedName(feedInfo);
+
+				// フィード名でグループ化
+				if (!feedGroups.has(feedName)) {
+					feedGroups.set(feedName, []);
 				}
 
-				// 重複していない場合は記録
-				seenUrls.add(url);
-				seenTitles.add(title);
-
-				// コンテンツの構築
-				let content = "";
-				if (tags) {
-					content += `**タグ**: ${tags}\n\n`;
-				}
-				if (summary) {
-					content += `**要約**:\n${summary}`;
-				}
-
-				contentItems.push({
-					title: title,
-					content: content,
-					url: url,
-					source: "qiita",
-					isArticle: true,
-					metadata: {
-						source: "qiita",
-						articleNumber: articleNumber++,
-					},
+				feedGroups.get(feedName)!.push({
+					title,
+					url,
+					content: summary,
+					feedInfo,
+					tags,
 				});
 			}
 		}
+	}
+
+	// フィード名をカテゴリヘッダーとして生成
+	for (const [feedName, articles] of feedGroups) {
+		// フィード名をそのままカテゴリヘッダーに
+		contentItems.push({
+			title: feedName,
+			content: "",
+			source: "qiita",
+			isCategoryHeader: true,
+		});
+
+		// 各記事を番号付きで追加
+		let articleNumber = 1;
+		articles.forEach((article) => {
+			let content = "";
+			if (article.tags) {
+				content += `**タグ**: ${article.tags}\n\n`;
+			}
+			if (article.content) {
+				content += `**要約**:\n${article.content}`;
+			}
+
+			contentItems.push({
+				title: article.title,
+				content: content,
+				url: article.url,
+				source: "qiita",
+				isArticle: true,
+				metadata: {
+					source: "qiita",
+					feedName: feedName,
+					articleNumber: articleNumber++,
+				},
+			});
+		});
 	}
 
 	return contentItems;
