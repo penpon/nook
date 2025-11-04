@@ -15,6 +15,15 @@ from nook.common.base_service import BaseService
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import is_within_target_dates, target_dates_set
+from nook.common.logging_utils import (
+    log_processing_start,
+    log_article_counts,
+    log_summary_candidates,
+    log_summarization_start,
+    log_summarization_progress,
+    log_storage_complete,
+    log_no_new_articles,
+)
 
 
 @dataclass
@@ -150,7 +159,7 @@ class RedditExplorer(BaseService):
 
         # 対象日付のログ出力
         date_str = max(effective_target_dates).strftime("%Y-%m-%d")
-        self.logger.info(f"📰 [{date_str}] の記事を処理中...")
+        log_processing_start(self.logger, date_str)
 
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -195,7 +204,7 @@ class RedditExplorer(BaseService):
                     f"合計 {len(candidate_posts)} 件の投稿候補を取得しました"
                 )
 
-                # 日付ごとにグループ化して各日独立で上位15件を選択
+                # 日付ごとにグループ化して各日独立で処理
                 posts_by_date = {}
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
@@ -204,49 +213,57 @@ class RedditExplorer(BaseService):
                             posts_by_date[post_date] = []
                         posts_by_date[post_date].append((category, subreddit_name, post))
                 
-                # 各日独立で上位15件を選択して結合
-                selected_posts = []
-                for target_date in sorted(effective_target_dates):
-                    if target_date in posts_by_date:
-                        date_posts = posts_by_date[target_date]
-                        if len(date_posts) <= self.SUMMARY_LIMIT:
-                            selected_posts.extend(date_posts)
-                        else:
-                            def sort_key(item: tuple[str, str, RedditPost]):
-                                _, _, post = item
-                                created = post.created_at or datetime.min
-                                return (post.popularity_score, created)
-                            
-                            sorted_posts = sorted(date_posts, key=sort_key, reverse=True)
-                            selected_posts.extend(sorted_posts[:self.SUMMARY_LIMIT])
-                
-                self.logger.info(
-                    f"人気スコア上位 {len(selected_posts)} 件の投稿を要約します"
-                )
-
-                for category, subreddit_name, post in selected_posts:
-                    post.comments = await self._retrieve_top_comments_of_post(
-                        post, limit=5
-                    )
-                    await self._summarize_reddit_post(post)
-
+                # 各日独立で処理
                 saved_files: list[tuple[str, str]] = []
-                if selected_posts:
-                    saved_files = await self._store_summaries(
-                        selected_posts, effective_target_dates
-                    )
-
-                    # 処理完了メッセージ
-                    if saved_files:
-                        self.logger.info(
-                            f"\n💾 {len(saved_files)}日分のデータを保存完了"
-                        )
-                        for json_path, md_path in saved_files:
-                            self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+                for target_date in sorted(effective_target_dates):
+                    date_str = target_date.strftime("%Y-%m-%d")
+                    date_posts = posts_by_date.get(target_date, [])
+                    
+                    if not date_posts:
+                        log_no_new_articles(self.logger)
+                        continue
+                    
+                    # 既存記事数を取得
+                    try:
+                        existing_posts = await self._load_existing_posts(target_date)
+                        existing_count = len(existing_posts)
+                    except Exception:
+                        existing_count = 0
+                    new_count = len(date_posts)
+                    log_article_counts(self.logger, existing_count, new_count)
+                    
+                    # 上位15件を選択
+                    if len(date_posts) <= self.SUMMARY_LIMIT:
+                        selected_posts = date_posts
                     else:
-                        self.logger.info("\n保存する投稿がありません")
-                else:
-                    self.logger.info("\n保存する投稿がありません")
+                        def sort_key(item: tuple[str, str, RedditPost]):
+                            _, _, post = item
+                            created = post.created_at or datetime.min
+                            return (post.popularity_score, created)
+                        
+                        sorted_posts = sorted(date_posts, key=sort_key, reverse=True)
+                        selected_posts = sorted_posts[:self.SUMMARY_LIMIT]
+                    
+                    # 要約対象を出力
+                    post_candidates = [post for _, _, post in selected_posts]
+                    log_summary_candidates(self.logger, post_candidates)
+                    
+                    # 要約生成
+                    log_summarization_start(self.logger)
+                    for idx, (category, subreddit_name, post) in enumerate(selected_posts, 1):
+                        post.comments = await self._retrieve_top_comments_of_post(
+                            post, limit=5
+                        )
+                        await self._summarize_reddit_post(post)
+                        log_summarization_progress(self.logger, idx, len(selected_posts), post.title)
+                    
+                    # 保存
+                    day_saved_files = await self._store_summaries(
+                        selected_posts, [target_date]
+                    )
+                    for json_path, md_path in day_saved_files:
+                        log_storage_complete(self.logger, json_path, md_path)
+                        saved_files.append((json_path, md_path))
 
                 return saved_files
 

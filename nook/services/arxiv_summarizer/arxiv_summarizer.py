@@ -13,8 +13,19 @@ from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
+from nook.common.exceptions import APIException
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import is_within_target_dates, target_dates_set
+from nook.common.logging_utils import (
+    log_processing_start,
+    log_article_counts,
+    log_summary_candidates,
+    log_summarization_start,
+    log_summarization_progress,
+    log_storage_complete,
+    log_no_new_articles,
+    log_multiple_dates_processing,
+)
 
 
 def remove_tex_backticks(text: str) -> str:
@@ -129,16 +140,9 @@ class ArxivSummarizer(BaseService):
             return []
 
         if len(sorted_dates) == 1:
-            self.logger.info(f"📰 [{sorted_dates[0]:%Y-%m-%d}] の記事を処理中...")
+            log_processing_start(self.logger, sorted_dates[0].strftime("%Y-%m-%d"))
         else:
-            start_str = sorted_dates[0].strftime("%Y-%m-%d")
-            end_str = sorted_dates[-1].strftime("%Y-%m-%d")
-            self.logger.info(
-                "📰 対象期間: %s 〜 %s (%d日間) を処理中...",
-                start_str,
-                end_str,
-                len(sorted_dates),
-            )
+            log_multiple_dates_processing(self.logger, sorted_dates)
 
         # 対象日ごとにHugging Faceから論文IDを取得
         collected_ids: list[str] = []
@@ -202,9 +206,9 @@ class ArxivSummarizer(BaseService):
         if saved_files:
             self.logger.info(f"\n💾 {len(saved_files)}日分のデータを保存完了")
             for json_path, md_path in saved_files:
-                self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+                log_storage_complete(self.logger, json_path, md_path)
         else:
-            self.logger.info("\n保存する論文がありません")
+            log_no_new_articles(self.logger)
 
         # 処理済みの論文IDを保存（日付ごとに分けて保存）
         await self._save_processed_ids_by_date(collected_ids, effective_target_dates)
