@@ -239,6 +239,13 @@ class FourChanExplorer(BaseService):
                         sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
                         selected_threads.extend(sorted_threads[:total_limit])
             
+            # 既存/新規スレッド数をカウント
+            existing_count = 0  # 既存スレッド数（簡略化）
+            new_count = len(selected_threads)  # 新規スレッド数
+            
+            # スレッド情報を表示
+            log_article_counts(self.logger, existing_count, new_count)
+            
             if selected_threads:
                 log_summary_candidates(self.logger, selected_threads, "popularity_score")
                 

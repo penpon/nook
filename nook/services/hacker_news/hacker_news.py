@@ -262,19 +262,18 @@ class HackerNewsRetriever(BaseService):
                 date_stories = sorted(stories_by_date[target_date], key=lambda s: s.score, reverse=True)
                 selected_stories.extend(date_stories[:limit])
 
-        # 7. ログに統計情報を出力
-        self.logger.info(
-            f"Hacker News記事フィルタリング結果: "
-            f"取得: {len(all_stories)}件, "
-            f"フィルタリング後: {len(filtered_stories)}件, "
-            f"選択: {len(selected_stories)}件"
-        )
+        # 7. ログに統計情報を出力（qiita形式に合わせる）
+        existing_count = 0  # 既存記事数（簡略化）
+        new_count = len(selected_stories)  # 新規記事数
+        
+        # 記事情報を表示
+        log_article_counts(self.logger, existing_count, new_count)
+        
+        if selected_stories:
+            log_summary_candidates(self.logger, selected_stories, "score")
 
         # 8. 要約を並行して生成
         await self._summarize_stories(selected_stories)
-
-        # 9. コンテンツフェッチの要約を出力
-        await self._log_fetch_summary(selected_stories)
 
         return selected_stories
 
@@ -477,12 +476,17 @@ class HackerNewsRetriever(BaseService):
                 story.text = "記事の内容を取得できませんでした。"
 
     async def _summarize_stories(self, stories: list[Story]) -> None:
-        """複数のストーリーを並行して要約"""
-        tasks = []
-        for story in stories:
-            tasks.append(self._summarize_story(story))
-
-        await asyncio.gather(*tasks, return_exceptions=True)
+        """複数のストーリーを逐次要約（リアルタイム進捗表示）"""
+        if not stories:
+            return
+            
+        # 要約生成開始を表示
+        log_summarization_start(self.logger)
+        
+        # 逐次要約してリアルタイムで進捗を表示
+        for idx, story in enumerate(stories, 1):
+            await self._summarize_story(story)
+            log_summarization_progress(self.logger, idx, len(stories), story.title)
 
         # 要約完了後にエラードメインをブロックリストに追記
         await self._update_blocked_domains_from_errors(stories)
@@ -650,7 +654,7 @@ class HackerNewsRetriever(BaseService):
             key=lambda item: item.get("title", ""),
             sort_key=self._story_sort_key,
             limit=MAX_STORY_LIMIT,
-            logger=self.logger,
+            logger=None,  # 二重表示を防ぐためNoneを設定
         )
 
         return saved_files

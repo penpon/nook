@@ -22,6 +22,7 @@ from nook.common.logging_utils import (
     log_article_counts,
     log_summary_candidates,
     log_summarization_start,
+    log_summarization_progress,
     log_storage_complete,
 )
 
@@ -193,15 +194,10 @@ class GithubTrending(BaseService):
                     if repos
                 ]
                 
-                translated_repos = await self._translate_repositories(repos_for_translation)
-                
-                # 進捗表示
-                total_translated = sum(len(repos) for _, repos in translated_repos)
-                for idx, (language, repositories) in enumerate(translated_repos, 1):
-                    for repo in repositories:
-                        self.logger.info(
-                            f"      ✓ {idx}/{total_translated}: 「{repo.name[:50]}...」"
-                        )
+                translated_repos = await self._translate_repositories(
+                    repos_for_translation,
+                    progress_callback=lambda idx, total, name: log_summarization_progress(self.logger, idx, total, name)
+                )
 
                 # 保存処理
                 json_path, md_path = await self._store_summaries_for_date(
@@ -318,7 +314,7 @@ class GithubTrending(BaseService):
         return tracker
 
     async def _translate_repositories(
-        self, repositories_by_language: list[tuple[str, list[Repository]]]
+        self, repositories_by_language: list[tuple[str, list[Repository]]], *, progress_callback=None
     ) -> list[tuple[str, list[Repository]]]:
         """
         リポジトリの説明を日本語に翻訳します。
@@ -327,12 +323,18 @@ class GithubTrending(BaseService):
         ----------
         repositories_by_language : List[tuple[str, List[Repository]]]
             言語ごとのリポジトリリスト。
+        progress_callback : callable, optional
+            進捗表示用のコールバック関数
 
         Returns
         -------
         List[tuple[str, List[Repository]]]
             翻訳されたリポジトリリスト。
         """
+        # 進捗カウンターを初期化
+        total_repos = sum(len(repos) for _, repos in repositories_by_language)
+        current_idx = 0
+        
         try:
             for language, repositories in repositories_by_language:
                 for repo in repositories:
@@ -363,6 +365,12 @@ class GithubTrending(BaseService):
                             if repo.description:
                                 repo.description = repo.description.strip()
                             await self.rate_limit()  # API呼び出し後のレート制限
+                            
+                            # 進捗表示
+                            current_idx += 1
+                            if progress_callback:
+                                progress_callback(current_idx, total_repos, repo.name)
+                                
                         except Exception as e:
                             self.logger.error(
                                 f"Error translating description for {repo.name}: {str(e)}"

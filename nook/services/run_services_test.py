@@ -111,6 +111,10 @@ class ServiceRunnerTest:
                 # Redditは1記事に制限
                 result = await service.collect(limit=1, target_dates=sorted_target_dates)
                 saved_files = result if result else []
+            elif service_name == "github_trending":
+                # GitHub Trendingは1件に制限
+                result = await service.collect(limit=1, target_dates=sorted_target_dates)
+                saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
                 result = await service.collect(target_dates=sorted_target_dates)

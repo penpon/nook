@@ -196,8 +196,21 @@ class ArxivSummarizer(BaseService):
             elif isinstance(result, Exception):
                 self.logger.error(f"Error retrieving paper: {result}")
 
-        # 論文を並行して要約
-        await self._summarize_papers(papers)
+        # 論文情報を表示
+        if papers:
+            existing_count = 0  # 既存論文数（簡略化）
+            new_count = len(papers)  # 新規論文数
+            
+            # 論文情報を表示
+            log_article_counts(self.logger, existing_count, new_count)
+            log_summary_candidates(self.logger, papers, "published_at")
+
+        # 論文を逐次要約（リアルタイム進捗表示）
+        if papers:
+            log_summarization_start(self.logger)
+            for idx, paper in enumerate(papers, 1):
+                await self._summarize_paper_info(paper)
+                log_summarization_progress(self.logger, idx, len(papers), paper.title)
 
         # 要約を保存
         saved_files = await self._store_summaries(papers, limit, effective_target_dates)

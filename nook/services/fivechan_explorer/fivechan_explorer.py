@@ -410,12 +410,21 @@ class FiveChanExplorer(BaseService):
                         sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
                         selected_threads.extend(sorted_threads[:total_limit])
             
-            self.logger.info(
-                f"人気スコア上位 {len(selected_threads)} 件のスレッドを要約します"
-            )
-
-            for thread in selected_threads:
-                await self._summarize_thread(thread)
+            # 既存/新規スレッド数をカウント
+            existing_count = 0  # 既存スレッド数（簡略化）
+            new_count = len(selected_threads)  # 新規スレッド数
+            
+            # スレッド情報を表示
+            log_article_counts(self.logger, existing_count, new_count)
+            
+            if selected_threads:
+                log_summary_candidates(self.logger, selected_threads, "popularity_score")
+                
+                # 要約生成
+                log_summarization_start(self.logger)
+                for idx, thread in enumerate(selected_threads, 1):
+                    await self._summarize_thread(thread)
+                    log_summarization_progress(self.logger, idx, len(selected_threads), thread.title)
 
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
@@ -428,11 +437,11 @@ class FiveChanExplorer(BaseService):
                 if saved_files:
                     self.logger.info(f"\n💾 {len(saved_files)}日分のデータを保存完了")
                     for json_path, md_path in saved_files:
-                        self.logger.info(f"   💾 保存完了: {json_path}, {md_path}")
+                        log_storage_complete(self.logger, json_path, md_path)
                 else:
-                    self.logger.info("\n保存するスレッドがありません")
+                    log_no_new_articles(self.logger)
             else:
-                self.logger.info("\n保存するスレッドがありません")
+                log_no_new_articles(self.logger)
 
             return saved_files
 
