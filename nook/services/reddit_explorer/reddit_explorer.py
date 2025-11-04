@@ -157,13 +157,6 @@ class RedditExplorer(BaseService):
         """
         effective_target_dates = target_dates or target_dates_set(1)
 
-        # 対象日付のログ出力
-        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
-        log_processing_start(self.logger, date_str)
-        
-        # デバッグ：対象日付の詳細を表示
-        self.logger.info(f"📅 対象日付: {sorted(effective_target_dates)}")
-
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
             await self.setup_http_client()
@@ -173,6 +166,8 @@ class RedditExplorer(BaseService):
         
         # デバッグ：重複トラッカーの状態を表示
         self.logger.info(f"🔍 既存タイトル数: {dedup_tracker.count()}件")
+
+        self.logger.info("\n📡 サブレディット取得中...")
 
         # Redditクライアントをコンテキストマネージャーで使用
         async with asyncpraw.Reddit(
@@ -185,18 +180,20 @@ class RedditExplorer(BaseService):
             try:
                 # 各カテゴリのサブレディットから投稿を取得
                 for category, subreddits in self.subreddits_config.items():
-                    self.logger.info(f"カテゴリ {category} の処理を開始します...")
                     for subreddit_name in subreddits:
                         try:
-                            self.logger.info(
-                                f"サブレディット r/{subreddit_name} から投稿を取得しています..."
-                            )
-                            posts = await self._retrieve_hot_posts(
+                            posts, total_found = await self._retrieve_hot_posts(
                                 subreddit_name,
                                 limit,
                                 dedup_tracker,
                                 effective_target_dates,
                             )
+                            
+                            # 本来の件数と実際の取得件数を表示
+                            if total_found > 0:
+                                self.logger.info(f"   • r/{subreddit_name}: {len(posts)}件取得 (本来{total_found}件)")
+                            else:
+                                self.logger.info(f"   • r/{subreddit_name}: 0件取得")
 
                             for post in posts:
                                 candidate_posts.append((category, subreddit_name, post))
@@ -221,15 +218,14 @@ class RedditExplorer(BaseService):
                             posts_by_date[post_date] = []
                         posts_by_date[post_date].append((category, subreddit_name, post))
                 
-                # デバッグ：グループ化結果を表示
-                for post_date, posts in posts_by_date.items():
-                    self.logger.info(f"📅 {post_date}: {len(posts)}件の投稿")
-                
                 # 各日独立で処理
                 saved_files: list[tuple[str, str]] = []
                 for target_date in sorted(effective_target_dates):
                     date_str = target_date.strftime("%Y-%m-%d")
                     date_posts = posts_by_date.get(target_date, [])
+                    
+                    # 日付情報を先頭に表示
+                    log_processing_start(self.logger, date_str)
                     
                     if not date_posts:
                         log_no_new_articles(self.logger)
@@ -290,7 +286,7 @@ class RedditExplorer(BaseService):
         limit: int | None,
         dedup_tracker: DedupTracker,
         target_dates: list[date],
-    ) -> list[RedditPost]:
+    ) -> tuple[list[RedditPost], int]:
         """
         サブレディットの人気投稿を取得します。
 
@@ -307,19 +303,19 @@ class RedditExplorer(BaseService):
 
         Returns
         -------
-        List[RedditPost]
-            取得した投稿のリスト。
+        tuple[List[RedditPost], int]
+            取得した投稿のリストと、本来取得できた件数のタプル。
         """
         subreddit = await self.reddit.subreddit(subreddit_name)
         posts = []
-        filtered_count = {"date": 0, "duplicate": 0, "total": 0}
+        total_found = 0
 
         async for submission in subreddit.hot(limit=limit):
             if submission.stickied:
                 continue
 
-            filtered_count["total"] += 1
-            
+            total_found += 1
+
             # 投稿タイプを判定
             post_type = "text"
             if hasattr(submission, "is_video") and submission.is_video:
@@ -353,7 +349,6 @@ class RedditExplorer(BaseService):
                     title,
                     original,
                 )
-                filtered_count["duplicate"] += 1
                 continue
             text_ja = (
                 await self._translate_to_japanese(submission.selftext)
@@ -366,13 +361,6 @@ class RedditExplorer(BaseService):
                 if hasattr(submission, "created_utc")
                 else None
             )
-
-            # デバッグ：投稿の詳細情報を表示
-            if created_at:
-                jst_time = created_at.astimezone(timezone(timedelta(hours=9)))
-                self.logger.info(
-                    f"📝 投稿: '{title[:50]}...' | UTC: {created_at.strftime('%Y-%m-%d %H:%M')} | JST: {jst_time.strftime('%Y-%m-%d %H:%M')} | 対象日: {sorted(target_dates)}"
-                )
 
             post = RedditPost(
                 type=post_type,
@@ -390,29 +378,12 @@ class RedditExplorer(BaseService):
             )
 
             if not is_within_target_dates(post.created_at, target_dates):
-                if created_at:
-                    jst_time = created_at.astimezone(timezone(timedelta(hours=9)))
-                    self.logger.info(
-                        f"❌ 日付フィルタで除外: '{title[:30]}...' | JST: {jst_time.strftime('%Y-%m-%d')} | 対象外"
-                    )
-                filtered_count["date"] += 1
                 continue
 
             posts.append(post)
             dedup_tracker.add(post.title)
-            
-            # デバッグ：投稿を追加したことを表示
-            self.logger.info(f"✅ 投稿を追加: '{title[:30]}...' (スコア: {submission.score})")
 
-        # デバッグ：フィルタリング結果を表示
-        self.logger.info(
-            f"📊 r/{subreddit_name} フィルタリング結果: 全{filtered_count['total']}件 → "
-            f"日付フィルタで{filtered_count['date']}件除外 → "
-            f"重複で{filtered_count['duplicate']}件除外 → "
-            f"残り{len(posts)}件"
-        )
-
-        return posts
+        return posts, total_found
 
     async def _translate_to_japanese(self, text: str) -> str:
         """
@@ -462,11 +433,13 @@ class RedditExplorer(BaseService):
             取得したコメントのリスト。
         """
         submission = await self.reddit.submission(id=post.id)
-        submission.comment_sort = "top"
-        submission.comment_limit = limit
+        
+        # コメントを取得する前にソート順を設定
+        await submission.comments.replace_more(limit=0)
+        comments_list = submission.comments.list()[:limit]
 
         comments = []
-        for comment in submission.comments[:limit]:
+        for comment in comments_list:
             if hasattr(comment, "body"):
                 # コメントを日本語に翻訳
                 comment_text_ja = await self._translate_to_japanese(comment.body)

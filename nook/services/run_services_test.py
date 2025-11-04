@@ -144,7 +144,11 @@ class ServiceRunnerTest:
 
         # 遅延読み込み：必要なサービスのみ初期化
         if service_name not in self.sync_services:
-            self.sync_services[service_name] = self.service_classes[service_name]()
+            # 4chanサービスはテストモードで初期化して遅延を短縮
+            if service_name == "4chan":
+                self.sync_services[service_name] = self.service_classes[service_name](test_mode=True)
+            else:
+                self.sync_services[service_name] = self.service_classes[service_name]()
 
         logger.info(f"Running service: {service_name} with days={days} (テスト用：1件制限)")
 

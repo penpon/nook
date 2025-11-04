@@ -20,6 +20,7 @@ from nook.common.logging_utils import (
     log_article_counts,
     log_summary_candidates,
     log_summarization_start,
+    log_summarization_progress,
     log_storage_complete,
     log_no_new_articles,
 )
@@ -68,7 +69,7 @@ class FourChanExplorer(BaseService):
 
     TOTAL_LIMIT = 15
 
-    def __init__(self, storage_dir: str = "data"):
+    def __init__(self, storage_dir: str = "data", test_mode: bool = False):
         """
         FourChanExplorerを初期化します。
 
@@ -76,6 +77,8 @@ class FourChanExplorer(BaseService):
         ----------
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+        test_mode : bool, default=False
+            テストモードの場合は遅延を短縮します。
         """
         super().__init__("fourchan_explorer")
         self.http_client = None  # setup_http_clientで初期化
@@ -111,7 +114,8 @@ class FourChanExplorer(BaseService):
         ]
 
         # APIリクエスト間の遅延（4chanのAPI利用規約を遵守するため）
-        self.request_delay = 1  # 秒
+        # テストモードでは遅延を短縮
+        self.request_delay = 0.1 if test_mode else 1  # 秒
 
     def _load_boards(self) -> list[str]:
         """

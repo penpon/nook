@@ -99,7 +99,4 @@ async def store_daily_snapshots(
 
         saved_files.append((str(json_path), str(md_path)))
 
-        if logger:
-            logger.info(f"   ✅ {len(merged)}件を保存完了")
-
     return saved_files

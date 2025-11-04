@@ -7,7 +7,7 @@ from datetime import date
 def log_processing_start(logger, date_str: str) -> None:
     """
     処理開始のログを出力します。
-    
+
     Parameters
     ----------
     logger : Logger
@@ -21,7 +21,7 @@ def log_processing_start(logger, date_str: str) -> None:
 def log_article_counts(logger, existing_count: int, new_count: int) -> None:
     """
     既存・新規記事数のログを出力します。
-    
+
     Parameters
     ----------
     logger : Logger
@@ -29,17 +29,17 @@ def log_article_counts(logger, existing_count: int, new_count: int) -> None:
     existing_count : int
         既存記事数
     new_count : int
-        新規記事数（重複除外済み）
+        新規記事数
     """
     logger.info(
-        f"   📊 既存: {existing_count}件（保持） | 新規: {new_count}件（重複除外済み）"
+        f"   📊 既存: {existing_count}件（保持） | 新規: {new_count}件"
     )
 
 
 def log_summary_candidates(logger, candidates: List[Any], score_attr: str = "popularity_score") -> None:
     """
     要約対象記事のリストを出力します。
-    
+
     Parameters
     ----------
     logger : Logger
@@ -51,27 +51,27 @@ def log_summary_candidates(logger, candidates: List[Any], score_attr: str = "pop
     """
     if not candidates:
         return
-        
+
     logger.info(f"   ✅ 要約対象: {len(candidates)}件を選択")
     for idx, item in enumerate(candidates, 1):
         if hasattr(item, 'title'):
             title = item.title
         else:
             title = getattr(item, 'name', str(item))
-            
+
         score = getattr(item, score_attr, 0)
         if isinstance(score, float):
             score_str = f"{score:.0f}"
         else:
             score_str = str(score)
-            
+
         logger.info(f"      {idx}. 「{title}」(スコア: {score_str})")
 
 
 def log_summarization_start(logger) -> None:
     """
     要約生成開始のログを出力します。
-    
+
     Parameters
     ----------
     logger : Logger
@@ -83,7 +83,7 @@ def log_summarization_start(logger) -> None:
 def log_summarization_progress(logger, idx: int, total: int, title: str) -> None:
     """
     要約生成の進捗を出力します。
-    
+
     Parameters
     ----------
     logger : Logger
@@ -102,7 +102,7 @@ def log_summarization_progress(logger, idx: int, total: int, title: str) -> None
 def log_storage_complete(logger, json_path: str, md_path: str) -> None:
     """
     保存完了のログを出力します。
-    
+
     Parameters
     ----------
     logger : Logger
@@ -118,7 +118,7 @@ def log_storage_complete(logger, json_path: str, md_path: str) -> None:
 def log_no_new_articles(logger) -> None:
     """
     新規記事がない場合のログを出力します。
-    
+
     Parameters
     ----------
     logger : Logger
@@ -130,7 +130,7 @@ def log_no_new_articles(logger) -> None:
 def log_multiple_dates_processing(logger, dates: List[date]) -> None:
     """
     複数日付処理のログを出力します。
-    
+
     Parameters
     ----------
     logger : Logger
