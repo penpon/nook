@@ -1,4 +1,4 @@
-name: Claude Auto-fix Test Failures
+name: Notify Test Failures
 
 on:
   workflow_run:
@@ -7,105 +7,64 @@ on:
       - completed
 
 jobs:
-  auto-fix-tests:
+  notify-failures:
     # テストワークフローが失敗し、かつPRからのトリガーの場合のみ実行
-    if: |
-      github.event.workflow_run.conclusion == 'failure' &&
-      github.event.workflow_run.event == 'pull_request'
+    if: ${{ github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0] != null }}
 
     runs-on: ubuntu-slim
     permissions:
-      contents: write
       pull-requests: write
       actions: read
-      checks: read
-      id-token: write
 
     steps:
-      - name: Get PR details
-        id: pr
+      - name: Get PR details and post failure comment
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.CLAUDE_REQUEST_TOKEN }}
           script: |
-            const prNumber = github.event.workflow_run.pull_requests[0]?.number;
+            const prNumber = context.payload.workflow_run.pull_requests[0]?.number;
             if (!prNumber) {
-              core.setFailed('PR番号を取得できませんでした');
+              console.log('PR番号を取得できませんでした');
               return;
             }
 
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber
-            });
+            const runId = context.payload.workflow_run.id;
 
-            core.setOutput('pr_number', prNumber);
-            core.setOutput('head_ref', pr.head.ref);
-            core.setOutput('head_sha', pr.head.sha);
-
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.pr.outputs.head_ref }}
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download test logs
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const runId = github.event.workflow_run.id;
-
-            // ジョブログを取得
+            // 失敗したジョブを取得
             const jobs = await github.rest.actions.listJobsForWorkflowRun({
               owner: context.repo.owner,
               repo: context.repo.repo,
               run_id: runId,
             });
 
-            let failedJobs = jobs.data.jobs.filter(job => job.conclusion === 'failure');
+            const failedJobs = jobs.data.jobs.filter(job => job.conclusion === 'failure');
 
-            // 失敗したジョブの情報をファイルに保存
-            const jobInfo = failedJobs.map(job => ({
-              name: job.name,
-              conclusion: job.conclusion,
-              html_url: job.html_url
-            }));
+            if (failedJobs.length === 0) {
+              console.log('失敗したジョブが見つかりませんでした');
+              return;
+            }
 
-            fs.writeFileSync('failed_jobs.json', JSON.stringify(jobInfo, null, 2));
+            // 失敗したジョブのリストを作成
+            const failedJobsList = failedJobs.map(job => {
+              const jobName = job.name;
+              const jobUrl = job.html_url;
+              return `- **${jobName}**: [ログを確認](${jobUrl})`;
+            }).join('\n');
 
-      - name: Run Claude Code to fix test failures
-        id: claude-fix
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ steps.pr.outputs.pr_number }}
-            WORKFLOW RUN: ${{ github.event.workflow_run.html_url }}
+            // PRにコメント投稿
+            const commentBody = [
+              '@claude 以下のジョブが失敗しています。修正してください：',
+              '',
+              failedJobsList,
+              '',
+              `**ワークフロー実行**: ${context.payload.workflow_run.html_url}`
+            ].join('\n');
 
-            テストワークフローが失敗しました。
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody
+            });
 
-            失敗したジョブ情報:
-            $(cat failed_jobs.json)
-
-            以下の手順で対応してください:
-
-            1. `gh run view ${{ github.event.workflow_run.id }} --log-failed`で失敗したテストのログを確認
-            2. エラーメッセージを分析し、根本原因を特定
-            3. 失敗したテストを修正:
-               - テストコード自体の問題（test_*.py）
-               - 実装コードの問題（modules/）
-               - 依存関係の問題（pyproject.toml）
-            4. CLAUDE.mdの規約に従って修正
-            5. ローカルでテストを実行して確認（可能であれば）
-            6. 修正内容をコミット（メッセージ: "fix: テスト失敗を修正 - [失敗したテスト名]"）
-            7. プッシュ
-
-            注意事項:
-            - カバレッジ要求（80%以上）も考慮すること
-            - セキュリティチェック（bandit, pip-audit）の警告も対処すること
-            - 修正は最小限に留め、テストが通ることを最優先すること
-
-          claude_args: '--allowed-tools "Bash(gh run:*),Bash(gh pr:*),Bash(git:*),Bash(uv:*),Bash(pytest:*)"'
+            console.log(`PR #${prNumber} にコメントを投稿しました`);

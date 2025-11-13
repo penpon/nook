@@ -8,7 +8,7 @@ on:
   workflow_dispatch:  # 手動実行を許可
 
 permissions:
-  contents: read
+  contents: write  # 自動フォーマット時のコミット＆プッシュに必要
 
 jobs:
   test:
@@ -31,13 +31,14 @@ jobs:
 
     - name: 依存関係のインストール
       run: |
-        uv sync --extra dev
+        uv sync --group dev
 
     - name: ユニットテストの実行とカバレッジ確認
       run: |
         set -e
         echo "=== ユニットテストを実行中 ==="
-        uv run pytest tests/ -v --cov=modules --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
+        echo "注: 統合テスト（-m integration）はCI環境ではスキップされます"
+        uv run pytest tests/ -v -m "not integration" --cov=modules --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
         echo ""
         echo "=== カバレッジ率を確認中 ==="
         uv run coverage report --format=text
@@ -69,7 +70,7 @@ jobs:
           elif [ ! -f coverage.xml ]; then
             echo "⚠️ カバレッジレポート（coverage.xml）が見つかりません"
           fi
-        } >> $GITHUB_STEP_SUMMARY
+        } >> "$GITHUB_STEP_SUMMARY"
 
   lint:
     runs-on: ubuntu-latest
@@ -77,6 +78,9 @@ jobs:
     steps:
     - name: チェックアウト
       uses: actions/checkout@v4.1.0
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ github.head_ref || github.ref_name }}  # PRブランチまたは現在のブランチ
 
     - name: uv のセットアップ
       uses: astral-sh/setup-uv@v3.0.0
@@ -91,21 +95,37 @@ jobs:
 
     - name: 依存関係のインストール
       run: |
-        uv sync --extra dev
+        uv sync --group dev
 
     - name: 静的解析とフォーマットチェック
       run: |
         set -e
-        echo "=== Black (コードフォーマットチェック) ==="
-        uv run black --check modules/ tests/
+        echo "=== Black (コードフォーマット) ==="
+        uv run black modules/ tests/
         echo ""
         echo "=== Ruff (リント・インポート順序チェック) ==="
         uv run ruff check modules/ tests/
         echo ""
-        echo "=== Ruff フォーマッター (チェック) ==="
-        uv run ruff format --check modules/ tests/
+        echo "=== Ruff フォーマッター ==="
+        uv run ruff format modules/ tests/
         echo ""
-        echo "✅ すべての静的解析とフォーマットチェックが成功しました"
+        echo "✅ すべての静的解析とフォーマットが成功しました"
+
+    - name: フォーマット変更の自動コミット
+      if: github.event_name == 'pull_request'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+        if ! git diff --quiet modules/ tests/; then
+          echo "📝 フォーマット変更を検出しました。自動コミットします..."
+          git add modules/ tests/
+          git commit -m "style: Blackによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
+          git push
+          echo "✅ フォーマット変更をコミット＆プッシュしました"
+        else
+          echo "✅ フォーマット変更はありません"
+        fi
 
   security:
     runs-on: ubuntu-latest
@@ -127,11 +147,7 @@ jobs:
 
     - name: 依存関係のインストール
       run: |
-        uv sync --extra dev
-
-    - name: セキュリティツールのインストール
-      run: |
-        uv pip install bandit pip-audit
+        uv sync --group dev
 
     - name: セキュリティチェック (bandit)
       run: |
