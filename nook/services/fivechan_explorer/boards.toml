@@ -1,0 +1,15 @@
+# 5chan Explorer 緊急修正版設定ファイル 
+# TASK-068: 403エラー緊急修正 - サーバー情報ハードコーディング
+
+# 正しい5chanサーバー情報を含む設定
+# 動的取得を廃止し、静的設定により403エラーを回避
+
+[boards]
+# 主要板のサーバー情報（調査済み）
+prog = { name = "プログラミング", server = "mevius.5ch.net" }
+tech = { name = "技術", server = "egg.5ch.net" }
+ai = { name = "人工知能", server = "krsw.5ch.net" }
+esite = { name = "ネットサービス", server = "egg.5ch.net" }
+
+# 緊急修正版では最小限の板のみ設定
+# 動作確認後に他の板を段階的に追加予定

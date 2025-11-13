@@ -1,0 +1,34 @@
+# フィード設定
+
+zenn = [
+    "https://zenn.dev/feed",
+    "https://zenn.dev/topics/ai駆動開発/feed",
+    "https://zenn.dev/topics/claudecode/feed",
+    "https://zenn.dev/topics/claude/feed",
+    "https://zenn.dev/topics/openai/feed",
+    "https://zenn.dev/topics/cursor/feed",
+    "https://zenn.dev/topics/cline/feed",
+    "https://zenn.dev/topics/langchain/feed",
+    "https://zenn.dev/topics/mcp/feed",
+    # AI駆動開発関連の追加
+    "https://zenn.dev/topics/githubcopilot/feed",
+    "https://zenn.dev/topics/v0/feed",
+    "https://zenn.dev/topics/replit/feed",
+    "https://zenn.dev/topics/windsurf/feed",
+    "https://zenn.dev/topics/codeium/feed",
+    # 画像生成AI関連
+    "https://zenn.dev/topics/stablediffusion/feed",
+    "https://zenn.dev/topics/画像生成/feed",
+    "https://zenn.dev/topics/midjourney/feed",
+    "https://zenn.dev/topics/comfyui/feed",
+    "https://zenn.dev/topics/flux/feed",
+    "https://zenn.dev/topics/dalle/feed",
+    # 一般AI関連
+    "https://zenn.dev/topics/生成ai/feed",
+    "https://zenn.dev/topics/ai/feed",
+    "https://zenn.dev/topics/llm/feed",
+    # 追加: Gemini, A2A関連
+    "https://zenn.dev/topics/gemini/feed",
+    "https://zenn.dev/topics/googleai/feed",
+    "https://zenn.dev/topics/agent/feed",
+]

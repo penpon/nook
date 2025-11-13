@@ -1,0 +1,35 @@
+# フィード設定
+
+note = [
+    "https://note.com/hashtag/Anthropic/rss",
+    "https://note.com/hashtag/OpenAI/rss",
+    "https://note.com/hashtag/Gemini/rss",
+    "https://note.com/hashtag/ClaudeCode/rss",
+    "https://note.com/hashtag/vibeCoding/rss",
+    "https://note.com/hashtag/Cursor/rss",
+    "https://note.com/hashtag/Claude/rss",
+    # AI駆動開発関連の追加
+    "https://note.com/hashtag/GitHubCopilot/rss",
+    "https://note.com/hashtag/v0/rss",
+    "https://note.com/hashtag/Replit/rss",
+    "https://note.com/hashtag/Windsurf/rss",
+    "https://note.com/hashtag/Codeium/rss",
+    # 画像生成AI関連
+    "https://note.com/hashtag/stablediffusion/rss",
+    "https://note.com/hashtag/画像生成/rss",
+    "https://note.com/hashtag/Midjourney/rss",
+    "https://note.com/hashtag/ComfyUI/rss",
+    "https://note.com/hashtag/FLUX/rss",
+    "https://note.com/hashtag/DALLE/rss",
+    "https://note.com/hashtag/Firefly/rss",
+    "https://note.com/hashtag/StableDiffusion/rss",
+    # 一般AI関連
+    "https://note.com/hashtag/生成ai/rss",
+    "https://note.com/hashtag/ai/rss",
+    "https://note.com/hashtag/llm/rss",
+    # 追加: MCP, A2A関連
+    "https://note.com/hashtag/MCP/rss",
+    "https://note.com/hashtag/ModelContextProtocol/rss",
+    "https://note.com/hashtag/GoogleAI/rss",
+    "https://note.com/hashtag/Agent/rss",
+]

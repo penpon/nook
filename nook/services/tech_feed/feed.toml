@@ -8,8 +8,21 @@ tech_blogs = [
     "https://blog.google/technology/developers/rss/",
     "https://aws.amazon.com/blogs/aws/feed/",
     "https://devblogs.microsoft.com/python/feed/",
-    "https://blog.twitter.com/engineering/en_us/blog.rss",
-    "https://medium.com/feed/airbnb-engineering"
+    "https://medium.com/feed/airbnb-engineering",
+    "https://www.techno-edge.net/rss20/index.rdf",
+    # 日本語技術メディア
+    "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml",
+    "https://ascii.jp/cate/1283/rss.xml",
+    "https://gigazine.net/news/rss_2.0/",
+    "https://forest.watch.impress.co.jp/data/rss/1.0/wf/feed.rdf",
+]
+
+# はてなブックマーク
+hatena = [
+    # テクノロジーの中で人気のもの
+    "https://b.hatena.ne.jp/hotentry/it.rss",
+    # aiで検索して5ユーザがブックマークをして新着でソートしたもの
+    "https://b.hatena.ne.jp/q/ai?users=5&sort=recent&mode=rss",
 ]
 
 # AI/ML関連
@@ -18,32 +31,44 @@ ai_ml = [
     "https://openai.com/blog/rss/",
     "https://blog.tensorflow.org/feeds/posts/default",
     "https://pytorch.org/blog/feed.xml",
-    "https://huggingface.co/blog/feed.xml"
+    "https://huggingface.co/blog/feed.xml",
+    # 画像生成AI関連
+    "https://stability.ai/blog/rss.xml",
+    "https://www.midjourney.com/blog/rss",
+    # AI駆動開発関連
+    "https://www.anthropic.com/blog/rss.xml",
+    "https://devblogs.microsoft.com/semantic-kernel/feed/",
+    "https://github.blog/category/ai-and-ml/feed/",
+    "https://vercel.com/atom",
+    # Google AI関連
+    "https://ai.google.dev/feed.xml",
+    "https://blog.google/technology/ai/rss/",
 ]
 
 # プログラミング言語
 programming = [
-    "https://blog.rust-lang.org/feed.xml",
     "https://blog.python.org/feeds/posts/default",
-    "https://go.dev/blog/feed.atom",
-    "https://blog.jetbrains.com/kotlin/feed/",
-    "https://blog.typescriptlang.org/feed/feed.xml"
+    # "https://blog.rust-lang.org/feed.xml",
+    # "https://go.dev/blog/feed.atom",
+    # "https://blog.jetbrains.com/kotlin/feed/",
+    # "https://blog.typescriptlang.org/feed/feed.xml"
 ]
 
-zenn = [
-    "https://zenn.dev/topics/cursor/feed",
-    "https://zenn.dev/topics/cline/feed",
-    "https://zenn.dev/topics/langchain/feed",
-    "https://zenn.dev/topics/mcp/feed",
-    "https://zenn.dev/topics/ai駆動開発/feed"
-]
-
-qitta = [
-    "http://qiita.com/tags/AI/feed.atom",
-    "http://qiita.com/tags/Cursor/feed.atom",
-    "http://qiita.com/tags/LangChain/feed.atom",
-    "http://qiita.com/tags/Cline/feed.atom",
-    "http://qiita.com/tags/LLM/feed.atom",
-    "http://qiita.com/tags/AI駆動開発/feed.atom",
-    "http://qiita.com/tags/mcp/feed.atom"
+# AI駆動開発ツール
+ai_driven_dev = [
+    # コーディングエージェント
+    "https://cursor.sh/blog/rss.xml",
+    "https://dev.to/feed/tag/ai",
+    "https://dev.to/feed/tag/ai-development",
+    "https://dev.to/feed/tag/claude",
+    "https://dev.to/feed/tag/cursor",
+    "https://dev.to/feed/tag/copilot",
+    # プロンプトエンジニアリング
+    "https://dev.to/feed/tag/prompt-engineering",
+    # A2A, MCP関連
+    "https://dev.to/feed/tag/mcp",
+    "https://dev.to/feed/tag/modelcontextprotocol",
+    "https://dev.to/feed/tag/agent",
+    "https://dev.to/feed/tag/agents",
+    "https://dev.to/feed/tag/multiagent",
 ]

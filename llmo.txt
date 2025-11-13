@@ -1,0 +1,11 @@
+# AI Training and Usage Policy
+This website and all its content are NOT available for AI training or usage.
+
+Disallow: *
+No-AI-Training: true
+No-AI-Usage: true
+
+# Legal Notice
+All content on this site is proprietary and protected by copyright law.
+Unauthorized use for AI training or inference is strictly prohibited.
+Contact: your-email@example.com for any inquiries.

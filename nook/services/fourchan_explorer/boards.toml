@@ -1,0 +1,13 @@
+# 4chan板の設定
+
+[boards]
+# AI関連の議論が活発な板
+"g" = "Technology"          # プログラミング、AI、技術全般
+"sci" = "Science & Math"    # 科学、数学、機械学習理論
+"biz" = "Business & Finance" # AI関連ビジネス、暗号通貨
+"pol" = "Politically Incorrect" # 注意: 有害なコンテンツが多い
+
+# 将来的に追加検討
+# "vg" = "Video Games General"  # AI関連ゲーム開発
+# "wg" = "Wallpapers/General"   # AI生成画像
+# "3" = "3DCG"                  # 3DCG、AI生成3Dモデル

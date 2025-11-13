@@ -1,19 +1,24 @@
-FROM node:18-alpine
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# 依存関係のインストール
-COPY nook/frontend/package.json .
-RUN npm install
+# package.jsonをコピー（キャッシュ効率化）
+COPY nook/frontend/package*.json ./
 
-# アプリケーションのコピー
+# 依存関係インストール
+RUN npm ci
+
+# ソースコードをコピー
 COPY nook/frontend .
 
-# ビルド
+# 環境変数を設定
+ENV VITE_API_URL=/api
+
+# 本番ビルド
 RUN npm run build
 
-# ポートの公開
-EXPOSE 5173
-
-# 開発サーバーの起動
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"] 
+# nginxイメージに統合
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx/.htpasswd /etc/nginx/.htpasswd

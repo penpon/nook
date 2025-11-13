@@ -1,1 +1,1 @@
-"""RedditExplorerパッケージ。""" 
+"""RedditExplorerパッケージ。"""

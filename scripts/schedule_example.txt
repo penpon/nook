@@ -1,0 +1,19 @@
+# スケジュールファイルの例
+# フォーマット: DATE TIME SERVICES
+#           または: WEEKDAY TIME SERVICES  
+#           または: business_days TIME SERVICES
+
+# 特定の日付での実行
+2025-07-01 09:00 hacker_news,github_trending
+2025-07-01 18:00 ALL
+2025-07-15 12:00 reddit,tech_news,arxiv
+
+# 曜日指定での実行
+monday,wednesday,friday 09:00 ALL
+tuesday,thursday 14:00 qiita,zenn,note
+
+# 営業日のみ実行
+business_days 09:00,12:00,17:00 ALL
+
+# 週末の軽量実行
+saturday,sunday 10:00 hacker_news,github_trending

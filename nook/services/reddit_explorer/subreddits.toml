@@ -2,9 +2,17 @@
 
 # 技術関連
 tech = [
+    "StableDiffusion",
     "artificial",
-    "compsci",
-    "coding",
+    "ClaudeAI",
+    "OpenAI",
+    "GoogleGemini",
+    "cursor",
+    "MachineLearning",
+    "LocalLLaMA",
+    "singularity",
+    "AgentGPT",
+    "AutoGPT",
 ]
 
 # ニュース

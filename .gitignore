@@ -1,22 +1,99 @@
+# Claude shared components (symlinks)
+/claude/work/scripts
+/claude/work/agents/roles
+/claude/templates
+CLAUDE.md
+.serena
+
+# Project-specific data (keep in git)
+!/claude/work/agents/handoffs/
+!/claude/work/agents/shared/
+!/claude/work/checklists/
+!/claude/work/scratchpads/
+
+# Git worktrees
+worktrees/
+
+# data
+data/
+
+# Logs - 一時的なログファイル
+logs/*.log
+*.log
+
+# Data files - APIレスポンスやクロールデータ
+
+# BASIC認証ファイル（セキュリティ）
+nginx/.htpasswd
+
+# Temporary files
+*.tmp
+*.temp
 *.swp
-package-lock.json
-__pycache__
-.pytest_cache
-.venv
-*.egg-info
-
-# CDK asset staging directory
-.cdk.staging
-cdk.out
-
-node_modules/
-
-.env
-venv
-
+*.swo
+*~
 .DS_Store
 
-.cursorrules
-.cursorignore
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
 
-data
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.production
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+__pycache__/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Python virtual environment
+venv/
+.venv/
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg

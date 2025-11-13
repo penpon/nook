@@ -26,7 +26,7 @@ Nookは以下の独立したマイクロサービスで構成されています�
 2. **hacker_news**: Hacker Newsの記事を収集
 3. **github_trending**: GitHubのトレンドリポジトリを収集
 4. **tech_feed**: 技術ブログのRSSフィードを監視・収集・要約
-5. **paper_summarizer**: arXiv論文を収集・要約
+5. **arxiv_summarizer**: arXiv論文を収集・要約
 6. **api_server**: FastAPIベースのバックエンドサーバー
 7. **streamlit_app**: Streamlitベースのフロントエンドアプリケーション
 
@@ -55,7 +55,7 @@ graph TD
     HackerNews[hacker_news<br>Hacker News記事収集]:::serviceStyle
     GitHubTrending[github_trending<br>GitHubトレンド収集]:::serviceStyle
     TechFeed[tech_feed<br>技術ブログRSS収集・要約]:::serviceStyle
-    PaperSummarizer[paper_summarizer<br>arXiv論文収集・要約]:::serviceStyle
+    ArxivSummarizer[arxiv_summarizer<br>arXiv論文収集・要約]:::serviceStyle
 
     %% 外部情報源
     Reddit[Reddit API]
@@ -69,24 +69,24 @@ graph TD
     Cron --> HackerNews
     Cron --> GitHubTrending
     Cron --> TechFeed
-    Cron --> PaperSummarizer
+    Cron --> ArxivSummarizer
 
     RedditExplorer --> Reddit
     HackerNews --> HNSource
     GitHubTrending --> GitHub
     TechFeed --> RSSFeeds
-    PaperSummarizer --> ArXiv
+    ArxivSummarizer --> ArXiv
 
     RedditExplorer --> Grok3API
     TechFeed --> Grok3API
-    PaperSummarizer --> Grok3API
+    ArxivSummarizer --> Grok3API
     FastAPI --> Grok3API
 
     RedditExplorer --> LocalStorage
     HackerNews --> LocalStorage
     GitHubTrending --> LocalStorage
     TechFeed --> LocalStorage
-    PaperSummarizer --> LocalStorage
+    ArxivSummarizer --> LocalStorage
 
     LocalStorage --> FastAPI
     FastAPI --> Streamlit
@@ -160,7 +160,7 @@ Nookはローカルファイルシステムをデータストレージとして�
 ├── tech_feed/
 │   ├── YYYY-MM-DD.md
 │   └── ...
-├── paper_summarizer/
+├── arxiv_summarizer/
 │   ├── YYYY-MM-DD.md
 │   ├── arxiv_ids-YYYY-MM-DD.txt
 │   └── ...
@@ -236,7 +236,7 @@ class Article:
     summary: list[str] = field(init=False)
 ```
 
-### PaperSummarizer
+### ArxivSummarizer
 ```python
 @dataclass
 class PaperInfo:
@@ -270,7 +270,7 @@ class PaperInfo:
 │   ├── hacker_news/
 │   ├── github_trending/
 │   ├── tech_feed/
-│   └── paper_summarizer/
+│   └── arxiv_summarizer/
 ├── nook/ - メインソースコード
 │   ├── __init__.py
 │   ├── common/ - 共通ユーティリティ
@@ -286,9 +286,9 @@ class PaperInfo:
 │   │   ├── hacker_news/ - Hacker News収集機能
 │   │   │   ├── __init__.py
 │   │   │   └── hacker_news.py - メイン実装
-│   │   ├── paper_summarizer/ - 論文要約機能
+│   │   ├── arxiv_summarizer/ - 論文要約機能
 │   │   │   ├── __init__.py
-│   │   │   └── paper_summarizer.py - メイン実装
+│   │   │   └── arxiv_summarizer.py - メイン実装
 │   │   ├── reddit_explorer/ - Reddit収集機能
 │   │   │   ├── __init__.py
 │   │   │   ├── reddit_explorer.py - メイン実装
@@ -374,7 +374,7 @@ class PaperInfo:
   - `_retrieve_repositories()`: リポジトリ情報の取得
   - `_store_summaries()`: 情報の保存
 
-### 6. PaperSummarizer
+### 6. ArxivSummarizer
 - **役割**: arXiv論文を収集・要約
 - **入力**: Hugging Faceでキュレーションされた論文ID
 - **出力**: 要約されたMarkdownファイル（ローカルに保存）
@@ -421,7 +421,7 @@ class PaperInfo:
    - HackerNewsRetriever: Hacker News APIからの記事取得
    - GithubTrending: GitHubからのトレンドリポジトリ取得
    - TechFeed: RSSフィードからの記事取得
-   - PaperSummarizer: arXiv APIからの論文取得
+   - ArxivSummarizer: arXiv APIからの論文取得
 3. 必要に応じてGrok3 APIを使用してコンテンツを要約
 4. 処理結果をMarkdown形式でローカルファイルシステムに保存
 
@@ -486,7 +486,7 @@ graph TD
   - requests: HTTP通信
   - beautifulsoup4: HTMLパース
 
-- **paper_summarizer**:
+- **arxiv_summarizer**:
   - arxiv: arXiv API
   - requests: HTTP通信
   - beautifulsoup4: HTMLパース
