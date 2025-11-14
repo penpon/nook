@@ -1230,9 +1230,7 @@ async def test_load_existing_titles_with_logger_file_not_found():
 
     logger = Mock()
 
-    tracker = await load_existing_titles_from_storage(
-        storage, target_dates, logger=logger
-    )
+    await load_existing_titles_from_storage(storage, target_dates, logger=logger)
 
     # logger.debugが呼ばれたことを確認（行226, 252）
     assert logger.debug.called
@@ -1253,9 +1251,7 @@ async def test_load_existing_titles_with_logger_json_decode_error():
 
     logger = Mock()
 
-    tracker = await load_existing_titles_from_storage(
-        storage, target_dates, logger=logger
-    )
+    await load_existing_titles_from_storage(storage, target_dates, logger=logger)
 
     # logger.warningが呼ばれたことを確認（行229）
     assert logger.warning.called
@@ -1276,9 +1272,7 @@ async def test_load_existing_titles_with_logger_io_error():
 
     logger = Mock()
 
-    tracker = await load_existing_titles_from_storage(
-        storage, target_dates, logger=logger
-    )
+    await load_existing_titles_from_storage(storage, target_dates, logger=logger)
 
     # logger.debugが呼ばれたことを確認（行232）
     assert logger.debug.called

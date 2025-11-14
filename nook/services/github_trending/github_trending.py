@@ -196,9 +196,9 @@ class GithubTrending(BaseService):
 
                 translated_repos = await self._translate_repositories(
                     repos_for_translation,
-                    progress_callback=lambda idx, total, name: log_summarization_progress(
-                        self.logger, idx, total, name
-                    ),
+                    progress_callback=lambda idx,
+                    total,
+                    name: log_summarization_progress(self.logger, idx, total, name),
                 )
 
                 # 保存処理
@@ -341,7 +341,7 @@ class GithubTrending(BaseService):
         current_idx = 0
 
         try:
-            for language, repositories in repositories_by_language:
+            for _language, repositories in repositories_by_language:
                 for repo in repositories:
                     if repo.description:
                         prompt = dedent(

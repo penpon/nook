@@ -186,7 +186,7 @@ class QiitaExplorer(BaseFeedService):
 
                 # 既存/新規記事数をカウント
                 existing_count = len(existing_titles_for_date)
-                new_count = len(date_articles)
+                len(date_articles)
 
                 # ログ改善：真に新規の記事を確認
                 truly_new_articles = [

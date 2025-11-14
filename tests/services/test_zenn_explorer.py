@@ -19,13 +19,12 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
-from tests.conftest import create_mock_dedup, create_mock_entry, create_mock_feed
-
 import pytest
 from bs4 import BeautifulSoup
 
 from nook.services.base_feed_service import Article
 from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
+from tests.conftest import create_mock_dedup, create_mock_entry, create_mock_feed
 
 # =============================================================================
 # テスト用定数
@@ -315,15 +314,20 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_parse.side_effect = Exception("Parse error")
 
             result = await service.collect(days=1)
@@ -391,9 +395,9 @@ def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars
         ):
             result = service._load_existing_titles()
 
-            assert (
-                result is not None
-            ), "Markdownからタイトルが読み込まれ、DedupTrackerが返されるべき"
+            assert result is not None, (
+                "Markdownからタイトルが読み込まれ、DedupTrackerが返されるべき"
+            )
             # タイトルが追加されていることを確認
             is_dup1, _ = result.is_duplicate("既存記事タイトル1")
             is_dup2, _ = result.is_duplicate("既存記事タイトル2")
@@ -414,9 +418,9 @@ def test_load_existing_titles_with_no_markdown(mock_env_vars):
         with patch.object(service.storage, "load_markdown", return_value=None):
             result = service._load_existing_titles()
 
-            assert (
-                result is not None
-            ), "Markdownがない場合でも空のDedupTrackerが返されるべき"
+            assert result is not None, (
+                "Markdownがない場合でも空のDedupTrackerが返されるべき"
+            )
             # 空のトラッカーであることを確認
             is_dup, _ = result.is_duplicate("新規記事")
             assert is_dup is False
@@ -470,19 +474,24 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock
-        ) as mock_storage_load, patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             # 既存記事データ
             existing_data = json.dumps(
                 [
@@ -523,9 +532,9 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
             result = await service.collect(days=1, limit=10)
 
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert (
-                len(result) > 0
-            ), "日付範囲内の新規記事があるため、記事が取得されるべき"
+            assert len(result) > 0, (
+                "日付範囲内の新規記事があるため、記事が取得されるべき"
+            )
 
 
 @pytest.mark.unit
@@ -540,17 +549,23 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock
-        ) as mock_storage_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
+        ):
             # 既存記事データ
             existing_data = json.dumps(
                 [
@@ -620,15 +635,20 @@ async def test_collect_feed_without_title_attribute(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = Mock()
             # feed属性がない、またはtitle属性がないケース
             mock_feed.feed = Mock(spec=[])  # title属性なし
@@ -658,15 +678,20 @@ async def test_collect_feed_without_feed_attribute(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = Mock(spec=["entries"])  # feed属性なし
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
@@ -696,19 +721,24 @@ async def test_collect_effective_limit_calculation_with_days_greater_than_one(
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             # 20個のエントリを作成（effective_limit=15を超える数）
@@ -738,9 +768,9 @@ async def test_collect_effective_limit_calculation_with_days_greater_than_one(
             # effective_limit = 5 * 3 = 15なので、最大15件まで処理される
             # 実際の結果数は15件以下であるべき（重複チェックなどで減る可能性がある）
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert (
-                len(result) <= 15
-            ), "effective_limit=15なので、最大15件まで処理されるべき"
+            assert len(result) <= 15, (
+                "effective_limit=15なので、最大15件まで処理されるべき"
+            )
             # 少なくとも一部の記事は処理されるべき
             assert len(result) >= 0, "エントリが処理されるべき"
 
@@ -757,19 +787,24 @@ async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars)
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             # 10個のエントリを作成（effective_limit=5を超える数）
@@ -798,9 +833,9 @@ async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars)
 
             # effective_limit = 5 * max(0, 1) = 5なので、最大5件まで処理される
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert (
-                len(result) <= 5
-            ), "effective_limit=5なので、最大5件まで処理されるべき"
+            assert len(result) <= 5, (
+                "effective_limit=5なので、最大5件まで処理されるべき"
+            )
             assert len(result) >= 0, "エントリが処理されるべき"
 
 
@@ -821,17 +856,23 @@ async def test_collect_filters_out_of_range_articles(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -856,9 +897,9 @@ async def test_collect_filters_out_of_range_articles(mock_env_vars):
 
             # 範囲外の記事は保存されないはず
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert (
-                len(result) >= 0
-            ), "日付範囲外の記事はフィルタされるため、空または一部の記事が返されるべき"
+            assert len(result) >= 0, (
+                "日付範囲外の記事はフィルタされるため、空または一部の記事が返されるべき"
+            )
 
 
 # =============================================================================
@@ -887,17 +928,23 @@ async def test_collect_preserves_existing_files_path(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock
-        ) as mock_storage_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
+        ):
             # 既存記事データ
             existing_data = json.dumps(
                 [
@@ -941,19 +988,24 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock
-        ) as mock_storage_load, patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             # ストレージ読み込み時に例外
             mock_storage_load.side_effect = Exception("Storage error")
 
@@ -978,9 +1030,9 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
 
             # 例外が処理され、処理が継続される
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert (
-                len(result) > 0
-            ), "ストレージエラーでも新規記事があるため記事が取得されるべき"
+            assert len(result) > 0, (
+                "ストレージエラーでも新規記事があるため記事が取得されるべき"
+            )
 
 
 # =============================================================================
@@ -1012,9 +1064,9 @@ Some more text here.
         ):
             result = service._load_existing_titles()
 
-            assert (
-                result is not None
-            ), "同じスコアの記事がある場合でもリストが返されるべき"
+            assert result is not None, (
+                "同じスコアの記事がある場合でもリストが返されるべき"
+            )
             # マッチしないので空のトラッカー
             is_dup, _ = result.is_duplicate("新規記事")
             assert is_dup is False
@@ -1135,15 +1187,20 @@ async def test_collect_finally_block_execution(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
@@ -1187,15 +1244,22 @@ async def test_collect_initializes_http_client_when_none(mock_env_vars):
         # http_clientを明示的にNoneに設定
         service.http_client = None
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ) as mock_setup, patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(
+                service, "setup_http_client", new_callable=AsyncMock
+            ) as mock_setup,
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
@@ -1228,15 +1292,20 @@ async def test_collect_with_negative_days(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
@@ -1257,15 +1326,20 @@ async def test_collect_with_negative_limit(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
@@ -1286,15 +1360,20 @@ async def test_collect_with_extremely_large_days(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
@@ -1306,9 +1385,9 @@ async def test_collect_with_extremely_large_days(mock_env_vars):
             result = await service.collect(days=10000)
 
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert (
-                len(result) >= 0
-            ), "極端に大きなdaysでもエラーなくリストが返されるべき"
+            assert len(result) >= 0, (
+                "極端に大きなdaysでもエラーなくリストが返されるべき"
+            )
 
 
 @pytest.mark.unit
@@ -1323,19 +1402,24 @@ async def test_collect_with_extremely_large_limit(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             # 極端に大きなlimitでも、実際のエントリ数は小さい
@@ -1357,9 +1441,9 @@ async def test_collect_with_extremely_large_limit(mock_env_vars):
             result = await service.collect(days=1, limit=999999)
 
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert (
-                len(result) >= 0
-            ), "極端に大きなlimitでもエラーなくリストが返されるべき"
+            assert len(result) >= 0, (
+                "極端に大きなlimitでもエラーなくリストが返されるべき"
+            )
             # 実際のエントリ数以上は取得されない
             assert len(result) <= 1, "実際のエントリ数以上は取得されないべき"
 
@@ -1375,15 +1459,20 @@ async def test_collect_with_negative_days_and_limit(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
@@ -1404,15 +1493,20 @@ async def test_collect_with_days_zero_boundary(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            LOAD_TITLES_PATH,
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                LOAD_TITLES_PATH,
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 

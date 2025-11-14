@@ -741,8 +741,8 @@ def zenn_service_with_mocks(mock_env_vars):
             mock_parse = zenn_service_with_mocks["mock_parse"]
             # テストロジック...
     """
-    from unittest.mock import AsyncMock, patch
     from pathlib import Path
+    from unittest.mock import AsyncMock, patch
 
     # auto_mock_loggerが既に適用されているため、手動パッチ不要
     from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
@@ -755,21 +755,25 @@ def zenn_service_with_mocks(mock_env_vars):
         "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
     )
 
-    with patch("feedparser.parse") as mock_parse, patch.object(
-        service, "setup_http_client", new_callable=AsyncMock
-    ) as mock_setup_http, patch.object(
-        service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-    ) as mock_get_dates, patch(
-        load_titles_path, new_callable=AsyncMock
-    ) as mock_load, patch.object(
-        service.storage, "load", new_callable=AsyncMock, return_value=None
-    ) as mock_storage_load, patch.object(
-        service.storage,
-        "save",
-        new_callable=AsyncMock,
-        return_value=Path("/data/test.json"),
-    ) as mock_storage_save:
-
+    with (
+        patch("feedparser.parse") as mock_parse,
+        patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ) as mock_setup_http,
+        patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ) as mock_get_dates,
+        patch(load_titles_path, new_callable=AsyncMock) as mock_load,
+        patch.object(
+            service.storage, "load", new_callable=AsyncMock, return_value=None
+        ) as mock_storage_load,
+        patch.object(
+            service.storage,
+            "save",
+            new_callable=AsyncMock,
+            return_value=Path("/data/test.json"),
+        ) as mock_storage_save,
+    ):
         yield {
             "service": service,
             "mock_parse": mock_parse,
@@ -851,14 +855,14 @@ def assert_article_list_result(result, expected_count=None, min_count=None):
     assert isinstance(result, list), MSG_RESULT_SHOULD_BE_LIST
 
     if expected_count is not None:
-        assert (
-            len(result) == expected_count
-        ), f"期待される件数は{expected_count}件、実際は{len(result)}件"
+        assert len(result) == expected_count, (
+            f"期待される件数は{expected_count}件、実際は{len(result)}件"
+        )
 
     if min_count is not None:
-        assert (
-            len(result) >= min_count
-        ), f"最小{min_count}件の記事が必要、実際は{len(result)}件"
+        assert len(result) >= min_count, (
+            f"最小{min_count}件の記事が必要、実際は{len(result)}件"
+        )
 
 
 def assert_article_result(result):

@@ -105,22 +105,29 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -159,19 +166,24 @@ async def test_collect_with_multiple_articles(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             entries = []
@@ -212,15 +224,20 @@ async def test_collect_with_target_dates_none(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = NoteExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_feed.entries = []
@@ -250,15 +267,20 @@ async def test_collect_network_error(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = NoteExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_parse.side_effect = Exception("Network error")
 
             result = await service.collect(days=1)
@@ -277,15 +299,20 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = NoteExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_feed = Mock()
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
@@ -307,15 +334,20 @@ async def test_collect_http_client_timeout(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -349,19 +381,24 @@ async def test_collect_gpt_api_error(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ), patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -403,15 +440,20 @@ async def test_collect_with_limit_zero(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = NoteExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_feed = Mock()
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
@@ -433,19 +475,24 @@ async def test_collect_with_limit_one(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ), patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test"
             mock_entry = Mock()
@@ -780,15 +827,20 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = NoteExplorer()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
         ):
-
             mock_parse.side_effect = Exception("Parse error")
 
             result = await service.collect(days=1)
@@ -808,22 +860,29 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ), patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -862,12 +921,12 @@ async def test_collect_feed_toml_load_failure(mock_env_vars):
     When: NoteExplorerを初期化
     Then: エラーが発生する
     """
-    with patch("nook.common.base_service.setup_logger"):
-        with patch(
-            "builtins.open", side_effect=FileNotFoundError("feed.toml not found")
-        ):
-            with pytest.raises(FileNotFoundError):
-                NoteExplorer()
+    with (
+        patch("nook.common.base_service.setup_logger"),
+        patch("builtins.open", side_effect=FileNotFoundError("feed.toml not found")),
+        pytest.raises(FileNotFoundError),
+    ):
+        NoteExplorer()
 
 
 @pytest.mark.unit
@@ -882,19 +941,24 @@ async def test_collect_with_duplicate_detection(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load_func, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load_func,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             # DedupTrackerのモックを作成
             mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized_title")
@@ -937,15 +1001,20 @@ async def test_collect_with_date_out_of_range(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
 
@@ -982,22 +1051,29 @@ async def test_collect_storage_save_failure(mock_env_vars):
         service = NoteExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            side_effect=Exception("Save failed"),
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                side_effect=Exception("Save failed"),
+            ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -1042,15 +1118,20 @@ async def test_collect_multiple_categories_loop(mock_env_vars):
             "business": ["https://example.com/business.xml"],
         }
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load:
-
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_feed.entries = []
@@ -1059,7 +1140,7 @@ async def test_collect_multiple_categories_loop(mock_env_vars):
             mock_dedup = Mock()
             mock_load.return_value = mock_dedup
 
-            result = await service.collect(days=1, limit=10)
+            await service.collect(days=1, limit=10)
 
             # 2つのカテゴリ分、feedparser.parseが2回呼ばれることを確認
             assert mock_parse.call_count == 2

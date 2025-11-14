@@ -567,19 +567,19 @@ class FourChanExplorer(BaseService):
             if reply_text:
                 # HTMLタグを除去
                 reply_text = re.sub(r"<[^>]*>", " ", reply_text)
-                thread_content += f"返信 {i+1}: {reply_text}\n\n"
+                thread_content += f"返信 {i + 1}: {reply_text}\n\n"
 
         prompt = f"""
         以下の4chanスレッドを要約してください。
 
         ボード: /{thread.board}/
         {thread_content}
-        
+
         要約は以下の形式で行い、日本語で回答してください:
         1. スレッドの主な内容（1-2文）
         2. 議論の主要ポイント（箇条書き3-5点）
         3. スレッドの全体的な論調
-        
+
         注意：攻撃的な内容やヘイトスピーチは緩和し、主要な技術的議論に焦点を当ててください。
         """
 

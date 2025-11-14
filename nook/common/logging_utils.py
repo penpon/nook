@@ -60,10 +60,7 @@ def log_summary_candidates(
             title = getattr(item, "name", str(item))
 
         score = getattr(item, score_attr, 0)
-        if isinstance(score, float):
-            score_str = f"{score:.0f}"
-        else:
-            score_str = str(score)
+        score_str = f"{score:.0f}" if isinstance(score, float) else str(score)
 
         logger.info(f"      {idx}. 「{title}」(スコア: {score_str})")
 

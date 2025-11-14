@@ -644,9 +644,4 @@ class BaseFeedService(BaseService):
         ]
 
         url = entry.link if hasattr(entry, "link") else ""
-        for domain in japanese_domains:
-            if domain in url:
-                return True
-
-        # デフォルトでは非日本語と判定
-        return False
+        return any(domain in url for domain in japanese_domains)

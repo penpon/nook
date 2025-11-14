@@ -4,9 +4,10 @@ ZennExplorer tests用の共通フィクスチャとヘルパー関数
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import AsyncMock, patch
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 @pytest.fixture
@@ -43,21 +44,25 @@ def zenn_service_with_mocks(mock_env_vars):
         "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
     )
 
-    with patch("feedparser.parse") as mock_parse, patch.object(
-        service, "setup_http_client", new_callable=AsyncMock
-    ) as mock_setup_http, patch.object(
-        service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-    ) as mock_get_dates, patch(
-        load_titles_path, new_callable=AsyncMock
-    ) as mock_load, patch.object(
-        service.storage, "load", new_callable=AsyncMock, return_value=None
-    ) as mock_storage_load, patch.object(
-        service.storage,
-        "save",
-        new_callable=AsyncMock,
-        return_value=Path("/data/test.json"),
-    ) as mock_storage_save:
-
+    with (
+        patch("feedparser.parse") as mock_parse,
+        patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ) as mock_setup_http,
+        patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ) as mock_get_dates,
+        patch(load_titles_path, new_callable=AsyncMock) as mock_load,
+        patch.object(
+            service.storage, "load", new_callable=AsyncMock, return_value=None
+        ) as mock_storage_load,
+        patch.object(
+            service.storage,
+            "save",
+            new_callable=AsyncMock,
+            return_value=Path("/data/test.json"),
+        ) as mock_storage_save,
+    ):
         yield {
             "service": service,
             "mock_parse": mock_parse,

@@ -20,7 +20,6 @@ import pytest
 
 from tests.conftest import create_mock_dedup, create_mock_entry, create_mock_feed
 
-
 # =============================================================================
 # 3. collect メソッドのテスト - 正常系
 # =============================================================================
@@ -465,6 +464,6 @@ async def test_collect_continues_on_individual_feed_error(zenn_service_with_mock
 
     # Then: エラーがあっても処理は継続され空リストが返される
     assert isinstance(result, list), "結果はリスト型であるべき"
-    assert (
-        len(result) == 0
-    ), "部分的なフィードエラーでもエントリが空なら空リストが返されるべき"
+    assert len(result) == 0, (
+        "部分的なフィードエラーでもエントリが空なら空リストが返されるべき"
+    )

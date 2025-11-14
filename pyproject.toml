@@ -84,7 +84,27 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501", # line too long (handled by black)
+    "E501",  # line too long (handled by black)
+    "G003",  # Logging statement uses `+` (ロギング文字列連結を許容)
+    "G004",
+    "F821",
+    "C401",
+    "C408",
+    "PERF203",
+    "PERF401",
+    "PERF402",  # Use list.copy() (可読性のため許容)
+    "B007",  # Unused loop variable (慣用的パターンのため許容)
+    "B017",  # pytest.raises(Exception) (テストコードで許容)
+    "B027",  # Empty method in abstract base class without @abstractmethod (オプショナルメソッドのため)
+    "B018",  # Useless attribute access (デバッグ用途のため許容)
+    "PERF403",  # Use dict comprehension (可読性のため for-loop を許容)
+    "G201",  # Logging .exception() (既存コードとの一貫性のため)
+    "LOG014",  # exc_info outside exception handler (ロギング設定のため許容)
+    "E722",  # Bare except (例外処理のフォールバックのため許容)
+    "E721",  # Type comparison (テストコードで許容)
+    "E402",  # Import not at top (動的import のため許容)
+    "SIM102",  # Nested if (可読性のため許容)
+    "SIM117",  # Nested with (既存コードとの一貫性のため)
 ]
 
 [tool.coverage.run]

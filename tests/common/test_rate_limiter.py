@@ -120,9 +120,10 @@ async def test_rate_limiter_acquire_insufficient_tokens():
     limiter = RateLimiter(rate=10, per=timedelta(seconds=1))
     limiter.allowance = 5.0
 
-    with patch("nook.common.rate_limiter.datetime") as mock_dt, patch(
-        "nook.common.rate_limiter.asyncio.sleep"
-    ) as mock_sleep:
+    with (
+        patch("nook.common.rate_limiter.datetime") as mock_dt,
+        patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep,
+    ):
         now = datetime(2025, 1, 1, 0, 0, 0)
         mock_dt.utcnow.side_effect = [
             now,  # 最初のチェック
@@ -170,9 +171,10 @@ async def test_rate_limiter_acquire_allowance_plus_one():
     limiter = RateLimiter(rate=10, per=timedelta(seconds=1))
     limiter.allowance = 10.0
 
-    with patch("nook.common.rate_limiter.datetime") as mock_dt, patch(
-        "nook.common.rate_limiter.asyncio.sleep"
-    ) as mock_sleep:
+    with (
+        patch("nook.common.rate_limiter.datetime") as mock_dt,
+        patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep,
+    ):
         now = datetime(2025, 1, 1, 0, 0, 0)
         mock_dt.utcnow.side_effect = [
             now,  # 最初のチェック
@@ -402,9 +404,10 @@ async def test_http_client_get_default_rate_limit():
     client = RateLimitedHTTPClient()
 
     # _acquire_rate_limit をモック
-    with patch.object(client, "_acquire_rate_limit") as mock_acquire, patch.object(
-        client, "get", return_value=AsyncMock()
-    ) as mock_get:
+    with (
+        patch.object(client, "_acquire_rate_limit"),
+        patch.object(client, "get", return_value=AsyncMock()),
+    ):
         # 親クラスのgetを呼び出す際のモック
         mock_response = AsyncMock(spec=httpx.Response)
         mock_response.status_code = 200

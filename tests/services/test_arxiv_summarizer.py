@@ -57,15 +57,15 @@ async def test_collect_success_with_papers(mock_env_vars, mock_arxiv_api):
         service = ArxivSummarizer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
-
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
             result = await service.collect(target_dates=[date.today()])
@@ -87,10 +87,10 @@ async def test_collect_with_multiple_categories(mock_env_vars):
         service = ArxivSummarizer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock):
-
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
             service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
 
             result = await service.collect(target_dates=[date.today()])
@@ -118,7 +118,6 @@ async def test_collect_network_error(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
             result = await service.collect(target_dates=[date.today()])
@@ -141,7 +140,6 @@ async def test_collect_invalid_xml(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(return_value=Mock(text="Invalid XML"))
 
             result = await service.collect(target_dates=[date.today()])
@@ -163,10 +161,10 @@ async def test_collect_gpt_api_error(mock_env_vars):
         service = ArxivSummarizer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock):
-
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<feed><entry></entry></feed>")
             )
@@ -198,15 +196,15 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
         service = ArxivSummarizer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
-
             service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -590,13 +588,15 @@ async def test_extract_from_pdf_success(mock_env_vars):
         mock_response = Mock()
         mock_response.content = b"%PDF-1.4"
 
-        with patch.object(
-            service,
-            "_download_pdf_without_retry",
-            new_callable=AsyncMock,
-            return_value=mock_response,
-        ), patch("pdfplumber.open", return_value=mock_pdf):
-
+        with (
+            patch.object(
+                service,
+                "_download_pdf_without_retry",
+                new_callable=AsyncMock,
+                return_value=mock_response,
+            ),
+            patch("pdfplumber.open", return_value=mock_pdf),
+        ):
             # When
             result = await service._extract_from_pdf("2301.00001")
 
@@ -629,7 +629,6 @@ async def test_extract_from_pdf_empty_content(mock_env_vars):
             new_callable=AsyncMock,
             return_value=mock_response,
         ):
-
             # When
             result = await service._extract_from_pdf("2301.00001")
 
@@ -654,13 +653,15 @@ async def test_extract_from_pdf_corrupted(mock_env_vars):
         mock_response = Mock()
         mock_response.content = b"corrupted data"
 
-        with patch.object(
-            service,
-            "_download_pdf_without_retry",
-            new_callable=AsyncMock,
-            return_value=mock_response,
-        ), patch("pdfplumber.open", side_effect=Exception("Corrupted PDF")):
-
+        with (
+            patch.object(
+                service,
+                "_download_pdf_without_retry",
+                new_callable=AsyncMock,
+                return_value=mock_response,
+            ),
+            patch("pdfplumber.open", side_effect=Exception("Corrupted PDF")),
+        ):
             # When
             result = await service._extract_from_pdf("2301.00001")
 
@@ -687,7 +688,6 @@ async def test_extract_from_pdf_download_error(mock_env_vars):
             new_callable=AsyncMock,
             side_effect=Exception("Download error"),
         ):
-
             # When
             result = await service._extract_from_pdf("2301.00001")
 
@@ -727,13 +727,15 @@ Another long enough line that should be kept because it is sufficiently long.
         mock_response = Mock()
         mock_response.content = b"%PDF-1.4"
 
-        with patch.object(
-            service,
-            "_download_pdf_without_retry",
-            new_callable=AsyncMock,
-            return_value=mock_response,
-        ), patch("pdfplumber.open", return_value=mock_pdf):
-
+        with (
+            patch.object(
+                service,
+                "_download_pdf_without_retry",
+                new_callable=AsyncMock,
+                return_value=mock_response,
+            ),
+            patch("pdfplumber.open", return_value=mock_pdf),
+        ):
             # When
             result = await service._extract_from_pdf("2301.00001")
 
@@ -770,7 +772,6 @@ async def test_translate_to_japanese_success(mock_env_vars):
         )
 
         with patch.object(service, "rate_limit", new_callable=AsyncMock):
-
             # When
             result = await service._translate_to_japanese("This is a test.")
 
@@ -821,7 +822,6 @@ async def test_translate_to_japanese_empty_text(mock_env_vars):
         service.gpt_client.generate_async = AsyncMock(return_value="")
 
         with patch.object(service, "rate_limit", new_callable=AsyncMock):
-
             # When
             result = await service._translate_to_japanese("")
 

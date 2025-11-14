@@ -24,7 +24,6 @@ from bs4 import BeautifulSoup
 from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
 
 
-
 @pytest.mark.unit
 def test_extract_popularity_with_meta_tag(mock_env_vars):
     """
