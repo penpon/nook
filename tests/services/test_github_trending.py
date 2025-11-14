@@ -762,7 +762,7 @@ def test_load_existing_repositories_file_not_exists(mock_env_vars, tmp_path):
 
 
 @pytest.mark.unit
-def test_load_existing_repositories_error(mock_env_vars):
+def test_load_existing_repositories_error(mock_env_vars, tmp_path):
     """
     Given: ファイル読み込みでエラーが発生
     When: _load_existing_repositoriesを呼び出す
@@ -771,8 +771,8 @@ def test_load_existing_repositories_error(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = GithubTrending()
 
-        # base_dirを存在しないパスに設定
-        service.storage.base_dir = "/nonexistent/path"
+        # base_dirを存在しないサブディレクトリに設定
+        service.storage.base_dir = str(tmp_path / "nonexistent")
 
         tracker = service._load_existing_repositories()
 
@@ -1218,70 +1218,64 @@ async def test_translate_repositories_with_none_gpt_response(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_translate_repositories_iteration_exception(mock_env_vars):
+async def test_translate_repositories_iteration_exception(mock_env_vars, mock_service):
     """
     Given: ループ処理中に例外が発生（外側のtryブロック）
     When: _translate_repositoriesを呼び出す
     Then: 外側の例外ブロックでキャッチされ、元の引数が返される（384-385行目）
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    # 特殊なイテレータブルオブジェクトを作成して例外を発生させる
+    class FailingIterable:
+        def __iter__(self):
+            # イテレーション開始時に例外を発生
+            raise RuntimeError("Iteration failed")
 
-        # 特殊なイテレータブルオブジェクトを作成して例外を発生させる
-        class FailingIterable:
-            def __iter__(self):
-                # イテレーション開始時に例外を発生
-                raise RuntimeError("Iteration failed")
+    # repositories_by_languageとして特殊なオブジェクトを渡す
+    failing_repos = FailingIterable()
 
-        # repositories_by_languageとして特殊なオブジェクトを渡す
-        failing_repos = FailingIterable()
-
-        # 例外が発生するが、外側のexceptブロックでキャッチされる
-        # しかし、非同期関数内で発生した例外は伝播する可能性がある
-        # そのため、テストでは例外をキャッチする
-        try:
-            result = await service._translate_repositories(failing_repos)
-            # 例外がキャッチされた場合、元のオブジェクトが返される
-            assert result == failing_repos, (
-                "例外がキャッチされた場合は元のオブジェクトが返されるべきです"
-            )
-        except RuntimeError:
-            # 例外が外側のtryブロックから伝播した場合もOK（384-385はカバー済み）
-            pass
+    # 例外が発生するが、外側のexceptブロックでキャッチされる
+    # しかし、非同期関数内で発生した例外は伝播する可能性がある
+    # そのため、テストでは例外をキャッチする
+    try:
+        result = await mock_service._translate_repositories(failing_repos)
+        # 例外がキャッチされた場合、元のオブジェクトが返される
+        assert result == failing_repos, (
+            "例外がキャッチされた場合は元のオブジェクトが返されるべきです"
+        )
+    except RuntimeError:
+        # 例外が外側のtryブロックから伝播した場合もOK（384-385はカバー済み）
+        pass
 
 
 @pytest.mark.unit
-def test_render_markdown_with_empty_repositories_in_group(mock_env_vars):
+def test_render_markdown_with_empty_repositories_in_group(mock_env_vars, mock_service):
     """
     Given: 言語キーは存在するがリポジトリリストが空
     When: _render_markdownを呼び出す
     Then: その言語セクションはスキップされる（540行目）
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    # _render_markdownは内部でgroupedを作成するため、
+    # 空のリポジトリを持つ言語を直接テストするのは難しい
+    # 代わりに、grouped辞書を直接操作するテストを作成
 
-        # _render_markdownは内部でgroupedを作成するため、
-        # 空のリポジトリを持つ言語を直接テストするのは難しい
-        # 代わりに、grouped辞書を直接操作するテストを作成
+    # 通常のレコードを作成
+    records_normal = [
+        {
+            "language": "python",
+            "name": "test/repo1",
+            "description": "Test",
+            "link": "https://github.com/test/repo1",
+            "stars": 100,
+        }
+    ]
 
-        # 通常のレコードを作成
-        records_normal = [
-            {
-                "language": "python",
-                "name": "test/repo1",
-                "description": "Test",
-                "link": "https://github.com/test/repo1",
-                "stars": 100,
-            }
-        ]
+    result = mock_service._render_markdown(records_normal, datetime.now())
 
-        result = service._render_markdown(records_normal, datetime.now())
-
-        # Python セクションが含まれている
-        assert "Python" in result or "python" in result, (
-            "Pythonセクションが含まれているべきです"
-        )
-        assert "test/repo1" in result, "test/repo1が含まれているべきです"
+    # Python セクションが含まれている
+    assert "Python" in result or "python" in result, (
+        "Pythonセクションが含まれているべきです"
+    )
+    assert "test/repo1" in result, "test/repo1が含まれているべきです"
 
 
 @pytest.mark.unit
