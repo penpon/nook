@@ -438,49 +438,11 @@ Test description
 
 
 # =============================================================================
-# 11. _translate_repositories の詳細テスト
+# 11. _repository_sort_key テスト
 # =============================================================================
 
 
 @pytest.mark.unit
-@pytest.mark.asyncio
-async def test_translate_repositories_success_internal(mock_env_vars):
-    """
-    Given: 既存のリポジトリが存在
-    When: collectメソッドを呼び出す
-    Then: 重複が除外される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-        service.http_client = AsyncMock()
-
-        existing_repos = [{"name": "test/repo", "stars": 100}]
-
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=existing_repos,
-        ):
-
-            service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body></body></html>")
-            )
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-
-# =============================================================================
-# 13. 複数日付処理のテスト
-# =============================================================================
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
 def test_repository_sort_key(mock_env_vars):
     """
     Given: リポジトリレコード
@@ -499,7 +461,7 @@ def test_repository_sort_key(mock_env_vars):
 
 
 # =============================================================================
-# 15. シリアライズのテスト
+# 12. _serialize_repositories テスト
 # =============================================================================
 
 
@@ -530,7 +492,7 @@ def test_serialize_repositories(mock_env_vars):
 
 
 # =============================================================================
-# 16. HTTPクライアント初期化のテスト
+# 13. _retrieve_repositories スター数抽出テスト
 # =============================================================================
 
 
@@ -660,7 +622,7 @@ async def test_retrieve_repositories_api_exception(mock_env_vars):
 
 
 # =============================================================================
-# 19. _load_existing_repositories_by_date の詳細テスト
+# 14. _load_existing_repositories_by_date 詳細テスト
 # =============================================================================
 
 
@@ -752,7 +714,7 @@ async def test_load_existing_repositories_by_date_no_files(mock_env_vars):
 
 
 # =============================================================================
-# 20. _load_existing_repositories メソッドのテスト
+# 15. _load_existing_repositories テスト
 # =============================================================================
 
 
@@ -822,7 +784,7 @@ def test_load_existing_repositories_error(mock_env_vars):
 
 
 # =============================================================================
-# 21. _store_summaries メソッドのテスト
+# 16. _store_summaries テスト
 # =============================================================================
 
 
@@ -895,7 +857,7 @@ async def test_store_summaries_success(mock_env_vars):
 
 
 # =============================================================================
-# 22. _repository_sort_key エラーハンドリングのテスト
+# 17. _repository_sort_key エラーハンドリングテスト
 # =============================================================================
 
 
@@ -953,7 +915,7 @@ def test_repository_sort_key_missing_stars(mock_env_vars):
 
 
 # =============================================================================
-# 23. collect の既存ファイル読み込みエラーのテスト
+# 18. _translate_repositories エラーハンドリングテスト
 # =============================================================================
 
 
@@ -1051,12 +1013,11 @@ async def test_translate_repositories_general_exception(mock_env_vars):
 
 
 # =============================================================================
-# 25. collect の特定言語処理のテスト
+# 19. _render_markdown テスト
 # =============================================================================
 
 
 @pytest.mark.unit
-@pytest.mark.asyncio
 def test_render_markdown_empty_repositories(mock_env_vars):
     """
     Given: 空のリポジトリレコード
@@ -1098,7 +1059,7 @@ def test_render_markdown_with_all_language(mock_env_vars):
 
 
 # =============================================================================
-# 27. _translate_repositories の外側のexceptブロック
+# 20. _translate_repositories 外側例外ブロックテスト
 # =============================================================================
 
 
@@ -1133,7 +1094,7 @@ async def test_translate_repositories_outer_exception(mock_env_vars):
 
 
 # =============================================================================
-# 28. _parse_markdown の複数セクションテスト
+# 21. _parse_markdown 複数言語テスト
 # =============================================================================
 
 
@@ -1209,7 +1170,7 @@ Test
 
 
 # =============================================================================
-# 29. _load_existing_repositories_by_date のリスト形式JSON
+# 22. _load_existing_repositories_by_date リスト形式JSON
 # =============================================================================
 
 
@@ -1241,7 +1202,7 @@ async def test_load_existing_repositories_by_date_from_json_list(mock_env_vars):
 
 
 # =============================================================================
-# 30. エッジケースの追加カバレッジ
+# 23. エッジケース追加カバレッジ
 # =============================================================================
 
 
