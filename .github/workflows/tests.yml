@@ -38,7 +38,7 @@ jobs:
         set -e
         echo "=== ユニットテストを実行中 ==="
         echo "注: 統合テスト（-m integration）はCI環境ではスキップされます"
-        uv run pytest tests/ -v -m "not integration" --cov=modules --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
+        uv run pytest tests/ -v -m "not integration" --cov=nook --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
         echo ""
         echo "=== カバレッジ率を確認中 ==="
         uv run coverage report --format=text
@@ -101,13 +101,13 @@ jobs:
       run: |
         set -e
         echo "=== Black (コードフォーマット) ==="
-        uv run black modules/ tests/
+        uv run black nook/ tests/
         echo ""
         echo "=== Ruff (リント・インポート順序チェック) ==="
-        uv run ruff check modules/ tests/
+        uv run ruff check nook/ tests/
         echo ""
         echo "=== Ruff フォーマッター ==="
-        uv run ruff format modules/ tests/
+        uv run ruff format nook/ tests/
         echo ""
         echo "✅ すべての静的解析とフォーマットが成功しました"
 
@@ -117,9 +117,9 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
 
-        if ! git diff --quiet modules/ tests/; then
+        if ! git diff --quiet nook/ tests/; then
           echo "📝 フォーマット変更を検出しました。自動コミットします..."
-          git add modules/ tests/
+          git add nook/ tests/
           git commit -m "style: Blackによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
           git push
           echo "✅ フォーマット変更をコミット＆プッシュしました"
@@ -153,7 +153,7 @@ jobs:
       run: |
         echo "=== コード脆弱性をスキャン中 (bandit) ==="
         set +e
-        uv run bandit -r modules/ tests/ -ll -f txt
+        uv run bandit -r nook/ tests/ -ll -f txt
         bandit_exit=$?
         set -e
 

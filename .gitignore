@@ -90,6 +90,46 @@ wheels/
 venv/
 .venv/
 
+# Testing
+.pytest_cache/
+.tox/
+.nox/
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Linting
+.ruff_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+dist/
+dist-ssr/
+dev-dist/
+*.local
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
 # Image files
 *.png
 *.jpg
@@ -97,3 +137,8 @@ venv/
 *.gif
 *.webp
 *.svg
+
+# Mac-specific
+.AppleDouble
+.LSOverride
+._*
