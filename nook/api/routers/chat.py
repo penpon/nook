@@ -60,10 +60,14 @@ async def chat(request: ChatRequest) -> ChatResponse:
             )
 
         # システムプロンプトの作成
-        system_prompt = "あなたは親切なアシスタントです。ユーザーが提供したコンテンツについて質問に答えてください。"
+        system_prompt = (
+            "あなたは親切なアシスタントです。"
+            "ユーザーが提供したコンテンツについて質問に答えてください。"
+        )
         if request.markdown:
             system_prompt += (
-                f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"
+                f"\n\n以下のコンテンツに基づいて回答してください:"
+                f"\n\n{request.markdown}"
             )
 
         # GPT APIを呼び出し
@@ -80,4 +84,4 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(
             status_code=500,
             detail=f"チャットリクエストの処理中にエラーが発生しました: {str(e)}",
-        )
+        ) from e

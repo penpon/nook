@@ -13,7 +13,6 @@ nook/services/reddit_explorer/reddit_explorer.py のテスト
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -105,7 +104,7 @@ def test_init_missing_all_credentials(monkeypatch):
 @pytest.mark.unit
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "post_type,expected_type",
+    ("post_type", "expected_type"),
     [
         ("image", "image"),
         ("gallery", "gallery"),

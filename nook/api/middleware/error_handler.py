@@ -44,7 +44,6 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             "error_message": str(exc),
             "traceback": traceback.format_exc(),
         },
-        exc_info=True,
     )
 
     # エラータイプに応じた処理
