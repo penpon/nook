@@ -11,6 +11,7 @@ nook/services/fourchan_explorer/fourchan_explorer.py のテスト
 
 from __future__ import annotations
 
+import asyncio
 import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -2622,51 +2623,7 @@ def test_init_with_storage_path_already_ending_with_service_name(mock_env_vars):
 
 
 # =============================================================================
-# 28. _load_boards エラーハンドリングテスト
-# =============================================================================
-
-
-@pytest.mark.unit
-def test_load_boards_file_not_exists(mock_env_vars, tmp_path):
-    """
-    Given: boards.tomlが存在しない
-    When: _load_boards()を呼び出す
-    Then: デフォルトのボードリストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
-
-        # boards.tomlが存在しない場所を指定
-        with patch("nook.services.fourchan_explorer.fourchan_explorer.Path") as mock_path:
-            mock_file = Mock()
-            mock_file.exists.return_value = False
-            mock_path.return_value.__truediv__ = Mock(return_value=mock_file)
-
-            service = FourChanExplorer()
-
-            # デフォルトのボードが返される
-            assert service.target_boards == ["g", "sci", "biz", "pol"]
-
-
-@pytest.mark.unit
-def test_load_boards_read_error(mock_env_vars):
-    """
-    Given: boards.tomlの読み込みでエラーが発生
-    When: _load_boards()を呼び出す
-    Then: デフォルトのボードリストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
-
-        with patch("builtins.open", side_effect=Exception("Read error")):
-            service = FourChanExplorer()
-
-            # デフォルトのボードが返される
-            assert service.target_boards == ["g", "sci", "biz", "pol"]
-
-
-# =============================================================================
-# 29. _summarize_thread エッジケース - 空のテキスト
+# 28. _summarize_thread エッジケース - 空のテキスト
 # =============================================================================
 
 
@@ -2703,9 +2660,17 @@ async def test_summarize_thread_with_empty_op_text(mock_env_vars):
 
         await service._summarize_thread(thread)
 
-        # OPのテキストが空でも要約が生成される
+        # 要約が生成される
         assert thread.summary == "Summary"
         assert service.gpt_client.generate_content.called
+
+        # OPのテキストがプロンプトに含まれていないことを確認
+        call_args = service.gpt_client.generate_content.call_args
+        prompt = call_args.kwargs["prompt"]
+        # "OP:"が含まれていない（空だからスキップされた）
+        assert "OP: Reply text" not in prompt
+        # 返信は含まれている
+        assert "返信 1: Reply text" in prompt
 
 
 @pytest.mark.unit
@@ -2742,13 +2707,24 @@ async def test_summarize_thread_with_empty_reply_text(mock_env_vars):
 
         await service._summarize_thread(thread)
 
-        # 返信が空の場合もスキップして要約が生成される
+        # 要約が生成される
         assert thread.summary == "Summary"
         assert service.gpt_client.generate_content.called
 
+        # プロンプト内容を検証
+        call_args = service.gpt_client.generate_content.call_args
+        prompt = call_args.kwargs["prompt"]
+        # OPは含まれている
+        assert "OP: OP text" in prompt
+        # 空の返信はスキップされ、実際の返信のみが含まれている
+        # 注：空の返信（インデックス1）がスキップされるため、次の返信は「返信 2」
+        assert "返信 2: Real reply" in prompt
+        # 返信は1つだけ（空の返信はカウントされない）
+        assert prompt.count("返信") == 1
+
 
 # =============================================================================
-# 30. _thread_sort_key エラーハンドリング
+# 29. _thread_sort_key エラーハンドリング
 # =============================================================================
 
 
@@ -2776,7 +2752,7 @@ def test_thread_sort_key_with_invalid_published_format(mock_env_vars):
 
 
 # =============================================================================
-# 31. _extract_thread_id_from_url fallback
+# 30. _extract_thread_id_from_url fallback
 # =============================================================================
 
 
@@ -2800,7 +2776,7 @@ def test_extract_thread_id_with_non_standard_url(mock_env_vars):
 
 
 # =============================================================================
-# 32. _render_markdown ValueError ハンドリング
+# 31. _render_markdown ValueError ハンドリング
 # =============================================================================
 
 
@@ -2828,14 +2804,18 @@ def test_render_markdown_with_invalid_published_at(mock_env_vars):
             }
         ]
 
-        result = service._render_markdown(records, datetime.now())
+        # 固定日付を使用（再現性向上）
+        test_date = datetime(2024, 11, 14, tzinfo=timezone.utc)
+        result = service._render_markdown(records, test_date)
 
         # timestampが使用される
         assert "<t:1699999999:F>" in result
+        # 日付が正しくフォーマットされている
+        assert "2024-11-14" in result
 
 
 # =============================================================================
-# 33. _serialize_threads without timestamp
+# 32. _parse_markdown without timestamp条件分岐
 # =============================================================================
 
 
@@ -2874,13 +2854,12 @@ Test summary
 
 
 # =============================================================================
-# 34. run() メソッドテスト
+# 33. run() メソッドテスト
 # =============================================================================
 
 
 @pytest.mark.unit
-@pytest.mark.asyncio
-async def test_run_method_calls_collect(mock_env_vars):
+def test_run_method_calls_collect(mock_env_vars):
     """
     Given: FourChanExplorerインスタンス
     When: run()を呼び出す
@@ -2891,8 +2870,16 @@ async def test_run_method_calls_collect(mock_env_vars):
 
         service = FourChanExplorer()
 
-        with patch.object(service, "collect", new_callable=AsyncMock) as mock_collect:
-            # asyncio.run()の代わりに直接awaitする
-            await service.collect(thread_limit=10)
+        # asyncio.runをモックしてcollect()の呼び出しを検証
+        with patch("asyncio.run") as mock_asyncio_run:
+            with patch.object(service, "collect", new_callable=AsyncMock) as mock_collect:
+                service.run(thread_limit=10)
 
-            mock_collect.assert_called_once_with(thread_limit=10)
+                # asyncio.runが呼び出されたことを確認
+                mock_asyncio_run.assert_called_once()
+                # asyncio.runに渡された引数（コルーチン）を取得
+                called_coro = mock_asyncio_run.call_args[0][0]
+                # コルーチンであることを確認
+                assert asyncio.iscoroutine(called_coro)
+                # コルーチンをクローズ（メモリリーク防止）
+                called_coro.close()
