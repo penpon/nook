@@ -48,14 +48,16 @@ def test_init_with_default_storage_dir(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_init_with_custom_storage_dir(mock_env_vars):
+def test_init_with_custom_storage_dir(mock_env_vars, tmp_path):
     """
-    Given: カスタムstorage_dir="/tmp/custom"
+    Given: カスタムstorage_dirを指定
     When: TechFeedを初期化
     Then: インスタンスが正常に作成される
     """
+    custom_dir = tmp_path / "custom"
+    custom_dir.mkdir()
     with patch("nook.common.base_service.setup_logger"):
-        service = TechFeed(storage_dir="/tmp/custom")
+        service = TechFeed(storage_dir=str(custom_dir))
 
         assert service.service_name == "tech_feed"
         assert service.feed_config is not None
