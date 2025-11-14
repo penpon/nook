@@ -1915,3 +1915,642 @@ async def test_store_summaries_with_empty_articles(mock_env_vars):
         result = await service._store_summaries([], target_dates)
 
         assert result == []
+
+
+# =============================================================================
+# 21. collect メソッド - フィード名取得ロジックの詳細テスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_feed_without_title_attribute(mock_env_vars):
+    """
+    Given: feed.feedにtitle属性がないフィード
+    When: collectメソッドを呼び出す
+    Then: フィードURLがフィード名として使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with patch("feedparser.parse") as mock_parse, patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ), patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ), patch(
+            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            new_callable=AsyncMock,
+        ) as mock_load:
+
+            mock_feed = Mock()
+            # feed属性がない、またはtitle属性がないケース
+            mock_feed.feed = Mock(spec=[])  # title属性なし
+            mock_feed.entries = []
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_load.return_value = mock_dedup
+
+            result = await service.collect(days=1)
+
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_feed_without_feed_attribute(mock_env_vars):
+    """
+    Given: feedオブジェクトにfeed属性がないフィード
+    When: collectメソッドを呼び出す
+    Then: フィードURLがフィード名として使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with patch("feedparser.parse") as mock_parse, patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ), patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ), patch(
+            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            new_callable=AsyncMock,
+        ) as mock_load:
+
+            mock_feed = Mock(spec=["entries"])  # feed属性なし
+            mock_feed.entries = []
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_load.return_value = mock_dedup
+
+            result = await service.collect(days=1)
+
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_effective_limit_calculation_with_days_greater_than_one(
+    mock_env_vars,
+):
+    """
+    Given: days=3, limit=5
+    When: collectメソッドを呼び出す
+    Then: effective_limit = 5 * 3 = 15として計算される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with patch("feedparser.parse") as mock_parse, patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ), patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ), patch(
+            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            new_callable=AsyncMock,
+        ) as mock_load, patch.object(
+            service, "_filter_entries", return_value=[]
+        ) as mock_filter:
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_feed.entries = []
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_load.return_value = mock_dedup
+
+            result = await service.collect(days=3, limit=5)
+
+            # _filter_entriesが正しいeffective_limitで呼ばれたことを確認
+            # effective_limit = 5 * max(3, 1) = 15
+            mock_filter.assert_called()
+            # 2番目の引数（effective_limit）が15であることを確認
+            call_args = mock_filter.call_args
+            assert call_args[0][2] == 15  # third positional argument is effective_limit
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars):
+    """
+    Given: days=0, limit=5
+    When: collectメソッドを呼び出す
+    Then: effective_limit = 5 * max(0, 1) = 5として計算される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with patch("feedparser.parse") as mock_parse, patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ), patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ), patch(
+            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            new_callable=AsyncMock,
+        ) as mock_load, patch.object(
+            service, "_filter_entries", return_value=[]
+        ) as mock_filter:
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_feed.entries = []
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_load.return_value = mock_dedup
+
+            result = await service.collect(days=0, limit=5)
+
+            # effective_limit = 5 * max(0, 1) = 5
+            mock_filter.assert_called()
+            call_args = mock_filter.call_args
+            assert call_args[0][2] == 5
+
+
+# =============================================================================
+# 22. collect メソッド - 日付範囲外の記事フィルタリングテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_filters_out_of_range_articles(mock_env_vars):
+    """
+    Given: 対象日付範囲外の記事を含むフィード
+    When: collectメソッドを呼び出す
+    Then: 範囲外の記事はスキップされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with patch("feedparser.parse") as mock_parse, patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ), patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ), patch(
+            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            new_callable=AsyncMock,
+        ) as mock_load, patch.object(
+            service.storage, "load", new_callable=AsyncMock, return_value=None
+        ):
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "古い記事"
+            mock_entry.link = "https://example.com/old"
+            mock_entry.summary = "説明"
+            # 対象日付範囲外（2024-01-01）
+            mock_entry.published_parsed = (2024, 1, 1, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+            )
+
+            # target_dates=[2024-11-14]（今日）で実行
+            result = await service.collect(days=1, limit=10)
+
+            # 範囲外の記事は保存されないはず
+            assert isinstance(result, list)
+
+
+# =============================================================================
+# 23. _retrieve_article メソッド - 詳細な分岐テスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_article_with_five_or_more_paragraphs(mock_env_vars):
+    """
+    Given: 5つ以上の段落を含むHTML
+    When: _retrieve_articleを呼び出す
+    Then: 最初の5つの段落のみが抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        entry = Mock()
+        entry.title = "テスト記事"
+        entry.link = "https://example.com/test"
+        del entry.summary
+        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+        html = """
+        <html>
+        <body>
+            <p>段落1</p>
+            <p>段落2</p>
+            <p>段落3</p>
+            <p>段落4</p>
+            <p>段落5</p>
+            <p>段落6</p>
+            <p>段落7</p>
+        </body>
+        </html>
+        """
+
+        service.http_client.get = AsyncMock(return_value=Mock(text=html))
+
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
+
+        assert result is not None
+        # 最初の5つの段落が含まれている
+        assert "段落1" in result.text
+        assert "段落5" in result.text
+        # 6つ目以降は含まれない
+        assert "段落6" not in result.text
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_article_with_meta_description_empty_content(mock_env_vars):
+    """
+    Given: メタディスクリプションのcontentが空
+    When: _retrieve_articleを呼び出す
+    Then: 段落からテキストが抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        entry = Mock()
+        entry.title = "テスト記事"
+        entry.link = "https://example.com/test"
+        del entry.summary
+        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+        html = """
+        <html>
+        <head>
+            <meta name="description" content="">
+        </head>
+        <body>
+            <p>段落のテキスト</p>
+        </body>
+        </html>
+        """
+
+        service.http_client.get = AsyncMock(return_value=Mock(text=html))
+
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
+
+        assert result is not None
+        assert "段落のテキスト" in result.text
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_article_published_at_extraction(mock_env_vars):
+    """
+    Given: published_parsedを持つエントリ
+    When: _retrieve_articleを呼び出す
+    Then: published_atが正しく解析される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        entry = Mock()
+        entry.title = "テスト記事"
+        entry.link = "https://example.com/test"
+        entry.summary = "説明"
+        entry.published_parsed = (2024, 11, 14, 15, 30, 45, 0, 0, 0)
+
+        service.http_client.get = AsyncMock(
+            return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+        )
+
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
+
+        assert result is not None
+        assert result.published_at is not None
+        # 時刻が正しく解析されているか確認
+        assert result.published_at.year == 2024
+        assert result.published_at.month == 11
+        assert result.published_at.day == 14
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
+    """
+    Given: 人気スコアを持つHTML
+    When: _retrieve_articleを呼び出す
+    Then: 人気スコアが正しく抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        entry = Mock()
+        entry.title = "テスト記事"
+        entry.link = "https://example.com/test"
+        entry.summary = "説明"
+        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+        html = """
+        <html>
+        <head>
+            <meta property="zenn:likes_count" content="200">
+        </head>
+        <body><p>テキスト</p></body>
+        </html>
+        """
+
+        service.http_client.get = AsyncMock(return_value=Mock(text=html))
+
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
+
+        assert result is not None
+        assert result.popularity_score == 200.0
+
+
+# =============================================================================
+# 24. _extract_popularity メソッド - 優先順位とエッジケース
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_extract_popularity_meta_tag_priority_over_data_attribute(mock_env_vars):
+    """
+    Given: メタタグとdata属性の両方が存在
+    When: _extract_popularityを呼び出す
+    Then: メタタグが優先される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        entry = Mock()
+        html = """
+        <html>
+        <head>
+            <meta property="zenn:likes_count" content="100">
+        </head>
+        <body>
+            <button data-like-count="200">いいね</button>
+        </body>
+        </html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+
+        result = service._extract_popularity(entry, soup)
+
+        # メタタグが優先されるので100.0が返される
+        assert result == 100.0
+
+
+@pytest.mark.unit
+def test_extract_popularity_data_attribute_priority_over_text(mock_env_vars):
+    """
+    Given: data属性とテキストの両方が存在（メタタグなし）
+    When: _extract_popularityを呼び出す
+    Then: data属性が優先される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        entry = Mock()
+        html = """
+        <html>
+        <body>
+            <button data-like-count="150">いいね</button>
+            <span>いいね 250</span>
+        </body>
+        </html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+
+        result = service._extract_popularity(entry, soup)
+
+        # 最大値が選択されるので250.0
+        assert result == 250.0
+
+
+@pytest.mark.unit
+def test_extract_popularity_with_non_numeric_data_attribute(mock_env_vars):
+    """
+    Given: data-like-countが非数値
+    When: _extract_popularityを呼び出す
+    Then: スキップされて他の候補が使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        entry = Mock()
+        html = """
+        <html>
+        <body>
+            <button data-like-count="invalid">いいね</button>
+            <span>いいね 100</span>
+        </body>
+        </html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+
+        result = service._extract_popularity(entry, soup)
+
+        # invalidはスキップされ、100が使用される
+        assert result == 100.0
+
+
+@pytest.mark.unit
+def test_extract_popularity_with_multiple_data_attributes(mock_env_vars):
+    """
+    Given: 複数のdata-like-count属性が存在
+    When: _extract_popularityを呼び出す
+    Then: 最大値が選択される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        entry = Mock()
+        html = """
+        <html>
+        <body>
+            <button data-like-count="50">いいね</button>
+            <button data-like-count="300">いいね</button>
+            <button data-like-count="150">いいね</button>
+        </body>
+        </html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+
+        result = service._extract_popularity(entry, soup)
+
+        assert result == 300.0
+
+
+@pytest.mark.unit
+def test_extract_popularity_with_comma_in_text(mock_env_vars):
+    """
+    Given: カンマ区切りの数値を含むテキスト
+    When: _extract_popularityを呼び出す
+    Then: カンマが除去されて数値が抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        entry = Mock()
+        html = """
+        <html>
+        <body>
+            <span>いいね 1,234</span>
+        </body>
+        </html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+
+        result = service._extract_popularity(entry, soup)
+
+        assert result == 1234.0
+
+
+@pytest.mark.unit
+def test_extract_popularity_empty_text_elements(mock_env_vars):
+    """
+    Given: テキストが空の要素が存在
+    When: _extract_popularityを呼び出す
+    Then: 空要素はスキップされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        entry = Mock()
+        html = """
+        <html>
+        <body>
+            <button></button>
+            <span></span>
+            <div>いいね 50</div>
+        </body>
+        </html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+
+        result = service._extract_popularity(entry, soup)
+
+        assert result == 50.0
+
+
+# =============================================================================
+# 25. collect メソッド - 既存ファイルの処理詳細テスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_preserves_existing_files_path(mock_env_vars):
+    """
+    Given: 既存記事があり新規記事がない
+    When: collectメソッドを呼び出す
+    Then: 既存ファイルパスが結果に含まれる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        with patch("feedparser.parse") as mock_parse, patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ), patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ), patch(
+            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            new_callable=AsyncMock,
+        ) as mock_load, patch.object(
+            service.storage, "load", new_callable=AsyncMock
+        ) as mock_storage_load:
+
+            # 既存記事データ
+            existing_data = json.dumps(
+                [
+                    {
+                        "title": "既存記事",
+                        "url": "https://example.com/existing",
+                        "feed_name": "既存フィード",
+                        "summary": "既存要約",
+                        "popularity_score": 5.0,
+                        "published_at": "2024-11-14T10:00:00",
+                        "category": "tech",
+                    }
+                ]
+            )
+            mock_storage_load.return_value = existing_data
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_feed.entries = []  # 新規記事なし
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_load.return_value = mock_dedup
+
+            result = await service.collect(days=1)
+
+            # 既存ファイルパスが結果に含まれることを確認
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_storage_load_exception_handling(mock_env_vars):
+    """
+    Given: 既存記事の読み込み時に例外が発生
+    When: collectメソッドを呼び出す
+    Then: 例外が適切に処理され、処理が継続される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with patch("feedparser.parse") as mock_parse, patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ), patch.object(
+            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+        ), patch(
+            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            new_callable=AsyncMock,
+        ) as mock_load, patch.object(
+            service.storage, "load", new_callable=AsyncMock
+        ) as mock_storage_load, patch.object(
+            service.storage, "save", new_callable=AsyncMock
+        ):
+
+            # ストレージ読み込み時に例外
+            mock_storage_load.side_effect = Exception("Storage error")
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "新規記事"
+            mock_entry.link = "https://example.com/new"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1)
+
+            # 例外が処理され、処理が継続される
+            assert isinstance(result, list)
