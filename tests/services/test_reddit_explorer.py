@@ -18,10 +18,13 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+# 共通インポート (各テスト内での繰り返しを削減)
+from nook.common.dedup import DedupTracker
+from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 def test_init_with_default_storage_dir(reddit_explorer_service):
@@ -32,11 +35,9 @@ def test_init_with_default_storage_dir(reddit_explorer_service):
     """
     assert reddit_explorer_service.service_name == "reddit_explorer"
 
-
 # =============================================================================
 # 2. OAuth認証のユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 def test_init_with_valid_credentials(reddit_explorer_service):
@@ -45,8 +46,6 @@ def test_init_with_valid_credentials(reddit_explorer_service):
     When: RedditExplorerを初期化
     Then: client_id, client_secret, user_agentが正しく設定される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     reddit_explorer_service = RedditExplorer(
         client_id="test-id", client_secret="test-secret", user_agent="test-agent"
     )
@@ -54,7 +53,6 @@ def test_init_with_valid_credentials(reddit_explorer_service):
     assert reddit_explorer_service.client_id == "test-id"
     assert reddit_explorer_service.client_secret == "test-secret"
     assert reddit_explorer_service.user_agent == "test-agent"
-
 
 @pytest.mark.unit
 def test_init_with_env_credentials(reddit_explorer_service):
@@ -67,7 +65,6 @@ def test_init_with_env_credentials(reddit_explorer_service):
     assert reddit_explorer_service.client_secret == "test-client-secret"
     assert reddit_explorer_service.user_agent == "test-user-agent"
 
-
 @pytest.mark.unit
 def test_init_missing_credentials(reddit_explorer_service, monkeypatch):
     """
@@ -75,8 +72,6 @@ def test_init_missing_credentials(reddit_explorer_service, monkeypatch):
     When: RedditExplorerを初期化
     Then: ValueErrorが発生
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     # 環境変数のReddit関連をクリア
     monkeypatch.delenv("REDDIT_CLIENT_ID", raising=False)
     monkeypatch.delenv("REDDIT_CLIENT_SECRET", raising=False)
@@ -85,7 +80,6 @@ def test_init_missing_credentials(reddit_explorer_service, monkeypatch):
     with pytest.raises(ValueError, match="Reddit API credentials"):
         RedditExplorer(client_id="test-id", user_agent="test-agent")  # client_secretが欠落
 
-
 @pytest.mark.unit
 def test_init_missing_all_credentials(monkeypatch):
     """
@@ -93,8 +87,6 @@ def test_init_missing_all_credentials(monkeypatch):
     When: RedditExplorerを初期化
     Then: ValueErrorが発生
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     # OPENAI_API_KEYは設定（BaseServiceの初期化に必要）
     monkeypatch.setenv("OPENAI_API_KEY", "test-api-key")
     # Reddit関連の環境変数をクリア
@@ -105,11 +97,9 @@ def test_init_missing_all_credentials(monkeypatch):
     with pytest.raises(ValueError, match="Reddit API credentials"):
         RedditExplorer()
 
-
 # =============================================================================
 # 3. 投稿タイプ判定のユニットテスト（7種類）- パラメタライズド
 # =============================================================================
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -139,8 +129,6 @@ async def test_post_type_detection(
     When: _retrieve_hot_postsで投稿を処理
     Then: 正しい投稿タイプが判定される
     """
-    from nook.common.dedup import DedupTracker
-
     # フィクスチャファクトリーで投稿タイプに応じたモック作成
     mock_sub = mock_reddit_submission(
         post_type=post_type,
@@ -167,11 +155,9 @@ async def test_post_type_detection(
     assert len(posts) == 1
     assert posts[0].type == expected_type
 
-
 # =============================================================================
 # 4. UTC→JST変換のユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -183,8 +169,6 @@ async def test_utc_to_jst_conversion(
     When: _retrieve_hot_postsで投稿を処理
     Then: created_atがUTCタイムゾーンで正しく変換される
     """
-    from nook.common.dedup import DedupTracker
-
     utc_timestamp = test_dates["utc_test_timestamp"]
     mock_sub = mock_reddit_submission(
         post_type="text",
@@ -214,11 +198,9 @@ async def test_utc_to_jst_conversion(
     expected_dt = datetime.fromtimestamp(utc_timestamp, tz=timezone.utc)
     assert posts[0].created_at == expected_dt
 
-
 # =============================================================================
 # 5. GPT要約のユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -228,8 +210,6 @@ async def test_summarize_reddit_post_success(reddit_explorer_service):
     When: _summarize_reddit_postで要約を生成
     Then: GPTクライアントが呼ばれ、要約が設定される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="text",
         id="test123",
@@ -253,7 +233,6 @@ async def test_summarize_reddit_post_success(reddit_explorer_service):
     assert reddit_explorer_service.gpt_client.generate_content.called
     assert post.summary == "これは要約です。"
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_reddit_post_with_url(reddit_explorer_service):
@@ -262,8 +241,6 @@ async def test_summarize_reddit_post_with_url(reddit_explorer_service):
     When: _summarize_reddit_postで要約を生成
     Then: プロンプトにURLが含まれる
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="link",
         id="test123",
@@ -283,7 +260,6 @@ async def test_summarize_reddit_post_with_url(reddit_explorer_service):
     assert "https://example.com/article" in call_kwargs["prompt"]
     assert post.summary == "リンク要約"
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
@@ -292,8 +268,6 @@ async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
     When: _summarize_reddit_postで要約を生成
     Then: エラーメッセージが要約に設定される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="text",
         id="test123",
@@ -315,11 +289,9 @@ async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
     assert "エラーが発生しました" in post.summary
     assert "API Error" in post.summary
 
-
 # =============================================================================
 # 6. 翻訳機能のユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -337,7 +309,6 @@ async def test_translate_to_japanese_success(reddit_explorer_service):
     assert result == "これは翻訳されたテキストです。"
     assert reddit_explorer_service.gpt_client.generate_content.called
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_to_japanese_empty_text(reddit_explorer_service):
@@ -352,7 +323,6 @@ async def test_translate_to_japanese_empty_text(reddit_explorer_service):
 
     assert result == ""
     assert not reddit_explorer_service.gpt_client.generate_content.called
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -372,11 +342,9 @@ async def test_translate_to_japanese_error_handling(reddit_explorer_service):
 
     assert result == original_text  # 原文が返される
 
-
 # =============================================================================
 # 7. エラーケースのユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -386,9 +354,6 @@ async def test_retrieve_hot_posts_subreddit_not_found(reddit_explorer_service):
     When: _retrieve_hot_postsで取得
     Then: 例外が発生する
     """
-    from nook.common.dedup import DedupTracker
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.subreddit = AsyncMock(
         side_effect=Exception("Subreddit not found")
@@ -404,18 +369,14 @@ async def test_retrieve_hot_posts_subreddit_not_found(reddit_explorer_service):
             target_dates=[date(2023, 11, 15)],
         )
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, mock_env_vars, async_generator_helper):
+async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, async_generator_helper):
     """
     Given: 投稿が0件のサブレディット
     When: _retrieve_hot_postsで取得
     Then: 空リストが返される
     """
-    from nook.common.dedup import DedupTracker
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     mock_subreddit = Mock()
     mock_subreddit.hot = Mock(return_value=async_generator_helper([]))
 
@@ -430,18 +391,14 @@ async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, mock_en
     assert len(posts) == 0
     assert total == 0
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, mock_env_vars, async_generator_helper):
+async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, async_generator_helper):
     """
     Given: スティッキー投稿を含むサブレディット
     When: _retrieve_hot_postsで取得
     Then: スティッキー投稿はスキップされる
     """
-    from nook.common.dedup import DedupTracker
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     # スティッキー投稿
     stickied_submission = Mock()
     stickied_submission.stickied = True
@@ -482,18 +439,14 @@ async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, mock_en
     assert len(posts) == 1
     assert posts[0].title == "Normal Post"
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, mock_env_vars, async_generator_helper):
+async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, async_generator_helper):
     """
     Given: 重複するタイトルの投稿
     When: _retrieve_hot_postsで取得
     Then: 重複投稿はスキップされる
     """
-    from nook.common.dedup import DedupTracker
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     # 同じタイトルの2つの投稿
     submission1 = Mock()
     submission1.stickied = False
@@ -546,7 +499,6 @@ async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, mock
     assert len(posts) == 1
     assert posts[0].title == "Duplicate Title"
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_top_comments_success(reddit_explorer_service):
@@ -555,8 +507,6 @@ async def test_retrieve_top_comments_success(reddit_explorer_service):
     When: _retrieve_top_comments_of_postでコメント取得
     Then: トップコメントが取得され翻訳される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="text",
         id="test123",
@@ -594,7 +544,6 @@ async def test_retrieve_top_comments_success(reddit_explorer_service):
     assert comments[1]["text"] == "同意します"
     assert comments[1]["score"] == 30
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_top_comments_empty(reddit_explorer_service):
@@ -603,8 +552,6 @@ async def test_retrieve_top_comments_empty(reddit_explorer_service):
     When: _retrieve_top_comments_of_postでコメント取得
     Then: 空リストが返される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="text",
         id="test123",
@@ -625,11 +572,9 @@ async def test_retrieve_top_comments_empty(reddit_explorer_service):
 
     assert len(comments) == 0
 
-
 # =============================================================================
 # 8. ヘルパーメソッドのユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 def test_extract_post_id_from_permalink(reddit_explorer_service):
@@ -659,7 +604,6 @@ def test_extract_post_id_from_permalink(reddit_explorer_service):
     permalink4 = "/r/test/ghi789"
     assert reddit_explorer_service._extract_post_id_from_permalink(permalink4) == "ghi789"
 
-
 @pytest.mark.unit
 def test_post_sort_key(reddit_explorer_service):
     """
@@ -679,7 +623,6 @@ def test_post_sort_key(reddit_explorer_service):
     assert created.month == 1
     assert created.day == 1
 
-
 @pytest.mark.unit
 def test_select_top_posts(reddit_explorer_service):
     """
@@ -687,8 +630,6 @@ def test_select_top_posts(reddit_explorer_service):
     When: _select_top_postsで上位を選択
     Then: popularity_scoreの高い順に並び替えられる
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     reddit_explorer_service.SUMMARY_LIMIT = 2
     post1 = RedditPost(
         type="text",
@@ -737,11 +678,9 @@ def test_select_top_posts(reddit_explorer_service):
     assert selected[0][2].id == "2"  # popularity_score 200
     assert selected[1][2].id == "3"  # popularity_score 150
 
-
 # =============================================================================
 # 9. シリアライズ・ストレージのユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 def test_serialize_posts(reddit_explorer_service):
@@ -750,8 +689,6 @@ def test_serialize_posts(reddit_explorer_service):
     When: _serialize_postsでシリアライズ
     Then: 辞書のリストに変換される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post1 = RedditPost(
         type="text",
         id="post1",
@@ -782,7 +719,6 @@ def test_serialize_posts(reddit_explorer_service):
     assert "created_at" in records[0]
     assert "published_at" in records[0]
 
-
 @pytest.mark.unit
 def test_serialize_posts_without_created_at(reddit_explorer_service):
     """
@@ -790,8 +726,6 @@ def test_serialize_posts_without_created_at(reddit_explorer_service):
     When: _serialize_postsでシリアライズ
     Then: 現在時刻が使用される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="text",
         id="post1",
@@ -809,7 +743,6 @@ def test_serialize_posts_without_created_at(reddit_explorer_service):
     assert "created_at" in records[0]
     assert "published_at" in records[0]
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_empty_posts(reddit_explorer_service):
@@ -822,7 +755,6 @@ async def test_store_summaries_empty_posts(reddit_explorer_service):
 
     assert result == []
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_with_posts(reddit_explorer_service):
@@ -831,8 +763,6 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
     When: _store_summariesで保存
     Then: ファイルパスのリストが返される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="text",
         id="test123",
@@ -861,11 +791,9 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
         assert result[0][1] == "/data/2024-01-01.md"
     assert mock_store.called
 
-
 # =============================================================================
 # 10. Markdownレンダリングのユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 def test_render_markdown(reddit_explorer_service):
@@ -899,7 +827,6 @@ def test_render_markdown(reddit_explorer_service):
     assert "**要約**:\nThis is a summary" in markdown
     assert "---" in markdown
 
-
 @pytest.mark.unit
 def test_render_markdown_long_text(reddit_explorer_service):
     """
@@ -925,7 +852,6 @@ def test_render_markdown_long_text(reddit_explorer_service):
     markdown = reddit_explorer_service._render_markdown(records, today)
 
     assert "本文: " + "a" * 200 + "..." in markdown
-
 
 @pytest.mark.unit
 def test_render_markdown_multiple_subreddits(reddit_explorer_service):
@@ -961,11 +887,9 @@ def test_render_markdown_multiple_subreddits(reddit_explorer_service):
     assert "### [Python Post](/r/python/comments/test1)" in markdown
     assert "### [JS Post](/r/javascript/comments/test2)" in markdown
 
-
 # =============================================================================
 # 11. Markdownパースのユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 def test_parse_markdown(reddit_explorer_service):
@@ -1005,7 +929,6 @@ This is a summary
     assert records[0]["summary"] == "This is a summary"
     assert records[0]["permalink"] == "/r/python/comments/abc123/test_post"
 
-
 @pytest.mark.unit
 def test_parse_markdown_without_optional_fields(reddit_explorer_service):
     """
@@ -1037,7 +960,6 @@ Simple summary
     assert records[0]["text"] == ""
     assert records[0]["upvotes"] == 50
     assert records[0]["summary"] == "Simple summary"
-
 
 @pytest.mark.unit
 def test_parse_markdown_multiple_posts(reddit_explorer_service):
@@ -1091,11 +1013,9 @@ Summary 3
     assert records[2]["subreddit"] == "javascript"
     assert records[2]["title"] == "Post 3"
 
-
 # =============================================================================
 # 12. _load_existing_postsのユニットテスト
 # =============================================================================
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -1118,7 +1038,6 @@ async def test_load_existing_posts_from_json_list(reddit_explorer_service):
         assert len(result) == 2
         assert result[0]["id"] == "test1"
         assert result[1]["id"] == "test2"
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -1143,7 +1062,6 @@ async def test_load_existing_posts_from_json_dict(reddit_explorer_service):
         assert result[0]["id"] == "test1"
         assert result[1]["subreddit"] == "javascript"
         assert result[1]["id"] == "test2"
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -1182,7 +1100,6 @@ Summary
         assert result[0]["id"] == "test123"
         assert result[0]["subreddit"] == "python"
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_posts_no_data(reddit_explorer_service):
@@ -1203,10 +1120,10 @@ async def test_load_existing_posts_no_data(reddit_explorer_service):
 
         assert len(result) == 0
 
+# =============================================================================
+# 13. エッジケーステスト
+# =============================================================================
 
-    # =============================================================================
-@pytest.mark.unit
-@pytest.mark.unit
 @pytest.mark.unit
 def test_post_sort_key_edge_cases(reddit_explorer_service):
     """
@@ -1237,7 +1154,6 @@ def test_post_sort_key_edge_cases(reddit_explorer_service):
     assert popularity4 == 0.0
     assert created4.year == 1
 
-
 @pytest.mark.unit
 def test_extract_post_id_edge_cases(reddit_explorer_service):
     """
@@ -1256,7 +1172,6 @@ def test_extract_post_id_edge_cases(reddit_explorer_service):
     # None
     assert reddit_explorer_service._extract_post_id_from_permalink(None) == ""
 
-
 @pytest.mark.unit
 def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
     """
@@ -1264,8 +1179,6 @@ def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
     When: _select_top_postsで選択
     Then: 全投稿が返される
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     reddit_explorer_service.SUMMARY_LIMIT = 10
     post1 = RedditPost(
         type="text",
@@ -1285,8 +1198,6 @@ def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
     # 全投稿が返される
     assert len(selected) == 1
 
-
-@pytest.mark.unit
 @pytest.mark.unit
 def test_run_method(reddit_explorer_service):
     """
@@ -1302,23 +1213,14 @@ def test_run_method(reddit_explorer_service):
         # collectが呼ばれたことを確認
         assert mock_collect.called
 
-
-    # =============================================================================
-    # Additional Edge Case Tests for Coverage
-    # =============================================================================
-
-
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, mock_env_vars, async_generator_helper):
+async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, async_generator_helper):
     """
     Given: 対象日付外の投稿
     When: _retrieve_hot_postsで取得
     Then: 対象日付外の投稿はスキップされる (line 392)
     """
-    from nook.common.dedup import DedupTracker
-    from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
     # 対象日付: 2024-01-01
     # 投稿日時: 2023-01-01 (対象外)
     mock_submission = Mock()
@@ -1357,7 +1259,6 @@ async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, mock_env_
     assert len(posts) == 0
     assert total == 1  # カウントはされる
 
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_top_comments_without_body(reddit_explorer_service):
@@ -1366,8 +1267,6 @@ async def test_retrieve_top_comments_without_body(reddit_explorer_service):
     When: _retrieve_top_comments_of_postでコメント取得
     Then: body属性がないコメントはスキップされる (line 454)
     """
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     post = RedditPost(
         type="text",
         id="test123",
@@ -1401,7 +1300,6 @@ async def test_retrieve_top_comments_without_body(reddit_explorer_service):
     assert len(comments) == 1
     assert comments[0]["text"] == "有効なコメント"
 
-
 @pytest.mark.unit
 def test_post_sort_key_invalid_date_format(reddit_explorer_service):
     """
@@ -1419,7 +1317,6 @@ def test_post_sort_key_invalid_date_format(reddit_explorer_service):
     assert created.year == 1
     assert created.month == 1
 
-
 @pytest.mark.unit
 def test_select_top_posts_empty_list(reddit_explorer_service):
     """
@@ -1434,7 +1331,6 @@ def test_select_top_posts_empty_list(reddit_explorer_service):
 
     assert len(selected) == 0
     assert selected == []
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
