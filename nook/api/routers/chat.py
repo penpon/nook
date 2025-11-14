@@ -62,7 +62,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # システムプロンプトの作成
         system_prompt = (
             "あなたは親切なアシスタントです。"
-            "ユーザーが提供したコンテンツについて質問に答えてください。"
+            " ユーザーが提供したコンテンツについて質問に答えてください。"
         )
         if request.markdown:
             system_prompt += (
