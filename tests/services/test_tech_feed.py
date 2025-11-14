@@ -1292,7 +1292,7 @@ async def test_collect_feed_toml_load_failure_handling(mock_env_vars):
             "builtins.open", side_effect=FileNotFoundError("feed.toml not found")
         ):
             with pytest.raises(FileNotFoundError):
-                _service = TechFeed()
+                TechFeed()
 
 
 # 重複検出テストは複雑なため、シンプルなテストに置き換え
