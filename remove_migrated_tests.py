@@ -44,7 +44,6 @@ def remove_tests(file_path):
 
             if test_name in MIGRATED_TESTS:
                 # このテストを削除: デコレータから次のテストまたはセクション区切りまで
-                start_i = i
 
                 # デコレータの開始位置を探す（最大3行前まで）
                 decorator_start = i
@@ -57,7 +56,6 @@ def remove_tests(file_path):
                 # テスト本体の終了位置を探す
                 # 次の関数定義、クラス定義、またはセクション区切りまで
                 test_end = i + 1
-                indent_level = None
                 for j in range(i + 1, len(lines)):
                     stripped = lines[j].strip()
 
