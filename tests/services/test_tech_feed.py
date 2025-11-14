@@ -15,7 +15,7 @@ nook/services/tech_feed/tech_feed.py のテスト
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -1759,8 +1759,6 @@ async def test_collect_date_filtering_within_range(mock_env_vars):
         ), patch.object(
             service.storage, "save", new_callable=AsyncMock
         ):
-            from datetime import datetime
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -2151,8 +2149,6 @@ async def test_store_summaries_empty_articles(mock_env_vars):
     """
     with patch("nook.common.base_service.setup_logger"):
         service = TechFeed()
-
-        from datetime import date
 
         result = await service._store_summaries([], [date.today()])
 
