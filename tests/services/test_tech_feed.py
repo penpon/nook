@@ -221,9 +221,9 @@ async def test_collect_success_with_valid_feed(mock_env_vars, respx_mock):
             mock_parse.return_value = mock_feed
 
             # DedupTrackerのモック
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-            mock_load.return_value = mock_dedup
+            mock_dedup_tracker = Mock()
+            mock_dedup_tracker.is_duplicate.return_value = (False, "normalized_title")
+            mock_load.return_value = mock_dedup_tracker
 
             # HTTPクライアントのモック
             service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
@@ -315,8 +315,8 @@ async def test_collect_with_target_dates_none(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-            mock_load.return_value = mock_dedup
+            mock_dedup_tracker = Mock()
+            mock_load.return_value = mock_dedup_tracker
 
             result = await service.collect(days=1, limit=10, target_dates=None)
 
@@ -378,8 +378,6 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
             mock_feed = Mock()
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
-
-            mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -1247,8 +1245,6 @@ async def test_collect_no_saved_files(mock_env_vars):
             mock_feed.entries = []  # 記事なし
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
             result = await service.collect(days=1)
 
             # 保存なし
@@ -1413,10 +1409,11 @@ async def test_retrieve_article_empty_html(mock_env_vars):
 
         service.http_client.get = AsyncMock(return_value=Mock(text="<html></html>"))
 
-        await service._retrieve_article(entry, "Test Feed", "tech")
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         # 空HTMLでも日本語判定で除外される可能性
         # または空のArticleが返される
+        assert result is None or isinstance(result, Article)
 
 
 @pytest.mark.unit
@@ -1441,10 +1438,11 @@ async def test_retrieve_article_malformed_html(mock_env_vars):
             return_value=Mock(text="<html><body><p>不正なHTML<p><div>閉じタグなし")
         )
 
-        await service._retrieve_article(entry, "Test Feed", "tech")
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         # BeautifulSoupは不正HTMLでも解析を試みる
         # 日本語判定を通過すればArticleが返される
+        assert result is None or isinstance(result, Article)
 
 
 @pytest.mark.unit
@@ -2246,10 +2244,10 @@ async def test_collect_dedup_tracker_detects_duplicate(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             # 重複を返すモック
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (True, "normalized")
-            mock_dedup.get_original_title.return_value = "元のタイトル"
-            mock_load.return_value = mock_dedup
+            mock_dedup_tracker = Mock()
+            mock_dedup_tracker.is_duplicate.return_value = (True, "normalized")
+            mock_dedup_tracker.get_original_title.return_value = "元のタイトル"
+            mock_load.return_value = mock_dedup_tracker
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(
