@@ -55,13 +55,14 @@ async def test_collect_success_with_papers(arxiv_service, mock_arxiv_api):
     # Given: モック設定
     arxiv_service.http_client = AsyncMock()
 
-    with patch.object(
-        arxiv_service, "setup_http_client", new_callable=AsyncMock
-    ), patch.object(
-        arxiv_service.storage,
-        "save",
-        new_callable=AsyncMock,
-        return_value=Path("/data/test.json"),
+    with (
+        patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock),
+        patch.object(
+            arxiv_service.storage,
+            "save",
+            new_callable=AsyncMock,
+            return_value=Path("/data/test.json"),
+        ),
     ):
         arxiv_service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -83,12 +84,11 @@ async def test_collect_with_multiple_categories(arxiv_service):
     # Given: モック設定
     arxiv_service.http_client = AsyncMock()
 
-    with patch.object(
-        arxiv_service, "setup_http_client", new_callable=AsyncMock
-    ), patch.object(arxiv_service.storage, "save", new_callable=AsyncMock):
-        arxiv_service.http_client.get = AsyncMock(
-            return_value=Mock(text="<feed></feed>")
-        )
+    with (
+        patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock),
+        patch.object(arxiv_service.storage, "save", new_callable=AsyncMock),
+    ):
+        arxiv_service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
 
         # When
         result = await arxiv_service.collect(target_dates=[date.today()])
@@ -108,21 +108,19 @@ async def test_collect_network_error(arxiv_service):
     """
     Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
-    Then: エラーがログされるが、例外は発生しない
+    Then: RetryExceptionが発生する
     """
+    from nook.common.exceptions import RetryException
+
     # Given: ネットワークエラーをシミュレート
     arxiv_service.http_client = AsyncMock()
 
     with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
-        arxiv_service.http_client.get = AsyncMock(
-            side_effect=Exception("Network error")
-        )
+        arxiv_service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
-        # When
-        result = await arxiv_service.collect(target_dates=[date.today()])
-
-        # Then
-        assert isinstance(result, list)
+        # When/Then
+        with pytest.raises(RetryException):
+            await arxiv_service.collect(target_dates=[date.today()])
 
 
 @pytest.mark.unit
@@ -157,15 +155,14 @@ async def test_collect_gpt_api_error(arxiv_service):
     # Given: GPT APIエラーをモック
     arxiv_service.http_client = AsyncMock()
 
-    with patch.object(
-        arxiv_service, "setup_http_client", new_callable=AsyncMock
-    ), patch.object(arxiv_service.storage, "save", new_callable=AsyncMock):
+    with (
+        patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock),
+        patch.object(arxiv_service.storage, "save", new_callable=AsyncMock),
+    ):
         arxiv_service.http_client.get = AsyncMock(
             return_value=Mock(text="<feed><entry></entry></feed>")
         )
-        arxiv_service.gpt_client.get_response = AsyncMock(
-            side_effect=Exception("API Error")
-        )
+        arxiv_service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
         # When
         result = await arxiv_service.collect(target_dates=[date.today()])
@@ -190,17 +187,16 @@ async def test_full_workflow_collect_and_save(arxiv_service):
     # Given: 完全なワークフローのモック設定
     arxiv_service.http_client = AsyncMock()
 
-    with patch.object(
-        arxiv_service, "setup_http_client", new_callable=AsyncMock
-    ), patch.object(
-        arxiv_service.storage,
-        "save",
-        new_callable=AsyncMock,
-        return_value=Path("/data/test.json"),
+    with (
+        patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock),
+        patch.object(
+            arxiv_service.storage,
+            "save",
+            new_callable=AsyncMock,
+            return_value=Path("/data/test.json"),
+        ),
     ):
-        arxiv_service.http_client.get = AsyncMock(
-            return_value=Mock(text="<feed></feed>")
-        )
+        arxiv_service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
         arxiv_service.gpt_client.get_response = AsyncMock(return_value="要約")
 
         # When
@@ -231,3 +227,129 @@ def test_run_method(arxiv_service):
 
         # Then
         mock_asyncio_run.assert_called_once()
+
+
+# =============================================================================
+# 23. カバレッジ向上テスト - エッジケース
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_http_client_not_initialized(arxiv_service):
+    """
+    Given: http_clientが未初期化
+    When: collectメソッドを呼び出す
+    Then: setup_http_clientが自動的に呼ばれる
+    """
+    # Given: http_clientをNoneに設定
+    arxiv_service.http_client = None
+
+    with (
+        patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock) as mock_setup,
+        patch.object(
+            arxiv_service,
+            "_get_curated_paper_ids",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
+    ):
+        # When
+        result = await arxiv_service.collect(target_dates=[date.today()])
+
+        # Then
+        mock_setup.assert_called_once()
+        assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_empty_target_dates(arxiv_service):
+    """
+    Given: 空のtarget_dates
+    When: collectメソッドを呼び出す
+    Then: 早期リターンで空リストが返される
+    """
+    # Given: http_clientを設定
+    arxiv_service.http_client = AsyncMock()
+
+    # When
+    result = await arxiv_service.collect(target_dates=[])
+
+    # Then
+    assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_empty_daily_ids(arxiv_service):
+    """
+    Given: _get_curated_paper_idsが空リストを返す
+    When: collectメソッドを呼び出す
+    Then: ログが出力され、空リストが返される
+    """
+    # Given
+    arxiv_service.http_client = AsyncMock()
+
+    with patch.object(
+        arxiv_service,
+        "_get_curated_paper_ids",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        # When
+        result = await arxiv_service.collect(target_dates=[date.today()])
+
+        # Then
+        assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_none_daily_ids(arxiv_service):
+    """
+    Given: _get_curated_paper_idsがNoneを返す（URLが見つからない）
+    When: collectメソッドを呼び出す
+    Then: ログが出力され、空リストが返される
+    """
+    # Given
+    arxiv_service.http_client = AsyncMock()
+
+    with patch.object(
+        arxiv_service,
+        "_get_curated_paper_ids",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        # When
+        result = await arxiv_service.collect(target_dates=[date.today()])
+
+        # Then
+        assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_all_duplicate_ids(arxiv_service):
+    """
+    Given: すべてのIDが重複している
+    When: collectメソッドを呼び出す（複数日付）
+    Then: 重複スキップのログが出力され、空リストが返される
+    """
+    # Given
+    arxiv_service.http_client = AsyncMock()
+    from datetime import timedelta
+
+    target_dates = [date.today(), date.today() - timedelta(days=1)]
+
+    with patch.object(
+        arxiv_service,
+        "_get_curated_paper_ids",
+        new_callable=AsyncMock,
+        return_value=["2301.00001"],  # 同じIDを返す
+    ):
+        # When
+        result = await arxiv_service.collect(target_dates=target_dates)
+
+        # Then
+        assert isinstance(result, list)

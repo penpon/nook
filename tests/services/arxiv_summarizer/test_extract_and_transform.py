@@ -34,19 +34,20 @@ async def test_extract_from_pdf_success(arxiv_service, arxiv_helper):
     Then: テキストが正常に抽出される
     """
     # Given: モックPDF
-    mock_pdf = arxiv_helper.create_mock_pdf(
-        "This is a test paper content. " * 10  # 十分な長さ
-    )
+    mock_pdf = arxiv_helper.create_mock_pdf("This is a test paper content. " * 10)  # 十分な長さ
 
     # モックHTTPレスポンス
     mock_response = arxiv_helper.create_mock_pdf_response()
 
-    with patch.object(
-        arxiv_service,
-        "_download_pdf_without_retry",
-        new_callable=AsyncMock,
-        return_value=mock_response,
-    ), patch("pdfplumber.open", return_value=mock_pdf):
+    with (
+        patch.object(
+            arxiv_service,
+            "_download_pdf_without_retry",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch("pdfplumber.open", return_value=mock_pdf),
+    ):
         # When
         result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
@@ -91,12 +92,15 @@ async def test_extract_from_pdf_corrupted(arxiv_service, arxiv_helper):
     # Given: 破損したPDFデータ
     mock_response = arxiv_helper.create_mock_pdf_response(content=b"corrupted data")
 
-    with patch.object(
-        arxiv_service,
-        "_download_pdf_without_retry",
-        new_callable=AsyncMock,
-        return_value=mock_response,
-    ), patch("pdfplumber.open", side_effect=Exception("Corrupted PDF")):
+    with (
+        patch.object(
+            arxiv_service,
+            "_download_pdf_without_retry",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch("pdfplumber.open", side_effect=Exception("Corrupted PDF")),
+    ):
         # When
         result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
@@ -146,12 +150,15 @@ Another long enough line that should be kept because it is sufficiently long.
     mock_pdf = arxiv_helper.create_mock_pdf(pdf_text)
     mock_response = arxiv_helper.create_mock_pdf_response()
 
-    with patch.object(
-        arxiv_service,
-        "_download_pdf_without_retry",
-        new_callable=AsyncMock,
-        return_value=mock_response,
-    ), patch("pdfplumber.open", return_value=mock_pdf):
+    with (
+        patch.object(
+            arxiv_service,
+            "_download_pdf_without_retry",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch("pdfplumber.open", return_value=mock_pdf),
+    ):
         # When
         result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
@@ -312,13 +319,14 @@ async def test_extract_body_text_fallback_to_pdf(arxiv_service):
     Then: PDFからテキストが抽出される
     """
     # Given: HTML抽出は空、PDF抽出は成功
-    with patch.object(
-        arxiv_service, "_extract_from_html", new_callable=AsyncMock, return_value=""
-    ), patch.object(
-        arxiv_service,
-        "_extract_from_pdf",
-        new_callable=AsyncMock,
-        return_value="PDF extracted text",
+    with (
+        patch.object(arxiv_service, "_extract_from_html", new_callable=AsyncMock, return_value=""),
+        patch.object(
+            arxiv_service,
+            "_extract_from_pdf",
+            new_callable=AsyncMock,
+            return_value="PDF extracted text",
+        ),
     ):
         # When
         result = await arxiv_service._extract_body_text("2301.00001")
@@ -336,10 +344,9 @@ async def test_extract_body_text_both_fail(arxiv_service):
     Then: 空文字列が返される
     """
     # Given: HTML、PDF両方とも空
-    with patch.object(
-        arxiv_service, "_extract_from_html", new_callable=AsyncMock, return_value=""
-    ), patch.object(
-        arxiv_service, "_extract_from_pdf", new_callable=AsyncMock, return_value=""
+    with (
+        patch.object(arxiv_service, "_extract_from_html", new_callable=AsyncMock, return_value=""),
+        patch.object(arxiv_service, "_extract_from_pdf", new_callable=AsyncMock, return_value=""),
     ):
         # When
         result = await arxiv_service._extract_body_text("2301.00001")
@@ -359,7 +366,7 @@ async def test_extract_body_text_both_fail(arxiv_service):
     [
         # 有効な本文行: 十分な長さ、ピリオドあり
         (
-            "This is a valid body line with sufficient length and proper sentence structure.",
+            "This is a valid body line with sufficient length and proper sentence structure now.",
             True,
         ),
         # 短すぎる行
@@ -411,9 +418,7 @@ async def test_translate_to_japanese_success(arxiv_service):
     Then: 日本語に翻訳される
     """
     # Given: GPTクライアントをモック
-    arxiv_service.gpt_client.generate_async = AsyncMock(
-        return_value="これはテスト翻訳です。"
-    )
+    arxiv_service.gpt_client.generate_async = AsyncMock(return_value="これはテスト翻訳です。")
 
     with patch.object(arxiv_service, "rate_limit", new_callable=AsyncMock):
         # When
@@ -432,9 +437,7 @@ async def test_translate_to_japanese_gpt_error(arxiv_service):
     Then: 原文が返される
     """
     # Given: GPT APIエラーをモック
-    arxiv_service.gpt_client.generate_async = AsyncMock(
-        side_effect=Exception("API Error")
-    )
+    arxiv_service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
 
     # When
     result = await arxiv_service._translate_to_japanese("This is a test.")

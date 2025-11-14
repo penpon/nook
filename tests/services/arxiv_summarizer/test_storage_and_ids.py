@@ -43,9 +43,7 @@ import pytest
     ],
     ids=["success_with_ids", "empty_file", "file_not_found"],
 )
-async def test_get_processed_ids(
-    arxiv_service, test_date, storage_return_value, expected_ids
-):
+async def test_get_processed_ids(arxiv_service, test_date, storage_return_value, expected_ids):
     """
     Given: 様々な状態の処理済みIDファイル
     When: _get_processed_idsメソッドを呼び出す
@@ -83,16 +81,16 @@ async def test_save_processed_ids_by_date_success(arxiv_service, test_date):
     target_dates = [test_date, date(2024, 1, 2)]
 
     # _get_paper_dateをモック
-    with patch.object(
-        arxiv_service,
-        "_get_paper_date",
-        new_callable=AsyncMock,
-        side_effect=[test_date, date(2024, 1, 2)],
-    ), patch.object(
-        arxiv_service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]
-    ), patch.object(
-        arxiv_service, "save_data", new_callable=AsyncMock
-    ) as mock_save:
+    with (
+        patch.object(
+            arxiv_service,
+            "_get_paper_date",
+            new_callable=AsyncMock,
+            side_effect=[test_date, date(2024, 1, 2)],
+        ),
+        patch.object(arxiv_service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]),
+        patch.object(arxiv_service, "save_data", new_callable=AsyncMock) as mock_save,
+    ):
         # When
         await arxiv_service._save_processed_ids_by_date(paper_ids, target_dates)
 
@@ -115,16 +113,18 @@ async def test_save_processed_ids_by_date_with_existing_ids(arxiv_service, test_
     paper_ids = ["2301.00001", "2301.00002"]
     target_dates = [test_date]
 
-    with patch.object(
-        arxiv_service, "_get_paper_date", new_callable=AsyncMock, return_value=test_date
-    ), patch.object(
-        arxiv_service,
-        "_load_ids_from_file",
-        new_callable=AsyncMock,
-        return_value=["2301.00001"],  # 既に存在
-    ), patch.object(
-        arxiv_service, "save_data", new_callable=AsyncMock
-    ) as mock_save:
+    with (
+        patch.object(
+            arxiv_service, "_get_paper_date", new_callable=AsyncMock, return_value=test_date
+        ),
+        patch.object(
+            arxiv_service,
+            "_load_ids_from_file",
+            new_callable=AsyncMock,
+            return_value=["2301.00001"],  # 既に存在
+        ),
+        patch.object(arxiv_service, "save_data", new_callable=AsyncMock) as mock_save,
+    ):
         # When
         await arxiv_service._save_processed_ids_by_date(paper_ids, target_dates)
 
@@ -149,13 +149,11 @@ async def test_save_processed_ids_by_date_unknown_date(arxiv_service, test_date)
     target_dates = [test_date]
 
     # _get_paper_dateがNoneを返す
-    with patch.object(
-        arxiv_service, "_get_paper_date", new_callable=AsyncMock, return_value=None
-    ), patch.object(
-        arxiv_service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]
-    ), patch.object(
-        arxiv_service, "save_data", new_callable=AsyncMock
-    ) as mock_save:
+    with (
+        patch.object(arxiv_service, "_get_paper_date", new_callable=AsyncMock, return_value=None),
+        patch.object(arxiv_service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]),
+        patch.object(arxiv_service, "save_data", new_callable=AsyncMock) as mock_save,
+    ):
         # When
         await arxiv_service._save_processed_ids_by_date(paper_ids, target_dates)
 
@@ -227,13 +225,14 @@ Summary 1
 """
 
     # JSONなし、Markdownあり
-    with patch.object(
-        arxiv_service, "load_json", new_callable=AsyncMock, return_value=None
-    ), patch.object(
-        arxiv_service.storage,
-        "load",
-        new_callable=AsyncMock,
-        return_value=markdown_content,
+    with (
+        patch.object(arxiv_service, "load_json", new_callable=AsyncMock, return_value=None),
+        patch.object(
+            arxiv_service.storage,
+            "load",
+            new_callable=AsyncMock,
+            return_value=markdown_content,
+        ),
     ):
         # When
         result = await arxiv_service._load_existing_papers(test_datetime)
@@ -254,10 +253,9 @@ async def test_load_existing_papers_no_files(arxiv_service, test_datetime):
     Then: 空リストが返される
     """
     # Given: JSONなし、Markdownなし
-    with patch.object(
-        arxiv_service, "load_json", new_callable=AsyncMock, return_value=None
-    ), patch.object(
-        arxiv_service.storage, "load", new_callable=AsyncMock, return_value=None
+    with (
+        patch.object(arxiv_service, "load_json", new_callable=AsyncMock, return_value=None),
+        patch.object(arxiv_service.storage, "load", new_callable=AsyncMock, return_value=None),
     ):
         # When
         result = await arxiv_service._load_existing_papers(test_datetime)
@@ -302,9 +300,7 @@ async def test_load_ids_from_file_empty(arxiv_service):
     Then: 空リストが返される
     """
     # Given: 空のファイル
-    with patch.object(
-        arxiv_service.storage, "load", new_callable=AsyncMock, return_value=""
-    ):
+    with patch.object(arxiv_service.storage, "load", new_callable=AsyncMock, return_value=""):
         # When
         result = await arxiv_service._load_ids_from_file("arxiv_ids-2024-01-01.txt")
 

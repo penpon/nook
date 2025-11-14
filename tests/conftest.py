@@ -195,9 +195,9 @@ def mock_hn_api(respx_mock, mock_hn_story):
     )
 
     # 個別ストーリー取得
-    respx_mock.get(
-        url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json"
-    ).mock(return_value=httpx.Response(200, json=mock_hn_story))
+    respx_mock.get(url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json").mock(
+        return_value=httpx.Response(200, json=mock_hn_story)
+    )
 
     return respx_mock
 
@@ -826,18 +826,12 @@ Summary 1
 
     @staticmethod
     def create_mock_pdf(text="Test PDF content"):
-        """pdfplumber PDFオブジェクトのモックを作成
+        from unittest.mock import MagicMock
 
-        Args:
-            text: 抽出されるテキスト
-
-        Returns:
-            Mock: PDFモック（コンテキストマネージャー対応）
-        """
-        mock_page = Mock()
+        mock_page = MagicMock()
         mock_page.extract_text.return_value = text
 
-        mock_pdf = Mock()
+        mock_pdf = MagicMock()
         mock_pdf.pages = [mock_page]
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None

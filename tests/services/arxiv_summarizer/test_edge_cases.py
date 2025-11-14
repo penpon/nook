@@ -264,42 +264,6 @@ def test_corner_case_parse_markdown_malformed_input(arxiv_service):
 
 
 # =============================================================================
-# 性能テスト候補（メモリ・速度）
-# =============================================================================
-
-
-@pytest.mark.unit
-@pytest.mark.performance
-@pytest.mark.parametrize(
-    "paper_count",
-    [1, 10, 100, 1000],
-    ids=["one", "ten", "hundred", "thousand"],
-)
-def test_performance_serialize_large_dataset(
-    arxiv_service, paper_info_factory, paper_count, benchmark
-):
-    """
-    性能テスト: 大量データのシリアライズ
-
-    Given: 大量の論文データ
-    When: _serialize_papersメソッドを呼び出す
-    Then: 許容時間内に完了する
-
-    Note: このテストはpytest-benchmarkが必要です（オプション依存）
-    インストール: pip install pytest-benchmark
-    pytest-benchmarkがインストールされていない場合、テストはスキップされます
-    """
-    pytest.importorskip("pytest_benchmark", reason="pytest-benchmark not installed")
-
-    # Given: 大量の論文データ
-    [paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(paper_count)]
-
-    # When/Then: ベンチマーク実行
-    # result = benchmark(arxiv_service._serialize_papers, papers)
-    # assert len(result) == paper_count
-
-
-# =============================================================================
 # メモリテスト候補
 # =============================================================================
 

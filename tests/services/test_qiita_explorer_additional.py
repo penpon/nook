@@ -41,17 +41,18 @@ async def test_collect_multiple_categories_processing(mock_env_vars):
             "programming": ["https://example.com/programming.xml"],
         }
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "save", new_callable=AsyncMock
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
 
             mock_feed = Mock()
@@ -81,14 +82,17 @@ async def test_collect_date_filtering_outside_range(mock_env_vars):
         service = QiitaExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load:
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
@@ -127,14 +131,17 @@ async def test_collect_duplicate_check_excludes_duplicates(mock_env_vars):
         service = QiitaExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load:
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
@@ -174,20 +181,23 @@ async def test_collect_storage_save_failure(mock_env_vars):
         service = QiitaExplorer()
         service.http_client = AsyncMock()
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
-        ) as mock_load, patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            side_effect=Exception("Storage error"),
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                side_effect=Exception("Storage error"),
+            ),
         ):
 
             mock_feed = Mock()
@@ -235,13 +245,16 @@ async def test_collect_feed_parse_exception_continues(mock_env_vars):
             ]
         }
 
-        with patch("feedparser.parse") as mock_parse, patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ), patch(
-            "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
-            new_callable=AsyncMock,
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ),
         ):
 
             # 1回目は例外、2回目は成功
@@ -250,7 +263,7 @@ async def test_collect_feed_parse_exception_continues(mock_env_vars):
             mock_feed.entries = []
             mock_parse.side_effect = [Exception("Parse error"), mock_feed]
 
-            mock_dedup = Mock()
+            Mock()
 
             result = await service.collect(days=1)
 
@@ -281,9 +294,7 @@ async def test_retrieve_article_http_timeout(mock_env_vars):
         entry.title = "テスト"
         entry.link = "https://example.com/test"
 
-        service.http_client.get = AsyncMock(
-            side_effect=httpx.TimeoutException("Timeout")
-        )
+        service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -394,9 +405,7 @@ async def test_retrieve_article_malformed_html(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         # 不正なHTML（閉じタグなし）
-        service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body><p>テキスト")
-        )
+        service.http_client.get = AsyncMock(return_value=Mock(text="<html><body><p>テキスト"))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 

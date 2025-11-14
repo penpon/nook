@@ -332,9 +332,7 @@ async def test_save_data_permission_error():
     """
     with patch("nook.common.base_service.setup_logger"):
         service = ConcreteService(service_name="test")
-        service.storage.save = AsyncMock(
-            side_effect=PermissionError("Permission denied")
-        )
+        service.storage.save = AsyncMock(side_effect=PermissionError("Permission denied"))
 
         with pytest.raises(PermissionError, match="Permission denied"):
             await service.save_data({"key": "value"}, "test.json")
@@ -462,14 +460,15 @@ async def test_fetch_with_retry_not_implemented():
     """
     Given: fetch_with_retry("http://example.com")
     When: メソッドを呼び出す
-    Then: Noneが返される（passのため）
+    Then: RetryExceptionが発生する（NotImplementedErrorがリトライされた後）
     """
+    from nook.common.exceptions import RetryException
+
     with patch("nook.common.base_service.setup_logger"):
         service = ConcreteService(service_name="test")
 
-        result = await service.fetch_with_retry("http://example.com")
-
-        assert result is None
+        with pytest.raises(RetryException, match="Failed after 3 attempts"):
+            await service.fetch_with_retry("http://example.com")
 
 
 @pytest.mark.unit
@@ -952,9 +951,7 @@ async def test_setup_http_client_first_time():
         service = ConcreteService(service_name="test")
         mock_http_client = Mock()
 
-        with patch(
-            "nook.common.http_client.get_http_client", new_callable=AsyncMock
-        ) as mock_get:
+        with patch("nook.common.http_client.get_http_client", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_http_client
 
             await service.setup_http_client()
@@ -976,9 +973,7 @@ async def test_setup_http_client_already_set():
         existing_client = Mock()
         service.http_client = existing_client
 
-        with patch(
-            "nook.common.http_client.get_http_client", new_callable=AsyncMock
-        ) as mock_get:
+        with patch("nook.common.http_client.get_http_client", new_callable=AsyncMock) as mock_get:
             await service.setup_http_client()
 
             # 既にセットされているので呼ばれない
@@ -997,9 +992,7 @@ async def test_setup_http_client_get_client_error():
     with patch("nook.common.base_service.setup_logger"):
         service = ConcreteService(service_name="test")
 
-        with patch(
-            "nook.common.http_client.get_http_client", new_callable=AsyncMock
-        ) as mock_get:
+        with patch("nook.common.http_client.get_http_client", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = Exception("HTTP client error")
 
             with pytest.raises(Exception, match="HTTP client error"):
@@ -1058,9 +1051,7 @@ async def test_initialize_calls_setup_http_client():
     with patch("nook.common.base_service.setup_logger"):
         service = ConcreteService(service_name="test")
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ) as mock_setup:
+        with patch.object(service, "setup_http_client", new_callable=AsyncMock) as mock_setup:
             await service.initialize()
 
             mock_setup.assert_called_once()
@@ -1077,9 +1068,7 @@ async def test_initialize_setup_error():
     with patch("nook.common.base_service.setup_logger"):
         service = ConcreteService(service_name="test")
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ) as mock_setup:
+        with patch.object(service, "setup_http_client", new_callable=AsyncMock) as mock_setup:
             mock_setup.side_effect = Exception("Setup error")
 
             with pytest.raises(Exception, match="Setup error"):
@@ -1103,9 +1092,7 @@ async def test_full_lifecycle():
         service = ConcreteService(service_name="test")
         service.storage.save = AsyncMock(return_value=Path("/data/test/result.json"))
 
-        with patch(
-            "nook.common.http_client.get_http_client", new_callable=AsyncMock
-        ) as mock_get:
+        with patch("nook.common.http_client.get_http_client", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = Mock()
 
             # 初期化

@@ -550,27 +550,28 @@ def test_get_error_stats_thread_safe():
     """
     metrics = ErrorMetrics(window_minutes=60)
 
+    now = datetime(2025, 1, 1, 12, 0, 0)
+
     with patch("nook.common.error_metrics.datetime") as mock_dt:
-        now = datetime(2025, 1, 1, 12, 0, 0)
         mock_dt.utcnow.return_value = now
 
         for i in range(10):
             metrics.record_error("ValueError", {"msg": f"error{i}"})
 
-    results = []
+        results = []
 
-    def get_stats():
-        stats = metrics.get_error_stats()
-        results.append(stats["ValueError"]["count"] if "ValueError" in stats else 0)
+        def get_stats():
+            stats = metrics.get_error_stats()
+            results.append(stats["ValueError"]["count"] if "ValueError" in stats else 0)
 
-    threads = []
-    for _ in range(10):
-        thread = threading.Thread(target=get_stats)
-        threads.append(thread)
-        thread.start()
+        threads = []
+        for _ in range(10):
+            thread = threading.Thread(target=get_stats)
+            threads.append(thread)
+            thread.start()
 
-    for thread in threads:
-        thread.join()
+        for thread in threads:
+            thread.join()
 
     # 全てのスレッドが同じ結果を取得
-    assert all(count == 10 for count in results)
+    assert all(count == 10 for count in results), f"Expected all counts to be 10, but got {results}"
