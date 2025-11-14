@@ -3,7 +3,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from io import BytesIO
 
 import arxiv
@@ -538,9 +538,9 @@ class ArxivSummarizer(BaseService):
             published_at = getattr(paper, "published", None)
             if isinstance(published_at, datetime):
                 if published_at.tzinfo is None:
-                    published_at = published_at.replace(tzinfo=timezone.utc)
+                    published_at = published_at.replace(tzinfo=UTC)
             else:
-                published_at = datetime.now(timezone.utc)
+                published_at = datetime.now(UTC)
 
             return PaperInfo(
                 title=title,
@@ -928,7 +928,7 @@ class ArxivSummarizer(BaseService):
     def _serialize_papers(self, papers: list[PaperInfo]) -> list[dict]:
         records: list[dict] = []
         for paper in papers:
-            published = paper.published_at or datetime.now(timezone.utc)
+            published = paper.published_at or datetime.now(UTC)
             records.append(
                 {
                     "title": paper.title,
@@ -961,9 +961,9 @@ class ArxivSummarizer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
-            published = datetime.min.replace(tzinfo=timezone.utc)
+            published = datetime.min.replace(tzinfo=UTC)
         return (0, published)
 
     def _render_markdown(self, records: list[dict], today: datetime) -> str:

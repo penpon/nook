@@ -4,7 +4,7 @@ import asyncio
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
@@ -214,6 +214,8 @@ class RedditExplorer(BaseService):
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
                         # JSTタイムゾーンに変換して日付を取得
+                        from datetime import timezone
+
                         jst_time = post.created_at.astimezone(
                             timezone(timedelta(hours=9))
                         )
@@ -368,7 +370,7 @@ class RedditExplorer(BaseService):
             )
 
             created_at = (
-                datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
+                datetime.fromtimestamp(submission.created_utc, tz=UTC)
                 if hasattr(submission, "created_utc")
                 else None
             )
@@ -538,7 +540,7 @@ class RedditExplorer(BaseService):
     def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:
         records: list[dict] = []
         for category, subreddit, post in posts:
-            created_at = post.created_at or datetime.now(timezone.utc)
+            created_at = post.created_at or datetime.now(UTC)
             records.append(
                 {
                     "id": post.id,
@@ -586,9 +588,9 @@ class RedditExplorer(BaseService):
             try:
                 created = datetime.fromisoformat(created_raw)
             except ValueError:
-                created = datetime.min.replace(tzinfo=timezone.utc)
+                created = datetime.min.replace(tzinfo=UTC)
         else:
-            created = datetime.min.replace(tzinfo=timezone.utc)
+            created = datetime.min.replace(tzinfo=UTC)
         return (popularity, created)
 
     def _extract_post_id_from_permalink(self, permalink: str) -> str:

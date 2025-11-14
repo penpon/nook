@@ -14,7 +14,7 @@ ArxivSummarizer - データ取得・ダウンロード のテスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -526,7 +526,7 @@ async def test_retrieve_paper_info_success(
         arxiv_id=f"{arxiv_helper.DEFAULT_ARXIV_ID}v1",
         title="Test Paper Title",
         summary="Test abstract",
-        published=datetime(2023, 1, 1, tzinfo=timezone.utc),
+        published=datetime(2023, 1, 1, tzinfo=UTC),
     )
 
     # arxiv.Clientをモック
@@ -617,7 +617,7 @@ async def test_retrieve_paper_info_with_fallback_to_abstract(arxiv_service):
     mock_paper.entry_id = "http://arxiv.org/abs/2301.00001v1"
     mock_paper.title = "Test Paper Title"
     mock_paper.summary = "Test abstract content"
-    mock_paper.published = datetime(2023, 1, 1, tzinfo=timezone.utc)
+    mock_paper.published = datetime(2023, 1, 1, tzinfo=UTC)
 
     # arxiv.Clientをモック
     with patch("arxiv.Client") as mock_client_class:

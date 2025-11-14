@@ -5,7 +5,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -383,12 +383,12 @@ class HackerNewsRetriever(BaseService):
             if timestamp is not None:
                 try:
                     story.created_at = datetime.fromtimestamp(
-                        int(timestamp), tz=timezone.utc
+                        int(timestamp), tz=UTC
                     )
                 except Exception:
                     story.created_at = None
             if story.created_at is None:
-                story.created_at = datetime.now(timezone.utc)
+                story.created_at = datetime.now(UTC)
 
             # URLがある場合は記事の内容を取得
             if story.url and not story.text:
@@ -672,7 +672,7 @@ class HackerNewsRetriever(BaseService):
     def _serialize_stories(self, stories: list[Story]) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
         for story in stories:
-            created = story.created_at or datetime.now(timezone.utc)
+            created = story.created_at or datetime.now(UTC)
             records.append(
                 {
                     "title": story.title,
@@ -707,9 +707,9 @@ class HackerNewsRetriever(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
-            published = datetime.min.replace(tzinfo=timezone.utc)
+            published = datetime.min.replace(tzinfo=UTC)
         return (score, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:

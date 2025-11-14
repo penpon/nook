@@ -18,7 +18,7 @@ def main():
     parser.add_argument(
         "--host",
         type=str,
-        default="0.0.0.0",
+        default="0.0.0.0",  # nosec B104 - API server intentionally binds to all interfaces
         help="ホストアドレス (デフォルト: 0.0.0.0)",
     )
     parser.add_argument(

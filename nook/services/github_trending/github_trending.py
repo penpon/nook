@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -478,7 +478,7 @@ class GithubTrending(BaseService):
         default_date: date,
     ) -> list[dict[str, Any]]:
         serialized: list[dict[str, Any]] = []
-        base_dt = datetime.combine(default_date, time.min, tzinfo=timezone.utc)
+        base_dt = datetime.combine(default_date, time.min, tzinfo=UTC)
         now_iso = base_dt.isoformat()
         for language, repositories in repositories_by_language:
             for repo in repositories:
@@ -522,9 +522,9 @@ class GithubTrending(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
-            published = datetime.min.replace(tzinfo=timezone.utc)
+            published = datetime.min.replace(tzinfo=UTC)
         return (stars, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:

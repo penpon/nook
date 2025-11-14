@@ -54,4 +54,4 @@ async def get_weather_data() -> WeatherResponse:
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching weather data: {str(e)}"
-        )
+        ) from e

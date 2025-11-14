@@ -640,15 +640,15 @@ def test_date():
 @pytest.fixture
 def test_datetime():
     """テスト用固定日時"""
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
 
-    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
 
 
 @pytest.fixture
 def paper_info_factory():
     """PaperInfoオブジェクトを生成するファクトリー"""
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
 
     def _create(
         title="Test Paper",
@@ -665,7 +665,7 @@ def paper_info_factory():
             url = f"http://arxiv.org/abs/{arxiv_id}"
 
         if published_at is None:
-            published_at = datetime(2023, 1, 1, tzinfo=timezone.utc)
+            published_at = datetime(2023, 1, 1, tzinfo=UTC)
 
         paper = PaperInfo(
             title=title,
@@ -687,7 +687,7 @@ def paper_info_factory():
 @pytest.fixture
 def mock_arxiv_paper_factory():
     """arxiv.Resultオブジェクトのモックを生成するファクトリー"""
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
     from unittest.mock import Mock
 
     def _create(
@@ -698,7 +698,7 @@ def mock_arxiv_paper_factory():
         **kwargs,
     ):
         if published is None:
-            published = datetime(2023, 1, 1, tzinfo=timezone.utc)
+            published = datetime(2023, 1, 1, tzinfo=UTC)
 
         mock_paper = Mock()
         mock_paper.entry_id = f"http://arxiv.org/abs/{arxiv_id}"

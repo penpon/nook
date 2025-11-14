@@ -1,7 +1,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -740,15 +740,15 @@ class FiveChanExplorer(BaseService):
                     # 文字化け対策（Shift_JIS + フォールバック）
                     try:
                         content = response.content.decode("shift_jis", errors="ignore")
-                    except:
+                    except (UnicodeDecodeError, LookupError):
                         try:
                             content = response.content.decode("cp932", errors="ignore")
-                        except:
+                        except (UnicodeDecodeError, LookupError):
                             try:
                                 content = response.content.decode(
                                     "utf-8", errors="ignore"
                                 )
-                            except:
+                            except (UnicodeDecodeError, LookupError):
                                 content = response.text
 
                     threads_data = []
@@ -819,10 +819,10 @@ class FiveChanExplorer(BaseService):
                 # 文字化け対策（Shift_JIS + フォールバック）
                 try:
                     content = response.content.decode("shift_jis", errors="ignore")
-                except:
+                except (UnicodeDecodeError, LookupError):
                     try:
                         content = response.content.decode("cp932", errors="ignore")
-                    except:
+                    except (UnicodeDecodeError, LookupError):
                         content = response.text
 
                 posts: list[dict[str, Any]] = []
@@ -940,7 +940,7 @@ class FiveChanExplorer(BaseService):
                 if is_ai_related:
                     timestamp_raw = thread_data.get("timestamp")
                     thread_created = (
-                        datetime.fromtimestamp(int(timestamp_raw), tz=timezone.utc)
+                        datetime.fromtimestamp(int(timestamp_raw), tz=UTC)
                         if timestamp_raw
                         else None
                     )
@@ -1147,7 +1147,7 @@ class FiveChanExplorer(BaseService):
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
         records: list[dict] = []
         for thread in threads:
-            published = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
+            published = datetime.fromtimestamp(thread.timestamp, tz=UTC)
             records.append(
                 {
                     "thread_id": thread.thread_id,
@@ -1189,16 +1189,16 @@ class FiveChanExplorer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
             timestamp = item.get("timestamp")
             if timestamp:
                 try:
-                    published = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                    published = datetime.fromtimestamp(int(timestamp), tz=UTC)
                 except Exception:
-                    published = datetime.min.replace(tzinfo=timezone.utc)
+                    published = datetime.min.replace(tzinfo=UTC)
             else:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         return (popularity, published)
 
     def _render_markdown(self, records: list[dict], today: datetime) -> str:
@@ -1280,7 +1280,7 @@ class FiveChanExplorer(BaseService):
 
                 if published:
                     record["published_at"] = published.replace(
-                        tzinfo=timezone.utc
+                        tzinfo=UTC
                     ).isoformat()
                     record["timestamp"] = int(published.timestamp())
 

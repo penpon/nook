@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 from collections.abc import Iterable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -51,7 +51,7 @@ def _parse_iso_datetime(value: str) -> datetime | None:
     if parsed.tzinfo is None:
         return parsed + timedelta(hours=9)
 
-    return parsed.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(hours=9)
+    return parsed.astimezone(UTC).replace(tzinfo=None) + timedelta(hours=9)
 
 
 def parse_entry_datetime(entry: Any) -> datetime | None:
@@ -65,7 +65,7 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         except (TypeError, ValueError):
             continue
 
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(
+        return datetime.fromtimestamp(timestamp, tz=UTC).replace(
             tzinfo=None
         ) + timedelta(hours=9)
 
@@ -84,7 +84,7 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         if parsed:
             if parsed.tzinfo is None:
                 return parsed.replace(tzinfo=None) + timedelta(hours=9)
-            return parsed.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(
+            return parsed.astimezone(UTC).replace(tzinfo=None) + timedelta(
                 hours=9
             )
 

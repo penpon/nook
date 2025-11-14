@@ -14,7 +14,7 @@ ArxivSummarizer - フォーマット・シリアライズ のテスト
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -219,7 +219,7 @@ def test_serialize_papers_success(arxiv_service, paper_info_factory):
             abstract="Abstract 1",
             arxiv_id="2301.00001",
             contents="Contents 1",
-            published_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
+            published_at=datetime(2023, 1, 1, tzinfo=UTC),
             summary="Summary 1",
         ),
         paper_info_factory(
@@ -227,7 +227,7 @@ def test_serialize_papers_success(arxiv_service, paper_info_factory):
             abstract="Abstract 2",
             arxiv_id="2301.00002",
             contents="Contents 2",
-            published_at=datetime(2023, 1, 2, tzinfo=timezone.utc),
+            published_at=datetime(2023, 1, 2, tzinfo=UTC),
             summary="Summary 2",
         ),
     ]
@@ -285,15 +285,15 @@ def test_serialize_papers_no_published_date(arxiv_service):
         # 有効な日付
         (
             {"published_at": "2023-01-15T10:30:00+00:00"},
-            (0, datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc)),
+            (0, datetime(2023, 1, 15, 10, 30, 0, tzinfo=UTC)),
         ),
         # 無効な日付
         (
             {"published_at": "invalid-date"},
-            (0, datetime.min.replace(tzinfo=timezone.utc)),
+            (0, datetime.min.replace(tzinfo=UTC)),
         ),
         # 日付なし
-        ({}, (0, datetime.min.replace(tzinfo=timezone.utc))),
+        ({}, (0, datetime.min.replace(tzinfo=UTC))),
     ],
     ids=["valid_date", "invalid_date", "no_date"],
 )
