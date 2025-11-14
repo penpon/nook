@@ -24,7 +24,7 @@ class ServiceErrorHandler:
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
-                    self.logger.error(
+                    self.logger.exception(
                         "API call failed",
                         extra={
                             "service": self.service_name,
@@ -32,7 +32,6 @@ class ServiceErrorHandler:
                             "function": func.__name__,
                             "error": str(e),
                         },
-                        exc_info=True,
                     )
 
                     # 特定のAPIエラーを変換
@@ -61,7 +60,7 @@ class ServiceErrorHandler:
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
-                    self.logger.error(
+                    self.logger.exception(
                         "Data processing failed",
                         extra={
                             "service": self.service_name,
@@ -69,7 +68,6 @@ class ServiceErrorHandler:
                             "function": func.__name__,
                             "error": str(e),
                         },
-                        exc_info=True,
                     )
 
                     raise ServiceException(f"Failed to {operation}: {str(e)}") from e
