@@ -830,128 +830,92 @@ async def test_translate_to_japanese_empty_text(mock_env_vars):
 
 
 # =============================================================================
-# 9. ユーティリティ関数のテスト
+# 9. ユーティリティ関数のテスト（パラメータ化）
 # =============================================================================
 
 
 @pytest.mark.unit
-def test_remove_tex_backticks_with_tex_format():
+@pytest.mark.parametrize(
+    "input_text,expected_output",
+    [
+        # TeX形式: バッククォート除去
+        ("`$\\ldots$`", "$\\ldots$"),
+        # 通常のテキスト: 変更なし
+        ("normal text", "normal text"),
+        # 部分マッチ: 変更なし
+        ("`incomplete", "`incomplete"),
+    ],
+    ids=["tex_format", "normal_text", "partial_match"],
+)
+def test_remove_tex_backticks(input_text, expected_output):
     """
-    Given: TeX形式の文字列（`$...$`）
+    Given: 様々な形式の文字列
     When: remove_tex_backticksを呼び出す
-    Then: バッククォートが除去される
+    Then: 適切に処理される
     """
     from nook.services.arxiv_summarizer.arxiv_summarizer import remove_tex_backticks
 
     # When
-    result = remove_tex_backticks("`$\\ldots$`")
+    result = remove_tex_backticks(input_text)
 
     # Then
-    assert result == "$\\ldots$"
+    assert result == expected_output
 
 
 @pytest.mark.unit
-def test_remove_tex_backticks_without_tex_format():
+@pytest.mark.parametrize(
+    "input_text,expected_output",
+    [
+        # Markdownマーカーあり: 除去
+        ("```markdown\ncode\n```", "\ncode\n"),
+        # マーカーなし: 変更なし
+        ("normal text", "normal text"),
+    ],
+    ids=["with_markers", "without_markers"],
+)
+def test_remove_outer_markdown_markers(input_text, expected_output):
     """
-    Given: TeX形式でない文字列
-    When: remove_tex_backticksを呼び出す
-    Then: 文字列が変更されない
-    """
-    from nook.services.arxiv_summarizer.arxiv_summarizer import remove_tex_backticks
-
-    # When
-    result = remove_tex_backticks("normal text")
-
-    # Then
-    assert result == "normal text"
-
-
-@pytest.mark.unit
-def test_remove_tex_backticks_partial_match():
-    """
-    Given: 部分的にマッチする文字列
-    When: remove_tex_backticksを呼び出す
-    Then: 文字列が変更されない
-    """
-    from nook.services.arxiv_summarizer.arxiv_summarizer import remove_tex_backticks
-
-    # When
-    result = remove_tex_backticks("`incomplete")
-
-    # Then
-    assert result == "`incomplete"
-
-
-@pytest.mark.unit
-def test_remove_outer_markdown_markers_with_markers():
-    """
-    Given: Markdownマーカーで囲まれた文字列
+    Given: Markdownマーカーの有無が異なる文字列
     When: remove_outer_markdown_markersを呼び出す
-    Then: 外側のマーカーが除去される
+    Then: 適切に処理される
     """
     from nook.services.arxiv_summarizer.arxiv_summarizer import (
         remove_outer_markdown_markers,
     )
 
     # When
-    result = remove_outer_markdown_markers("```\ncode\n```")
+    result = remove_outer_markdown_markers(input_text)
 
     # Then
-    assert result == "\ncode\n"
+    assert result == expected_output
 
 
 @pytest.mark.unit
-def test_remove_outer_markdown_markers_without_markers():
+@pytest.mark.parametrize(
+    "input_text,expected_output",
+    [
+        # シングルクォートあり: 除去
+        ("'''quoted text'''", "quoted text"),
+        # クォートなし: 変更なし
+        ("normal text", "normal text"),
+    ],
+    ids=["with_quotes", "without_quotes"],
+)
+def test_remove_outer_singlequotes(input_text, expected_output):
     """
-    Given: Markdownマーカーがない文字列
-    When: remove_outer_markdown_markersを呼び出す
-    Then: 文字列が変更されない
-    """
-    from nook.services.arxiv_summarizer.arxiv_summarizer import (
-        remove_outer_markdown_markers,
-    )
-
-    # When
-    result = remove_outer_markdown_markers("normal text")
-
-    # Then
-    assert result == "normal text"
-
-
-@pytest.mark.unit
-def test_remove_outer_singlequotes_with_quotes():
-    """
-    Given: シングルクォートで囲まれた文字列
+    Given: シングルクォートの有無が異なる文字列
     When: remove_outer_singlequotesを呼び出す
-    Then: 外側のクォートが除去される
+    Then: 適切に処理される
     """
     from nook.services.arxiv_summarizer.arxiv_summarizer import (
         remove_outer_singlequotes,
     )
 
     # When
-    result = remove_outer_singlequotes("'quoted text'")
+    result = remove_outer_singlequotes(input_text)
 
     # Then
-    assert result == "quoted text"
-
-
-@pytest.mark.unit
-def test_remove_outer_singlequotes_without_quotes():
-    """
-    Given: シングルクォートがない文字列
-    When: remove_outer_singlequotesを呼び出す
-    Then: 文字列が変更されない
-    """
-    from nook.services.arxiv_summarizer.arxiv_summarizer import (
-        remove_outer_singlequotes,
-    )
-
-    # When
-    result = remove_outer_singlequotes("normal text")
-
-    # Then
-    assert result == "normal text"
+    assert result == expected_output
 
 
 # =============================================================================
@@ -1519,118 +1483,43 @@ async def test_extract_body_text_both_fail(mock_env_vars):
 
 
 # =============================================================================
-# 15. _is_valid_body_line メソッドのテスト
+# 15. _is_valid_body_line メソッドのテスト（パラメータ化）
 # =============================================================================
 
 
 @pytest.mark.unit
-def test_is_valid_body_line_valid(mock_env_vars):
+@pytest.mark.parametrize(
+    "line,min_length,expected_result",
+    [
+        # 有効な本文行: 十分な長さ、ピリオドあり
+        ("This is a valid body line with sufficient length and proper sentence structure.", 80, True),
+        # 短すぎる行
+        ("Short line.", 80, False),
+        # メールアドレスを含む行
+        ("Contact us at test@example.com for more information about this research paper.", 80, False),
+        # 'university'を含む行
+        ("Department of Computer Science, Stanford University, California, USA contact information.", 80, False),
+        # ピリオドを含まない行
+        ("This is a line without proper punctuation but with sufficient length to pass", 80, False),
+    ],
+    ids=["valid_line", "too_short", "with_email", "with_university", "no_period"],
+)
+def test_is_valid_body_line(mock_env_vars, line, min_length, expected_result):
     """
-    Given: 有効な本文行
+    Given: 様々な条件の本文行
     When: _is_valid_body_lineメソッドを呼び出す
-    Then: Trueが返される
+    Then: 適切な検証結果が返される
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
 
         service = ArxivSummarizer()
 
-        # 十分な長さで、ピリオドを含む
-        line = "This is a valid body line with sufficient length and proper sentence structure."
-
         # When
-        result = service._is_valid_body_line(line, min_length=80)
+        result = service._is_valid_body_line(line, min_length=min_length)
 
         # Then
-        assert result is True
-
-
-@pytest.mark.unit
-def test_is_valid_body_line_too_short(mock_env_vars):
-    """
-    Given: 短すぎる行
-    When: _is_valid_body_lineメソッドを呼び出す
-    Then: Falseが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        # 短い行
-        line = "Short line."
-
-        # When
-        result = service._is_valid_body_line(line, min_length=80)
-
-        # Then
-        assert result is False
-
-
-@pytest.mark.unit
-def test_is_valid_body_line_with_email(mock_env_vars):
-    """
-    Given: メールアドレスを含む行
-    When: _is_valid_body_lineメソッドを呼び出す
-    Then: Falseが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        # メールアドレスを含む
-        line = "Contact us at test@example.com for more information about this research paper."
-
-        # When
-        result = service._is_valid_body_line(line, min_length=80)
-
-        # Then
-        assert result is False
-
-
-@pytest.mark.unit
-def test_is_valid_body_line_with_university(mock_env_vars):
-    """
-    Given: 'university'を含む行
-    When: _is_valid_body_lineメソッドを呼び出す
-    Then: Falseが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        # 'university'を含む
-        line = "Department of Computer Science, Stanford University, California, USA contact information."
-
-        # When
-        result = service._is_valid_body_line(line, min_length=80)
-
-        # Then
-        assert result is False
-
-
-@pytest.mark.unit
-def test_is_valid_body_line_no_period(mock_env_vars):
-    """
-    Given: ピリオドを含まない行
-    When: _is_valid_body_lineメソッドを呼び出す
-    Then: Falseが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        # ピリオドなし
-        line = "This is a line without proper punctuation but with sufficient length to pass"
-
-        # When
-        result = service._is_valid_body_line(line, min_length=80)
-
-        # Then
-        assert result is False
+        assert result is expected_result
 
 
 # =============================================================================
@@ -1744,17 +1633,29 @@ async def test_summarize_paper_info_removes_tex_backticks(mock_env_vars):
 
 
 # =============================================================================
-# 17. _get_processed_ids メソッドのテスト
+# 17. _get_processed_ids メソッドのテスト（パラメータ化）
 # =============================================================================
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_processed_ids_success(mock_env_vars):
+@pytest.mark.parametrize(
+    "storage_return_value,expected_ids",
+    [
+        # ファイルが存在し、IDが含まれている
+        ("2301.00001\n2301.00002\n2301.00003\n", ["2301.00001", "2301.00002", "2301.00003"]),
+        # ファイルが空
+        ("", []),
+        # ファイルが存在しない
+        (None, []),
+    ],
+    ids=["success_with_ids", "empty_file", "file_not_found"],
+)
+async def test_get_processed_ids(mock_env_vars, storage_return_value, expected_ids):
     """
-    Given: 処理済みIDファイルが存在
+    Given: 様々な状態の処理済みIDファイル
     When: _get_processed_idsメソッドを呼び出す
-    Then: IDリストが正常に取得される
+    Then: 適切なIDリストが返される
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
@@ -1766,60 +1667,14 @@ async def test_get_processed_ids_success(mock_env_vars):
             service.storage,
             "load",
             new_callable=AsyncMock,
-            return_value="2301.00001\n2301.00002\n2301.00003\n",
+            return_value=storage_return_value,
         ):
 
             # When
             result = await service._get_processed_ids(date(2024, 1, 1))
 
             # Then
-            assert result == ["2301.00001", "2301.00002", "2301.00003"]
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_get_processed_ids_empty_file(mock_env_vars):
-    """
-    Given: 処理済みIDファイルが空
-    When: _get_processed_idsメソッドを呼び出す
-    Then: 空リストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        # ストレージモック（空）
-        with patch.object(service.storage, "load", new_callable=AsyncMock, return_value=""):
-
-            # When
-            result = await service._get_processed_ids(date(2024, 1, 1))
-
-            # Then
-            assert result == []
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_get_processed_ids_file_not_found(mock_env_vars):
-    """
-    Given: 処理済みIDファイルが存在しない
-    When: _get_processed_idsメソッドを呼び出す
-    Then: 空リストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        # ストレージモック（None）
-        with patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None):
-
-            # When
-            result = await service._get_processed_ids(date(2024, 1, 1))
-
-            # Then
-            assert result == []
+            assert result == expected_ids
 
 
 # =============================================================================
@@ -1912,14 +1767,29 @@ def test_serialize_papers_no_published_date(mock_env_vars):
 
 
 # =============================================================================
-# 19. _paper_sort_key メソッドのテスト
+# 19. _paper_sort_key メソッドのテスト（パラメータ化）
 # =============================================================================
 
 
 @pytest.mark.unit
-def test_paper_sort_key_valid_date(mock_env_vars):
+@pytest.mark.parametrize(
+    "item,expected_tuple",
+    [
+        # 有効な日付
+        (
+            {"published_at": "2023-01-15T10:30:00+00:00"},
+            (0, datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc)),
+        ),
+        # 無効な日付
+        ({"published_at": "invalid-date"}, (0, datetime.min.replace(tzinfo=timezone.utc))),
+        # 日付なし
+        ({}, (0, datetime.min.replace(tzinfo=timezone.utc))),
+    ],
+    ids=["valid_date", "invalid_date", "no_date"],
+)
+def test_paper_sort_key(mock_env_vars, item, expected_tuple):
     """
-    Given: 有効なpublished_atを持つ論文
+    Given: 様々なpublished_at状態の論文
     When: _paper_sort_keyメソッドを呼び出す
     Then: 正しいソートキーが返される
     """
@@ -1928,58 +1798,12 @@ def test_paper_sort_key_valid_date(mock_env_vars):
 
         service = ArxivSummarizer()
 
-        item = {"published_at": "2023-01-15T10:30:00+00:00"}
-
         # When
         result = service._paper_sort_key(item)
 
         # Then
-        assert result[0] == 0
-        assert result[1] == datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
-
-
-@pytest.mark.unit
-def test_paper_sort_key_invalid_date(mock_env_vars):
-    """
-    Given: 無効なpublished_atを持つ論文
-    When: _paper_sort_keyメソッドを呼び出す
-    Then: datetime.minが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        item = {"published_at": "invalid-date"}
-
-        # When
-        result = service._paper_sort_key(item)
-
-        # Then
-        assert result[0] == 0
-        assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
-
-
-@pytest.mark.unit
-def test_paper_sort_key_no_date(mock_env_vars):
-    """
-    Given: published_atがない論文
-    When: _paper_sort_keyメソッドを呼び出す
-    Then: datetime.minが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        item = {}
-
-        # When
-        result = service._paper_sort_key(item)
-
-        # Then
-        assert result[0] == 0
-        assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
+        assert result[0] == expected_tuple[0]
+        assert result[1] == expected_tuple[1]
 
 
 # =============================================================================
@@ -2052,23 +1876,17 @@ def test_render_markdown_empty_list(mock_env_vars):
 
 
 # =============================================================================
-# 21. _parse_markdown メソッドのテスト
+# 21. _parse_markdown メソッドのテスト（パラメータ化）
 # =============================================================================
 
 
 @pytest.mark.unit
-def test_parse_markdown_success(mock_env_vars):
-    """
-    Given: 有効なMarkdown形式のテキスト
-    When: _parse_markdownメソッドを呼び出す
-    Then: 論文レコードのリストが生成される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        markdown = """# arXiv 論文要約 (2024-01-01)
+@pytest.mark.parametrize(
+    "markdown,expected_result",
+    [
+        # 有効なMarkdown形式
+        (
+            """# arXiv 論文要約 (2024-01-01)
 
 ## [Test Paper 1](http://arxiv.org/abs/2301.00001)
 
@@ -2090,60 +1908,53 @@ Summary 2
 
 ---
 
-"""
-
-        # When
-        result = service._parse_markdown(markdown)
-
-        # Then
-        assert len(result) == 2
-        assert result[0]["title"] == "Test Paper 1"
-        assert result[0]["url"] == "http://arxiv.org/abs/2301.00001"
-        assert result[0]["abstract"] == "Abstract 1"
-        assert result[0]["summary"] == "Summary 1"
-        assert result[1]["title"] == "Test Paper 2"
-
-
-@pytest.mark.unit
-def test_parse_markdown_empty_text(mock_env_vars):
+""",
+            [
+                {
+                    "title": "Test Paper 1",
+                    "url": "http://arxiv.org/abs/2301.00001",
+                    "abstract": "Abstract 1",
+                    "summary": "Summary 1",
+                },
+                {
+                    "title": "Test Paper 2",
+                    "url": "http://arxiv.org/abs/2301.00002",
+                    "abstract": "Abstract 2",
+                    "summary": "Summary 2",
+                },
+            ],
+        ),
+        # 空のMarkdownテキスト
+        ("", []),
+        # 不正な形式のMarkdownテキスト
+        ("This is not a valid markdown format for papers", []),
+    ],
+    ids=["valid_markdown", "empty_text", "invalid_format"],
+)
+def test_parse_markdown(mock_env_vars, markdown, expected_result):
     """
-    Given: 空のMarkdownテキスト
+    Given: 様々な形式のMarkdownテキスト
     When: _parse_markdownメソッドを呼び出す
-    Then: 空リストが返される
+    Then: 適切な論文レコードリストが返される
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
 
         service = ArxivSummarizer()
 
-        markdown = ""
-
         # When
         result = service._parse_markdown(markdown)
 
         # Then
-        assert result == []
-
-
-@pytest.mark.unit
-def test_parse_markdown_invalid_format(mock_env_vars):
-    """
-    Given: 不正な形式のMarkdownテキスト
-    When: _parse_markdownメソッドを呼び出す
-    Then: 空リストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-
-        service = ArxivSummarizer()
-
-        markdown = "This is not a valid markdown format for papers"
-
-        # When
-        result = service._parse_markdown(markdown)
-
-        # Then
-        assert result == []
+        if expected_result:
+            assert len(result) == len(expected_result)
+            for i, expected_paper in enumerate(expected_result):
+                assert result[i]["title"] == expected_paper["title"]
+                assert result[i]["url"] == expected_paper["url"]
+                assert result[i]["abstract"] == expected_paper["abstract"]
+                assert result[i]["summary"] == expected_paper["summary"]
+        else:
+            assert result == expected_result
 
 
 # =============================================================================
@@ -2170,3 +1981,406 @@ def test_run_method(mock_env_vars):
 
             # Then
             mock_asyncio_run.assert_called_once()
+
+
+# =============================================================================
+# 23. _save_processed_ids_by_date メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_save_processed_ids_by_date_success(mock_env_vars):
+    """
+    Given: 論文IDリストと対象日付
+    When: _save_processed_ids_by_dateメソッドを呼び出す
+    Then: 日付ごとにファイルが保存される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        paper_ids = ["2301.00001", "2301.00002"]
+        target_dates = [date(2024, 1, 1), date(2024, 1, 2)]
+
+        # _get_paper_dateをモック
+        with patch.object(
+            service,
+            "_get_paper_date",
+            new_callable=AsyncMock,
+            side_effect=[date(2024, 1, 1), date(2024, 1, 2)],
+        ), patch.object(
+            service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]
+        ), patch.object(
+            service, "save_data", new_callable=AsyncMock
+        ) as mock_save:
+
+            # When
+            await service._save_processed_ids_by_date(paper_ids, target_dates)
+
+            # Then
+            assert mock_save.call_count == 2
+            # 各日付のファイルが保存されることを確認
+            calls = mock_save.call_args_list
+            assert "2301.00001" in calls[0][0][0] or "2301.00002" in calls[0][0][0]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_save_processed_ids_by_date_with_existing_ids(mock_env_vars):
+    """
+    Given: 既存IDファイルが存在
+    When: 新規IDを保存
+    Then: 既存IDと新規IDがマージされて重複なく保存される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        paper_ids = ["2301.00001", "2301.00002"]
+        target_dates = [date(2024, 1, 1)]
+
+        # 既存IDあり
+        with patch.object(
+            service, "_get_paper_date", new_callable=AsyncMock, return_value=date(2024, 1, 1)
+        ), patch.object(
+            service,
+            "_load_ids_from_file",
+            new_callable=AsyncMock,
+            return_value=["2301.00001"],  # 既に存在
+        ), patch.object(
+            service, "save_data", new_callable=AsyncMock
+        ) as mock_save:
+
+            # When
+            await service._save_processed_ids_by_date(paper_ids, target_dates)
+
+            # Then
+            mock_save.assert_called_once()
+            # マージされたIDが保存されることを確認（重複除去）
+            saved_content = mock_save.call_args[0][0]
+            saved_ids = saved_content.split("\n")
+            assert len([id for id in saved_ids if id == "2301.00001"]) == 1  # 重複なし
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_save_processed_ids_by_date_unknown_date(mock_env_vars):
+    """
+    Given: 日付が不明の論文ID
+    When: _save_processed_ids_by_dateメソッドを呼び出す
+    Then: 今日の日付で保存される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        paper_ids = ["2301.00001"]
+        target_dates = [date(2024, 1, 1)]
+
+        # _get_paper_dateがNoneを返す
+        with patch.object(
+            service, "_get_paper_date", new_callable=AsyncMock, return_value=None
+        ), patch.object(
+            service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]
+        ), patch.object(
+            service, "save_data", new_callable=AsyncMock
+        ) as mock_save:
+
+            # When
+            await service._save_processed_ids_by_date(paper_ids, target_dates)
+
+            # Then
+            mock_save.assert_called_once()
+            # 今日の日付のファイル名で保存されることを確認
+            filename = mock_save.call_args[0][1]
+            assert "arxiv_ids-" in filename
+            assert ".txt" in filename
+
+
+# =============================================================================
+# 24. _get_curated_paper_ids 追加パターンテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_curated_paper_ids_with_duplicates(mock_env_vars):
+    """
+    Given: 重複IDを含むHTML
+    When: _get_curated_paper_idsメソッドを呼び出す
+    Then: 重複が除去される
+    """
+    mock_html = """
+    <html>
+        <article>
+            <a href="/papers/2301.00001">Test Paper 1</a>
+        </article>
+        <article>
+            <a href="/papers/2301.00001">Test Paper 1 (duplicate)</a>
+        </article>
+        <article>
+            <a href="/papers/2301.00002">Test Paper 2</a>
+        </article>
+    </html>
+    """
+
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+        service.http_client = AsyncMock()
+
+        with patch.object(service, "setup_http_client", new_callable=AsyncMock):
+            service.http_client.get = AsyncMock(
+                return_value=Mock(
+                    text=mock_html, url="https://huggingface.co/papers/date/2024-01-01"
+                )
+            )
+
+            # _get_processed_idsをモック（空）
+            with patch.object(
+                service, "_get_processed_ids", new_callable=AsyncMock, return_value=[]
+            ):
+
+                # When
+                result = await service._get_curated_paper_ids(
+                    limit=5, snapshot_date=date(2024, 1, 1)
+                )
+
+                # Then
+                assert result is not None
+                assert isinstance(result, list)
+                # 重複が除去されていることを確認
+                assert len(result) == 2
+                assert "2301.00001" in result
+                assert "2301.00002" in result
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_curated_paper_ids_filters_processed_ids(mock_env_vars):
+    """
+    Given: 既に処理済みのIDが存在
+    When: _get_curated_paper_idsメソッドを呼び出す
+    Then: 処理済みIDが除外される
+    """
+    mock_html = """
+    <html>
+        <article>
+            <a href="/papers/2301.00001">Test Paper 1</a>
+        </article>
+        <article>
+            <a href="/papers/2301.00002">Test Paper 2</a>
+        </article>
+        <article>
+            <a href="/papers/2301.00003">Test Paper 3</a>
+        </article>
+    </html>
+    """
+
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+        service.http_client = AsyncMock()
+
+        with patch.object(service, "setup_http_client", new_callable=AsyncMock):
+            service.http_client.get = AsyncMock(
+                return_value=Mock(
+                    text=mock_html, url="https://huggingface.co/papers/date/2024-01-01"
+                )
+            )
+
+            # 2301.00001 と 2301.00002 は既に処理済み
+            with patch.object(
+                service,
+                "_get_processed_ids",
+                new_callable=AsyncMock,
+                return_value=["2301.00001", "2301.00002"],
+            ):
+
+                # When
+                result = await service._get_curated_paper_ids(
+                    limit=5, snapshot_date=date(2024, 1, 1)
+                )
+
+                # Then
+                assert result is not None
+                assert isinstance(result, list)
+                # 処理済みIDが除外されていることを確認
+                assert len(result) == 1
+                assert "2301.00003" in result
+                assert "2301.00001" not in result
+                assert "2301.00002" not in result
+
+
+# =============================================================================
+# 25. _load_existing_papers メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_papers_from_json(mock_env_vars):
+    """
+    Given: JSONファイルが存在
+    When: _load_existing_papersメソッドを呼び出す
+    Then: JSONファイルから論文が読み込まれる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        target_date = datetime(2024, 1, 1)
+        existing_papers = [
+            {
+                "title": "Test Paper 1",
+                "abstract": "Abstract 1",
+                "url": "http://arxiv.org/abs/2301.00001",
+                "summary": "Summary 1",
+            }
+        ]
+
+        # load_jsonをモック
+        with patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=existing_papers
+        ):
+
+            # When
+            result = await service._load_existing_papers(target_date)
+
+            # Then
+            assert result == existing_papers
+            assert len(result) == 1
+            assert result[0]["title"] == "Test Paper 1"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_papers_fallback_to_markdown(mock_env_vars):
+    """
+    Given: JSONファイルが存在せず、Markdownファイルが存在
+    When: _load_existing_papersメソッドを呼び出す
+    Then: Markdownから論文が解析される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        target_date = datetime(2024, 1, 1)
+        markdown_content = """# arXiv 論文要約 (2024-01-01)
+
+## [Test Paper 1](http://arxiv.org/abs/2301.00001)
+
+**abstract**:
+Abstract 1
+
+**summary**:
+Summary 1
+
+---
+
+"""
+
+        # JSONなし、Markdownあり
+        with patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=None
+        ), patch.object(
+            service.storage, "load", new_callable=AsyncMock, return_value=markdown_content
+        ):
+
+            # When
+            result = await service._load_existing_papers(target_date)
+
+            # Then
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0]["title"] == "Test Paper 1"
+            assert result[0]["url"] == "http://arxiv.org/abs/2301.00001"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_papers_no_files(mock_env_vars):
+    """
+    Given: JSONもMarkdownも存在しない
+    When: _load_existing_papersメソッドを呼び出す
+    Then: 空リストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        target_date = datetime(2024, 1, 1)
+
+        # JSONなし、Markdownなし
+        with patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=None
+        ), patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None):
+
+            # When
+            result = await service._load_existing_papers(target_date)
+
+            # Then
+            assert result == []
+
+
+# =============================================================================
+# 26. _load_ids_from_file メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_ids_from_file_success(mock_env_vars):
+    """
+    Given: 有効なIDファイル
+    When: _load_ids_from_fileメソッドを呼び出す
+    Then: IDリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        with patch.object(
+            service.storage,
+            "load",
+            new_callable=AsyncMock,
+            return_value="2301.00001\n2301.00002\n2301.00003\n",
+        ):
+
+            # When
+            result = await service._load_ids_from_file("arxiv_ids-2024-01-01.txt")
+
+            # Then
+            assert result == ["2301.00001", "2301.00002", "2301.00003"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_ids_from_file_empty(mock_env_vars):
+    """
+    Given: 空のIDファイル
+    When: _load_ids_from_fileメソッドを呼び出す
+    Then: 空リストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        with patch.object(service.storage, "load", new_callable=AsyncMock, return_value=""):
+
+            # When
+            result = await service._load_ids_from_file("arxiv_ids-2024-01-01.txt")
+
+            # Then
+            assert result == []

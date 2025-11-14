@@ -615,6 +615,81 @@ def mock_dedup_tracker():
 
 
 # =============================================================================
+# arXiv 専用ファクトリーフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def paper_info_factory():
+    """PaperInfoオブジェクトを生成するファクトリー"""
+    from datetime import datetime, timezone
+
+    def _create(
+        title="Test Paper",
+        abstract="Test Abstract",
+        url=None,
+        arxiv_id="2301.00001",
+        contents="Test contents",
+        published_at=None,
+        **kwargs
+    ):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import PaperInfo
+
+        if url is None:
+            url = f"http://arxiv.org/abs/{arxiv_id}"
+
+        if published_at is None:
+            published_at = datetime(2023, 1, 1, tzinfo=timezone.utc)
+
+        paper = PaperInfo(
+            title=title,
+            abstract=abstract,
+            url=url,
+            contents=contents,
+            published_at=published_at,
+        )
+
+        # summaryが指定されていれば設定
+        if "summary" in kwargs:
+            paper.summary = kwargs["summary"]
+
+        return paper
+
+    return _create
+
+
+@pytest.fixture
+def mock_arxiv_paper_factory():
+    """arxiv.Resultオブジェクトのモックを生成するファクトリー"""
+    from datetime import datetime, timezone
+    from unittest.mock import Mock
+
+    def _create(
+        arxiv_id="2301.00001",
+        title="Test Paper Title",
+        summary="Test abstract",
+        published=None,
+        **kwargs
+    ):
+        if published is None:
+            published = datetime(2023, 1, 1, tzinfo=timezone.utc)
+
+        mock_paper = Mock()
+        mock_paper.entry_id = f"http://arxiv.org/abs/{arxiv_id}"
+        mock_paper.title = title
+        mock_paper.summary = summary
+        mock_paper.published = published
+
+        # 追加属性
+        for key, value in kwargs.items():
+            setattr(mock_paper, key, value)
+
+        return mock_paper
+
+    return _create
+
+
+# =============================================================================
 # クリーンアップフィクスチャ
 # =============================================================================
 
