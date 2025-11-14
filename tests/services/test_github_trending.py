@@ -86,6 +86,29 @@ def create_mock_html(repos: list[dict[str, str]]) -> str:
     return f"<html><body>{''.join(articles)}</body></html>"
 
 
+def create_repository(
+    name: str = TEST_REPO_NAME,
+    description: str | None = "Test description",
+    stars: int = TEST_REPO_STARS,
+) -> Repository:
+    """テスト用のRepositoryオブジェクトを生成
+
+    Args:
+        name: リポジトリ名
+        description: 説明
+        stars: スター数
+
+    Returns:
+        Repositoryオブジェクト
+    """
+    return Repository(
+        name=name,
+        description=description,
+        link=f"https://github.com/{name}",
+        stars=stars,
+    )
+
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
@@ -255,90 +278,60 @@ async def test_retrieve_repositories_deduplication(mock_env_vars, dedup_tracker)
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_translate_repositories_success(mock_env_vars):
+async def test_translate_repositories_success(mock_env_vars, mock_service):
     """
     Given: リポジトリリスト
     When: _translate_repositoriesを呼び出す
     Then: 説明が翻訳される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    repos = [create_repository()]
 
-        repos = [
-            Repository(
-                name="test/repo",
-                description="Test description",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
-        ]
+    mock_service.gpt_client.generate_async = AsyncMock(return_value="翻訳された説明")
 
-        service.gpt_client.generate_async = AsyncMock(return_value="翻訳された説明")
+    result = await mock_service._translate_repositories([("python", repos)])
 
-        result = await service._translate_repositories([("python", repos)])
-
-        assert result[0][1][0].description == "翻訳された説明"
+    assert result[0][1][0].description == "翻訳された説明", "翻訳された説明が正しく設定されていません"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_translate_repositories_with_progress_callback(mock_env_vars):
+async def test_translate_repositories_with_progress_callback(mock_env_vars, mock_service):
     """
     Given: 進捗コールバックを指定
     When: _translate_repositoriesを呼び出す
     Then: コールバックが呼ばれる
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    repos = [create_repository()]
 
-        repos = [
-            Repository(
-                name="test/repo",
-                description="Test description",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
-        ]
+    mock_service.gpt_client.generate_async = AsyncMock(return_value="翻訳")
 
-        service.gpt_client.generate_async = AsyncMock(return_value="翻訳")
+    callback_called = []
 
-        callback_called = []
+    def callback(idx, total, name):
+        callback_called.append((idx, total, name))
 
-        def callback(idx, total, name):
-            callback_called.append((idx, total, name))
+    await mock_service._translate_repositories(
+        [("python", repos)], progress_callback=callback
+    )
 
-        await service._translate_repositories(
-            [("python", repos)], progress_callback=callback
-        )
-
-        assert len(callback_called) == 1
+    assert len(callback_called) == 1, "コールバックが1回呼ばれるべきです"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_translate_repositories_error_handling(mock_env_vars):
+async def test_translate_repositories_error_handling(mock_env_vars, mock_service):
     """
     Given: 翻訳中にエラーが発生
     When: _translate_repositoriesを呼び出す
     Then: エラーがログされ、処理が継続される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    repos = [create_repository()]
 
-        repos = [
-            Repository(
-                name="test/repo",
-                description="Test description",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
-        ]
+    mock_service.gpt_client.generate_async = AsyncMock(side_effect=Exception("Error"))
 
-        service.gpt_client.generate_async = AsyncMock(side_effect=Exception("Error"))
+    result = await mock_service._translate_repositories([("python", repos)])
 
-        result = await service._translate_repositories([("python", repos)])
-
-        assert isinstance(result, list)
+    assert isinstance(result, list), "エラーが発生してもリストが返されるべきです"
 
 
 # =============================================================================
@@ -348,47 +341,37 @@ async def test_translate_repositories_error_handling(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_store_summaries_for_date_success(mock_env_vars):
+async def test_store_summaries_for_date_success(mock_env_vars, mock_service):
     """
     Given: リポジトリリストと日付
     When: _store_summaries_for_dateを呼び出す
     Then: ファイルが保存される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    repos = [create_repository()]
 
-        repos = [
-            Repository(
-                name="test/repo",
-                description="Test description",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
-        ]
+    with patch.object(
+        mock_service,
+        "save_json",
+        new_callable=AsyncMock,
+        return_value=Path("/data/test.json"),
+    ), patch.object(
+        mock_service,
+        "save_markdown",
+        new_callable=AsyncMock,
+        return_value=Path("/data/test.md"),
+    ), patch.object(
+        mock_service,
+        "_load_existing_repositories_by_date",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
 
-        with patch.object(
-            service,
-            "save_json",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ), patch.object(
-            service,
-            "save_markdown",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.md"),
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
-        ):
+        json_path, md_path = await mock_service._store_summaries_for_date(
+            [("python", repos)], date.today()
+        )
 
-            json_path, md_path = await service._store_summaries_for_date(
-                [("python", repos)], date.today()
-            )
-
-            assert json_path == "/data/test.json"
-            assert md_path == "/data/test.md"
+        assert json_path == "/data/test.json", "JSONパスが正しくありません"
+        assert md_path == "/data/test.md", "Markdownパスが正しくありません"
 
 
 # =============================================================================
@@ -397,29 +380,26 @@ async def test_store_summaries_for_date_success(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_render_markdown_success(mock_env_vars):
+def test_render_markdown_success(mock_env_vars, mock_service):
     """
     Given: リポジトリレコード
     When: _render_markdownを呼び出す
     Then: Markdown形式のテキストが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    records = [
+        {
+            "language": "python",
+            "name": TEST_REPO_NAME,
+            "description": "Test description",
+            "link": f"https://github.com/{TEST_REPO_NAME}",
+            "stars": TEST_REPO_STARS,
+        }
+    ]
 
-        records = [
-            {
-                "language": "python",
-                "name": "test/repo",
-                "description": "Test description",
-                "link": "https://github.com/test/repo",
-                "stars": 100,
-            }
-        ]
+    result = mock_service._render_markdown(records, datetime.now())
 
-        result = service._render_markdown(records, datetime.now())
-
-        assert "# GitHub トレンドリポジトリ" in result
-        assert "test/repo" in result
+    assert "# GitHub トレンドリポジトリ" in result, "ヘッダーが含まれていません"
+    assert TEST_REPO_NAME in result, "リポジトリ名が含まれていません"
 
 
 # =============================================================================
@@ -428,34 +408,31 @@ def test_render_markdown_success(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_parse_markdown_success(mock_env_vars):
+def test_parse_markdown_success(mock_env_vars, mock_service):
     """
     Given: Markdown形式のテキスト
     When: _parse_markdownを呼び出す
     Then: リポジトリレコードが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-
-        markdown = """# GitHub トレンドリポジトリ (2024-01-01)
+    markdown = f"""# GitHub トレンドリポジトリ (2024-01-01)
 
 ## Python
 
-### [test/repo](https://github.com/test/repo)
+### [{TEST_REPO_NAME}](https://github.com/{TEST_REPO_NAME})
 
 Test description
 
-⭐ スター数: 100
+⭐ スター数: {TEST_REPO_STARS}
 
 ---
 
 """
 
-        result = service._parse_markdown(markdown)
+    result = mock_service._parse_markdown(markdown)
 
-        assert len(result) == 1
-        assert result[0]["name"] == "test/repo"
-        assert result[0]["stars"] == 100
+    assert len(result) == 1, "1件のリポジトリが解析されるべきです"
+    assert result[0]["name"] == TEST_REPO_NAME, "リポジトリ名が正しくありません"
+    assert result[0]["stars"] == TEST_REPO_STARS, "スター数が正しくありません"
 
 
 # =============================================================================
@@ -464,21 +441,18 @@ Test description
 
 
 @pytest.mark.unit
-def test_repository_sort_key(mock_env_vars):
+def test_repository_sort_key(mock_env_vars, mock_service):
     """
     Given: リポジトリレコード
     When: _repository_sort_keyを呼び出す
     Then: ソートキーが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    record = {"stars": TEST_REPO_STARS, "published_at": datetime.now(timezone.utc).isoformat()}
 
-        record = {"stars": 100, "published_at": datetime.now(timezone.utc).isoformat()}
+    result = mock_service._repository_sort_key(record)
 
-        result = service._repository_sort_key(record)
-
-        assert isinstance(result, tuple)
-        assert result[0] == 100
+    assert isinstance(result, tuple), "結果はタプルであるべきです"
+    assert result[0] == TEST_REPO_STARS, "スター数が正しくありません"
 
 
 # =============================================================================
@@ -487,29 +461,19 @@ def test_repository_sort_key(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_serialize_repositories(mock_env_vars):
+def test_serialize_repositories(mock_env_vars, mock_service):
     """
     Given: リポジトリリスト
     When: _serialize_repositoriesを呼び出す
     Then: 辞書のリストが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    repos = [create_repository()]
 
-        repos = [
-            Repository(
-                name="test/repo",
-                description="Test description",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
-        ]
+    result = mock_service._serialize_repositories([("python", repos)], date.today())
 
-        result = service._serialize_repositories([("python", repos)], date.today())
-
-        assert isinstance(result, list)
-        assert len(result) == 1
-        assert result[0]["name"] == "test/repo"
+    assert isinstance(result, list), "結果はリストであるべきです"
+    assert len(result) == 1, "結果は1件であるべきです"
+    assert result[0]["name"] == TEST_REPO_NAME, "リポジトリ名が正しくありません"
 
 
 # =============================================================================
@@ -571,19 +535,14 @@ async def test_retrieve_repositories_missing_name_element(mock_env_vars, dedup_t
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        mock_html = """
-        <html><body>
-            <article class="Box-row">
-                <h2 class="h3"></h2>
-            </article>
-        </body></html>
-        """
+        # aタグのないh2要素を含むHTML（nameが抽出できない）
+        mock_html = """<html><body><article class="Box-row"><h2 class="h3"></h2></article></body></html>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
 
-        repos = await service._retrieve_repositories("python", 5, dedup_tracker)
+        repos = await service._retrieve_repositories("python", TEST_LIMIT, dedup_tracker)
 
-        assert len(repos) == 0
+        assert len(repos) == 0, "名前が抽出できないリポジトリはスキップされるべきです"
 
 
 @pytest.mark.unit
@@ -820,12 +779,7 @@ async def test_store_summaries_success(mock_env_vars):
         service = GithubTrending()
 
         repos = [
-            Repository(
-                name="test/repo",
-                description="Test",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
+            create_repository(description="Test")
         ]
 
         with patch(
@@ -949,12 +903,7 @@ async def test_translate_repositories_empty_response(mock_env_vars):
         service = GithubTrending()
 
         repos = [
-            Repository(
-                name="test/repo",
-                description="Test description",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
+            create_repository()
         ]
 
         service.gpt_client.generate_async = AsyncMock(return_value="   ")
@@ -1064,12 +1013,7 @@ async def test_translate_repositories_outer_exception(mock_env_vars):
         service = GithubTrending()
 
         repos = [
-            Repository(
-                name="test/repo",
-                description="Test",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
+            create_repository(description="Test")
         ]
 
         # rate_limitで例外を発生させる
@@ -1255,12 +1199,7 @@ async def test_translate_repositories_with_none_gpt_response(mock_env_vars):
         service = GithubTrending()
 
         repos = [
-            Repository(
-                name="test/repo",
-                description="Test description",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
+            create_repository()
         ]
 
         # GPTがNoneを返す
@@ -1351,12 +1290,7 @@ async def test_store_summaries_for_date_with_saved_files_empty(mock_env_vars):
         service = GithubTrending()
 
         repos = [
-            Repository(
-                name="test/repo",
-                description="Test",
-                link="https://github.com/test/repo",
-                stars=100,
-            )
+            create_repository(description="Test")
         ]
 
         # store_daily_snapshotsがインポートされた場所でpatch
