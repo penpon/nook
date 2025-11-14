@@ -615,8 +615,34 @@ def mock_dedup_tracker():
 
 
 # =============================================================================
-# arXiv 専用ファクトリーフィクスチャ
+# arXiv 専用フィクスチャ
 # =============================================================================
+
+
+@pytest.fixture
+def arxiv_service(mock_env_vars):
+    """ArxivSummarizerサービスのフィクスチャ（共通セットアップ）"""
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+        yield service
+
+
+@pytest.fixture
+def test_date():
+    """テスト用固定日付"""
+    from datetime import date
+
+    return date(2024, 1, 1)
+
+
+@pytest.fixture
+def test_datetime():
+    """テスト用固定日時"""
+    from datetime import datetime, timezone
+
+    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 @pytest.fixture
@@ -687,6 +713,106 @@ def mock_arxiv_paper_factory():
         return mock_paper
 
     return _create
+
+
+# =============================================================================
+# arXiv テストヘルパー
+# =============================================================================
+
+
+class ArxivTestHelper:
+    """
+    arXivテスト用のヘルパークラス
+
+    テスト定数とモック作成メソッドを提供し、テストコードの重複を削減します。
+
+    使用例:
+        def test_example(arxiv_helper):
+            # 定数を使用
+            arxiv_id = arxiv_helper.DEFAULT_ARXIV_ID
+
+            # モック作成
+            mock_client = arxiv_helper.create_mock_http_client()
+    """
+
+    # ============================================================================
+    # テスト定数
+    # ============================================================================
+    DEFAULT_ARXIV_ID = "2301.00001"
+    DEFAULT_MIN_LINE_LENGTH = 80
+    SAMPLE_PAPER_IDS = ["2301.00001", "2301.00002", "2301.00003"]
+
+    # テストデータ定数
+    SAMPLE_PAPER_TITLE = "Test Paper Title"
+    SAMPLE_ABSTRACT = "Test abstract"
+    SAMPLE_CONTENTS = "Test contents"
+    SAMPLE_SUMMARY = "Test summary"
+
+    # HTML/Markdown テストデータ
+    SAMPLE_MARKDOWN_VALID = """# arXiv 論文要約 (2024-01-01)
+
+## [Test Paper 1](http://arxiv.org/abs/2301.00001)
+
+**abstract**:
+Abstract 1
+
+**summary**:
+Summary 1
+
+---
+"""
+
+    # ============================================================================
+    # モック作成メソッド
+    # ============================================================================
+
+    @staticmethod
+    def create_mock_http_client():
+        """HTTPクライアントのモックを作成
+
+        Returns:
+            AsyncMock: コンテキストマネージャーとして使用可能なモック
+        """
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf_response(content=b"%PDF-1.4 test content"):
+        """PDFレスポンスのモックを作成
+
+        Args:
+            content: PDFバイナリコンテンツ
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.content = content
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_html_response(text="<html><body>Test</body></html>"):
+        """HTMLレスポンスのモックを作成
+
+        Args:
+            text: HTMLテキスト
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.text = text
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+
+@pytest.fixture
+def arxiv_helper():
+    """ArxivTestHelperインスタンスを提供"""
+    return ArxivTestHelper()
 
 
 # =============================================================================
