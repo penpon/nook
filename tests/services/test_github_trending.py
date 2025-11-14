@@ -13,7 +13,7 @@ nook/services/github_trending/github_trending.py のテスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -234,7 +234,7 @@ async def test_collect_network_error(mock_env_vars):
             )
 
             # エラーが発生することを期待
-            with pytest.raises(Exception):
+            with pytest.raises(httpx.TimeoutException):
                 await service.collect(target_dates=[date.today()])
 
 
@@ -893,7 +893,7 @@ def test_repository_sort_key(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = GithubTrending()
 
-        record = {"stars": 100, "published_at": datetime.now(timezone.utc).isoformat()}
+        record = {"stars": 100, "published_at": datetime.now(UTC).isoformat()}
 
         result = service._repository_sort_key(record)
 

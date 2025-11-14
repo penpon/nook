@@ -167,21 +167,6 @@ async def test_collect_success_with_valid_feed(mock_env_vars, respx_mock):
         service = TechFeed()
         service.http_client = AsyncMock()
 
-        # RSSフィードのモック
-        mock_feed_xml = """<?xml version="1.0"?>
-        <rss version="2.0">
-            <channel>
-                <title>Test Feed</title>
-                <item>
-                    <title>テスト記事</title>
-                    <link>https://example.com/article1</link>
-                    <pubDate>Mon, 14 Nov 2024 00:00:00 +0000</pubDate>
-                    <description>テスト記事の説明</description>
-                </item>
-            </channel>
-        </rss>
-        """
-
         # HTMLページのモック（日本語コンテンツ）
         mock_html = """
         <html>
@@ -221,7 +206,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars, respx_mock):
             mock_parse.return_value = mock_feed
 
             # DedupTrackerのモック
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized_title")
             mock_load.return_value = mock_dedup
 
@@ -275,7 +260,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_feed.entries = entries
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
             mock_load.return_value = mock_dedup
 
@@ -317,7 +302,7 @@ async def test_collect_with_target_dates_none(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1, limit=10, target_dates=None)
@@ -381,7 +366,7 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -418,7 +403,7 @@ async def test_collect_http_client_timeout(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
@@ -465,7 +450,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
@@ -574,7 +559,7 @@ async def test_collect_with_limit_one(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
@@ -1133,7 +1118,7 @@ async def test_collect_handles_storage_error(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
@@ -1191,7 +1176,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
@@ -1229,7 +1214,7 @@ async def test_collect_feed_toml_load_failure_handling(mock_env_vars):
             "builtins.open", side_effect=FileNotFoundError("feed.toml not found")
         ):
             with pytest.raises(FileNotFoundError):
-                service = TechFeed()
+                _service = TechFeed()
 
 
 # 重複検出テストは複雑なため、シンプルなテストに置き換え
@@ -1259,7 +1244,7 @@ async def test_collect_no_saved_files(mock_env_vars):
             mock_feed.entries = []  # 記事なし
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -1297,7 +1282,7 @@ async def test_collect_japanese_check_filters_english_articles(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             # 英語HTMLを返す
@@ -1343,7 +1328,7 @@ async def test_collect_http_404_error_skips_article(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             # 404エラーを発生させる
@@ -1389,7 +1374,7 @@ async def test_collect_http_500_error_skips_article(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             # 500エラーを発生させる
@@ -1781,7 +1766,7 @@ async def test_collect_date_filtering_within_range(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
             mock_load.return_value = mock_dedup
 
@@ -1827,7 +1812,7 @@ async def test_collect_multiple_categories(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -2001,7 +1986,7 @@ async def test_collect_storage_save_successful(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
@@ -2076,7 +2061,7 @@ async def test_collect_existing_article_titles_loaded(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
             mock_load.return_value = mock_dedup
 
@@ -2125,7 +2110,7 @@ async def test_collect_date_filtering_out_of_range(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(
@@ -2250,7 +2235,7 @@ async def test_collect_dedup_tracker_detects_duplicate(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             # 重複を返すモック
-            mock_dedup = Mock()
+            _mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (True, "normalized")
             mock_dedup.get_original_title.return_value = "元のタイトル"
             mock_load.return_value = mock_dedup
@@ -2275,13 +2260,14 @@ async def test_store_summaries_with_articles(mock_env_vars):
     When: _store_summariesを呼び出す
     Then: 記事が保存される
     """
+    from datetime import date, datetime
+
+    from bs4 import BeautifulSoup
+
+    from nook.services.base_feed_service import Article
+
     with patch("nook.common.base_service.setup_logger"):
         service = TechFeed()
-
-        from datetime import date, datetime
-
-        from bs4 import BeautifulSoup
-        from nook.services.base_feed_service import Article
 
         articles = [
             Article(

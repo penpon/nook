@@ -9,15 +9,14 @@ nook/services/qiita_explorer/qiita_explorer.py の追加単体テスト
 
 from __future__ import annotations
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
 from nook.services.base_feed_service import Article
+from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
 
 
 # =============================================================================
@@ -251,8 +250,6 @@ async def test_collect_feed_parse_exception_continues(mock_env_vars):
             mock_feed.feed.title = "Good Feed"
             mock_feed.entries = []
             mock_parse.side_effect = [Exception("Parse error"), mock_feed]
-
-            mock_dedup = Mock()
 
             result = await service.collect(days=1)
 

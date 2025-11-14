@@ -12,11 +12,41 @@ version = "0.1.0"
 description = "nook"
 requires-python = ">=3.12"
 dependencies = [
+    # Web frameworks
+    "fastapi>=0.95.0",
+    "uvicorn>=0.21.1",
+    "streamlit>=1.22.0",
+    # HTTP/API clients
+    "requests>=2.28.2",
+    "httpx[http2]>=0.24.0",
+    "cloudscraper>=1.2.71",
+    # Data processing
+    "pydantic>=1.10.7",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "beautifulsoup4>=4.12.0",
+    "feedparser>=6.0.10",
+    "tomli>=2.0.1",
+    # Reddit API
+    "asyncpraw>=7.7.1",
+    # arXiv API
+    "arxiv>=1.4.7",
+    # OpenAI API compatible client
+    "openai>=1.0.0",
+    # Utilities
+    "tqdm>=4.65.0",
+    "tenacity>=8.2.2",
+    # Date processing
+    "python-dateutil>=2.8.2",
+    # Tweepy
+    "tweepy>=4.14.0",
+    # Tokenizer
+    "tiktoken>=0.5.0",
+    # Async file operations
+    "aiofiles>=23.0.0",
+    # Legacy dependencies
     "pandas>=2.3.3",
     "playwright>=1.40.0",
-    "python-dotenv>=1.0.0",
-    "httpx>=0.25.0",
-    "requests>=2.31.0",
 ]
 
 [dependency-groups]
