@@ -44,50 +44,35 @@ TEST_BOARD = "g"
 # =============================================================================
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _mock_setup_logger():
+    """
+    全テストで自動的にsetup_loggerをモック（モジュールスコープ）
+
+    autouse=True: 全テストで自動適用
+    scope="module": モジュール全体で1回だけ実行（高速化）
+
+    これにより、各テストで`with patch(...)`を書く必要がなくなる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        yield
+
+
 @pytest.fixture
 def fourchan_service(mock_env_vars):
     """
     FourChanExplorerインスタンスを作成するフィクスチャ
 
-    setup_loggerのパッチを自動的に適用し、
-    テストごとの繰り返しコードを削減
+    Returns:
+        FourChanExplorer: テスト用インスタンス
+
+    Note:
+        - setup_loggerは_mock_setup_loggerで自動モック
+        - 新しいインスタンスを返すため、テスト間の独立性を保証
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+    from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 
-        yield FourChanExplorer()
-
-
-@pytest.fixture
-def sample_thread_posts():
-    """サンプルスレッド投稿データ"""
-    return [
-        {
-            "no": TEST_THREAD_ID,
-            "time": TEST_TIMESTAMP,
-            "com": "What do you think about GPT-4?",
-            "replies": 50,
-        },
-        {
-            "no": TEST_THREAD_ID + 1,
-            "time": TEST_TIMESTAMP + 100,
-            "com": "It's amazing!",
-        },
-    ]
-
-
-@pytest.fixture
-def sample_thread_data(sample_thread_posts):
-    """サンプルスレッドデータ（Thread オブジェクト用）"""
-    return {
-        "thread_id": TEST_THREAD_ID,
-        "title": "AI Discussion",
-        "url": f"https://boards.4chan.org/{TEST_BOARD}/thread/{TEST_THREAD_ID}",
-        "board": TEST_BOARD,
-        "posts": sample_thread_posts,
-        "timestamp": TEST_TIMESTAMP,
-        "popularity_score": 10.0,
-    }
+    return FourChanExplorer()
 
 
 @pytest.fixture
@@ -95,19 +80,40 @@ def thread_factory():
     """
     Threadオブジェクトを柔軟に生成するファクトリーフィクスチャ
 
-    使用例:
-        thread = thread_factory(title="Custom Title", posts=[...])
+    Args (via kwargs):
+        thread_id (int): スレッドID
+        title (str): スレッドタイトル
+        url (str): スレッドURL        board (str): ボード名
+        posts (list): 投稿データのリスト
+        timestamp (int): UNIXタイムスタンプ
+        popularity_score (float): 人気スコア
+
+    Returns:
+        Callable[..., Thread]: Threadオブジェクトを生成する関数
+
+    Example:
+        >>> thread = thread_factory(title="AI Discussion", posts=[...])
+        >>> assert thread.title == "AI Discussion"
+        >>> thread2 = thread_factory(popularity_score=20.0)
+        >>> assert thread2.popularity_score == 20.0
     """
+    # importをフィクスチャレベルに移動（関数内importを回避）
     from nook.services.fourchan_explorer.fourchan_explorer import Thread
 
     def _create_thread(**kwargs):
-        # デフォルト値
+        # デフォルト値（全て定数を使用、可読性とDRY原則）
         defaults = {
             "thread_id": TEST_THREAD_ID,
             "title": "Test Thread",
             "url": f"https://boards.4chan.org/{TEST_BOARD}/thread/{TEST_THREAD_ID}",
             "board": TEST_BOARD,
-            "posts": [{"no": TEST_THREAD_ID, "time": TEST_TIMESTAMP, "com": "Test post"}],
+            "posts": [
+                {
+                    "no": TEST_THREAD_ID,
+                    "time": TEST_TIMESTAMP,
+                    "com": "Test post",
+                }
+            ],
             "timestamp": TEST_TIMESTAMP,
             "popularity_score": 10.0,
         }
