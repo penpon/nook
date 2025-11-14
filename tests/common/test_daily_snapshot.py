@@ -119,3 +119,84 @@ async def test_store_daily_snapshots_merges_and_saves(tmp_path):
     assert yesterday_key in stored_markdown
     assert "new-top" in stored_markdown[today_key]
     assert "yesterday-existing" in stored_markdown[yesterday_key]
+
+
+def test_parse_record_date_invalid_iso_string():
+    """
+    Given: 無効なISO形式文字列
+    When: _parse_record_dateを呼び出す（group_records_by_date経由）
+    Then: ValueErrorが発生してNoneを返す
+    """
+    from nook.common.daily_snapshot import _parse_record_date
+
+    # 無効なISO形式文字列
+    result = _parse_record_date("invalid-date-string")
+    assert result is None
+
+    # 空文字列
+    result = _parse_record_date("")
+    assert result is None
+
+    # None
+    result = _parse_record_date(None)
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_store_daily_snapshots_with_logger(tmp_path):
+    """
+    Given: loggerを渡してstore_daily_snapshotsを実行
+    When: 処理が実行される
+    Then: logger.infoが呼び出される
+    """
+    from unittest.mock import Mock
+    import logging
+
+    base = datetime(2024, 10, 28, 9, 0, 0)
+    grouped = {
+        base.date(): [
+            {
+                "title": "test-article",
+                "published_at": base.isoformat(),
+                "popularity_score": 10,
+            }
+        ]
+    }
+
+    stored_json: dict[str, list[dict]] = {}
+    stored_markdown: dict[str, str] = {}
+
+    async def load_existing(snapshot_datetime: datetime):
+        return []
+
+    async def save_json(data, filename: str):
+        key = filename[:-5]
+        stored_json[key] = list(data)
+        return tmp_path / filename
+
+    async def save_markdown(content: str, filename: str):
+        key = filename[:-3]
+        stored_markdown[key] = content
+        return tmp_path / filename
+
+    def render_markdown(records, snapshot_datetime: datetime) -> str:
+        return f"{snapshot_datetime.strftime('%Y-%m-%d')}"
+
+    # モックロガーを作成
+    mock_logger = Mock(spec=logging.Logger)
+
+    await store_daily_snapshots(
+        grouped,
+        load_existing=load_existing,
+        save_json=save_json,
+        save_markdown=save_markdown,
+        render_markdown=render_markdown,
+        key=lambda item: item.get("title"),
+        sort_key=lambda item: item.get("popularity_score", 0),
+        limit=10,
+        logger=mock_logger,
+    )
+
+    # logger.infoが呼び出されたことを確認
+    assert mock_logger.info.called
+    assert mock_logger.info.call_count >= 2  # 日付処理と候補記事の2回以上
