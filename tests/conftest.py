@@ -643,3 +643,72 @@ def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
     return
     # テスト後の処理（必要に応じて）
+
+
+# =============================================================================
+# Zenn Explorer テスト用ヘルパー関数
+# =============================================================================
+
+
+def create_mock_entry(
+    title="テスト記事",
+    link="https://example.com/test",
+    summary="テスト説明",
+    published_parsed=(2024, 11, 14, 0, 0, 0, 0, 0, 0),
+):
+    """標準的なモックエントリを作成
+
+    Args:
+        title: 記事タイトル
+        link: 記事URL
+        summary: 記事サマリー
+        published_parsed: 公開日時タプル
+
+    Returns:
+        Mock: 設定済みのモックエントリ
+    """
+    from unittest.mock import Mock
+
+    entry = Mock()
+    entry.title = title
+    entry.link = link
+    entry.summary = summary
+    entry.published_parsed = published_parsed
+    return entry
+
+
+def create_mock_feed(title="Test Feed", entries=None):
+    """標準的なモックフィードを作成
+
+    Args:
+        title: フィードタイトル
+        entries: エントリのリスト（Noneの場合は空リスト）
+
+    Returns:
+        Mock: 設定済みのモックフィード
+    """
+    from unittest.mock import Mock
+
+    feed = Mock()
+    feed.feed.title = title
+    feed.entries = entries if entries is not None else []
+    return feed
+
+
+def create_mock_dedup(is_duplicate=False, normalized_title="normalized_title"):
+    """標準的なモックDedupTrackerを作成
+
+    Args:
+        is_duplicate: 重複判定の返り値
+        normalized_title: 正規化されたタイトル
+
+    Returns:
+        Mock: 設定済みのモックDedupTracker
+    """
+    from unittest.mock import Mock
+
+    dedup = Mock()
+    dedup.is_duplicate.return_value = (is_duplicate, normalized_title)
+    dedup.add.return_value = None
+    return dedup
+
