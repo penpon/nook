@@ -3,6 +3,7 @@
 /claude/work/agents/roles
 /claude/templates
 .serena
+.CLAUDE.md
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/
