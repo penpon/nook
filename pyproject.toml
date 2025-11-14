@@ -47,14 +47,27 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-asyncio_mode = "strict"
+asyncio_mode = "auto"
 addopts = [
+    "-v",
     "--strict-markers",
     "--strict-config",
+    "--tb=short",
+    "--ignore=nook/frontend",
+    "--ignore=node_modules",
     "-ra",
 ]
 markers = [
-    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "unit: ユニットテスト（外部依存をモック化）",
+    "integration: 統合テスト（外部API使用、CIでスキップ可）",
+    "slow: 実行に時間のかかるテスト",
+    "performance: パフォーマンステスト",
+    "memory: メモリテスト",
+    "stress: ストレステスト",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
 ]
 
 [tool.black]
