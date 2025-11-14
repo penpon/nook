@@ -31,7 +31,7 @@ def event_loop_policy():
 
 
 @pytest.fixture
-def mock_env_vars(monkeypatch):
+def mock_env_vars(monkeypatch, tmp_path):
     """環境変数のモック設定"""
     env_vars = {
         "OPENAI_API_KEY": "test-api-key-12345",
@@ -39,7 +39,7 @@ def mock_env_vars(monkeypatch):
         "REDDIT_CLIENT_ID": "test-client-id",
         "REDDIT_CLIENT_SECRET": "test-client-secret",
         "REDDIT_USER_AGENT": "test-user-agent",
-        "DATA_DIR": "/tmp/nook_test_data",
+        "DATA_DIR": str(tmp_path / "nook_test_data"),  # nosec B108
         "LOG_LEVEL": "INFO",
     }
     for key, value in env_vars.items():
