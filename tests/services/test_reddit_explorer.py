@@ -42,12 +42,15 @@ def test_init_with_default_storage_dir(reddit_explorer_service):
 
 
 @pytest.mark.unit
-def test_init_with_valid_credentials():
+def test_init_with_valid_credentials(monkeypatch):
     """
     Given: 有効なReddit APIクレデンシャル
     When: RedditExplorerを初期化
     Then: client_id, client_secret, user_agentが正しく設定される
     """
+    # BaseServiceの初期化に必要
+    monkeypatch.setenv("OPENAI_API_KEY", "test-api-key")
+
     with patch("nook.common.logging.setup_logger"):
         reddit_explorer_service = RedditExplorer(
             client_id="test-id", client_secret="test-secret", user_agent="test-agent"
