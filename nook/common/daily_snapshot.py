@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import date, datetime, time
 from logging import Logger
-from typing import Any, Awaitable, Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 from nook.common.daily_merge import merge_records
 from nook.common.date_utils import normalize_datetime_to_local
-
 
 Record = dict[str, Any]
 

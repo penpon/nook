@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Any, Callable, Hashable, Iterable, Sequence, TypeVar
-
+from collections.abc import Callable, Hashable, Iterable, Sequence
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -41,7 +41,7 @@ def merge_records(
         マージ後のレコードリスト。
     """
 
-    ordered: "OrderedDict[Hashable, T]" = OrderedDict()
+    ordered: OrderedDict[Hashable, T] = OrderedDict()
 
     # 既存順を先に登録
     for item in existing:

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta, timezone
-from typing import Iterable, Set
 
 
 def _local_timezone() -> timezone:
@@ -34,7 +34,7 @@ def compute_target_dates(
 
 def target_dates_set(
     days: int | None = None, *, base_date: date | None = None
-) -> Set[date]:
+) -> set[date]:
     """Convenience wrapper that returns the target dates as a ``set``."""
 
     return set(compute_target_dates(days, base_date=base_date))

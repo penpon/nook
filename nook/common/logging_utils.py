@@ -1,7 +1,7 @@
 """サービス共通のログ出力ユーティリティ関数。"""
 
-from typing import List, Any
 from datetime import date
+from typing import Any
 
 
 def log_processing_start(logger, date_str: str) -> None:
@@ -35,7 +35,7 @@ def log_article_counts(logger, existing_count: int, new_count: int) -> None:
 
 
 def log_summary_candidates(
-    logger, candidates: List[Any], score_attr: str = "popularity_score"
+    logger, candidates: list[Any], score_attr: str = "popularity_score"
 ) -> None:
     """
     要約対象記事のリストを出力します。
@@ -127,7 +127,7 @@ def log_no_new_articles(logger) -> None:
     logger.info("   ℹ️  新規記事がありません")
 
 
-def log_multiple_dates_processing(logger, dates: List[date]) -> None:
+def log_multiple_dates_processing(logger, dates: list[date]) -> None:
     """
     複数日付処理のログを出力します。
 

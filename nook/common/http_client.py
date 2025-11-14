@@ -264,13 +264,13 @@ class AsyncHTTPClient:
             # エラーの種類を特定して簡潔に出力
             error_type = type(e).__name__
             if "SSL" in str(e) or "handshake" in str(e).lower():
-                error_summary = f"SSL/TLS handshake error"
+                error_summary = "SSL/TLS handshake error"
             elif "timeout" in str(e).lower():
-                error_summary = f"Timeout error"
+                error_summary = "Timeout error"
             elif "403" in str(e) or "forbidden" in str(e).lower():
-                error_summary = f"Access denied (403)"
+                error_summary = "Access denied (403)"
             else:
-                error_summary = f"Connection error"
+                error_summary = "Connection error"
 
             logger.warning(f"Cloudscraper failed for {url}: {error_summary}")
             # 元の403エラーを再発生
