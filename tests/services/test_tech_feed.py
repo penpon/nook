@@ -55,7 +55,7 @@ def test_init_with_custom_storage_dir(mock_env_vars):
     Then: インスタンスが正常に作成される
     """
     with patch("nook.common.base_service.setup_logger"):
-        service = TechFeed(storage_dir="/tmp/custom")
+        service = TechFeed(storage_dir="/tmp/custom")  # nosec B108
 
         assert service.service_name == "tech_feed"
         assert service.feed_config is not None
@@ -380,8 +380,6 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
             mock_feed = Mock()
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
-
-            mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -1259,8 +1257,6 @@ async def test_collect_no_saved_files(mock_env_vars):
             mock_feed.entries = []  # 記事なし
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
             result = await service.collect(days=1)
 
             # 保存なし
@@ -1826,8 +1822,6 @@ async def test_collect_multiple_categories(mock_env_vars):
             mock_feed.feed.title = "Test"
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
-
-            mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
