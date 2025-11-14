@@ -25,6 +25,7 @@ from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, Reddit
 # 1. __init__ メソッドのテスト
 # =============================================================================
 
+
 @pytest.mark.unit
 def test_init_with_default_storage_dir(reddit_explorer_service):
     """
@@ -34,9 +35,11 @@ def test_init_with_default_storage_dir(reddit_explorer_service):
     """
     assert reddit_explorer_service.service_name == "reddit_explorer"
 
+
 # =============================================================================
 # 2. OAuth認証のユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 def test_init_with_valid_credentials():
@@ -54,6 +57,7 @@ def test_init_with_valid_credentials():
         assert reddit_explorer_service.client_secret == "test-secret"
         assert reddit_explorer_service.user_agent == "test-agent"
 
+
 @pytest.mark.unit
 def test_init_with_env_credentials(reddit_explorer_service):
     """
@@ -64,6 +68,7 @@ def test_init_with_env_credentials(reddit_explorer_service):
     assert reddit_explorer_service.client_id == "test-client-id"
     assert reddit_explorer_service.client_secret == "test-client-secret"
     assert reddit_explorer_service.user_agent == "test-user-agent"
+
 
 @pytest.mark.unit
 def test_init_missing_credentials(reddit_explorer_service, monkeypatch):
@@ -78,7 +83,10 @@ def test_init_missing_credentials(reddit_explorer_service, monkeypatch):
     monkeypatch.delenv("REDDIT_USER_AGENT", raising=False)
 
     with pytest.raises(ValueError, match="Reddit API credentials"):
-        RedditExplorer(client_id="test-id", user_agent="test-agent")  # client_secretが欠落
+        RedditExplorer(
+            client_id="test-id", user_agent="test-agent"
+        )  # client_secretが欠落
+
 
 @pytest.mark.unit
 def test_init_missing_all_credentials(monkeypatch):
@@ -97,9 +105,11 @@ def test_init_missing_all_credentials(monkeypatch):
     with pytest.raises(ValueError, match="Reddit API credentials"):
         RedditExplorer()
 
+
 # =============================================================================
 # 3. 投稿タイプ判定のユニットテスト（7種類）- パラメタライズド
 # =============================================================================
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -155,9 +165,11 @@ async def test_post_type_detection(
     assert len(posts) == 1
     assert posts[0].type == expected_type
 
+
 # =============================================================================
 # 4. UTCタイムスタンプ変換のユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -182,7 +194,9 @@ async def test_utc_to_jst_conversion(
 
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-    reddit_explorer_service._translate_to_japanese = AsyncMock(return_value="テスト内容")
+    reddit_explorer_service._translate_to_japanese = AsyncMock(
+        return_value="テスト内容"
+    )
 
     dedup_tracker = DedupTracker()
     posts, total = await reddit_explorer_service._retrieve_hot_posts(
@@ -198,9 +212,11 @@ async def test_utc_to_jst_conversion(
     expected_dt = datetime.fromtimestamp(utc_timestamp, tz=timezone.utc)
     assert posts[0].created_at == expected_dt
 
+
 # =============================================================================
 # 5. GPT要約のユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -233,6 +249,7 @@ async def test_summarize_reddit_post_success(reddit_explorer_service):
     assert reddit_explorer_service.gpt_client.generate_content.called
     assert post.summary == "これは要約です。"
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_reddit_post_with_url(reddit_explorer_service):
@@ -252,13 +269,16 @@ async def test_summarize_reddit_post_with_url(reddit_explorer_service):
     )
 
     reddit_explorer_service.gpt_client = Mock()
-    reddit_explorer_service.gpt_client.generate_content = Mock(return_value="リンク要約")
+    reddit_explorer_service.gpt_client.generate_content = Mock(
+        return_value="リンク要約"
+    )
 
     await reddit_explorer_service._summarize_reddit_post(post)
 
     call_kwargs = reddit_explorer_service.gpt_client.generate_content.call_args[1]
     assert "https://example.com/article" in call_kwargs["prompt"]
     assert post.summary == "リンク要約"
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -289,9 +309,11 @@ async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
     assert "エラーが発生しました" in post.summary
     assert "API Error" in post.summary
 
+
 # =============================================================================
 # 6. 翻訳機能のユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -302,12 +324,17 @@ async def test_translate_to_japanese_success(reddit_explorer_service):
     Then: 日本語に翻訳される
     """
     reddit_explorer_service.gpt_client = Mock()
-    reddit_explorer_service.gpt_client.generate_content = Mock(return_value="これは翻訳されたテキストです。")
+    reddit_explorer_service.gpt_client.generate_content = Mock(
+        return_value="これは翻訳されたテキストです。"
+    )
 
-    result = await reddit_explorer_service._translate_to_japanese("This is a test text.")
+    result = await reddit_explorer_service._translate_to_japanese(
+        "This is a test text."
+    )
 
     assert result == "これは翻訳されたテキストです。"
     assert reddit_explorer_service.gpt_client.generate_content.called
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -323,6 +350,7 @@ async def test_translate_to_japanese_empty_text(reddit_explorer_service):
 
     assert result == ""
     assert not reddit_explorer_service.gpt_client.generate_content.called
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -342,9 +370,11 @@ async def test_translate_to_japanese_error_handling(reddit_explorer_service):
 
     assert result == original_text  # 原文が返される
 
+
 # =============================================================================
 # 7. エラーケースのユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -369,9 +399,12 @@ async def test_retrieve_hot_posts_subreddit_not_found(reddit_explorer_service):
             target_dates=[date(2023, 11, 15)],
         )
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_empty_results(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: 投稿が0件のサブレディット
     When: _retrieve_hot_postsで取得
@@ -385,15 +418,21 @@ async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, async_g
 
     dedup_tracker = DedupTracker()
     posts, total = await reddit_explorer_service._retrieve_hot_posts(
-        "empty", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
+        "empty",
+        limit=10,
+        dedup_tracker=dedup_tracker,
+        target_dates=[date(2023, 11, 15)],
     )
 
     assert len(posts) == 0
     assert total == 0
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_skip_stickied(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: スティッキー投稿を含むサブレディット
     When: _retrieve_hot_postsで取得
@@ -439,9 +478,12 @@ async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, async_g
     assert len(posts) == 1
     assert posts[0].title == "Normal Post"
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_duplicate_titles(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: 重複するタイトルの投稿
     When: _retrieve_hot_postsで取得
@@ -481,7 +523,9 @@ async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, asyn
     submission2.created_utc = 1700000000
 
     mock_subreddit = Mock()
-    mock_subreddit.hot = Mock(return_value=async_generator_helper([submission1, submission2]))
+    mock_subreddit.hot = Mock(
+        return_value=async_generator_helper([submission1, submission2])
+    )
 
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
@@ -498,6 +542,7 @@ async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, asyn
     assert total == 2
     assert len(posts) == 1
     assert posts[0].title == "Duplicate Title"
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -536,13 +581,16 @@ async def test_retrieve_top_comments_success(reddit_explorer_service):
         side_effect=["素晴らしい投稿！", "同意します"]
     )
 
-    comments = await reddit_explorer_service._retrieve_top_comments_of_post(post, limit=5)
+    comments = await reddit_explorer_service._retrieve_top_comments_of_post(
+        post, limit=5
+    )
 
     assert len(comments) == 2
     assert comments[0]["text"] == "素晴らしい投稿！"
     assert comments[0]["score"] == 50
     assert comments[1]["text"] == "同意します"
     assert comments[1]["score"] == 30
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -568,13 +616,17 @@ async def test_retrieve_top_comments_empty(reddit_explorer_service):
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.submission = AsyncMock(return_value=mock_submission)
 
-    comments = await reddit_explorer_service._retrieve_top_comments_of_post(post, limit=5)
+    comments = await reddit_explorer_service._retrieve_top_comments_of_post(
+        post, limit=5
+    )
 
     assert len(comments) == 0
+
 
 # =============================================================================
 # 8. ヘルパーメソッドのユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 def test_extract_post_id_from_permalink(reddit_explorer_service):
@@ -585,24 +637,33 @@ def test_extract_post_id_from_permalink(reddit_explorer_service):
     """
     # 標準的なパーマリンク
     permalink1 = "https://www.reddit.com/r/python/comments/abc123/test_post/"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "abc123"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "abc123"
+    )
 
     # クエリパラメータ付き
     permalink2 = (
         "https://www.reddit.com/r/python/comments/xyz789/test/?utm_source=share"
     )
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "xyz789"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "xyz789"
+    )
 
     # 末尾スラッシュなし
     permalink3 = "/r/test/comments/def456/my_post"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink3) == "def456"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink3) == "def456"
+    )
 
     # 空文字列
     assert reddit_explorer_service._extract_post_id_from_permalink("") == ""
 
     # commentsがないパターン
     permalink4 = "/r/test/ghi789"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink4) == "ghi789"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink4) == "ghi789"
+    )
+
 
 @pytest.mark.unit
 def test_post_sort_key(reddit_explorer_service):
@@ -622,6 +683,7 @@ def test_post_sort_key(reddit_explorer_service):
     assert created.year == 2024
     assert created.month == 1
     assert created.day == 1
+
 
 @pytest.mark.unit
 def test_select_top_posts(reddit_explorer_service):
@@ -678,9 +740,11 @@ def test_select_top_posts(reddit_explorer_service):
     assert selected[0][2].id == "2"  # popularity_score 200
     assert selected[1][2].id == "3"  # popularity_score 150
 
+
 # =============================================================================
 # 9. シリアライズ・ストレージのユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 def test_serialize_posts(reddit_explorer_service):
@@ -719,6 +783,7 @@ def test_serialize_posts(reddit_explorer_service):
     assert "created_at" in records[0]
     assert "published_at" in records[0]
 
+
 @pytest.mark.unit
 def test_serialize_posts_without_created_at(reddit_explorer_service):
     """
@@ -743,6 +808,7 @@ def test_serialize_posts_without_created_at(reddit_explorer_service):
     assert "created_at" in records[0]
     assert "published_at" in records[0]
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_empty_posts(reddit_explorer_service):
@@ -754,6 +820,7 @@ async def test_store_summaries_empty_posts(reddit_explorer_service):
     result = await reddit_explorer_service._store_summaries([], [date(2024, 1, 1)])
 
     assert result == []
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -780,20 +847,22 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
     with patch(
         "nook.services.reddit_explorer.reddit_explorer.store_daily_snapshots"
     ) as mock_store:
-        mock_store.return_value = [
-            ("/data/2024-01-01.json", "/data/2024-01-01.md")
-        ]
+        mock_store.return_value = [("/data/2024-01-01.json", "/data/2024-01-01.md")]
 
-        result = await reddit_explorer_service._store_summaries(posts, [date(2024, 1, 1)])
+        result = await reddit_explorer_service._store_summaries(
+            posts, [date(2024, 1, 1)]
+        )
 
         assert len(result) == 1
         assert result[0][0] == "/data/2024-01-01.json"
         assert result[0][1] == "/data/2024-01-01.md"
     assert mock_store.called
 
+
 # =============================================================================
 # 10. Markdownレンダリングのユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 def test_render_markdown(reddit_explorer_service):
@@ -827,6 +896,7 @@ def test_render_markdown(reddit_explorer_service):
     assert "**要約**:\nThis is a summary" in markdown
     assert "---" in markdown
 
+
 @pytest.mark.unit
 def test_render_markdown_long_text(reddit_explorer_service):
     """
@@ -852,6 +922,7 @@ def test_render_markdown_long_text(reddit_explorer_service):
     markdown = reddit_explorer_service._render_markdown(records, today)
 
     assert "本文: " + "a" * 200 + "..." in markdown
+
 
 @pytest.mark.unit
 def test_render_markdown_multiple_subreddits(reddit_explorer_service):
@@ -887,9 +958,11 @@ def test_render_markdown_multiple_subreddits(reddit_explorer_service):
     assert "### [Python Post](/r/python/comments/test1)" in markdown
     assert "### [JS Post](/r/javascript/comments/test2)" in markdown
 
+
 # =============================================================================
 # 11. Markdownパースのユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 def test_parse_markdown(reddit_explorer_service):
@@ -929,6 +1002,7 @@ This is a summary
     assert records[0]["summary"] == "This is a summary"
     assert records[0]["permalink"] == "/r/python/comments/abc123/test_post"
 
+
 @pytest.mark.unit
 def test_parse_markdown_without_optional_fields(reddit_explorer_service):
     """
@@ -960,6 +1034,7 @@ Simple summary
     assert records[0]["text"] == ""
     assert records[0]["upvotes"] == 50
     assert records[0]["summary"] == "Simple summary"
+
 
 @pytest.mark.unit
 def test_parse_markdown_multiple_posts(reddit_explorer_service):
@@ -1013,9 +1088,11 @@ Summary 3
     assert records[2]["subreddit"] == "javascript"
     assert records[2]["title"] == "Post 3"
 
+
 # =============================================================================
 # 12. _load_existing_postsのユニットテスト
 # =============================================================================
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -1030,7 +1107,9 @@ async def test_load_existing_posts_from_json_list(reddit_explorer_service):
         {"id": "test2", "title": "Post 2"},
     ]
 
-    with patch.object(reddit_explorer_service, "load_json", new_callable=AsyncMock) as mock_load:
+    with patch.object(
+        reddit_explorer_service, "load_json", new_callable=AsyncMock
+    ) as mock_load:
         mock_load.return_value = json_data
 
         result = await reddit_explorer_service._load_existing_posts(date(2024, 1, 1))
@@ -1038,6 +1117,7 @@ async def test_load_existing_posts_from_json_list(reddit_explorer_service):
         assert len(result) == 2
         assert result[0]["id"] == "test1"
         assert result[1]["id"] == "test2"
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -1052,7 +1132,9 @@ async def test_load_existing_posts_from_json_dict(reddit_explorer_service):
         "javascript": [{"id": "test2", "title": "JS Post"}],
     }
 
-    with patch.object(reddit_explorer_service, "load_json", new_callable=AsyncMock) as mock_load:
+    with patch.object(
+        reddit_explorer_service, "load_json", new_callable=AsyncMock
+    ) as mock_load:
         mock_load.return_value = json_data
 
         result = await reddit_explorer_service._load_existing_posts(date(2024, 1, 1))
@@ -1062,6 +1144,7 @@ async def test_load_existing_posts_from_json_dict(reddit_explorer_service):
         assert result[0]["id"] == "test1"
         assert result[1]["subreddit"] == "javascript"
         assert result[1]["id"] == "test2"
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -1100,6 +1183,7 @@ Summary
         assert result[0]["id"] == "test123"
         assert result[0]["subreddit"] == "python"
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_posts_no_data(reddit_explorer_service):
@@ -1120,9 +1204,11 @@ async def test_load_existing_posts_no_data(reddit_explorer_service):
 
         assert len(result) == 0
 
+
 # =============================================================================
 # 13. エッジケーステスト
 # =============================================================================
+
 
 @pytest.mark.unit
 def test_post_sort_key_edge_cases(reddit_explorer_service):
@@ -1154,6 +1240,7 @@ def test_post_sort_key_edge_cases(reddit_explorer_service):
     assert popularity4 == 0.0
     assert created4.year == 1
 
+
 @pytest.mark.unit
 def test_extract_post_id_edge_cases(reddit_explorer_service):
     """
@@ -1163,14 +1250,19 @@ def test_extract_post_id_edge_cases(reddit_explorer_service):
     """
     # commentsキーワードなし
     permalink1 = "/r/test/post123"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "post123"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "post123"
+    )
 
     # 複数のスラッシュ
     permalink2 = "/r/test/comments/abc123/title/extra/parts"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "abc123"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "abc123"
+    )
 
     # None - Noneが渡された場合も例外を発生させず、空文字を返すことを検証
     assert reddit_explorer_service._extract_post_id_from_permalink(None) == ""
+
 
 @pytest.mark.unit
 def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
@@ -1198,6 +1290,7 @@ def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
     # 全投稿が返される
     assert len(selected) == 1
 
+
 @pytest.mark.unit
 def test_run_method(reddit_explorer_service):
     """
@@ -1205,7 +1298,9 @@ def test_run_method(reddit_explorer_service):
     When: runメソッドを呼び出す
     Then: collectメソッドが実行される
     """
-    with patch.object(reddit_explorer_service, "collect", new_callable=AsyncMock) as mock_collect:
+    with patch.object(
+        reddit_explorer_service, "collect", new_callable=AsyncMock
+    ) as mock_collect:
         mock_collect.return_value = []
 
         reddit_explorer_service.run(limit=10)
@@ -1213,9 +1308,12 @@ def test_run_method(reddit_explorer_service):
         # collectが呼ばれたことを確認
         assert mock_collect.called
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_date_filter(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: 対象日付外の投稿
     When: _retrieve_hot_postsで取得
@@ -1259,6 +1357,7 @@ async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, async_gen
     assert len(posts) == 0
     assert total == 1  # カウントはされる
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_top_comments_without_body(reddit_explorer_service):
@@ -1293,13 +1392,18 @@ async def test_retrieve_top_comments_without_body(reddit_explorer_service):
 
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.submission = AsyncMock(return_value=mock_submission)
-    reddit_explorer_service._translate_to_japanese = AsyncMock(return_value="有効なコメント")
+    reddit_explorer_service._translate_to_japanese = AsyncMock(
+        return_value="有効なコメント"
+    )
 
-    comments = await reddit_explorer_service._retrieve_top_comments_of_post(post, limit=5)
+    comments = await reddit_explorer_service._retrieve_top_comments_of_post(
+        post, limit=5
+    )
 
     # body属性があるコメントのみ返される
     assert len(comments) == 1
     assert comments[0]["text"] == "有効なコメント"
+
 
 @pytest.mark.unit
 def test_post_sort_key_invalid_date_format(reddit_explorer_service):
@@ -1318,6 +1422,7 @@ def test_post_sort_key_invalid_date_format(reddit_explorer_service):
     assert created.year == 1
     assert created.month == 1
 
+
 @pytest.mark.unit
 def test_select_top_posts_empty_list(reddit_explorer_service):
     """
@@ -1333,6 +1438,7 @@ def test_select_top_posts_empty_list(reddit_explorer_service):
     assert len(selected) == 0
     assert selected == []
 
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_titles_error(reddit_explorer_service):
@@ -1343,7 +1449,9 @@ async def test_load_existing_titles_error(reddit_explorer_service):
     """
     # storage.load_markdownがエラーを発生
     with patch.object(
-        reddit_explorer_service.storage, "load_markdown", side_effect=Exception("Load error")
+        reddit_explorer_service.storage,
+        "load_markdown",
+        side_effect=Exception("Load error"),
     ):
         tracker = await reddit_explorer_service._load_existing_titles()
 
