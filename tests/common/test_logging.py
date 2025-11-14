@@ -304,7 +304,9 @@ def test_setup_logger_use_json_false():
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = setup_logger("test_logger", log_dir=tmpdir, use_json=False)
 
-        file_handler = [h for h in logger.handlers if isinstance(h, logging.Handler)][1]
+        file_handlers = [h for h in logger.handlers if hasattr(h, "baseFilename")]
+        assert len(file_handlers) == 1
+        file_handler = file_handlers[0]
         assert not isinstance(file_handler.formatter, JSONFormatter)
 
 
@@ -318,7 +320,9 @@ def test_setup_logger_use_json_true():
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = setup_logger("test_logger", log_dir=tmpdir, use_json=True)
 
-        file_handler = [h for h in logger.handlers if isinstance(h, logging.Handler)][1]
+        file_handlers = [h for h in logger.handlers if hasattr(h, "baseFilename")]
+        assert len(file_handlers) == 1
+        file_handler = file_handlers[0]
         assert isinstance(file_handler.formatter, JSONFormatter)
 
 
@@ -332,9 +336,13 @@ def test_setup_logger_console_handler():
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = setup_logger("test_logger", log_dir=tmpdir)
 
-        console_handler = [
-            h for h in logger.handlers if isinstance(h, logging.StreamHandler)
-        ][0]
+        stream_handlers = [
+            h
+            for h in logger.handlers
+            if isinstance(h, logging.StreamHandler) and not hasattr(h, "baseFilename")
+        ]
+        assert len(stream_handlers) == 1
+        console_handler = stream_handlers[0]
         assert isinstance(console_handler.formatter, SimpleConsoleFormatter)
 
 

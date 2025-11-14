@@ -310,7 +310,8 @@ def mock_rss_feed_xml():
 @pytest.fixture
 def mock_rss_feed(respx_mock, mock_rss_feed_xml):
     """RSSフィードエンドポイントのモック"""
-    respx_mock.get(url__regex=r"https?://.*\.xml").mock(
+    # より具体的なパターンに限定（example.comドメインのみ）
+    respx_mock.get(url__regex=r"https?://example\.com/.*\.xml").mock(
         return_value=httpx.Response(
             200, text=mock_rss_feed_xml, headers={"Content-Type": "application/xml"}
         )

@@ -40,6 +40,20 @@ class TwitterPoster:
         load_dotenv()
         self.storage = LocalStorage(storage_dir)
 
+        # Twitter API認証情報のバリデーション
+        required_keys = [
+            "CONSUMER_KEY",
+            "CONSUMER_SECRET",
+            "BEARER_TOKEN",
+            "ACCESS_TOKEN",
+            "ACCESS_SECRET",
+        ]
+        missing_keys = [key for key in required_keys if not os.getenv(key)]
+        if missing_keys:
+            raise ValueError(
+                f"Missing required environment variables: {', '.join(missing_keys)}"
+            )
+
         # Twitter API認証
         self.client = tweepy.Client(
             consumer_key=os.getenv("CONSUMER_KEY"),
