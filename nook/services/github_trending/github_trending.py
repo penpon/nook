@@ -1,29 +1,27 @@
 """GitHubのトレンドリポジトリを収集するサービス。"""
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 from textwrap import dedent
-import re
-
 from typing import Any
 
 import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
-from nook.common.decorators import handle_errors
-from nook.common.exceptions import APIException
-from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import target_dates_set
+from nook.common.decorators import handle_errors
+from nook.common.dedup import DedupTracker
+from nook.common.exceptions import APIException
 from nook.common.logging_utils import (
-    log_processing_start,
     log_article_counts,
-    log_summary_candidates,
-    log_summarization_start,
+    log_processing_start,
     log_summarization_progress,
-    log_storage_complete,
+    log_summarization_start,
+    log_summary_candidates,
 )
 
 
@@ -210,7 +208,7 @@ class GithubTrending(BaseService):
                 self.logger.info(f"\n   💾 保存完了: {json_path}, {md_path}")
                 saved_files.append((json_path, md_path))
             else:
-                self.logger.info(f"   ℹ️  新規リポジトリがありません")
+                self.logger.info("   ℹ️  新規リポジトリがありません")
 
         # 処理完了メッセージ
         if saved_files:

@@ -7,14 +7,12 @@ import asyncio
 import signal
 import sys
 from datetime import date, datetime
-from typing import Set
 
 from dotenv import load_dotenv
 
-from nook.common.async_utils import AsyncTaskManager, gather_with_errors
-from nook.common.http_client import close_http_client
-from nook.common.logging import setup_logger
+from nook.common.async_utils import AsyncTaskManager
 from nook.common.date_utils import target_dates_set
+from nook.common.logging import setup_logger
 
 # 環境変数の読み込み
 load_dotenv()
@@ -65,7 +63,7 @@ class ServiceRunnerTest:
         service_name: str,
         service,
         days: int = 1,
-        target_dates: Set[date] | None = None,
+        target_dates: set[date] | None = None,
     ):
         """同期サービスを非同期で実行（テスト用：1件制限）"""
         # days パラメータを使用するサービスの場合、対象期間を表示

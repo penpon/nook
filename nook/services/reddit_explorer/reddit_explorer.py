@@ -4,7 +4,7 @@ import asyncio
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -12,17 +12,17 @@ import asyncpraw
 import tomli
 
 from nook.common.base_service import BaseService
-from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import is_within_target_dates, target_dates_set
+from nook.common.dedup import DedupTracker
 from nook.common.logging_utils import (
-    log_processing_start,
     log_article_counts,
-    log_summary_candidates,
-    log_summarization_start,
-    log_summarization_progress,
-    log_storage_complete,
     log_no_new_articles,
+    log_processing_start,
+    log_storage_complete,
+    log_summarization_progress,
+    log_summarization_start,
+    log_summary_candidates,
 )
 
 
