@@ -22,23 +22,87 @@ import pytest
 import respx
 
 # =============================================================================
+# テスト定数
+# =============================================================================
+
+# 固定値（テストの再現性向上）
+TEST_THREAD_ID = 123456
+TEST_TIMESTAMP = 1699999999  # 2023-11-15 00:46:39 UTC
+TEST_TIMESTAMP_ALT = 1234567890  # 2009-02-13 23:31:30 UTC
+TEST_DATE = date(2024, 11, 14)
+TEST_DATETIME = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+
+# 4chan API エンドポイント
+FOURCHAN_CATALOG_URL = "https://a.4cdn.org/{board}/catalog.json"
+FOURCHAN_THREAD_URL = "https://a.4cdn.org/{board}/thread/{thread_id}.json"
+
+# テストボード
+TEST_BOARD = "g"
+
+# =============================================================================
+# テストフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def fourchan_service(mock_env_vars):
+    """
+    FourChanExplorerインスタンスを作成するフィクスチャ
+
+    setup_loggerのパッチを自動的に適用し、
+    テストごとの繰り返しコードを削減
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        yield FourChanExplorer()
+
+
+@pytest.fixture
+def sample_thread_posts():
+    """サンプルスレッド投稿データ"""
+    return [
+        {
+            "no": TEST_THREAD_ID,
+            "time": TEST_TIMESTAMP,
+            "com": "What do you think about GPT-4?",
+            "replies": 50,
+        },
+        {
+            "no": TEST_THREAD_ID + 1,
+            "time": TEST_TIMESTAMP + 100,
+            "com": "It's amazing!",
+        },
+    ]
+
+
+@pytest.fixture
+def sample_thread_data(sample_thread_posts):
+    """サンプルスレッドデータ（Thread オブジェクト用）"""
+    return {
+        "thread_id": TEST_THREAD_ID,
+        "title": "AI Discussion",
+        "url": f"https://boards.4chan.org/{TEST_BOARD}/thread/{TEST_THREAD_ID}",
+        "board": TEST_BOARD,
+        "posts": sample_thread_posts,
+        "timestamp": TEST_TIMESTAMP,
+        "popularity_score": 10.0,
+    }
+
+
+# =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
 
 
 @pytest.mark.unit
-def test_init_with_default_storage_dir(mock_env_vars):
+def test_init_with_default_storage_dir(fourchan_service):
     """
     Given: デフォルトのstorage_dir
     When: FourChanExplorerを初期化
     Then: インスタンスが正常に作成される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
-
-        service = FourChanExplorer()
-
-        assert service.service_name == "fourchan_explorer"
+    assert fourchan_service.service_name == "fourchan_explorer"
 
 
 # =============================================================================
@@ -1115,40 +1179,24 @@ def test_thread_sort_key_with_invalid_timestamp(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_summarize_thread_success(mock_env_vars):
+async def test_summarize_thread_success(fourchan_service, sample_thread_data):
     """
     Given: 有効なスレッドオブジェクト
     When: _summarize_thread()を呼び出す
     Then: 要約が正常に生成される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import (
-            FourChanExplorer,
-            Thread,
-        )
+    from nook.services.fourchan_explorer.fourchan_explorer import Thread
 
-        service = FourChanExplorer()
+    thread = Thread(**sample_thread_data)
 
-        thread = Thread(
-            thread_id=123456,
-            title="AI Discussion",
-            url="https://boards.4chan.org/g/thread/123456",
-            board="g",
-            posts=[
-                {"no": 123456, "com": "What do you think about GPT-4?"},
-                {"no": 123457, "com": "It's amazing!"},
-            ],
-            timestamp=1699999999,
-        )
+    fourchan_service.gpt_client.generate_content = Mock(
+        return_value="これはAIに関する議論です。"
+    )
 
-        service.gpt_client.generate_content = Mock(
-            return_value="これはAIに関する議論です。"
-        )
+    await fourchan_service._summarize_thread(thread)
 
-        await service._summarize_thread(thread)
-
-        assert thread.summary == "これはAIに関する議論です。"
-        service.gpt_client.generate_content.assert_called_once()
+    assert thread.summary == "これはAIに関する議論です。"
+    fourchan_service.gpt_client.generate_content.assert_called_once()
 
 
 @pytest.mark.unit
@@ -2629,98 +2677,86 @@ def test_init_with_storage_path_already_ending_with_service_name(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_summarize_thread_with_empty_op_text(mock_env_vars):
+async def test_summarize_thread_with_empty_op_text(fourchan_service):
     """
     Given: OPのcomフィールドが空文字
     When: _summarize_thread()を呼び出す
     Then: OPのテキストがスキップされる
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import (
-            FourChanExplorer,
-            Thread,
-        )
+    from nook.services.fourchan_explorer.fourchan_explorer import Thread
 
-        service = FourChanExplorer()
+    thread = Thread(
+        thread_id=TEST_THREAD_ID,
+        title="Test",
+        url=f"https://boards.4chan.org/{TEST_BOARD}/thread/{TEST_THREAD_ID}",
+        popularity_score=1.0,
+        board=TEST_BOARD,
+        timestamp=TEST_TIMESTAMP_ALT,
+        posts=[
+            {"no": TEST_THREAD_ID, "com": ""},  # 空のOP
+            {"no": TEST_THREAD_ID + 1, "com": "Reply text"},
+        ],
+    )
 
-        thread = Thread(
-            thread_id=123,
-            title="Test",
-            url="https://test.com",
-            popularity_score=1.0,
-            board="g",
-            timestamp=1234567890,
-            posts=[
-                {"no": 123, "com": ""},  # 空のOP
-                {"no": 124, "com": "Reply text"},
-            ],
-        )
+    fourchan_service.gpt_client.generate_content = Mock(return_value="Summary")
 
-        service.gpt_client.generate_content = Mock(return_value="Summary")
+    await fourchan_service._summarize_thread(thread)
 
-        await service._summarize_thread(thread)
+    # 要約が生成される
+    assert thread.summary == "Summary"
+    assert fourchan_service.gpt_client.generate_content.called
 
-        # 要約が生成される
-        assert thread.summary == "Summary"
-        assert service.gpt_client.generate_content.called
-
-        # OPのテキストがプロンプトに含まれていないことを確認
-        call_args = service.gpt_client.generate_content.call_args
-        prompt = call_args.kwargs["prompt"]
-        # "OP:"が含まれていない（空だからスキップされた）
-        assert "OP: Reply text" not in prompt
-        # 返信は含まれている
-        assert "返信 1: Reply text" in prompt
+    # OPのテキストがプロンプトに含まれていないことを確認
+    call_args = fourchan_service.gpt_client.generate_content.call_args
+    prompt = call_args.kwargs["prompt"]
+    # "OP:"が含まれていない（空だからスキップされた）
+    assert "OP: Reply text" not in prompt
+    # 返信は含まれている
+    assert "返信 1: Reply text" in prompt
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_summarize_thread_with_empty_reply_text(mock_env_vars):
+async def test_summarize_thread_with_empty_reply_text(fourchan_service):
     """
     Given: 返信のcomフィールドが空文字
     When: _summarize_thread()を呼び出す
     Then: 空の返信がスキップされる
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import (
-            FourChanExplorer,
-            Thread,
-        )
+    from nook.services.fourchan_explorer.fourchan_explorer import Thread
 
-        service = FourChanExplorer()
+    thread = Thread(
+        thread_id=TEST_THREAD_ID,
+        title="Test",
+        url=f"https://boards.4chan.org/{TEST_BOARD}/thread/{TEST_THREAD_ID}",
+        popularity_score=1.0,
+        board=TEST_BOARD,
+        timestamp=TEST_TIMESTAMP_ALT,
+        posts=[
+            {"no": TEST_THREAD_ID, "com": "OP text"},
+            {"no": TEST_THREAD_ID + 1, "com": ""},  # 空の返信
+            {"no": TEST_THREAD_ID + 2, "com": "Real reply"},
+        ],
+    )
 
-        thread = Thread(
-            thread_id=123,
-            title="Test",
-            url="https://test.com",
-            popularity_score=1.0,
-            board="g",
-            timestamp=1234567890,
-            posts=[
-                {"no": 123, "com": "OP text"},
-                {"no": 124, "com": ""},  # 空の返信
-                {"no": 125, "com": "Real reply"},
-            ],
-        )
+    fourchan_service.gpt_client.generate_content = Mock(return_value="Summary")
 
-        service.gpt_client.generate_content = Mock(return_value="Summary")
+    await fourchan_service._summarize_thread(thread)
 
-        await service._summarize_thread(thread)
+    # 要約が生成される
+    assert thread.summary == "Summary"
+    assert fourchan_service.gpt_client.generate_content.called
 
-        # 要約が生成される
-        assert thread.summary == "Summary"
-        assert service.gpt_client.generate_content.called
-
-        # プロンプト内容を検証
-        call_args = service.gpt_client.generate_content.call_args
-        prompt = call_args.kwargs["prompt"]
-        # OPは含まれている
-        assert "OP: OP text" in prompt
-        # 空の返信はスキップされ、実際の返信のみが含まれている
-        # 注：空の返信（インデックス1）がスキップされるため、次の返信は「返信 2」
-        assert "返信 2: Real reply" in prompt
-        # 返信は1つだけ（空の返信はカウントされない）
-        assert prompt.count("返信") == 1
+    # プロンプト内容を検証
+    call_args = fourchan_service.gpt_client.generate_content.call_args
+    prompt = call_args.kwargs["prompt"]
+    # OPは含まれている
+    assert "OP: OP text" in prompt
+    # 空の返信はスキップされ、実際の返信のみが含まれている
+    # 注：空の返信（インデックス1）がスキップされるため、次の返信は「返信 2」
+    assert "返信 2: Real reply" in prompt
+    # 返信は1つだけ（空の返信はカウントされない）
+    assert prompt.count("返信") == 1
 
 
 # =============================================================================
