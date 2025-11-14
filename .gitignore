@@ -142,3 +142,8 @@ docker-compose.override.yml
 .AppleDouble
 .LSOverride
 ._*
+
+# Spec workflow temporary files
+.spec-workflow/approvals/
+.spec-workflow/archive/
+.spec-workflow/specs/*/Implementation Logs/
