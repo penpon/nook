@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
@@ -29,7 +29,7 @@ TEST_THREAD_ID = 123456
 TEST_TIMESTAMP = 1699999999  # 2023-11-15 00:46:39 UTC
 TEST_TIMESTAMP_ALT = 1234567890  # 2009-02-13 23:31:30 UTC
 TEST_DATE = date(2024, 11, 14)
-TEST_DATETIME = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
+TEST_DATETIME = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
 
 # 4chan API エンドポイント
 FOURCHAN_CATALOG_URL = "https://a.4cdn.org/{board}/catalog.json"
@@ -811,9 +811,9 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
                             "replies": 50,
                             "images": 10,
                             "bumps": 45,
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         }
                     ],
@@ -830,7 +830,7 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
                 "posts": [
                     {
                         "no": 123456,
-                        "time": int(datetime.now(UTC).timestamp()),
+                        "time": int(datetime.now(timezone.utc).timestamp()),
                         "com": "AI post",
                     }
                 ]
@@ -875,9 +875,9 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
                             "no": i,
                             "sub": f"AI Thread {i}",
                             "com": "machine learning discussion",
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         }
                         for i in range(10)
@@ -894,7 +894,7 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
                 200,
                 json={
                     "posts": [
-                        {"no": i, "time": int(datetime.now(UTC).timestamp())}
+                        {"no": i, "time": int(datetime.now(timezone.utc).timestamp())}
                     ]
                 },
             )
@@ -935,18 +935,18 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
                             "no": 1,
                             "sub": "AI Discussion",
                             "com": "GPT-4 is amazing",
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         },
                         {
                             "no": 2,
                             "sub": "Random Thread",
                             "com": "Just a regular discussion",
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         },
                     ],
@@ -960,7 +960,7 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
             200,
             json={
                 "posts": [
-                    {"no": 1, "time": int(datetime.now(UTC).timestamp())}
+                    {"no": 1, "time": int(datetime.now(timezone.utc).timestamp())}
                 ]
             },
         )
@@ -1033,18 +1033,18 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
                             "no": 1,
                             "sub": "AI Discussion",
                             "com": "GPT discussion",
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         },
                         {
                             "no": 2,
                             "sub": "AI Discussion",  # 同じタイトル
                             "com": "Another GPT discussion",
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         },
                     ],
@@ -1058,7 +1058,7 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
             200,
             json={
                 "posts": [
-                    {"no": 1, "time": int(datetime.now(UTC).timestamp())}
+                    {"no": 1, "time": int(datetime.now(timezone.utc).timestamp())}
                 ]
             },
         )
@@ -1313,7 +1313,7 @@ def test_thread_sort_key_with_invalid_timestamp(mock_env_vars):
 
         assert isinstance(key, tuple)
         assert key[0] == 5.0
-        assert key[1] == datetime.min.replace(tzinfo=UTC)
+        assert key[1] == datetime.min.replace(tzinfo=timezone.utc)
 
 
 # =============================================================================
@@ -1982,9 +1982,9 @@ async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
                         {
                             "no": 123456,
                             "com": "AI and machine learning discussion",
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         }
                     ],
@@ -1998,7 +1998,7 @@ async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
             200,
             json={
                 "posts": [
-                    {"no": 123456, "time": int(datetime.now(UTC).timestamp())}
+                    {"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}
                 ]
             },
         )
@@ -2039,9 +2039,9 @@ async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
                             "no": 123456,
                             "sub": "Test Thread",
                             "com": "<b>GPT-4</b> and <i>machine learning</i>",
-                            "time": int(datetime.now(UTC).timestamp()),
+                            "time": int(datetime.now(timezone.utc).timestamp()),
                             "last_modified": int(
-                                datetime.now(UTC).timestamp()
+                                datetime.now(timezone.utc).timestamp()
                             ),
                         }
                     ],
@@ -2055,7 +2055,7 @@ async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
             200,
             json={
                 "posts": [
-                    {"no": 123456, "time": int(datetime.now(UTC).timestamp())}
+                    {"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}
                 ]
             },
         )
@@ -2340,7 +2340,7 @@ async def test_store_summaries_with_threads(mock_env_vars):
                 url="https://boards.4chan.org/g/thread/123456",
                 board="g",
                 posts=[],
-                timestamp=int(datetime.now(UTC).timestamp()),
+                timestamp=int(datetime.now(timezone.utc).timestamp()),
                 summary="Test summary",
                 popularity_score=10.0,
             )
@@ -2379,7 +2379,7 @@ async def test_retrieve_ai_threads_date_filtering(mock_env_vars, respx_mock):
     Then: 日付範囲外のスレッドがスキップされる
     """
     # 過去の日付（対象範囲外）
-    old_timestamp = int((datetime.now(UTC) - timedelta(days=10)).timestamp())
+    old_timestamp = int((datetime.now(timezone.utc) - timedelta(days=10)).timestamp())
 
     respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
         return_value=httpx.Response(
@@ -2434,7 +2434,7 @@ async def test_retrieve_ai_threads_within_date_range(mock_env_vars, respx_mock):
     When: _retrieve_ai_threads()を呼び出す
     Then: スレッドが正常に取得される
     """
-    current_timestamp = int(datetime.now(UTC).timestamp())
+    current_timestamp = int(datetime.now(timezone.utc).timestamp())
 
     respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
         return_value=httpx.Response(
@@ -2690,7 +2690,7 @@ async def test_retrieve_ai_threads_thread_posts_failure(mock_env_vars, respx_moc
     When: _retrieve_ai_threads()を呼び出す
     Then: そのスレッドがスキップされる
     """
-    current_timestamp = int(datetime.now(UTC).timestamp())
+    current_timestamp = int(datetime.now(timezone.utc).timestamp())
 
     respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
         return_value=httpx.Response(
@@ -2743,7 +2743,7 @@ async def test_retrieve_ai_threads_no_valid_timestamps(mock_env_vars, respx_mock
     When: _retrieve_ai_threads()を呼び出す
     Then: スレッドが適切に処理される
     """
-    current_timestamp = int(datetime.now(UTC).timestamp())
+    current_timestamp = int(datetime.now(timezone.utc).timestamp())
 
     respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
         return_value=httpx.Response(
@@ -2803,7 +2803,7 @@ def test_init_with_storage_path_not_ending_with_service_name(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 
-        service = FourChanExplorer(storage_dir="/tmp/data")  # nosec B108 - Safe for test context
+        service = FourChanExplorer(storage_dir="/tmp/data")  # nosec B108
 
         # storage_pathにfourchan_explorerが追加されている
         assert str(service.storage.base_dir).endswith("fourchan_explorer")
@@ -2939,7 +2939,7 @@ def test_thread_sort_key_with_invalid_published_format(mock_env_vars):
         popularity, published = service._thread_sort_key(thread)
 
         assert popularity == 5.0
-        assert published == datetime.min.replace(tzinfo=UTC)
+        assert published == datetime.min.replace(tzinfo=timezone.utc)
 
 
 # =============================================================================
@@ -2996,7 +2996,7 @@ def test_render_markdown_with_invalid_published_at(mock_env_vars):
         ]
 
         # 固定日付を使用（再現性向上）
-        test_date = datetime(2024, 11, 14, tzinfo=UTC)
+        test_date = datetime(2024, 11, 14, tzinfo=timezone.utc)
         result = service._render_markdown(records, test_date)
 
         # timestampが使用される
