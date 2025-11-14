@@ -15,7 +15,7 @@ nook/services/zenn_explorer/zenn_explorer.py のテスト
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -31,7 +31,7 @@ from tests.conftest import create_mock_dedup, create_mock_entry, create_mock_fee
 # =============================================================================
 
 # 固定日時（テストの再現性を保証）
-FIXED_DATETIME = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+FIXED_DATETIME = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
 
 # マジック文字列を定数化
 LOAD_TITLES_PATH = "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
