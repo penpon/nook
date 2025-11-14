@@ -325,7 +325,6 @@ async def test_stress_continuous_operations(arxiv_service, paper_info_factory):
     variation = (max_response_time - min_response_time) / avg_response_time
 
     # 全体の統計も表示
-    overall_avg = sum(response_times) / len(response_times)
     overall_max = max(response_times)
     overall_min = min(response_times)
 
