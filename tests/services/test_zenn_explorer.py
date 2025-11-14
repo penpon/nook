@@ -106,34 +106,16 @@ def test_run_with_default_params(mock_env_vars):
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 4. collect メソッドのテスト - 異常系
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 5. collect メソッドのテスト - 境界値
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 6. _select_top_articles メソッドのテスト
 # =============================================================================
@@ -238,19 +220,11 @@ def test_select_top_articles_with_limit_none(mock_env_vars):
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 8. _extract_popularity メソッドのテスト
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.unit
 # =============================================================================
 # 9. _get_markdown_header メソッドのテスト
 # =============================================================================
@@ -357,53 +331,21 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
             assert len(result) == 0, "パースエラー時は空リストが返されるべき"
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 13. collect メソッド - フィード処理ループの詳細テスト
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 14. _retrieve_article メソッド - HTTPエラー・BeautifulSoup解析詳細テスト
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 15. _extract_popularity メソッド - Zenn特有の詳細テスト
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
 # =============================================================================
 # 16. _load_existing_titles メソッドのテスト（未カバー部分）
 # =============================================================================
@@ -501,23 +443,11 @@ def test_load_existing_titles_with_exception(mock_env_vars):
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 18. _extract_popularity メソッド - div要素の明示的なテスト
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
 # =============================================================================
 # 19. collect メソッド - 日付ごとのストレージ処理の詳細テスト
 # =============================================================================
@@ -913,25 +843,11 @@ async def test_collect_filters_out_of_range_articles(mock_env_vars):
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 24. _extract_popularity メソッド - 優先順位とエッジケース
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
-@pytest.mark.unit
 # =============================================================================
 # 25. collect メソッド - 既存ファイルの処理詳細テスト
 # =============================================================================
@@ -1215,17 +1131,11 @@ async def test_collect_finally_block_execution(mock_env_vars):
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.unit
-@pytest.mark.asyncio
 # =============================================================================
 # 30. _extract_popularity メソッド - getattr分岐の完全カバレッジ
 # =============================================================================
 
 
-@pytest.mark.unit
-@pytest.mark.unit
 # =============================================================================
 # 31. collect メソッド - http_client初期化の確認
 # =============================================================================

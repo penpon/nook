@@ -770,3 +770,112 @@ def zenn_service_with_mocks(mock_env_vars):
             "mock_storage_save": mock_storage_save,
         }
 
+
+# =============================================================================
+# テストデータ定数（Phase 2.4 - レビュー対応）
+# =============================================================================
+
+# HTML templates
+TEST_HTML_SIMPLE = "<html><body><p>テキスト</p></body></html>"
+TEST_HTML_JAPANESE = "<html><body><p>日本語テキスト</p></body></html>"
+TEST_HTML_WITH_META = """<html>
+<head><meta name="description" content="テスト説明"></head>
+<body><p>コンテンツ</p></body>
+</html>"""
+
+# URLs
+TEST_URL = "https://example.com/test"
+TEST_FEED_URL = "https://example.com/feed.xml"
+TEST_ARTICLE_BASE_URL = "https://example.com/article"
+
+# Common values
+TEST_FEED_NAME = "Test Feed"
+TEST_CATEGORY_TECH = "tech"
+TEST_CATEGORY_BUSINESS = "business"
+TEST_SUMMARY = "要約"
+TEST_TITLE = "テスト記事"
+
+# Error messages（共通アサーションメッセージ）
+MSG_RESULT_SHOULD_BE_LIST = "結果はリスト型であるべき"
+MSG_RESULT_SHOULD_BE_ARTICLE = "結果はArticle型であるべき"
+MSG_RESULT_SHOULD_NOT_BE_NONE = "結果はNoneであってはならない"
+
+
+# =============================================================================
+# テストヘルパー関数（Phase 2.4 - レビュー対応）
+# =============================================================================
+
+
+def setup_http_client_mock(service, html_content=TEST_HTML_SIMPLE):
+    """HTTP clientのモックをセットアップ
+
+    Args:
+        service: ZennExplorerインスタンス
+        html_content: 返すHTMLコンテンツ（デフォルト: TEST_HTML_SIMPLE）
+    """
+    from unittest.mock import AsyncMock, Mock
+
+    service.http_client.get = AsyncMock(
+        return_value=Mock(text=html_content)
+    )
+
+
+def setup_gpt_client_mock(service, summary=TEST_SUMMARY):
+    """GPT clientのモックをセットアップ
+
+    Args:
+        service: ZennExplorerインスタンス
+        summary: 返す要約テキスト（デフォルト: TEST_SUMMARY）
+    """
+    from unittest.mock import AsyncMock
+
+    service.gpt_client.get_response = AsyncMock(return_value=summary)
+
+
+def assert_article_list_result(result, expected_count=None, min_count=None):
+    """記事リストの共通アサーション
+
+    Args:
+        result: テスト結果
+        expected_count: 期待される件数（Noneの場合はチェックしない）
+        min_count: 最小件数（Noneの場合はチェックしない）
+    """
+    assert isinstance(result, list), MSG_RESULT_SHOULD_BE_LIST
+
+    if expected_count is not None:
+        assert len(result) == expected_count, \
+            f"期待される件数は{expected_count}件、実際は{len(result)}件"
+
+    if min_count is not None:
+        assert len(result) >= min_count, \
+            f"最小{min_count}件の記事が必要、実際は{len(result)}件"
+
+
+def assert_article_result(result):
+    """単一Article結果の共通アサーション
+
+    Args:
+        result: テスト結果
+    """
+    from nook.services.base_feed_service import Article
+
+    assert result is not None, MSG_RESULT_SHOULD_NOT_BE_NONE
+    assert isinstance(result, Article), MSG_RESULT_SHOULD_BE_ARTICLE
+
+
+def create_test_html(content="テキスト", meta_description=None):
+    """テスト用HTMLを生成
+
+    Args:
+        content: body内のコンテンツ
+        meta_description: メタディスクリプション（Noneの場合は追加しない）
+
+    Returns:
+        str: 生成されたHTML
+    """
+    meta_tag = ""
+    if meta_description:
+        meta_tag = f'<head><meta name="description" content="{meta_description}"></head>'
+
+    return f"<html>{meta_tag}<body><p>{content}</p></body></html>"
+
