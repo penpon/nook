@@ -305,8 +305,6 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            Mock()
-
             result = await service.collect(days=1)
 
             assert result == []
@@ -679,7 +677,6 @@ def test_extract_popularity_with_data_attribute(mock_env_vars):
 def test_extract_popularity_with_button_text(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = TechFeed()
-
         entry = Mock()
         soup = BeautifulSoup(
             "<html><body><button>いいね 500</button></body></html>",
@@ -927,8 +924,6 @@ async def test_collect_no_saved_files(mock_env_vars):
             mock_feed.feed.title = "Test Feed"
             mock_feed.entries = []  # 記事なし
             mock_parse.return_value = mock_feed
-
-            Mock()
 
             result = await service.collect(days=1)
 
@@ -1421,8 +1416,6 @@ async def test_collect_multiple_categories(mock_env_vars):
             mock_feed.feed.title = "Test"
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
-
-            Mock()
 
             result = await service.collect(days=1)
 
