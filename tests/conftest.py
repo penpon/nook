@@ -632,3 +632,39 @@ def fivechan_service(mock_env_vars):
     with patch("nook.common.logging.setup_logger"):
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
         return FiveChanExplorer()
+
+
+@pytest.fixture
+def mock_httpx_client():
+    """httpx.AsyncClientのモックを提供
+
+    使用例:
+        async def test_something(fivechan_service, mock_httpx_client):
+            mock_response = Mock(status_code=200, content=b"data")
+            mock_httpx_client.get = AsyncMock(return_value=mock_response)
+            result = await fivechan_service._get_subject_txt_data("ai")
+    """
+    with patch("httpx.AsyncClient") as mock_client:
+        client_instance = AsyncMock()
+        client_instance.__aenter__.return_value = client_instance
+        client_instance.__aexit__.return_value = AsyncMock()
+        mock_client.return_value = client_instance
+        yield client_instance
+
+
+@pytest.fixture
+def mock_cloudscraper():
+    """cloudscraperのモックを提供
+
+    使用例:
+        async def test_dat_parsing(fivechan_service, mock_cloudscraper):
+            mock_response = Mock(status_code=200, content=b"data")
+            mock_cloudscraper.get = Mock(return_value=mock_response)
+            posts, latest = await fivechan_service._get_thread_posts_from_dat("url")
+    """
+    mock_scraper = Mock()
+    mock_scraper.headers = {}
+
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
+         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
+        yield mock_scraper

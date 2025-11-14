@@ -31,6 +31,75 @@ MAX_MEMORY_USAGE_MB = 50
 MAX_MEMORY_USAGE_BYTES = MAX_MEMORY_USAGE_MB * 1024 * 1024
 ENCODING_BOMB_REPEAT_COUNT = 1000000  # Shift_JISスペースの繰り返し回数
 
+# テストデータ用の定数
+VALID_SUBJECT_LINE = "1234567890.dat<>AIスレッド (100)\n"
+VALID_SUBJECT_TWO_LINES = (
+    "1234567890.dat<>AI・人工知能について語るスレ (100)\n"
+    "9876543210.dat<>機械学習の最新動向 (50)\n"
+)
+MALFORMED_ENCODING_SUBJECT = b"1234567890.dat<>\xff\xfe AI\x83X\x83\x8c\x83b\x83h (50)\n"
+INVALID_FORMAT_LINE = "invalid_format_line\n"
+
+# エラーメッセージ
+ERROR_CONNECTION_FAILED = "Connection failed"
+ERROR_NETWORK = "Network error"
+ERROR_NOT_FOUND = "Not Found"
+
+# DAT形式テストデータ
+VALID_DAT_LINE = "名無し<>sage<>2024/11/14 12:00:00<>テストメッセージ"
+MALFORMED_DAT_LINE = "invalid<>only_two"
+
+
+# =============================================================================
+# ヘルパー関数
+# =============================================================================
+
+
+def create_http_response(status_code: int = 200, content: bytes = b"", text: str = "") -> Mock:
+    """HTTPレスポンスモックを作成するファクトリー関数
+
+    Args:
+        status_code: HTTPステータスコード
+        content: レスポンスボディ（バイト列）
+        text: レスポンスボディ（文字列）
+
+    Returns:
+        Mock: HTTPレスポンスのモックオブジェクト
+
+    Example:
+        >>> response = create_http_response(content=b"data")
+        >>> response.status_code
+        200
+    """
+    mock_response = Mock()
+    mock_response.status_code = status_code
+    mock_response.content = content
+    mock_response.text = text or content.decode("utf-8", errors="ignore")
+    return mock_response
+
+
+# =============================================================================
+# モジュールスコープのフィクスチャ（大容量データのキャッシュ）
+# =============================================================================
+
+
+@pytest.fixture(scope="module")
+def encoding_bomb_data():
+    """エンコーディングボム用データ（モジュールスコープでキャッシュ）
+
+    約2MBのデータを1回のみ生成し、全テストで再利用
+    """
+    return b"\x81\x40" * ENCODING_BOMB_REPEAT_COUNT
+
+
+@pytest.fixture(scope="module")
+def huge_response_data():
+    """DoS攻撃用大容量データ（モジュールスコープでキャッシュ）
+
+    10MBのデータを1回のみ生成し、全テストで再利用
+    """
+    return b"x" * MAX_RESPONSE_SIZE_BYTES
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
@@ -173,150 +242,115 @@ async def test_full_workflow_collect_and_save(fivechan_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_success(fivechan_service):
+async def test_get_subject_txt_data_success(fivechan_service, mock_httpx_client):
     """
     Given: 有効なShift_JISエンコードのsubject.txt
     When: _get_subject_txt_dataを呼び出す
     Then: スレッド一覧が正しく解析される
     """
-    # Shift_JISエンコードのsubject.txtデータ
-    subject_data = "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n".encode(
-        "shift_jis"
-    )
+    # Shift_JISエンコードのsubject.txtデータ（定数を使用）
+    subject_data = VALID_SUBJECT_TWO_LINES.encode("shift_jis")
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = subject_data
+    # レスポンスファクトリーを使用
+    mock_response = create_http_response(content=subject_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
+    result = await fivechan_service._get_subject_txt_data("ai")
 
-        result = await fivechan_service._get_subject_txt_data("ai")
-
-        assert len(result) == 2
-        assert result[0]["title"] == "AI・人工知能について語るスレ"
-        assert result[0]["post_count"] == 100
-        assert result[1]["title"] == "機械学習の最新動向"
-        assert result[1]["post_count"] == 50
+    assert len(result) == 2, f"Expected 2 threads but got {len(result)}"
+    assert result[0]["title"] == "AI・人工知能について語るスレ"
+    assert result[0]["post_count"] == 100
+    assert result[1]["title"] == "機械学習の最新動向"
+    assert result[1]["post_count"] == 50
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_malformed_encoding(fivechan_service):
+async def test_get_subject_txt_data_malformed_encoding(fivechan_service, mock_httpx_client):
     """
     Given: 文字化けを含むsubject.txt（無効バイト含む）
     When: _get_subject_txt_dataを呼び出す
     Then: errors='ignore'で文字化け部分を無視して処理
     """
-    # 無効バイトシーケンスを含むデータ
-    subject_data = b"1234567890.dat<>\xff\xfe AI\x83X\x83\x8c\x83b\x83h (50)\n"
+    # 無効バイトシーケンスを含むデータ（定数を使用）
+    subject_data = MALFORMED_ENCODING_SUBJECT
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = subject_data
+    mock_response = create_http_response(content=subject_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
+    result = await fivechan_service._get_subject_txt_data("test")
 
-        result = await fivechan_service._get_subject_txt_data("test")
-
-        # errors='ignore'で処理されるので、空配列ではない
-        assert isinstance(result, list)
+    # errors='ignore'で処理されるので、空配列ではない
+    assert isinstance(result, list), f"Expected list but got {type(result).__name__}"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_malformed_format(fivechan_service):
+async def test_get_subject_txt_data_malformed_format(fivechan_service, mock_httpx_client):
     """
     Given: 不正なフォーマットのsubject.txt（正規表現マッチ失敗）
     When: _get_subject_txt_dataを呼び出す
     Then: マッチしない行はスキップされる
     """
-    # 正規表現にマッチしないフォーマット
+    # 正規表現にマッチしないフォーマット（定数を使用）
     subject_data = (
-        "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
+        f"{INVALID_FORMAT_LINE}1234567890.dat<>正しいスレッド (100)\n".encode(
             "shift_jis"
         )
     )
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = subject_data
+    mock_response = create_http_response(content=subject_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
+    result = await fivechan_service._get_subject_txt_data("test")
 
-        result = await fivechan_service._get_subject_txt_data("test")
-
-        # 正しいフォーマットの行のみ解析される
-        assert len(result) == 1
-        assert result[0]["title"] == "正しいスレッド"
+    # 正しいフォーマットの行のみ解析される
+    assert len(result) == 1, f"Expected 1 thread but got {len(result)}"
+    assert result[0]["title"] == "正しいスレッド"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_subdomain_retry(fivechan_service):
+async def test_get_subject_txt_data_subdomain_retry(fivechan_service, mock_httpx_client):
     """
     Given: 最初のサーバーが失敗、2番目のサーバーが成功
     When: _get_subject_txt_dataを呼び出す
     Then: 複数サブドメインをリトライして成功
     """
-    subject_data = "1234567890.dat<>AIスレッド (100)\n".encode("shift_jis")
+    subject_data = VALID_SUBJECT_LINE.encode("shift_jis")
 
     # 1回目は失敗、2回目は成功
     responses = [
-        Exception("Connection failed"),
-        Mock(status_code=200, content=subject_data),
+        Exception(ERROR_CONNECTION_FAILED),
+        create_http_response(content=subject_data),
     ]
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(side_effect=responses)
-        mock_client.return_value = client_instance
+    mock_httpx_client.get = AsyncMock(side_effect=responses)
 
-        result = await fivechan_service._get_subject_txt_data("ai")
+    result = await fivechan_service._get_subject_txt_data("ai")
 
-        # 2回目のリトライで成功
-        assert len(result) == 1
+    # 2回目のリトライで成功
+    assert len(result) == 1, f"Expected 1 thread but got {len(result)}"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_all_servers_fail(fivechan_service):
+async def test_get_subject_txt_data_all_servers_fail(fivechan_service, mock_httpx_client):
     """
     Given: すべてのサーバーが失敗
     When: _get_subject_txt_dataを呼び出す
     Then: 空配列が返される
     """
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(side_effect=Exception("Network error"))
-        mock_client.return_value = client_instance
+    mock_httpx_client.get = AsyncMock(side_effect=Exception(ERROR_NETWORK))
 
-        result = await fivechan_service._get_subject_txt_data("test")
+    result = await fivechan_service._get_subject_txt_data("test")
 
-        assert result == []
+    assert result == [], f"Expected empty list but got {result}"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_encoding_fallback(fivechan_service):
+async def test_get_subject_txt_data_encoding_fallback(fivechan_service, mock_httpx_client):
     """
     Given: shift_jisで失敗するが、cp932で成功するデータ
     When: _get_subject_txt_dataを呼び出す
@@ -325,21 +359,13 @@ async def test_get_subject_txt_data_encoding_fallback(fivechan_service):
     # CP932特有の文字（①②③など）
     subject_data = "1234567890.dat<>①②③のスレッド (30)\n".encode("cp932")
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = subject_data
+    mock_response = create_http_response(content=subject_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
+    result = await fivechan_service._get_subject_txt_data("test")
 
-        result = await fivechan_service._get_subject_txt_data("test")
-
-        # CP932フォールバックで処理される
-        assert len(result) >= 0  # エラーなく処理される
+    # CP932フォールバックで処理される
+    assert len(result) >= 0, f"Expected non-negative length but got {len(result)}"
 
 
 # =============================================================================
@@ -371,18 +397,16 @@ async def test_get_thread_posts_from_dat_success(fivechan_service):
     mock_scraper.get = Mock(return_value=mock_response)
     mock_scraper.headers = {}
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
-    ):
-
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
+         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
         posts, latest = await fivechan_service._get_thread_posts_from_dat(
             "http://test.5ch.net/test/dat/1234567890.dat"
         )
 
-        assert len(posts) == 2
-        assert posts[0]["name"] == "名無しさん"
-        assert posts[0]["mail"] == "sage"
-        assert "AI" in posts[0]["com"]
+    assert len(posts) == 2, f"Expected 2 posts but got {len(posts)}"
+    assert posts[0]["name"] == "名無しさん"
+    assert posts[0]["mail"] == "sage"
+    assert "AI" in posts[0]["com"]
 
 
 @pytest.mark.unit
@@ -394,9 +418,7 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(fivechan_service):
     Then: 正しくデコードされる
     """
     # 日本語を含むdat
-    dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode(
-        "shift_jis"
-    )
+    dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode("shift_jis")
 
     mock_response = Mock()
     mock_response.status_code = 200
@@ -406,14 +428,12 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(fivechan_service):
     mock_scraper.get = Mock(return_value=mock_response)
     mock_scraper.headers = {}
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
-    ):
-
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
+         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
         posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-        assert len(posts) == 1
-        assert "深層学習" in posts[0]["com"]
+    assert len(posts) == 1, f"Expected 1 post but got {len(posts)}"
+    assert "深層学習" in posts[0]["com"]
 
 
 @pytest.mark.unit
@@ -424,10 +444,10 @@ async def test_get_thread_posts_from_dat_malformed_line(fivechan_service):
     When: _get_thread_posts_from_datを呼び出す
     Then: 不正な行はスキップされる
     """
-    # 不正な行（<>が3つ未満）
-    dat_data = """invalid_line
+    # 不正な行（<>が3つ未満）- 定数を使用
+    dat_data = f"""invalid_line
 名無し<>sage<>2024/11/14 12:00:00<>正しい投稿
-another_invalid<>only_two
+{MALFORMED_DAT_LINE}
 """.encode(
         "shift_jis"
     )
@@ -440,71 +460,51 @@ another_invalid<>only_two
     mock_scraper.get = Mock(return_value=mock_response)
     mock_scraper.headers = {}
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
-    ):
-
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
+         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
         posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-        # 正しいフォーマットの行のみ解析
-        assert len(posts) == 1
-        assert "正しい投稿" in posts[0]["com"]
+    # 正しいフォーマットの行のみ解析
+    assert len(posts) == 1, f"Expected 1 post but got {len(posts)}"
+    assert "正しい投稿" in posts[0]["com"]
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_http_error(fivechan_service):
+async def test_get_thread_posts_from_dat_http_error(fivechan_service, mock_cloudscraper):
     """
     Given: HTTPエラー（404など）
     When: _get_thread_posts_from_datを呼び出す
     Then: 空配列とNoneを返す
     """
-    mock_response = Mock()
-    mock_response.status_code = 404
-    mock_response.text = "Not Found"
+    mock_response = create_http_response(status_code=404, text=ERROR_NOT_FOUND)
+    mock_cloudscraper.get = Mock(return_value=mock_response)
 
-    mock_scraper = Mock()
-    mock_scraper.get = Mock(return_value=mock_response)
-    mock_scraper.headers = {}
+    posts, latest = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
-    ):
-
-        posts, latest = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
-
-        assert posts == []
-        assert latest is None
+    assert posts == [], f"Expected empty list but got {posts}"
+    assert latest is None, f"Expected None but got {latest}"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_empty_content(fivechan_service):
+async def test_get_thread_posts_from_dat_empty_content(fivechan_service, mock_cloudscraper):
     """
     Given: 空のdatファイル
     When: _get_thread_posts_from_datを呼び出す
     Then: 空配列を返す
     """
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = b""
+    mock_response = create_http_response(content=b"")
+    mock_cloudscraper.get = Mock(return_value=mock_response)
 
-    mock_scraper = Mock()
-    mock_scraper.get = Mock(return_value=mock_response)
-    mock_scraper.headers = {}
+    posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
-    ):
-
-        posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
-
-        assert posts == []
+    assert posts == [], f"Expected empty list but got {posts}"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_encoding_cascade(fivechan_service):
+async def test_get_thread_posts_from_dat_encoding_cascade(fivechan_service, mock_cloudscraper):
     """
     Given: 文字化けを含むdatファイル
     When: _get_thread_posts_from_datを呼び出す
@@ -513,22 +513,13 @@ async def test_get_thread_posts_from_dat_encoding_cascade(fivechan_service):
     # 無効バイトを含むデータ
     dat_data = b"name<>mail<>date<>\xff\xfe invalid bytes message<>\n"
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = dat_data
+    mock_response = create_http_response(content=dat_data)
+    mock_cloudscraper.get = Mock(return_value=mock_response)
 
-    mock_scraper = Mock()
-    mock_scraper.get = Mock(return_value=mock_response)
-    mock_scraper.headers = {}
+    posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
-    ):
-
-        posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
-
-        # errors='ignore'で処理されるため、エラーなく処理される
-        assert isinstance(posts, list)
+    # errors='ignore'で処理されるため、エラーなく処理される
+    assert isinstance(posts, list), f"Expected list but got {type(posts).__name__}"
 
 
 # =============================================================================
@@ -773,7 +764,7 @@ def test_get_board_server(fivechan_service):
     ids=lambda x: x[1] if isinstance(x, tuple) else x,
 )
 @pytest.mark.asyncio
-async def test_malicious_input_in_thread_title(fivechan_service, malicious_input, test_id):
+async def test_malicious_input_in_thread_title(fivechan_service, mock_httpx_client, malicious_input, test_id):
     """
     Given: 悪意のある入力がスレッドタイトルに含まれる
     When: 実際の解析ロジックでsubject.txtを解析
@@ -788,41 +779,33 @@ async def test_malicious_input_in_thread_title(fivechan_service, malicious_input
     subject_line = f"1234567890.dat<>{malicious_input} (100)\n"
     subject_data = subject_line.encode("shift_jis", errors="ignore")
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = subject_data
+    mock_response = create_http_response(content=subject_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
+    # 実際のメソッドを呼び出してセキュリティをテスト
+    result = await fivechan_service._get_subject_txt_data("ai")
 
-        # 実際のメソッドを呼び出してセキュリティをテスト
-        result = await fivechan_service._get_subject_txt_data("ai")
+    # 悪意のある入力が含まれていてもクラッシュしない
+    assert isinstance(result, list), f"Expected list but got {type(result).__name__}"
 
-        # 悪意のある入力が含まれていてもクラッシュしない
-        assert isinstance(result, list), f"Expected list but got {type(result).__name__}"
+    # データが返される場合、危険な文字列が含まれていないことを確認
+    if result:
+        result_str = str(result)
+        # SQL Injectionの検証
+        if "DROP TABLE" in malicious_input or "DELETE FROM" in malicious_input:
+            # データベース操作が含まれていないことを確認（文字列として保存されている）
+            assert isinstance(result[0], dict), "Result should be safely parsed as dict"
 
-        # データが返される場合、危険な文字列が含まれていないことを確認
-        if result:
-            result_str = str(result)
-            # SQL Injectionの検証
-            if "DROP TABLE" in malicious_input or "DELETE FROM" in malicious_input:
-                # データベース操作が含まれていないことを確認（文字列として保存されている）
-                assert isinstance(result[0], dict), "Result should be safely parsed as dict"
-
-            # XSSの検証
-            if "<script>" in malicious_input:
-                # スクリプトタグが無害化されているか、そのまま文字列として保存されている
-                assert isinstance(result[0], dict), "Result should be safely parsed as dict"
+        # XSSの検証
+        if "<script>" in malicious_input:
+            # スクリプトタグが無害化されているか、そのまま文字列として保存されている
+            assert isinstance(result[0], dict), "Result should be safely parsed as dict"
 
 
 @pytest.mark.unit
 @pytest.mark.security
 @pytest.mark.asyncio
-async def test_dos_attack_oversized_response(fivechan_service):
+async def test_dos_attack_oversized_response(fivechan_service, mock_httpx_client, huge_response_data):
     """
     Given: 異常に大きなレスポンス（DoS攻撃シミュレーション）
     When: _get_subject_txt_dataを呼び出す
@@ -837,33 +820,22 @@ async def test_dos_attack_oversized_response(fivechan_service):
     Background:
     DoS攻撃で大容量データを送りつけられた場合の防御機能をテスト
     """
-    # 10MBの巨大なデータ
-    huge_data = b"x" * MAX_RESPONSE_SIZE_BYTES
+    mock_response = create_http_response(content=huge_response_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = huge_data
-
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
-
-        # 大容量データでもクラッシュしないことを確認
-        # 実装が大容量データを処理する仕様のため、正常終了を期待
-        result = await fivechan_service._get_subject_txt_data("ai")
-        # 処理が完了すること（タイムアウトやメモリエラーなし）
-        assert isinstance(result, list), f"Expected list but got {type(result).__name__}"
-        # 空のリストまたは正常にパースされたデータ
-        # （巨大な無効データなので空になる可能性が高い）
+    # 大容量データでもクラッシュしないことを確認
+    # 実装が大容量データを処理する仕様のため、正常終了を期待
+    result = await fivechan_service._get_subject_txt_data("ai")
+    # 処理が完了すること（タイムアウトやメモリエラーなし）
+    assert isinstance(result, list), f"Expected list but got {type(result).__name__}"
+    # 空のリストまたは正常にパースされたデータ
+    # （巨大な無効データなので空になる可能性が高い）
 
 
 @pytest.mark.unit
 @pytest.mark.security
 @pytest.mark.asyncio
-async def test_encoding_bomb_attack(fivechan_service):
+async def test_encoding_bomb_attack(fivechan_service, mock_httpx_client, encoding_bomb_data):
     """
     Given: エンコーディングボム（Billion Laughs攻撃相当）
     When: デコード処理
@@ -877,26 +849,14 @@ async def test_encoding_bomb_attack(fivechan_service):
     Background:
     繰り返しパターンでメモリ消費を狙うエンコーディングボム攻撃への耐性をテスト
     """
-    # 繰り返しパターンでメモリ消費を狙う
-    # Shift_JIS のスペース（全角スペース: 0x8140）を大量に繰り返し
-    bomb_data = b"\x81\x40" * ENCODING_BOMB_REPEAT_COUNT
+    mock_response = create_http_response(content=encoding_bomb_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = bomb_data
-
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
-
-        # エンコーディングボムでもクラッシュしないことを確認
-        # 実装がエラーハンドリングを持つため、正常終了を期待
-        result = await fivechan_service._get_subject_txt_data("ai")
-        assert isinstance(result, list), f"Expected list but got {type(result).__name__}"
-        # 全角スペースのみのデータなので空のリストになる
+    # エンコーディングボムでもクラッシュしないことを確認
+    # 実装がエラーハンドリングを持つため、正常終了を期待
+    result = await fivechan_service._get_subject_txt_data("ai")
+    assert isinstance(result, list), f"Expected list but got {type(result).__name__}"
+    # 全角スペースのみのデータなので空のリストになる
 
 
 @pytest.mark.unit
@@ -912,7 +872,7 @@ async def test_encoding_bomb_attack(fivechan_service):
     ids=lambda x: x[1] if isinstance(x, tuple) else x,
 )
 @pytest.mark.asyncio
-async def test_dat_parsing_malicious_input(fivechan_service, malicious_dat_content, test_id):
+async def test_dat_parsing_malicious_input(fivechan_service, mock_cloudscraper, malicious_dat_content, test_id):
     """
     Given: 悪意のある入力データがDAT形式に含まれる
     When: DAT解析を実行
@@ -925,31 +885,21 @@ async def test_dat_parsing_malicious_input(fivechan_service, malicious_dat_conte
     """
     dat_data = malicious_dat_content.encode("shift_jis", errors="ignore")
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = dat_data
-    mock_response.text = malicious_dat_content
+    mock_response = create_http_response(content=dat_data, text=malicious_dat_content)
+    mock_cloudscraper.get = Mock(return_value=mock_response)
 
-    mock_scraper = Mock()
-    mock_scraper.get = Mock(return_value=mock_response)
-    mock_scraper.headers = {}
+    posts, latest = await fivechan_service._get_thread_posts_from_dat(
+        "http://test.dat"
+    )
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
-    ):
+    # 悪意のある入力でもクラッシュせず、安全に処理されること
+    assert isinstance(posts, list), f"Expected list but got {type(posts).__name__}"
+    assert latest is None or isinstance(latest, str), f"Expected str or None but got {type(latest).__name__}"
 
-        posts, latest = await fivechan_service._get_thread_posts_from_dat(
-            "http://test.dat"
-        )
-
-        # 悪意のある入力でもクラッシュせず、安全に処理されること
-        assert isinstance(posts, list), f"Expected list but got {type(posts).__name__}"
-        assert latest is None or isinstance(latest, str), f"Expected str or None but got {type(latest).__name__}"
-
-        # データが返される場合、適切にパースされていることを確認
-        if posts:
-            for post in posts:
-                assert isinstance(post, dict), "Each post should be a dict"
+    # データが返される場合、適切にパースされていることを確認
+    if posts:
+        for post in posts:
+            assert isinstance(post, dict), "Each post should be a dict"
 
 
 # =============================================================================
@@ -1011,7 +961,7 @@ async def test_concurrent_thread_fetching_performance(fivechan_service):
 @pytest.mark.unit
 @pytest.mark.performance
 @pytest.mark.asyncio
-async def test_memory_efficiency_large_dataset(fivechan_service):
+async def test_memory_efficiency_large_dataset(fivechan_service, mock_httpx_client):
     """
     Given: 大量のスレッドデータ
     When: 処理を実行
@@ -1029,18 +979,10 @@ async def test_memory_efficiency_large_dataset(fivechan_service):
         "1234567890.dat<>テストスレッド (100)\n" * 100
     ).encode("shift_jis")
 
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.content = large_subject_data
+    mock_response = create_http_response(content=large_subject_data)
+    mock_httpx_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value = client_instance
-
-        result = await fivechan_service._get_subject_txt_data("ai")
+    result = await fivechan_service._get_subject_txt_data("ai")
 
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
@@ -1056,7 +998,7 @@ async def test_memory_efficiency_large_dataset(fivechan_service):
 @pytest.mark.unit
 @pytest.mark.performance
 @pytest.mark.asyncio
-async def test_network_timeout_handling(fivechan_service):
+async def test_network_timeout_handling(fivechan_service, mock_httpx_client):
     """
     Given: ネットワークタイムアウト
     When: スレッドデータ取得
@@ -1069,20 +1011,15 @@ async def test_network_timeout_handling(fivechan_service):
     """
     async def slow_response(*args, **kwargs):
         await asyncio.sleep(100)  # 100秒待機（異常に遅い）
-        return Mock(status_code=200)
+        return create_http_response()
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = slow_response
-        mock_client.return_value = client_instance
+    mock_httpx_client.get = slow_response
 
-        # タイムアウト設定（5秒）
-        with pytest.raises(asyncio.TimeoutError, match=None):
-            await asyncio.wait_for(
-                fivechan_service._get_subject_txt_data("ai"), timeout=5.0
-            )
+    # タイムアウト設定（5秒）
+    with pytest.raises(asyncio.TimeoutError, match=None):
+        await asyncio.wait_for(
+            fivechan_service._get_subject_txt_data("ai"), timeout=5.0
+        )
 
 
 @pytest.mark.unit
@@ -1127,7 +1064,7 @@ def test_board_server_cache_efficiency(fivechan_service):
 @pytest.mark.unit
 @pytest.mark.performance
 @pytest.mark.asyncio
-async def test_retry_backoff_performance(fivechan_service):
+async def test_retry_backoff_performance(fivechan_service, mock_httpx_client):
     """
     Given: HTTPエラーによるリトライ
     When: 指数バックオフでリトライ
@@ -1147,22 +1084,17 @@ async def test_retry_backoff_performance(fivechan_service):
         call_times.append(time.time())
         call_count += 1
         if call_count < 3:
-            raise Exception("Network error")
-        return Mock(status_code=200, content=b"success")
+            raise Exception(ERROR_NETWORK)
+        return create_http_response(content=b"success")
 
     start_time = time.time()
 
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        client_instance.get = failing_then_success
-        mock_client.return_value = client_instance
+    mock_httpx_client.get = failing_then_success
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            result = await fivechan_service._get_with_retry(
-                "https://mevius.5ch.net/ai/subject.txt"
-            )
+    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        result = await fivechan_service._get_with_retry(
+            "https://mevius.5ch.net/ai/subject.txt"
+        )
 
     elapsed = time.time() - start_time
 
