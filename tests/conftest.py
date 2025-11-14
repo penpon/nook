@@ -637,7 +637,7 @@ def test_dates():
     from datetime import date
 
     return {
-        "reddit_post_date": date(2023, 11, 15),  # 1699999999 (UTC) → 2023-11-15 (JST)
+        "reddit_post_date": date(2023, 11, 15),  # 1699999999は2023-11-15 03:33:19 UTC
         "reddit_post_utc_timestamp": 1699999999,
         "openai_created_timestamp": 1699999999,
         "today": date(2024, 1, 1),
@@ -659,7 +659,7 @@ def reddit_explorer_service(mock_env_vars):
         from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
 
         service = RedditExplorer()
-        return service
+        yield service
 
 
 @pytest.fixture
@@ -753,19 +753,3 @@ def async_generator_helper():
     return _async_generator
 
 
-@pytest.fixture
-def mock_reddit_api(async_generator_helper):
-    """モックReddit APIを提供"""
-    mock_reddit = Mock()
-    mock_subreddit = Mock()
-    mock_reddit_instance = Mock()
-
-    mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-    mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
-
-    return {
-        "reddit": mock_reddit,
-        "reddit_instance": mock_reddit_instance,
-        "subreddit": mock_subreddit,
-        "async_generator": async_generator_helper,
-    }

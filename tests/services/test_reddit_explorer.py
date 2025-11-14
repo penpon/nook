@@ -40,19 +40,20 @@ def test_init_with_default_storage_dir(reddit_explorer_service):
 # =============================================================================
 
 @pytest.mark.unit
-def test_init_with_valid_credentials(reddit_explorer_service):
+def test_init_with_valid_credentials():
     """
     Given: 有効なReddit APIクレデンシャル
     When: RedditExplorerを初期化
     Then: client_id, client_secret, user_agentが正しく設定される
     """
-    reddit_explorer_service = RedditExplorer(
-        client_id="test-id", client_secret="test-secret", user_agent="test-agent"
-    )
+    with patch("nook.common.logging.setup_logger"):
+        reddit_explorer_service = RedditExplorer(
+            client_id="test-id", client_secret="test-secret", user_agent="test-agent"
+        )
 
-    assert reddit_explorer_service.client_id == "test-id"
-    assert reddit_explorer_service.client_secret == "test-secret"
-    assert reddit_explorer_service.user_agent == "test-agent"
+        assert reddit_explorer_service.client_id == "test-id"
+        assert reddit_explorer_service.client_secret == "test-secret"
+        assert reddit_explorer_service.user_agent == "test-agent"
 
 @pytest.mark.unit
 def test_init_with_env_credentials(reddit_explorer_service):
@@ -156,7 +157,7 @@ async def test_post_type_detection(
     assert posts[0].type == expected_type
 
 # =============================================================================
-# 4. UTC→JST変換のユニットテスト
+# 4. UTCタイムスタンプ変換のユニットテスト
 # =============================================================================
 
 @pytest.mark.unit

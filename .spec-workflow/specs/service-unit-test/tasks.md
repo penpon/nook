@@ -336,7 +336,7 @@
 
 ### 3.6 reddit_explorer ユニットテスト実装
 
-- [x] 3.6. reddit_explorer ユニットテスト実装（20-25テストケース、51テスト実装済み）
+- [x] 3.6. reddit_explorer ユニットテスト実装（51テストケース実装済み）
   - File: tests/services/test_reddit_explorer.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（5-7ケース）**:
