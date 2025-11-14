@@ -77,6 +77,29 @@ async def hacker_news_service(mock_env_vars, mock_logger):
 
 
 @pytest.fixture
+async def hn_service_with_client(hacker_news_service):
+    """HTTPクライアント付きHackerNewsRetrieverインスタンス
+
+    HTTPクライアントのセットアップとクリーンアップを自動化します。
+
+    使用例:
+        async def test_something(hn_service_with_client):
+            service = hn_service_with_client
+            # HTTPクライアントは既に初期化済み
+            # cleanup()も自動的に呼ばれる
+    """
+    await hacker_news_service.setup_http_client()
+    yield hacker_news_service
+
+
+@pytest.fixture
+def empty_dedup_tracker():
+    """空のDedupTrackerインスタンス"""
+    from nook.common.dedup import DedupTracker
+    return DedupTracker()
+
+
+@pytest.fixture
 def temp_data_dir(tmp_path):
     """テスト用一時データディレクトリ"""
     data_dir = tmp_path / "test_data"

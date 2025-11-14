@@ -90,6 +90,18 @@ TEST_STORY_URL = "https://example.com/test"
 TEST_STORY_TITLE = "Test Story"
 TEST_MIN_TEXT_FOR_FILTER = "A" * (MIN_TEXT_LENGTH + 10)  # 最小テキスト長+マージン
 
+# テキスト長関連の定数（マジックナンバー削減）
+TEST_VALID_TEXT_LENGTH = 150  # フィルタ通過する有効なテキスト長
+TEST_SHORT_TEXT_LENGTH = 50   # フィルタで除外される短いテキスト
+TEST_LONG_TEXT_LENGTH = 15000 # フィルタで除外される長いテキスト
+TEST_MARKDOWN_TRIM_LENGTH = 500  # マークダウンレンダリングでトリミングされる長さ
+TEST_MARKDOWN_LONG_TEXT = 600    # トリミングが必要な長いテキスト
+
+# スコア関連の定数
+TEST_LOW_SCORE = 10      # フィルタで除外される低スコア
+TEST_HIGH_SCORE = 200    # フィルタ通過する高スコア
+TEST_MEDIUM_SCORE = 50   # 境界値テスト用の中程度のスコア
+
 
 # =============================================================================
 # テストヘルパー関数
@@ -155,23 +167,67 @@ def mock_hn_story_response(story_id: int = TEST_STORY_ID, **kwargs) -> dict:
     return default_response
 
 
+def create_error_story(
+    domain: str,
+    error_text: str,
+    score: int = TEST_MEDIUM_SCORE,
+    title_suffix: str = "Error",
+) -> Story:
+    """エラー状態のストーリーを作成するヘルパー関数
+
+    Args:
+        domain: エラーが発生したドメイン（例: "error522.com"）
+        error_text: エラーメッセージテキスト
+        score: スコア（デフォルト: 50）
+        title_suffix: タイトルのサフィックス（デフォルト: "Error"）
+
+    Returns:
+        Story: エラー状態のStoryオブジェクト
+    """
+    return Story(
+        title=f"{domain} {title_suffix}",
+        score=score,
+        url=f"https://{domain}/page",
+        text=error_text,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+def create_stories_batch(count: int, **kwargs) -> list[Story]:
+    """複数のストーリーをバッチ作成するヘルパー関数
+
+    Args:
+        count: 作成するストーリー数
+        **kwargs: create_test_storyに渡す追加パラメータ
+
+    Returns:
+        list[Story]: 作成されたStoryオブジェクトのリスト
+    """
+    stories = []
+    for i in range(count):
+        story_kwargs = kwargs.copy()
+        if "title" not in story_kwargs:
+            story_kwargs["title"] = f"Story {i + 1}"
+        stories.append(create_test_story(**story_kwargs))
+    return stories
+
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
 
 
 @pytest.mark.unit
-def test_init_with_default_storage_dir(mock_env_vars):
+def test_init_with_default_storage_dir(hacker_news_service):
     """
     Given: デフォルトのstorage_dir
     When: HackerNewsRetrieverを初期化
     Then: インスタンスが正常に作成される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
+    service = hacker_news_service
 
-        assert service.service_name == "hacker_news"
-        assert service.http_client is None
+    assert service.service_name == "hacker_news"
+    assert service.http_client is None
 
 
 # =============================================================================
@@ -997,181 +1053,92 @@ async def test_fetch_story_content_http1_required(mock_env_vars, respx_mock):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_top_stories_score_filtering(mock_env_vars, respx_mock):
+@pytest.mark.parametrize("filter_type,story_configs,expected_count,test_case", [
+    # スコアフィルタリング
+    (
+        "score",
+        [
+            {"id": 1, "title": "High Score Story", "score": TEST_HIGH_SCORE, "text": "A" * TEST_VALID_TEXT_LENGTH},  # 通過
+            {"id": 2, "title": "Low Score Story", "score": TEST_LOW_SCORE, "text": "B" * TEST_VALID_TEXT_LENGTH},   # 除外
+            {"id": 3, "title": "Another High Score", "score": TEST_MEDIUM_SCORE, "text": "C" * TEST_VALID_TEXT_LENGTH},  # 通過
+        ],
+        2,  # 2つのストーリーが閾値以上
+        "score_filtering"
+    ),
+    # テキスト長フィルタリング
+    (
+        "text_length",
+        [
+            {"id": 1, "title": "Valid Length Story", "score": TEST_STORY_SCORE, "text": "A" * 500},  # 通過（範囲内）
+            {"id": 2, "title": "Too Short Story", "score": TEST_STORY_SCORE, "text": "B" * TEST_SHORT_TEXT_LENGTH},  # 除外（短すぎ）
+            {"id": 3, "title": "Too Long Story", "score": TEST_STORY_SCORE, "text": "C" * TEST_LONG_TEXT_LENGTH},  # 除外（長すぎ）
+        ],
+        1,
+        "text_length_filtering"
+    ),
+    # スコアソート
+    (
+        "score_sort",
+        [
+            {"id": 1, "title": "Medium Score", "score": TEST_MEDIUM_SCORE, "text": "A" * TEST_VALID_TEXT_LENGTH},
+            {"id": 2, "title": "High Score", "score": TEST_HIGH_SCORE, "text": "B" * TEST_VALID_TEXT_LENGTH},
+            {"id": 3, "title": "Low Score", "score": 30, "text": "C" * TEST_VALID_TEXT_LENGTH},
+        ],
+        3,
+        "score_sorting"
+    ),
+])
+async def test_get_top_stories_filtering(
+    hn_service_with_client, respx_mock,
+    filter_type, story_configs, expected_count, test_case
+):
     """
-    Given: スコアが閾値未満のストーリー
+    Given: 様々な条件のストーリー（スコア、テキスト長、ソート順）
     When: _get_top_storiesを呼び出す
-    Then: スコアが閾値以上のストーリーのみが返される
+    Then: 適切にフィルタリング・ソートされて返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        await service.setup_http_client()
+    service = hn_service_with_client
 
-        # トップストーリーIDのモック
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/topstories.json").mock(
-            return_value=httpx.Response(200, json=[1, 2, 3])
-        )
+    # トップストーリーIDのモック
+    story_ids = [config["id"] for config in story_configs]
+    respx_mock.get("https://hacker-news.firebaseio.com/v0/topstories.json").mock(
+        return_value=httpx.Response(200, json=story_ids)
+    )
 
-        # スコアが異なるストーリー
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/1.json").mock(
+    # 各ストーリーのモック
+    for config in story_configs:
+        respx_mock.get(f"https://hacker-news.firebaseio.com/v0/item/{config['id']}.json").mock(
             return_value=httpx.Response(200, json={
-                "id": 1,
-                "title": "High Score Story",
-                "score": 100,  # SCORE_THRESHOLD以上
-                "time": 1699999999,
-                "text": "A" * 150  # MIN_TEXT_LENGTH以上
+                "id": config["id"],
+                "title": config["title"],
+                "score": config["score"],
+                "time": TEST_STORY_TIMESTAMP,
+                "text": config["text"]
             })
         )
 
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/2.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 2,
-                "title": "Low Score Story",
-                "score": 10,  # SCORE_THRESHOLD未満
-                "time": 1699999999,
-                "text": "B" * 150
-            })
-        )
+    from nook.common.dedup import DedupTracker
+    dedup_tracker = DedupTracker()
 
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/3.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 3,
-                "title": "Another High Score",
-                "score": 50,  # SCORE_THRESHOLD以上
-                "time": 1699999999,
-                "text": "C" * 150
-            })
-        )
+    stories = await service._get_top_stories(15, dedup_tracker, [date.today()])
 
-        from nook.common.dedup import DedupTracker
-        dedup_tracker = DedupTracker()
-
-        stories = await service._get_top_stories(15, dedup_tracker, [date.today()])
-
+    # テストケースごとのアサーション
+    if filter_type == "score":
         # スコア >= SCORE_THRESHOLD のストーリーのみ
         assert all(story.score >= SCORE_THRESHOLD for story in stories)
         assert len([s for s in stories if s.score >= SCORE_THRESHOLD]) >= 0
 
-        await service.cleanup()
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_get_top_stories_text_length_filtering(mock_env_vars, respx_mock):
-    """
-    Given: テキスト長が範囲外のストーリー
-    When: _get_top_storiesを呼び出す
-    Then: テキスト長が範囲内のストーリーのみが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        await service.setup_http_client()
-
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/topstories.json").mock(
-            return_value=httpx.Response(200, json=[1, 2, 3])
-        )
-
-        # テキスト長が異なるストーリー
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/1.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 1,
-                "title": "Valid Length Story",
-                "score": 100,
-                "time": 1699999999,
-                "text": "A" * 500  # MIN_TEXT_LENGTH < len < MAX_TEXT_LENGTH
-            })
-        )
-
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/2.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 2,
-                "title": "Too Short Story",
-                "score": 100,
-                "time": 1699999999,
-                "text": "B" * 50  # MIN_TEXT_LENGTH未満
-            })
-        )
-
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/3.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 3,
-                "title": "Too Long Story",
-                "score": 100,
-                "time": 1699999999,
-                "text": "C" * 15000  # MAX_TEXT_LENGTH超過
-            })
-        )
-
-        from nook.common.dedup import DedupTracker
-        dedup_tracker = DedupTracker()
-
-        stories = await service._get_top_stories(15, dedup_tracker, [date.today()])
-
+    elif filter_type == "text_length":
         # テキスト長が範囲内のストーリーのみ
         for story in stories:
             text_len = len(story.text or "")
             assert MIN_TEXT_LENGTH <= text_len <= MAX_TEXT_LENGTH
 
-        await service.cleanup()
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_get_top_stories_sorted_by_score(mock_env_vars, respx_mock):
-    """
-    Given: 複数の有効なストーリー
-    When: _get_top_storiesを呼び出す
-    Then: スコアの降順にソートされて返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        await service.setup_http_client()
-
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/topstories.json").mock(
-            return_value=httpx.Response(200, json=[1, 2, 3])
-        )
-
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/1.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 1,
-                "title": "Medium Score",
-                "score": 50,
-                "time": 1699999999,
-                "text": "A" * 150
-            })
-        )
-
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/2.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 2,
-                "title": "High Score",
-                "score": 200,
-                "time": 1699999999,
-                "text": "B" * 150
-            })
-        )
-
-        respx_mock.get("https://hacker-news.firebaseio.com/v0/item/3.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": 3,
-                "title": "Low Score",
-                "score": 30,
-                "time": 1699999999,
-                "text": "C" * 150
-            })
-        )
-
-        from nook.common.dedup import DedupTracker
-        dedup_tracker = DedupTracker()
-
-        stories = await service._get_top_stories(15, dedup_tracker, [date.today()])
-
+    elif filter_type == "score_sort":
         # スコアの降順にソートされている
         if len(stories) > 1:
             for i in range(len(stories) - 1):
                 assert stories[i].score >= stories[i + 1].score
-
-        await service.cleanup()
 
 
 # =============================================================================
@@ -1861,9 +1828,9 @@ def test_render_markdown_with_text_only(mock_env_vars):
         records = [
             {
                 "title": "Test Story",
-                "score": 100,
+                "score": TEST_STORY_SCORE,
                 "url": "https://example.com/test",
-                "text": "A" * 600  # 500文字以上
+                "text": "A" * TEST_MARKDOWN_LONG_TEXT  # 500文字以上
             }
         ]
 
@@ -2057,7 +2024,7 @@ async def test_log_fetch_summary(mock_env_vars):
             ),
             Story(
                 title="No Text Story",
-                score=50,
+                score=TEST_MEDIUM_SCORE,
                 url="https://example.com/5",
                 text=None,
                 created_at=datetime.now(timezone.utc),
@@ -2122,7 +2089,7 @@ async def test_fetch_story_invalid_timestamp(mock_env_vars, respx_mock):
                 json={
                     "id": 12345,
                     "title": "Test Story",
-                    "score": 50,
+                    "score": TEST_MEDIUM_SCORE,
                     "url": "https://example.com",
                     "time": "invalid",  # Invalid timestamp
                 },
@@ -2155,7 +2122,7 @@ async def test_fetch_story_content_www_blocked_domain(mock_env_vars):
 
         story = Story(
             title="Test",
-            score=50,
+            score=TEST_MEDIUM_SCORE,
             url="https://www.nytimes.com/article",
             text=None,
             created_at=datetime.now(timezone.utc),
@@ -2170,119 +2137,77 @@ async def test_fetch_story_content_www_blocked_domain(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_update_blocked_domains_various_error_reasons(mock_env_vars):
+async def test_update_blocked_domains_various_error_reasons(hacker_news_service):
     """
     Given: 様々なエラー理由を持つストーリー
     When: _update_blocked_domains_from_errorsを呼び出す
     Then: 適切なエラー理由が特定される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        # Ensure blocked_domains is properly initialized
-        service.blocked_domains = service._load_blocked_domains()
+    service = hacker_news_service
+    # Ensure blocked_domains is properly initialized
+    service.blocked_domains = service._load_blocked_domains()
 
-        stories = [
-            Story(
-                title="522 Error",
-                score=50,
-                url="https://error522.com/page",
-                text="HTTP error 522 Server error occurred",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="429 Error",
-                score=50,
-                url="https://error429.com/page",
-                text="HTTP error 429 Too Many Requests",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="403 Error",
-                score=50,
-                url="https://error403.com/page",
-                text="HTTP error 403 Access denied",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="404 Error",
-                score=50,
-                url="https://error404.com/page",
-                text="HTTP error 404 Not found",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="Timeout Error",
-                score=50,
-                url="https://timeout.com/page",
-                text="Request error: timeout occurred while connecting",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="SSL Error",
-                score=50,
-                url="https://sslerror.com/page",
-                text="Request error: SSL handshake failed",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="Request Error",
-                score=50,
-                url="https://requesterror.com/page",
-                text="Request error occurred",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="Generic Error",
-                score=50,
-                url="https://genericerror.com/page",
-                text="HTTP error: Some other error",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="No URL",
-                score=50,
-                url=None,
-                text="No text",
-                created_at=datetime.now(timezone.utc),
-            ),
-            Story(
-                title="Already Blocked",
-                score=50,
-                url="https://www.reuters.com/page",
-                text="HTTP error 403",
-                created_at=datetime.now(timezone.utc),
-            ),
-        ]
+    # エラー設定：(domain, error_text, expected_reason)
+    error_configs = [
+        ("error522.com", "HTTP error 522 Server error occurred", "522 - Server error"),
+        ("error429.com", "HTTP error 429 Too Many Requests", "429 - Too Many Requests"),
+        ("error403.com", "HTTP error 403 Access denied", "403 - Access denied"),
+        ("error404.com", "HTTP error 404 Not found", "404 - Not found"),
+        ("timeout.com", "Request error: timeout occurred while connecting", "Timeout error"),
+        ("sslerror.com", "Request error: SSL handshake failed", "SSL/TLS error"),
+        ("requesterror.com", "Request error occurred", None),  # エラー理由は検証しない
+        ("genericerror.com", "HTTP error: Some other error", None),  # エラー理由は検証しない
+    ]
 
-        # Mock _add_to_blocked_domains to capture what domains would be added
-        added_domains = {}
+    # create_error_story()ヘルパーを使用してストーリーを作成
+    stories = [
+        create_error_story(domain, error_text, title_suffix="Error")
+        for domain, error_text, _ in error_configs
+    ]
 
-        async def mock_add_to_blocked_domains(new_domains):
-            added_domains.update(new_domains)
+    # 特殊ケース：URLなしのストーリー
+    stories.append(
+        Story(
+            title="No URL",
+            score=TEST_MEDIUM_SCORE,
+            url=None,
+            text="No text",
+            created_at=datetime.now(timezone.utc),
+        )
+    )
 
-        with patch.object(service, '_add_to_blocked_domains', side_effect=mock_add_to_blocked_domains):
-            # Should not raise an error
-            await service._update_blocked_domains_from_errors(stories)
+    # 特殊ケース：既にブロックされているドメイン
+    stories.append(
+        Story(
+            title="Already Blocked",
+            score=TEST_MEDIUM_SCORE,
+            url="https://www.reuters.com/page",
+            text="HTTP error 403",
+            created_at=datetime.now(timezone.utc),
+        )
+    )
 
-        # Verify various error types were detected
-        assert "error522.com" in added_domains
-        assert "error429.com" in added_domains
-        assert "error403.com" in added_domains
-        assert "error404.com" in added_domains
-        assert "timeout.com" in added_domains
-        assert "sslerror.com" in added_domains
-        assert "genericerror.com" in added_domains
+    # Mock _add_to_blocked_domains to capture what domains would be added
+    added_domains = {}
 
-        # reuters.com should not be in added_domains (already blocked)
-        assert "reuters.com" not in added_domains
+    async def mock_add_to_blocked_domains(new_domains):
+        added_domains.update(new_domains)
 
-        # Verify error reasons are correctly identified
-        assert added_domains["error522.com"] == "522 - Server error"
-        assert added_domains["error429.com"] == "429 - Too Many Requests"
-        assert added_domains["error403.com"] == "403 - Access denied"
-        assert added_domains["error404.com"] == "404 - Not found"
-        assert added_domains["timeout.com"] == "Timeout error"
-        assert added_domains["sslerror.com"] == "SSL/TLS error"
+    with patch.object(service, '_add_to_blocked_domains', side_effect=mock_add_to_blocked_domains):
+        # Should not raise an error
+        await service._update_blocked_domains_from_errors(stories)
+
+    # Verify various error types were detected
+    for domain, _, _ in error_configs:
+        assert domain in added_domains
+
+    # reuters.com should not be in added_domains (already blocked)
+    assert "reuters.com" not in added_domains
+
+    # Verify error reasons are correctly identified
+    for domain, _, expected_reason in error_configs:
+        if expected_reason:
+            assert added_domains[domain] == expected_reason
 
 
 @pytest.mark.unit
@@ -2424,12 +2349,12 @@ def test_render_markdown_with_long_text_no_summary(mock_env_vars, mock_logger):
     Coverage: Lines 729-734 (text branch with ellipsis)
     """
     service = HackerNewsRetriever()
-    long_text = "A" * 600  # 500文字を超える本文
+    long_text = "A" * TEST_MARKDOWN_LONG_TEXT  # 500文字を超える本文
     records = [
         {
             "title": "Test Article",
             "url": "https://example.com/test",
-            "score": 100,
+            "score": TEST_STORY_SCORE,
             "text": long_text,
             "summary": None,  # 要約なし
         }
@@ -2438,9 +2363,9 @@ def test_render_markdown_with_long_text_no_summary(mock_env_vars, mock_logger):
     result = service._render_markdown(records, datetime.now())
 
     # 本文が500文字でトリミングされていることを確認
-    assert ("A" * 500) in result
+    assert ("A" * TEST_MARKDOWN_TRIM_LENGTH) in result
     assert "..." in result
-    assert ("A" * 600) not in result
+    assert ("A" * TEST_MARKDOWN_LONG_TEXT) not in result
 
 
 @pytest.mark.unit
