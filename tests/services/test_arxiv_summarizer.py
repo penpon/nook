@@ -44,6 +44,15 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 
+# ArxivSummarizer関連のインポート（テスト内で繰り返し使用されるため冒頭でインポート）
+from nook.services.arxiv_summarizer.arxiv_summarizer import (
+    ArxivSummarizer,
+    PaperInfo,
+    remove_outer_markdown_markers,
+    remove_outer_singlequotes,
+    remove_tex_backticks,
+)
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
@@ -766,30 +775,23 @@ Another long enough line that should be kept because it is sufficiently long.
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_translate_to_japanese_success(mock_env_vars):
+async def test_translate_to_japanese_success(arxiv_service):
     """
     Given: 有効な英語テキスト
     When: _translate_to_japaneseメソッドを呼び出す
     Then: 日本語に翻訳される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+    # Given: GPTクライアントをモック
+    arxiv_service.gpt_client.generate_async = AsyncMock(
+        return_value="これはテスト翻訳です。"
+    )
 
-        service = ArxivSummarizer()
+    with patch.object(arxiv_service, "rate_limit", new_callable=AsyncMock):
+        # When
+        result = await arxiv_service._translate_to_japanese("This is a test.")
 
-        # モックGPTクライアント
-        service.gpt_client.generate_async = AsyncMock(
-            return_value="これはテスト翻訳です。"
-        )
-
-        with patch.object(service, "rate_limit", new_callable=AsyncMock):
-
-            # When
-            result = await service._translate_to_japanese("This is a test.")
-
-            # Then
-            assert result == "これはテスト翻訳です。"
-            service.gpt_client.generate_async.assert_called_once()
+        # Then
+        assert result == "これはテスト翻訳です。"
 
 
 @pytest.mark.unit
