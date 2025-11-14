@@ -77,8 +77,8 @@ def create_mock_html(repos: list[dict[str, str]]) -> str:
     for repo in repos:
         article = f"""
             <article class="Box-row">
-                <h2 class="h3"><a href="/{repo['name']}">{repo['name']}</a></h2>
-                <a class="Link--muted">{repo.get('stars', '0')}</a>
+                <h2 class="h3"><a href="/{repo["name"]}">{repo["name"]}</a></h2>
+                <a class="Link--muted">{repo.get("stars", "0")}</a>
             </article>
         """
         articles.append(article)
@@ -121,13 +121,13 @@ def test_init_with_default_storage_dir(mock_env_vars, mock_service):
     When: GithubTrendingを初期化
     Then: インスタンスが正常に作成される
     """
-    assert (
-        mock_service.service_name == "github_trending"
-    ), "service_nameが正しくありません"
+    assert mock_service.service_name == "github_trending", (
+        "service_nameが正しくありません"
+    )
     assert mock_service.http_client is None, "http_clientは初期状態でNoneであるべきです"
-    assert (
-        mock_service.base_url == "https://github.com/trending"
-    ), "base_urlが正しくありません"
+    assert mock_service.base_url == "https://github.com/trending", (
+        "base_urlが正しくありません"
+    )
 
 
 @pytest.mark.unit
@@ -137,12 +137,12 @@ def test_init_loads_languages_config(mock_env_vars, mock_service):
     When: GithubTrendingを初期化
     Then: 言語設定が正常に読み込まれる
     """
-    assert hasattr(
-        mock_service, "languages_config"
-    ), "languages_config属性が存在しません"
-    assert isinstance(
-        mock_service.languages_config, dict
-    ), "languages_configは辞書型であるべきです"
+    assert hasattr(mock_service, "languages_config"), (
+        "languages_config属性が存在しません"
+    )
+    assert isinstance(mock_service.languages_config, dict), (
+        "languages_configは辞書型であるべきです"
+    )
 
 
 # =============================================================================
@@ -167,9 +167,9 @@ def test_repository_creation():
     assert repo.name == "test/repo", "リポジトリ名が正しく設定されていません"
     assert repo.stars == 1234, "スター数が正しく設定されていません"
     assert repo.description == "Test description", "説明が正しく設定されていません"
-    assert (
-        repo.link == "https://github.com/test/repo"
-    ), "リンクが正しく設定されていません"
+    assert repo.link == "https://github.com/test/repo", (
+        "リンクが正しく設定されていません"
+    )
 
 
 @pytest.mark.unit
@@ -302,9 +302,9 @@ async def test_translate_repositories_success(mock_env_vars, mock_service):
 
     result = await mock_service._translate_repositories([("python", repos)])
 
-    assert (
-        result[0][1][0].description == "翻訳された説明"
-    ), "翻訳された説明が正しく設定されていません"
+    assert result[0][1][0].description == "翻訳された説明", (
+        "翻訳された説明が正しく設定されていません"
+    )
 
 
 @pytest.mark.unit
@@ -365,23 +365,26 @@ async def test_store_summaries_for_date_success(mock_env_vars, mock_service):
     """
     repos = [create_repository()]
 
-    with patch.object(
-        mock_service,
-        "save_json",
-        new_callable=AsyncMock,
-        return_value=Path("/data/test.json"),
-    ), patch.object(
-        mock_service,
-        "save_markdown",
-        new_callable=AsyncMock,
-        return_value=Path("/data/test.md"),
-    ), patch.object(
-        mock_service,
-        "_load_existing_repositories_by_date",
-        new_callable=AsyncMock,
-        return_value=[],
+    with (
+        patch.object(
+            mock_service,
+            "save_json",
+            new_callable=AsyncMock,
+            return_value=Path("/data/test.json"),
+        ),
+        patch.object(
+            mock_service,
+            "save_markdown",
+            new_callable=AsyncMock,
+            return_value=Path("/data/test.md"),
+        ),
+        patch.object(
+            mock_service,
+            "_load_existing_repositories_by_date",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
     ):
-
         json_path, md_path = await mock_service._store_summaries_for_date(
             [("python", repos)], date.today()
         )
@@ -543,9 +546,9 @@ async def test_retrieve_repositories_star_count_no_digits(
     )
 
     assert len(repos) == 1, f"期待: 1リポジトリ, 実際: {len(repos)}"
-    assert (
-        repos[0].stars == 0
-    ), f"期待: 0スター（非数値はデフォルト0）, 実際: {repos[0].stars}"
+    assert repos[0].stars == 0, (
+        f"期待: 0スター（非数値はデフォルト0）, 実際: {repos[0].stars}"
+    )
 
 
 @pytest.mark.unit
@@ -630,9 +633,9 @@ async def test_load_existing_repositories_by_date_from_json_dict(
 
         assert len(result) == 2, "2件のリポジトリが返されるべきです"
         assert result[0]["language"] == "python", "1件目の言語はpythonであるべきです"
-        assert (
-            result[1]["language"] == "javascript"
-        ), "2件目の言語はjavascriptであるべきです"
+        assert result[1]["language"] == "javascript", (
+            "2件目の言語はjavascriptであるべきです"
+        )
 
 
 @pytest.mark.unit
@@ -659,13 +662,16 @@ Test description
 
 """
 
-    with patch.object(
-        mock_service, "load_json", new_callable=AsyncMock, return_value=None
-    ), patch.object(
-        mock_service.storage,
-        "load",
-        new_callable=AsyncMock,
-        return_value=markdown_content,
+    with (
+        patch.object(
+            mock_service, "load_json", new_callable=AsyncMock, return_value=None
+        ),
+        patch.object(
+            mock_service.storage,
+            "load",
+            new_callable=AsyncMock,
+            return_value=markdown_content,
+        ),
     ):
         result = await mock_service._load_existing_repositories_by_date(
             datetime(2024, 1, 1)
@@ -683,10 +689,13 @@ async def test_load_existing_repositories_by_date_no_files(mock_env_vars, mock_s
     When: _load_existing_repositories_by_dateを呼び出す
     Then: 空リストが返される
     """
-    with patch.object(
-        mock_service, "load_json", new_callable=AsyncMock, return_value=None
-    ), patch.object(
-        mock_service.storage, "load", new_callable=AsyncMock, return_value=None
+    with (
+        patch.object(
+            mock_service, "load_json", new_callable=AsyncMock, return_value=None
+        ),
+        patch.object(
+            mock_service.storage, "load", new_callable=AsyncMock, return_value=None
+        ),
     ):
         result = await mock_service._load_existing_repositories_by_date(
             datetime(2024, 1, 1)
@@ -725,12 +734,12 @@ def test_load_existing_repositories_success(mock_env_vars, tmp_path):
         tracker = service._load_existing_repositories()
 
         # trackerに追加されたことを確認
-        assert tracker.is_duplicate("test/repo1")[
-            0
-        ], "test/repo1がtrackerに追加されるべきです"
-        assert tracker.is_duplicate("test/repo2")[
-            0
-        ], "test/repo2がtrackerに追加されるべきです"
+        assert tracker.is_duplicate("test/repo1")[0], (
+            "test/repo1がtrackerに追加されるべきです"
+        )
+        assert tracker.is_duplicate("test/repo2")[0], (
+            "test/repo2がtrackerに追加されるべきです"
+        )
 
 
 @pytest.mark.unit
@@ -747,9 +756,9 @@ def test_load_existing_repositories_file_not_exists(mock_env_vars, tmp_path):
         tracker = service._load_existing_repositories()
 
         # 空のtracker
-        assert not tracker.is_duplicate("test/repo")[
-            0
-        ], "ファイルが存在しない場合は空のtrackerが返されるべきです"
+        assert not tracker.is_duplicate("test/repo")[0], (
+            "ファイルが存在しない場合は空のtrackerが返されるべきです"
+        )
 
 
 @pytest.mark.unit
@@ -768,9 +777,9 @@ def test_load_existing_repositories_error(mock_env_vars):
         tracker = service._load_existing_repositories()
 
         # エラーは無視され、空のtrackerが返される
-        assert not tracker.is_duplicate("test/repo")[
-            0
-        ], "エラーが発生した場合は空のtrackerが返されるべきです"
+        assert not tracker.is_duplicate("test/repo")[0], (
+            "エラーが発生した場合は空のtrackerが返されるべきです"
+        )
 
 
 # =============================================================================
@@ -815,15 +824,18 @@ async def test_store_summaries_success(mock_env_vars, mock_service):
     """
     repos = [create_repository(description="Test")]
 
-    with patch(
-        "nook.common.daily_snapshot.store_daily_snapshots",
-        new_callable=AsyncMock,
-        return_value=[("/data/test.json", "/data/test.md")],
-    ), patch.object(
-        mock_service,
-        "_load_existing_repositories_by_date",
-        new_callable=AsyncMock,
-        return_value=[],
+    with (
+        patch(
+            "nook.common.daily_snapshot.store_daily_snapshots",
+            new_callable=AsyncMock,
+            return_value=[("/data/test.json", "/data/test.md")],
+        ),
+        patch.object(
+            mock_service,
+            "_load_existing_repositories_by_date",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
     ):
         result = await mock_service._store_summaries(
             [("python", repos)], None, [date.today()]
@@ -849,9 +861,9 @@ def test_repository_sort_key_invalid_published_at(mock_env_vars, mock_service):
     result = mock_service._repository_sort_key(record)
 
     assert result[0] == TEST_REPO_STARS, "スター数が正しくありません"
-    assert result[1] == datetime.min.replace(
-        tzinfo=timezone.utc
-    ), "不正な日付の場合はdatetime.minが返されるべきです"
+    assert result[1] == datetime.min.replace(tzinfo=timezone.utc), (
+        "不正な日付の場合はdatetime.minが返されるべきです"
+    )
 
 
 @pytest.mark.unit
@@ -866,9 +878,9 @@ def test_repository_sort_key_missing_published_at(mock_env_vars, mock_service):
     result = mock_service._repository_sort_key(record)
 
     assert result[0] == TEST_REPO_STARS, "スター数が正しくありません"
-    assert result[1] == datetime.min.replace(
-        tzinfo=timezone.utc
-    ), "published_atがない場合はdatetime.minが返されるべきです"
+    assert result[1] == datetime.min.replace(tzinfo=timezone.utc), (
+        "published_atがない場合はdatetime.minが返されるべきです"
+    )
 
 
 @pytest.mark.unit
@@ -923,9 +935,9 @@ async def test_translate_repositories_empty_response(mock_env_vars, mock_service
 
     result = await mock_service._translate_repositories([("python", repos)])
 
-    assert (
-        result[0][1][0].description == ""
-    ), "空白文字列は空文字列としてstripされるべきです"
+    assert result[0][1][0].description == "", (
+        "空白文字列は空文字列としてstripされるべきです"
+    )
 
 
 @pytest.mark.unit
@@ -1059,9 +1071,9 @@ Test 2
 
     assert len(result) == 2, "2件のリポジトリが解析されるべきです"
     assert result[0]["language"] == "python", "1件目の言語はpythonであるべきです"
-    assert (
-        result[1]["language"] == "javascript"
-    ), "2件目の言語はjavascriptであるべきです"
+    assert result[1]["language"] == "javascript", (
+        "2件目の言語はjavascriptであるべきです"
+    )
 
 
 @pytest.mark.unit
@@ -1176,9 +1188,9 @@ def test_load_existing_repositories_read_text_exception(mock_env_vars, tmp_path)
             tracker = service._load_existing_repositories()
 
             # 例外がキャッチされ、空のtrackerが返される
-            assert not tracker.is_duplicate("test/repo")[
-                0
-            ], "例外がキャッチされ空のtrackerが返されるべきです"
+            assert not tracker.is_duplicate("test/repo")[0], (
+                "例外がキャッチされ空のtrackerが返されるべきです"
+            )
 
 
 @pytest.mark.unit
@@ -1199,9 +1211,9 @@ async def test_translate_repositories_with_none_gpt_response(
     result = await mock_service._translate_repositories([("python", repos)])
 
     # descriptionはNoneのまま（stripされない）
-    assert (
-        result[0][1][0].description is None
-    ), "GPTがNoneを返した場合は説明がNoneのままであるべきです"
+    assert result[0][1][0].description is None, (
+        "GPTがNoneを返した場合は説明がNoneのままであるべきです"
+    )
 
 
 @pytest.mark.unit
@@ -1230,9 +1242,9 @@ async def test_translate_repositories_iteration_exception(mock_env_vars):
         try:
             result = await service._translate_repositories(failing_repos)
             # 例外がキャッチされた場合、元のオブジェクトが返される
-            assert (
-                result == failing_repos
-            ), "例外がキャッチされた場合は元のオブジェクトが返されるべきです"
+            assert result == failing_repos, (
+                "例外がキャッチされた場合は元のオブジェクトが返されるべきです"
+            )
         except RuntimeError:
             # 例外が外側のtryブロックから伝播した場合もOK（384-385はカバー済み）
             pass
@@ -1266,9 +1278,9 @@ def test_render_markdown_with_empty_repositories_in_group(mock_env_vars):
         result = service._render_markdown(records_normal, datetime.now())
 
         # Python セクションが含まれている
-        assert (
-            "Python" in result or "python" in result
-        ), "Pythonセクションが含まれているべきです"
+        assert "Python" in result or "python" in result, (
+            "Pythonセクションが含まれているべきです"
+        )
         assert "test/repo1" in result, "test/repo1が含まれているべきです"
 
 
