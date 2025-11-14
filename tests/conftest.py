@@ -742,14 +742,20 @@ def mock_reddit_submission():
 
 
 @pytest.fixture
-def mock_reddit_api():
-    """モックReddit APIを提供"""
+def async_generator_helper():
+    """非同期イテレータを作成するヘルパー関数を提供"""
 
     async def _async_generator(items):
-        """非同期イテレータヘルパー"""
+        """非同期イテレータを作成"""
         for item in items:
             yield item
 
+    return _async_generator
+
+
+@pytest.fixture
+def mock_reddit_api(async_generator_helper):
+    """モックReddit APIを提供"""
     mock_reddit = Mock()
     mock_subreddit = Mock()
     mock_reddit_instance = Mock()
@@ -761,5 +767,5 @@ def mock_reddit_api():
         "reddit": mock_reddit,
         "reddit_instance": mock_reddit_instance,
         "subreddit": mock_subreddit,
-        "async_generator": _async_generator,
+        "async_generator": async_generator_helper,
     }

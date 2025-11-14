@@ -18,13 +18,6 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-
-# ヘルパー関数：非同期イテレータを作成
-async def async_generator(items):
-    """非同期イテレータを作成するヘルパー"""
-    for item in items:
-        yield item
-
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
@@ -65,20 +58,15 @@ def test_init_with_valid_credentials(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_init_with_env_credentials(mock_env_vars):
+def test_init_with_env_credentials(reddit_explorer_service):
     """
     Given: 環境変数でReddit APIクレデンシャルを設定
     When: RedditExplorerを初期化（引数なし）
     Then: 環境変数から認証情報が読み込まれる
     """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        assert service.client_id == "test-client-id"
-        assert service.client_secret == "test-client-secret"
-        assert service.user_agent == "test-user-agent"
+    assert reddit_explorer_service.client_id == "test-client-id"
+    assert reddit_explorer_service.client_secret == "test-client-secret"
+    assert reddit_explorer_service.user_agent == "test-user-agent"
 
 
 @pytest.mark.unit
@@ -142,7 +130,12 @@ def test_init_missing_all_credentials(monkeypatch):
     ids=["image", "gallery", "video", "poll", "crosspost", "text", "link"],
 )
 async def test_post_type_detection(
-    reddit_explorer_service, mock_reddit_submission, test_dates, post_type, expected_type
+    reddit_explorer_service,
+    mock_reddit_submission,
+    test_dates,
+    async_generator_helper,
+    post_type,
+    expected_type,
 ):
     """
     Given: 各種投稿タイプ（image/gallery/video/poll/crosspost/text/link）
@@ -160,7 +153,7 @@ async def test_post_type_detection(
     )
 
     mock_subreddit = Mock()
-    mock_subreddit.hot = Mock(return_value=async_generator([mock_sub]))
+    mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_sub]))
 
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
@@ -186,7 +179,7 @@ async def test_post_type_detection(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_utc_to_jst_conversion(
-    reddit_explorer_service, mock_reddit_submission, test_dates
+    reddit_explorer_service, mock_reddit_submission, test_dates, async_generator_helper
 ):
     """
     Given: UTC タイムスタンプの投稿
@@ -204,7 +197,7 @@ async def test_utc_to_jst_conversion(
     )
 
     mock_subreddit = Mock()
-    mock_subreddit.hot = Mock(return_value=async_generator([mock_sub]))
+    mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_sub]))
 
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
@@ -447,7 +440,7 @@ async def test_retrieve_hot_posts_subreddit_not_found(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_empty_results(mock_env_vars):
+async def test_retrieve_hot_posts_empty_results(mock_env_vars, async_generator_helper):
     """
     Given: 投稿が0件のサブレディット
     When: _retrieve_hot_postsで取得
@@ -460,7 +453,7 @@ async def test_retrieve_hot_posts_empty_results(mock_env_vars):
         service = RedditExplorer()
 
         mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([]))
+        mock_subreddit.hot = Mock(return_value=async_generator_helper([]))
 
         service.reddit = Mock()
         service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
@@ -476,7 +469,7 @@ async def test_retrieve_hot_posts_empty_results(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_skip_stickied(mock_env_vars):
+async def test_retrieve_hot_posts_skip_stickied(mock_env_vars, async_generator_helper):
     """
     Given: スティッキー投稿を含むサブレディット
     When: _retrieve_hot_postsで取得
@@ -511,7 +504,7 @@ async def test_retrieve_hot_posts_skip_stickied(mock_env_vars):
 
         mock_subreddit = Mock()
         mock_subreddit.hot = Mock(
-            return_value=async_generator([stickied_submission, normal_submission])
+            return_value=async_generator_helper([stickied_submission, normal_submission])
         )
 
         service.reddit = Mock()
@@ -531,7 +524,7 @@ async def test_retrieve_hot_posts_skip_stickied(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_duplicate_titles(mock_env_vars):
+async def test_retrieve_hot_posts_duplicate_titles(mock_env_vars, async_generator_helper):
     """
     Given: 重複するタイトルの投稿
     When: _retrieve_hot_postsで取得
@@ -577,7 +570,7 @@ async def test_retrieve_hot_posts_duplicate_titles(mock_env_vars):
         submission2.created_utc = 1700000000
 
         mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([submission1, submission2]))
+        mock_subreddit.hot = Mock(return_value=async_generator_helper([submission1, submission2]))
 
         service.reddit = Mock()
         service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
@@ -1481,7 +1474,7 @@ def test_run_method(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_date_filter(mock_env_vars):
+async def test_retrieve_hot_posts_date_filter(mock_env_vars, async_generator_helper):
     """
     Given: 対象日付外の投稿
     When: _retrieve_hot_postsで取得
@@ -1512,7 +1505,7 @@ async def test_retrieve_hot_posts_date_filter(mock_env_vars):
         mock_submission.created_utc = 1672531200  # 2023-01-01 00:00:00 UTC
 
         mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
+        mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_submission]))
 
         service.reddit = Mock()
         service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
