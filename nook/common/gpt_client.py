@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import json
 import os
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -277,7 +278,7 @@ class GPTClient:
         system_instruction : str, optional
             システム指示。
         temperature : float, default=0.7
-            生成の多様性を制御するパラメータ。
+            生成の多様性を制御するパラメータ（非推奨：GPT-5では無視されます）。
         max_tokens : int, default=1000
             生成するトークンの最大数。
 
@@ -286,6 +287,13 @@ class GPTClient:
         str
             生成されたテキスト。
         """
+        if temperature != 0.7:
+            warnings.warn(
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         messages = []
 
         if system_instruction:
@@ -394,7 +402,7 @@ class GPTClient:
         message : str
             送信するメッセージ。
         temperature : float, default=0.7
-            生成の多様性を制御するパラメータ。
+            生成の多様性を制御するパラメータ（非推奨：GPT-5では無視されます）。
         max_tokens : int, default=1000
             生成するトークンの最大数。
 
@@ -403,6 +411,13 @@ class GPTClient:
         str
             AIの応答。
         """
+        if temperature != 0.7:
+            warnings.warn(
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         chat_session["messages"].append({"role": "user", "content": message})
 
         # トークン数の計算
@@ -450,7 +465,7 @@ class GPTClient:
         chat_history : List[Dict[str, str]], optional
             チャット履歴。
         temperature : float, default=0.7
-            生成の多様性を制御するパラメータ。
+            生成の多様性を制御するパラメータ（非推奨：GPT-5では無視されます）。
         max_tokens : int, default=1000
             生成するトークンの最大数。
 
@@ -459,6 +474,13 @@ class GPTClient:
         str
             AIの応答。
         """
+        if temperature != 0.7:
+            warnings.warn(
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         system_instruction = """
         あなたは役立つアシスタントです。ユーザーの質問に対して、提供されたコンテキストに基づいて回答してください。
         コンテキストに情報がない場合は、その旨を正直に伝えてください。
@@ -508,7 +530,7 @@ class GPTClient:
         system : str, optional
             システム指示。
         temperature : float, default=0.7
-            生成の多様性を制御するパラメータ。
+            生成の多様性を制御するパラメータ（非推奨：GPT-5では無視されます）。
         max_tokens : int, default=1000
             生成するトークンの最大数。
 
@@ -517,6 +539,13 @@ class GPTClient:
         str
             AIの応答。
         """
+        if temperature != 0.7:
+            warnings.warn(
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         all_messages = []
 
         if system:

@@ -521,13 +521,16 @@ async def test_batch_process_concurrent_limit():
     items = list(range(500))
     concurrent_count = 0
     max_concurrent_seen = 0
+    lock = asyncio.Lock()
 
     async def processor(batch):
         nonlocal concurrent_count, max_concurrent_seen
-        concurrent_count += 1
-        max_concurrent_seen = max(max_concurrent_seen, concurrent_count)
+        async with lock:
+            concurrent_count += 1
+            max_concurrent_seen = max(max_concurrent_seen, concurrent_count)
         await asyncio.sleep(0.05)
-        concurrent_count -= 1
+        async with lock:
+            concurrent_count -= 1
         return len(batch)
 
     # When
