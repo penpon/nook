@@ -39,7 +39,7 @@ def mock_env_vars(monkeypatch):
         "REDDIT_CLIENT_ID": "test-client-id",
         "REDDIT_CLIENT_SECRET": "test-client-secret",
         "REDDIT_USER_AGENT": "test-user-agent",
-        "DATA_DIR": "/tmp/nook_test_data",
+        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108 - test fixture only
         "LOG_LEVEL": "INFO",
     }
     for key, value in env_vars.items():
