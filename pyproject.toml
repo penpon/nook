@@ -69,6 +69,14 @@ ignore = [
     "E501", # line too long (handled by black)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "E501",  # Line too long in test files (test data often exceeds limit)
+]
+"tests/conftest.py" = [
+    "E501",  # Line too long (HTML/test data strings)
+]
+
 [tool.coverage.run]
 source = ["modules"]
 omit = [

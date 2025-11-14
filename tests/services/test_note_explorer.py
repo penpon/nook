@@ -862,12 +862,10 @@ async def test_collect_feed_toml_load_failure(mock_env_vars):
     When: NoteExplorerを初期化
     Then: エラーが発生する
     """
-    with patch("nook.common.base_service.setup_logger"):
-        with patch(
-            "builtins.open", side_effect=FileNotFoundError("feed.toml not found")
-        ):
-            with pytest.raises(FileNotFoundError):
-                NoteExplorer()
+    with patch("nook.common.base_service.setup_logger"), patch(
+        "builtins.open", side_effect=FileNotFoundError("feed.toml not found")
+    ), pytest.raises(FileNotFoundError):
+        NoteExplorer()
 
 
 @pytest.mark.unit

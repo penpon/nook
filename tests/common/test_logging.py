@@ -398,9 +398,8 @@ def test_setup_logger_invalid_level():
     When: setup_loggerを呼び出す
     Then: AttributeErrorが発生
     """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with pytest.raises(AttributeError):
-            setup_logger("test_logger", level="INVALID", log_dir=tmpdir)
+    with tempfile.TemporaryDirectory() as tmpdir, pytest.raises(AttributeError):
+        setup_logger("test_logger", level="INVALID", log_dir=tmpdir)
 
 
 @pytest.mark.unit

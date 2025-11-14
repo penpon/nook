@@ -9,16 +9,14 @@ nook/services/qiita_explorer/qiita_explorer.py の追加単体テスト
 
 from __future__ import annotations
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
 from nook.services.base_feed_service import Article
-
+from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
 
 # =============================================================================
 # 1. collect内部分岐 詳細テスト
