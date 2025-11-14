@@ -92,32 +92,26 @@ def create_mock_html(repos: list[dict[str, str]]) -> str:
 
 
 @pytest.mark.unit
-def test_init_with_default_storage_dir(mock_env_vars):
+def test_init_with_default_storage_dir(mock_env_vars, mock_service):
     """
     Given: デフォルトのstorage_dir
     When: GithubTrendingを初期化
     Then: インスタンスが正常に作成される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-
-        assert service.service_name == "github_trending"
-        assert service.http_client is None
-        assert service.base_url == "https://github.com/trending"
+    assert mock_service.service_name == "github_trending", "service_nameが正しくありません"
+    assert mock_service.http_client is None, "http_clientは初期状態でNoneであるべきです"
+    assert mock_service.base_url == "https://github.com/trending", "base_urlが正しくありません"
 
 
 @pytest.mark.unit
-def test_init_loads_languages_config(mock_env_vars):
+def test_init_loads_languages_config(mock_env_vars, mock_service):
     """
     Given: 言語設定ファイルが存在
     When: GithubTrendingを初期化
     Then: 言語設定が正常に読み込まれる
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-
-        assert hasattr(service, "languages_config")
-        assert isinstance(service.languages_config, dict)
+    assert hasattr(mock_service, "languages_config"), "languages_config属性が存在しません"
+    assert isinstance(mock_service.languages_config, dict), "languages_configは辞書型であるべきです"
 
 
 # =============================================================================
