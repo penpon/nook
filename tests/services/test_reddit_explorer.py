@@ -122,23 +122,41 @@ def test_init_missing_all_credentials(monkeypatch):
 
 
 # =============================================================================
-# 3. 投稿タイプ判定のユニットテスト（7種類）
+# 3. 投稿タイプ判定のユニットテスト（7種類）- パラメタライズド
 # =============================================================================
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_post_type_detection_image(reddit_explorer_service, mock_reddit_submission):
+@pytest.mark.parametrize(
+    "post_type,expected_type",
+    [
+        ("image", "image"),
+        ("gallery", "gallery"),
+        ("video", "video"),
+        ("poll", "poll"),
+        ("crosspost", "crosspost"),
+        ("text", "text"),
+        ("link", "link"),
+    ],
+    ids=["image", "gallery", "video", "poll", "crosspost", "text", "link"],
+)
+async def test_post_type_detection(
+    reddit_explorer_service, mock_reddit_submission, test_dates, post_type, expected_type
+):
     """
-    Given: 画像投稿（.jpg, .png等）
+    Given: 各種投稿タイプ（image/gallery/video/poll/crosspost/text/link）
     When: _retrieve_hot_postsで投稿を処理
-    Then: 投稿タイプが'image'と判定される
+    Then: 正しい投稿タイプが判定される
     """
     from nook.common.dedup import DedupTracker
 
-    # フィクスチャを使用してモックsubmission作成
+    # フィクスチャファクトリーで投稿タイプに応じたモック作成
     mock_sub = mock_reddit_submission(
-        post_type="image", title="Image Post", post_id="img123"
+        post_type=post_type,
+        title=f"{post_type.capitalize()} Post",
+        post_id=f"{post_type}123",
+        created_utc=test_dates["reddit_post_utc_timestamp"],
     )
 
     mock_subreddit = Mock()
@@ -150,287 +168,14 @@ async def test_post_type_detection_image(reddit_explorer_service, mock_reddit_su
 
     dedup_tracker = DedupTracker()
     posts, total = await reddit_explorer_service._retrieve_hot_posts(
-        "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
+        "test",
+        limit=10,
+        dedup_tracker=dedup_tracker,
+        target_dates=[test_dates["reddit_post_date"]],
     )
 
     assert len(posts) == 1
-    assert posts[0].type == "image"
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_post_type_detection_gallery(mock_env_vars):
-    """
-    Given: ギャラリー投稿
-    When: _retrieve_hot_postsで投稿を処理
-    Then: 投稿タイプが'gallery'と判定される
-    """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = False
-        mock_submission.is_gallery = True  # ギャラリー
-        mock_submission.poll_data = None
-        mock_submission.crosspost_parent = None
-        mock_submission.is_self = False
-        mock_submission.url = "https://reddit.com/gallery/test"
-        mock_submission.title = "Gallery Post"
-        mock_submission.selftext = ""
-        mock_submission.score = 200
-        mock_submission.id = "gal123"
-        mock_submission.permalink = "/r/test/comments/gal123"
-        mock_submission.thumbnail = "self"
-        mock_submission.created_utc = 1699999999
-
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
-
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="")
-
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
-        )
-
-        assert len(posts) == 1
-        assert posts[0].type == "gallery"
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_post_type_detection_video(mock_env_vars):
-    """
-    Given: ビデオ投稿
-    When: _retrieve_hot_postsで投稿を処理
-    Then: 投稿タイプが'video'と判定される
-    """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = True  # ビデオ
-        mock_submission.is_gallery = False
-        mock_submission.poll_data = None
-        mock_submission.crosspost_parent = None
-        mock_submission.is_self = False
-        mock_submission.url = "https://v.redd.it/test"
-        mock_submission.title = "Video Post"
-        mock_submission.selftext = ""
-        mock_submission.score = 300
-        mock_submission.id = "vid123"
-        mock_submission.permalink = "/r/test/comments/vid123"
-        mock_submission.thumbnail = "https://thumb.jpg"
-        mock_submission.created_utc = 1699999999
-
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
-
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="")
-
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
-        )
-
-        assert len(posts) == 1
-        assert posts[0].type == "video"
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_post_type_detection_poll(mock_env_vars):
-    """
-    Given: 投票投稿
-    When: _retrieve_hot_postsで投稿を処理
-    Then: 投稿タイプが'poll'と判定される
-    """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = False
-        mock_submission.is_gallery = False
-        mock_submission.poll_data = {"options": [{"text": "Option 1"}]}  # 投票
-        mock_submission.crosspost_parent = None
-        mock_submission.is_self = True
-        mock_submission.url = "https://reddit.com/r/test/poll"
-        mock_submission.title = "Poll Post"
-        mock_submission.selftext = "What do you think?"
-        mock_submission.score = 150
-        mock_submission.id = "poll123"
-        mock_submission.permalink = "/r/test/comments/poll123"
-        mock_submission.thumbnail = "self"
-        mock_submission.created_utc = 1699999999
-
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
-
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="どう思いますか？")
-
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
-        )
-
-        assert len(posts) == 1
-        assert posts[0].type == "poll"
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_post_type_detection_crosspost(mock_env_vars):
-    """
-    Given: クロスポスト
-    When: _retrieve_hot_postsで投稿を処理
-    Then: 投稿タイプが'crosspost'と判定される
-    """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = False
-        mock_submission.is_gallery = False
-        mock_submission.poll_data = None
-        mock_submission.crosspost_parent = "t3_original123"  # クロスポスト
-        mock_submission.is_self = False
-        mock_submission.url = "https://reddit.com/r/original/post"
-        mock_submission.title = "Crosspost"
-        mock_submission.selftext = ""
-        mock_submission.score = 250
-        mock_submission.id = "cross123"
-        mock_submission.permalink = "/r/test/comments/cross123"
-        mock_submission.thumbnail = "https://thumb.jpg"
-        mock_submission.created_utc = 1699999999
-
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
-
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="")
-
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
-        )
-
-        assert len(posts) == 1
-        assert posts[0].type == "crosspost"
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_post_type_detection_text(mock_env_vars):
-    """
-    Given: テキスト投稿
-    When: _retrieve_hot_postsで投稿を処理
-    Then: 投稿タイプが'text'と判定される
-    """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = False
-        mock_submission.is_gallery = False
-        mock_submission.poll_data = None
-        mock_submission.crosspost_parent = None
-        mock_submission.is_self = True  # セルフテキスト投稿
-        mock_submission.url = "https://reddit.com/r/test/text"
-        mock_submission.title = "Text Post"
-        mock_submission.selftext = "This is a text post"
-        mock_submission.score = 50
-        mock_submission.id = "text123"
-        mock_submission.permalink = "/r/test/comments/text123"
-        mock_submission.thumbnail = "self"
-        mock_submission.created_utc = 1699999999
-
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
-
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="これはテキスト投稿です")
-
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
-        )
-
-        assert len(posts) == 1
-        assert posts[0].type == "text"
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_post_type_detection_link(mock_env_vars):
-    """
-    Given: 外部リンク投稿
-    When: _retrieve_hot_postsで投稿を処理
-    Then: 投稿タイプが'link'と判定される
-    """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = False
-        mock_submission.is_gallery = False
-        mock_submission.poll_data = None
-        mock_submission.crosspost_parent = None
-        mock_submission.is_self = False
-        mock_submission.url = "https://example.com/article"  # 外部リンク
-        mock_submission.title = "Link Post"
-        mock_submission.selftext = ""
-        mock_submission.score = 175
-        mock_submission.id = "link123"
-        mock_submission.permalink = "/r/test/comments/link123"
-        mock_submission.thumbnail = "https://thumb.jpg"
-        mock_submission.created_utc = 1699999999
-
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
-
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="")
-
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
-        )
-
-        assert len(posts) == 1
-        assert posts[0].type == "link"
+    assert posts[0].type == expected_type
 
 
 # =============================================================================
@@ -440,59 +185,44 @@ async def test_post_type_detection_link(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_utc_to_jst_conversion(mock_env_vars):
+async def test_utc_to_jst_conversion(
+    reddit_explorer_service, mock_reddit_submission, test_dates
+):
     """
     Given: UTC タイムスタンプの投稿
     When: _retrieve_hot_postsで投稿を処理
     Then: created_atがUTCタイムゾーンで正しく変換される
     """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+    from nook.common.dedup import DedupTracker
 
-        service = RedditExplorer()
+    utc_timestamp = test_dates["utc_test_timestamp"]
+    mock_sub = mock_reddit_submission(
+        post_type="text",
+        title="UTC Test",
+        post_id="utc123",
+        created_utc=utc_timestamp,
+    )
 
-        # 2024-01-01 00:00:00 UTC = 1704067200
-        utc_timestamp = 1704067200
+    mock_subreddit = Mock()
+    mock_subreddit.hot = Mock(return_value=async_generator([mock_sub]))
 
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = False
-        mock_submission.is_gallery = False
-        mock_submission.poll_data = None
-        mock_submission.crosspost_parent = None
-        mock_submission.is_self = True
-        mock_submission.url = "https://reddit.com/test"
-        mock_submission.title = "UTC Test"
-        mock_submission.selftext = "Test content"
-        mock_submission.score = 100
-        mock_submission.id = "utc123"
-        mock_submission.permalink = "/r/test/comments/utc123"
-        mock_submission.thumbnail = "self"
-        mock_submission.created_utc = utc_timestamp
+    reddit_explorer_service.reddit = Mock()
+    reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
+    reddit_explorer_service._translate_to_japanese = AsyncMock(return_value="テスト内容")
 
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
+    dedup_tracker = DedupTracker()
+    posts, total = await reddit_explorer_service._retrieve_hot_posts(
+        "test",
+        limit=10,
+        dedup_tracker=dedup_tracker,
+        target_dates=[test_dates["today"]],
+    )
 
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="テスト内容")
-
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test",
-            limit=10,
-            dedup_tracker=dedup_tracker,
-            target_dates=[date(2024, 1, 1)],
-        )
-
-        assert len(posts) == 1
-        assert posts[0].created_at is not None
-        # UTCタイムゾーンで保存されることを確認
-        assert posts[0].created_at.tzinfo == timezone.utc
-        # タイムスタンプが正しく変換されることを確認
-        expected_dt = datetime.fromtimestamp(utc_timestamp, tz=timezone.utc)
-        assert posts[0].created_at == expected_dt
+    assert len(posts) == 1
+    assert posts[0].created_at is not None
+    assert posts[0].created_at.tzinfo == timezone.utc
+    expected_dt = datetime.fromtimestamp(utc_timestamp, tz=timezone.utc)
+    assert posts[0].created_at == expected_dt
 
 
 # =============================================================================
@@ -502,48 +232,36 @@ async def test_utc_to_jst_conversion(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_summarize_reddit_post_success(mock_env_vars):
+async def test_summarize_reddit_post_success(reddit_explorer_service):
     """
     Given: 有効なReddit投稿
     When: _summarize_reddit_postで要約を生成
     Then: GPTクライアントが呼ばれ、要約が設定される
     """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.services.reddit_explorer.reddit_explorer import (
-            RedditExplorer,
-            RedditPost,
-        )
+    from nook.services.reddit_explorer.reddit_explorer import RedditPost
 
-        service = RedditExplorer()
+    post = RedditPost(
+        type="text",
+        id="test123",
+        title="Test Post",
+        url=None,
+        upvotes=100,
+        text="Test content",
+        comments=[
+            {"text": "Great post!", "score": 50},
+            {"text": "I agree", "score": 30},
+        ],
+    )
 
-        post = RedditPost(
-            type="text",
-            id="test123",
-            title="Test Post",
-            url=None,
-            upvotes=100,
-            text="Test content",
-            comments=[
-                {"text": "Great post!", "score": 50},
-                {"text": "I agree", "score": 30},
-            ],
-        )
+    reddit_explorer_service.gpt_client = Mock()
+    reddit_explorer_service.gpt_client.generate_content = Mock(
+        return_value="これは要約です。"
+    )
 
-        # GPTクライアントをモック
-        service.gpt_client = Mock()
-        service.gpt_client.generate_content = Mock(return_value="これは要約です。")
+    await reddit_explorer_service._summarize_reddit_post(post)
 
-        await service._summarize_reddit_post(post)
-
-        # GPTクライアントが呼ばれたことを確認
-        assert service.gpt_client.generate_content.called
-        # 要約が設定されたことを確認
-        assert post.summary == "これは要約です。"
-        # プロンプトにタイトル、本文、コメントが含まれることを確認
-        call_kwargs = service.gpt_client.generate_content.call_args[1]
-        assert "Test Post" in call_kwargs["prompt"]
-        assert "Test content" in call_kwargs["prompt"]
-        assert "Great post!" in call_kwargs["prompt"]
+    assert reddit_explorer_service.gpt_client.generate_content.called
+    assert post.summary == "これは要約です。"
 
 
 @pytest.mark.unit
