@@ -133,9 +133,7 @@ class BaseFeedService(BaseService):
 
         return recent_entries[:limit]
 
-    def _group_articles_by_date(
-        self, articles: list[Article]
-    ) -> dict[str, list[Article]]:
+    def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
         """
         記事を日付ごとにグループ化します。
 
@@ -188,9 +186,7 @@ class BaseFeedService(BaseService):
                     "summary": article.summary,
                     "popularity_score": article.popularity_score,
                     "published_at": (
-                        article.published_at.isoformat()
-                        if article.published_at
-                        else None
+                        article.published_at.isoformat() if article.published_at else None
                     ),
                     "category": category,
                 }
@@ -266,7 +262,7 @@ class BaseFeedService(BaseService):
         """
         if value is None:
             return None
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return int(value)
         if isinstance(value, str):
             match = re.search(r"(-?\d+)", value.replace(",", ""))
@@ -303,9 +299,7 @@ class BaseFeedService(BaseService):
         sections = list(category_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = (
-                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
-            )
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
             block = markdown[start:end]
             category = match.group(1).strip().lower().replace(" ", "_")
 
@@ -352,7 +346,7 @@ class BaseFeedService(BaseService):
 
         # 各日独立で上位記事を選択
         selected_articles = []
-        for date_key, date_articles in articles_by_date.items():
+        for date_articles in articles_by_date.values():
             if len(date_articles) <= self.TOTAL_LIMIT:
                 selected_articles.extend(date_articles)
             else:
@@ -593,11 +587,7 @@ class BaseFeedService(BaseService):
         japanese_chars_count = 0
         for char in title:
             code = ord(char)
-            if (
-                code in hiragana_pattern
-                or code in katakana_pattern
-                or code in kanji_pattern
-            ):
+            if code in hiragana_pattern or code in katakana_pattern or code in kanji_pattern:
                 japanese_chars_count += 1
 
         if japanese_chars_count > 2:  # 複数の日本語文字があれば日本語とみなす
@@ -621,11 +611,7 @@ class BaseFeedService(BaseService):
         japanese_chars_count = 0
         for char in text_to_check[:100]:  # 最初の100文字だけチェック
             code = ord(char)
-            if (
-                code in hiragana_pattern
-                or code in katakana_pattern
-                or code in kanji_pattern
-            ):
+            if code in hiragana_pattern or code in katakana_pattern or code in kanji_pattern:
                 japanese_chars_count += 1
 
         if japanese_chars_count > 5:  # 複数の日本語文字があれば日本語とみなす
