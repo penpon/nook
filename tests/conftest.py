@@ -624,3 +624,123 @@ def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
     return
     # テスト後の処理（必要に応じて）
+
+
+# =============================================================================
+# RedditExplorer専用フィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def reddit_explorer_service(mock_env_vars):
+    """RedditExplorerサービスのインスタンスを提供"""
+    from unittest.mock import patch
+
+    with patch("nook.common.logging.setup_logger"):
+        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+
+        service = RedditExplorer()
+        return service
+
+
+@pytest.fixture
+def mock_reddit_submission():
+    """モックReddit投稿オブジェクトを作成するファクトリー"""
+
+    def _create_submission(
+        post_type="text",
+        title="Test Post",
+        score=100,
+        num_comments=25,
+        created_utc=1699999999,
+        stickied=False,
+        post_id="test123",
+        url="https://reddit.com/test",
+        selftext="Test content",
+    ):
+        """モックsubmissionを作成"""
+        mock_sub = Mock()
+        mock_sub.stickied = stickied
+        mock_sub.title = title
+        mock_sub.score = score
+        mock_sub.num_comments = num_comments
+        mock_sub.created_utc = created_utc
+        mock_sub.id = post_id
+        mock_sub.permalink = f"/r/test/comments/{post_id}"
+        mock_sub.url = url
+        mock_sub.selftext = selftext
+        mock_sub.thumbnail = "self"
+
+        # 投稿タイプによって属性を変更
+        if post_type == "image":
+            mock_sub.is_video = False
+            mock_sub.is_gallery = False
+            mock_sub.poll_data = None
+            mock_sub.crosspost_parent = None
+            mock_sub.is_self = False
+            mock_sub.url = "https://i.redd.it/test.jpg"
+        elif post_type == "gallery":
+            mock_sub.is_video = False
+            mock_sub.is_gallery = True
+            mock_sub.poll_data = None
+            mock_sub.crosspost_parent = None
+            mock_sub.is_self = False
+        elif post_type == "video":
+            mock_sub.is_video = True
+            mock_sub.is_gallery = False
+            mock_sub.poll_data = None
+            mock_sub.crosspost_parent = None
+            mock_sub.is_self = False
+        elif post_type == "poll":
+            mock_sub.is_video = False
+            mock_sub.is_gallery = False
+            mock_sub.poll_data = {"options": []}
+            mock_sub.crosspost_parent = None
+            mock_sub.is_self = False
+        elif post_type == "crosspost":
+            mock_sub.is_video = False
+            mock_sub.is_gallery = False
+            mock_sub.poll_data = None
+            mock_sub.crosspost_parent = "original_post_id"
+            mock_sub.is_self = False
+        elif post_type == "text":
+            mock_sub.is_video = False
+            mock_sub.is_gallery = False
+            mock_sub.poll_data = None
+            mock_sub.crosspost_parent = None
+            mock_sub.is_self = True
+        elif post_type == "link":
+            mock_sub.is_video = False
+            mock_sub.is_gallery = False
+            mock_sub.poll_data = None
+            mock_sub.crosspost_parent = None
+            mock_sub.is_self = False
+            mock_sub.url = "https://example.com/article"
+
+        return mock_sub
+
+    return _create_submission
+
+
+@pytest.fixture
+def mock_reddit_api():
+    """モックReddit APIを提供"""
+
+    async def _async_generator(items):
+        """非同期イテレータヘルパー"""
+        for item in items:
+            yield item
+
+    mock_reddit = Mock()
+    mock_subreddit = Mock()
+    mock_reddit_instance = Mock()
+
+    mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+    mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+
+    return {
+        "reddit": mock_reddit,
+        "reddit_instance": mock_reddit_instance,
+        "subreddit": mock_subreddit,
+        "async_generator": _async_generator,
+    }

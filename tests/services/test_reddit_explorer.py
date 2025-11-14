@@ -31,29 +31,17 @@ async def async_generator(items):
 
 
 @pytest.mark.unit
-def test_init_with_default_storage_dir(mock_env_vars):
+def test_init_with_default_storage_dir(reddit_explorer_service):
     """
     Given: デフォルトのstorage_dir
     When: RedditExplorerを初期化
     Then: インスタンスが正常に作成される
     """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        assert service.service_name == "reddit_explorer"
+    assert reddit_explorer_service.service_name == "reddit_explorer"
 
 
-@pytest.mark.unit
-@pytest.mark.unit
-
-@pytest.mark.unit
-@pytest.mark.unit
-
-@pytest.mark.unit
 # =============================================================================
-# 5. OAuth認証のユニットテスト
+# 2. OAuth認証のユニットテスト
 # =============================================================================
 
 
@@ -134,55 +122,39 @@ def test_init_missing_all_credentials(monkeypatch):
 
 
 # =============================================================================
-# 6. 投稿タイプ判定のユニットテスト（7種類）
+# 3. 投稿タイプ判定のユニットテスト（7種類）
 # =============================================================================
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_post_type_detection_image(mock_env_vars):
+async def test_post_type_detection_image(reddit_explorer_service, mock_reddit_submission):
     """
     Given: 画像投稿（.jpg, .png等）
     When: _retrieve_hot_postsで投稿を処理
     Then: 投稿タイプが'image'と判定される
     """
-    with patch("nook.common.logging.setup_logger"):
-        from nook.common.dedup import DedupTracker
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+    from nook.common.dedup import DedupTracker
 
-        service = RedditExplorer()
+    # フィクスチャを使用してモックsubmission作成
+    mock_sub = mock_reddit_submission(
+        post_type="image", title="Image Post", post_id="img123"
+    )
 
-        # モックsubmission作成（画像）
-        mock_submission = Mock()
-        mock_submission.stickied = False
-        mock_submission.is_video = False
-        mock_submission.is_gallery = False
-        mock_submission.poll_data = None
-        mock_submission.crosspost_parent = None
-        mock_submission.is_self = False
-        mock_submission.url = "https://i.redd.it/test.jpg"
-        mock_submission.title = "Image Post"
-        mock_submission.selftext = ""
-        mock_submission.score = 100
-        mock_submission.id = "img123"
-        mock_submission.permalink = "/r/test/comments/img123"
-        mock_submission.thumbnail = "https://thumb.jpg"
-        mock_submission.created_utc = 1699999999
+    mock_subreddit = Mock()
+    mock_subreddit.hot = Mock(return_value=async_generator([mock_sub]))
 
-        mock_subreddit = Mock()
-        mock_subreddit.hot = Mock(return_value=async_generator([mock_submission]))
+    reddit_explorer_service.reddit = Mock()
+    reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
+    reddit_explorer_service._translate_to_japanese = AsyncMock(return_value="")
 
-        service.reddit = Mock()
-        service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
-        service._translate_to_japanese = AsyncMock(return_value="")
+    dedup_tracker = DedupTracker()
+    posts, total = await reddit_explorer_service._retrieve_hot_posts(
+        "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
+    )
 
-        dedup_tracker = DedupTracker()
-        posts, total = await service._retrieve_hot_posts(
-            "test", limit=10, dedup_tracker=dedup_tracker, target_dates=[date(2023, 11, 15)]
-        )
-
-        assert len(posts) == 1
-        assert posts[0].type == "image"
+    assert len(posts) == 1
+    assert posts[0].type == "image"
 
 
 @pytest.mark.unit
@@ -462,7 +434,7 @@ async def test_post_type_detection_link(mock_env_vars):
 
 
 # =============================================================================
-# 7. UTC→JST変換のユニットテスト
+# 4. UTC→JST変換のユニットテスト
 # =============================================================================
 
 
@@ -524,7 +496,7 @@ async def test_utc_to_jst_conversion(mock_env_vars):
 
 
 # =============================================================================
-# 8. GPT要約のユニットテスト
+# 5. GPT要約のユニットテスト
 # =============================================================================
 
 
@@ -649,7 +621,7 @@ async def test_summarize_reddit_post_error_handling(mock_env_vars):
 
 
 # =============================================================================
-# 9. 翻訳機能のユニットテスト
+# 6. 翻訳機能のユニットテスト
 # =============================================================================
 
 
@@ -721,7 +693,7 @@ async def test_translate_to_japanese_error_handling(mock_env_vars):
 
 
 # =============================================================================
-# 10. エラーケースのユニットテスト
+# 7. エラーケースのユニットテスト
 # =============================================================================
 
 
@@ -998,7 +970,7 @@ async def test_retrieve_top_comments_empty(mock_env_vars):
 
 
 # =============================================================================
-# 11. ヘルパーメソッドのユニットテスト
+# 8. ヘルパーメソッドのユニットテスト
 # =============================================================================
 
 
@@ -1126,7 +1098,7 @@ def test_select_top_posts(mock_env_vars):
 
 
 # =============================================================================
-# 12. シリアライズ・ストレージのユニットテスト
+# 9. シリアライズ・ストレージのユニットテスト
 # =============================================================================
 
 
@@ -1273,7 +1245,7 @@ async def test_store_summaries_with_posts(mock_env_vars):
 
 
 # =============================================================================
-# 13. Markdownレンダリングのユニットテスト
+# 10. Markdownレンダリングのユニットテスト
 # =============================================================================
 
 
@@ -1388,7 +1360,7 @@ def test_render_markdown_multiple_subreddits(mock_env_vars):
 
 
 # =============================================================================
-# 14. Markdownパースのユニットテスト
+# 11. Markdownパースのユニットテスト
 # =============================================================================
 
 
@@ -1533,7 +1505,7 @@ Summary 3
 
 
 # =============================================================================
-# 15. _load_existing_postsのユニットテスト
+# 12. _load_existing_postsのユニットテスト
 # =============================================================================
 
 
