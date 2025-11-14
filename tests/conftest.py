@@ -56,6 +56,27 @@ def mock_logger():
 
 
 @pytest.fixture
+async def hacker_news_service(mock_env_vars, mock_logger):
+    """HackerNewsRetrieverのインスタンスを提供し、自動的にcleanupを実行
+
+    使用例:
+        async def test_something(hacker_news_service):
+            service = hacker_news_service
+            await service.setup_http_client()
+            # ... テストコード ...
+            # cleanup()は自動的に呼ばれる
+    """
+    from nook.services.hacker_news.hacker_news import HackerNewsRetriever
+
+    service = HackerNewsRetriever()
+    yield service
+
+    # テスト後に自動的にcleanup
+    if service.http_client is not None:
+        await service.cleanup()
+
+
+@pytest.fixture
 def temp_data_dir(tmp_path):
     """テスト用一時データディレクトリ"""
     data_dir = tmp_path / "test_data"

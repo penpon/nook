@@ -516,70 +516,32 @@ def test_load_blocked_domains_invalid_json(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_is_blocked_domain_blocked(mock_env_vars):
+@pytest.mark.parametrize("url,blocked_domains,expected,test_case", [
+    # ブロックされたドメイン
+    ("https://reuters.com/article", ["reuters.com"], True, "blocked_domain"),
+    ("https://www.reuters.com/article", ["reuters.com"], True, "blocked_domain_with_www"),
+    # ブロックされていないドメイン
+    ("https://example.com/article", ["reuters.com"], False, "not_blocked"),
+    # 空のURL
+    ("", ["reuters.com"], False, "empty_string"),
+    (None, ["reuters.com"], False, "none_value"),
+    # 不正なURL（netloc=""）
+    ("not-a-url", ["reuters.com"], False, "invalid_url"),
+])
+def test_is_blocked_domain(mock_env_vars, mock_logger, url, blocked_domains, expected, test_case):
     """
-    Given: ブロックリストに含まれるドメイン
+    Given: 様々なURL条件
     When: _is_blocked_domainを呼び出す
-    Then: Trueが返される
+    Then: 適切な判定結果が返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.blocked_domains = {
-            "blocked_domains": ["reuters.com", "wsj.com"],
-            "reasons": {}
-        }
+    service = HackerNewsRetriever()
+    service.blocked_domains = {
+        "blocked_domains": blocked_domains,
+        "reasons": {}
+    }
 
-        assert service._is_blocked_domain("https://reuters.com/article") is True
-        assert service._is_blocked_domain("https://www.reuters.com/article") is True
-
-
-@pytest.mark.unit
-def test_is_blocked_domain_not_blocked(mock_env_vars):
-    """
-    Given: ブロックリストに含まれないドメイン
-    When: _is_blocked_domainを呼び出す
-    Then: Falseが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.blocked_domains = {
-            "blocked_domains": ["reuters.com"],
-            "reasons": {}
-        }
-
-        assert service._is_blocked_domain("https://example.com/article") is False
-
-
-@pytest.mark.unit
-def test_is_blocked_domain_empty_url(mock_env_vars):
-    """
-    Given: 空のURL
-    When: _is_blocked_domainを呼び出す
-    Then: Falseが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-
-        assert service._is_blocked_domain("") is False
-        assert service._is_blocked_domain(None) is False
-
-
-@pytest.mark.unit
-def test_is_blocked_domain_invalid_url(mock_env_vars):
-    """
-    Given: 不正なURL（スキームなし）
-    When: _is_blocked_domainを呼び出す
-    Then: Falseが返される（ドメインが抽出できないため）
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-
-        # URLとして解釈されないが、パース自体は成功する（netloc=""）
-        # 実際の実装ではnettlocが空の場合はブロックされていないと判断される
-        result = service._is_blocked_domain("not-a-url")
-
-        # netloc が空文字列の場合、blocked_domainsリストには含まれないのでFalse
-        assert result is False
+    result = service._is_blocked_domain(url)
+    assert result == expected, f"Test case '{test_case}' failed for url='{url}'"
 
 
 # =============================================================================
@@ -588,54 +550,46 @@ def test_is_blocked_domain_invalid_url(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_is_http1_required_domain_required(mock_env_vars):
+@pytest.mark.parametrize("url,http1_domains,expected,test_case", [
+    # HTTP/1.1が必要なドメイン
+    ("https://htmlrev.com/page", ["htmlrev.com"], True, "http1_required"),
+    ("https://www.htmlrev.com/page", ["htmlrev.com"], True, "http1_required_with_www"),
+    # HTTP/1.1が不要なドメイン
+    ("https://example.com/page", ["htmlrev.com"], False, "not_required"),
+    # 空のURL
+    ("", ["htmlrev.com"], False, "empty_string"),
+])
+def test_is_http1_required_domain(mock_env_vars, mock_logger, url, http1_domains, expected, test_case):
     """
-    Given: HTTP/1.1が必要なドメイン
+    Given: 様々なURL条件
     When: _is_http1_required_domainを呼び出す
-    Then: Trueが返される
+    Then: 適切な判定結果が返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.blocked_domains = {
-            "blocked_domains": [],
-            "http1_required_domains": ["htmlrev.com"],
-            "reasons": {}
-        }
+    service = HackerNewsRetriever()
+    service.blocked_domains = {
+        "blocked_domains": [],
+        "http1_required_domains": http1_domains,
+        "reasons": {}
+    }
 
-        assert service._is_http1_required_domain("https://htmlrev.com/page") is True
-        assert service._is_http1_required_domain("https://www.htmlrev.com/page") is True
+    result = service._is_http1_required_domain(url)
+    assert result == expected, f"Test case '{test_case}' failed for url='{url}'"
 
 
 @pytest.mark.unit
-def test_is_http1_required_domain_not_required(mock_env_vars):
+def test_is_http1_required_domain_exception_handling(mock_env_vars, mock_logger):
     """
-    Given: HTTP/1.1が不要なドメイン
+    Given: 不正な状態
     When: _is_http1_required_domainを呼び出す
-    Then: Falseが返される
+    Then: Falseが返される（例外は発生しない）
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.blocked_domains = {
-            "blocked_domains": [],
-            "http1_required_domains": ["htmlrev.com"],
-            "reasons": {}
-        }
+    service = HackerNewsRetriever()
+    service.blocked_domains = {"http1_required_domains": None}  # Cause an exception
 
-        assert service._is_http1_required_domain("https://example.com/page") is False
+    result = service._is_http1_required_domain("https://example.com")
 
-
-@pytest.mark.unit
-def test_is_http1_required_domain_empty_url(mock_env_vars):
-    """
-    Given: 空のURL
-    When: _is_http1_required_domainを呼び出す
-    Then: Falseが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-
-        assert service._is_http1_required_domain("") is False
-        assert service._is_http1_required_domain(None) is False
+    # Should handle exception and return False
+    assert result is False
 
 
 # =============================================================================
