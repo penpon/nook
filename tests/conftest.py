@@ -195,9 +195,9 @@ def mock_hn_api(respx_mock, mock_hn_story):
     )
 
     # 個別ストーリー取得
-    respx_mock.get(
-        url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json"
-    ).mock(return_value=httpx.Response(200, json=mock_hn_story))
+    respx_mock.get(url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json").mock(
+        return_value=httpx.Response(200, json=mock_hn_story)
+    )
 
     return respx_mock
 
@@ -751,15 +751,11 @@ def zenn_service_with_mocks(mock_env_vars):
     service.http_client = AsyncMock()
 
     # LOAD_TITLES_PATHの定義（test_zenn_explorer.pyと同じ）
-    load_titles_path = (
-        "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
-    )
+    load_titles_path = "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
 
     with (
         patch("feedparser.parse") as mock_parse,
-        patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ) as mock_setup_http,
+        patch.object(service, "setup_http_client", new_callable=AsyncMock) as mock_setup_http,
         patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ) as mock_get_dates,
@@ -855,14 +851,12 @@ def assert_article_list_result(result, expected_count=None, min_count=None):
     assert isinstance(result, list), MSG_RESULT_SHOULD_BE_LIST
 
     if expected_count is not None:
-        assert len(result) == expected_count, (
-            f"期待される件数は{expected_count}件、実際は{len(result)}件"
-        )
+        assert (
+            len(result) == expected_count
+        ), f"期待される件数は{expected_count}件、実際は{len(result)}件"
 
     if min_count is not None:
-        assert len(result) >= min_count, (
-            f"最小{min_count}件の記事が必要、実際は{len(result)}件"
-        )
+        assert len(result) >= min_count, f"最小{min_count}件の記事が必要、実際は{len(result)}件"
 
 
 def assert_article_result(result):
@@ -889,8 +883,6 @@ def create_test_html(content="テキスト", meta_description=None):
     """
     meta_tag = ""
     if meta_description:
-        meta_tag = (
-            f'<head><meta name="description" content="{meta_description}"></head>'
-        )
+        meta_tag = f'<head><meta name="description" content="{meta_description}"></head>'
 
     return f"<html>{meta_tag}<body><p>{content}</p></body></html>"

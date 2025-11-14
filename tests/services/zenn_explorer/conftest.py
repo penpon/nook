@@ -40,15 +40,11 @@ def zenn_service_with_mocks(mock_env_vars):
     service.http_client = AsyncMock()
 
     # LOAD_TITLES_PATHの定義
-    load_titles_path = (
-        "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
-    )
+    load_titles_path = "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
 
     with (
         patch("feedparser.parse") as mock_parse,
-        patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ) as mock_setup_http,
+        patch.object(service, "setup_http_client", new_callable=AsyncMock) as mock_setup_http,
         patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ) as mock_get_dates,

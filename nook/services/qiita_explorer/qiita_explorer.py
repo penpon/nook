@@ -130,18 +130,12 @@ class QiitaExplorer(BaseFeedService):
 
                         for entry in entries:
                             # 記事を取得
-                            article = await self._retrieve_article(
-                                entry, feed_name, category
-                            )
+                            article = await self._retrieve_article(entry, feed_name, category)
                             if article:
                                 # 重複タイトルをスキップ（カテゴリ横断・正規化済み）
-                                is_dup, normalized_title = dedup_tracker.is_duplicate(
-                                    article.title
-                                )
+                                is_dup, normalized_title = dedup_tracker.is_duplicate(article.title)
                                 if is_dup:
-                                    original = dedup_tracker.get_original_title(
-                                        normalized_title
-                                    )
+                                    original = dedup_tracker.get_original_title(normalized_title)
                                     self.logger.info(
                                         f"重複記事をスキップ: '{article.title}' "
                                         f"(正規化後: '{normalized_title}', 初出: '{original}')"
@@ -209,14 +203,10 @@ class QiitaExplorer(BaseFeedService):
                     log_summarization_start(self.logger)
                     for idx, article in enumerate(selected, 1):
                         await self._summarize_article(article)
-                        log_summarization_progress(
-                            self.logger, idx, len(selected), article.title
-                        )
+                        log_summarization_progress(self.logger, idx, len(selected), article.title)
 
                     # ログ改善：保存完了の前に改行
-                    json_path, md_path = await self._store_summaries_for_date(
-                        selected, date_str
-                    )
+                    json_path, md_path = await self._store_summaries_for_date(selected, date_str)
                     log_storage_complete(self.logger, json_path, md_path)
                     saved_files.append((json_path, md_path))
                 else:
@@ -255,17 +245,13 @@ class QiitaExplorer(BaseFeedService):
             return []
 
         # 人気スコアで降順ソート
-        sorted_articles = sorted(
-            articles, key=lambda x: x.popularity_score, reverse=True
-        )
+        sorted_articles = sorted(articles, key=lambda x: x.popularity_score, reverse=True)
 
         # 上位N件を選択（limitが指定されていればそれを使用、なければSUMMARY_LIMIT）
         selection_limit = limit if limit is not None else self.SUMMARY_LIMIT
         return sorted_articles[:selection_limit]
 
-    async def _retrieve_article(
-        self, entry: dict, feed_name: str, category: str
-    ) -> Article | None:
+    async def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Article | None:
         """
         記事を取得します。
 

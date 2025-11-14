@@ -209,9 +209,7 @@ async def test_collect_gpt_api_error(zenn_service_with_mocks):
     mock_load = zenn_service_with_mocks["mock_load"]
 
     # Given: 記事を含むフィードを設定
-    mock_entry = create_mock_entry(
-        title="テスト", link="https://example.com/test", summary="説明"
-    )
+    mock_entry = create_mock_entry(title="テスト", link="https://example.com/test", summary="説明")
     mock_feed = create_mock_feed(title="Test Feed", entries=[mock_entry])
     mock_parse.return_value = mock_feed
 
@@ -219,9 +217,7 @@ async def test_collect_gpt_api_error(zenn_service_with_mocks):
     mock_load.return_value = mock_dedup
 
     # Given: HTTP clientは正常だがGPT APIがエラーを発生させる
-    service.http_client.get = AsyncMock(
-        return_value=Mock(text="<html><body>日本語</body></html>")
-    )
+    service.http_client.get = AsyncMock(return_value=Mock(text="<html><body>日本語</body></html>"))
     service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
     # When: collectメソッドを呼び出す
@@ -267,18 +263,14 @@ async def test_collect_with_limit_one(zenn_service_with_mocks):
     mock_load = zenn_service_with_mocks["mock_load"]
 
     # Given: 1件の記事を含むフィードを設定
-    mock_entry = create_mock_entry(
-        title="テスト", link="https://example.com/test", summary="説明"
-    )
+    mock_entry = create_mock_entry(title="テスト", link="https://example.com/test", summary="説明")
     mock_feed = create_mock_feed(title="Test", entries=[mock_entry])
     mock_parse.return_value = mock_feed
 
     mock_dedup = create_mock_dedup()
     mock_load.return_value = mock_dedup
 
-    service.http_client.get = AsyncMock(
-        return_value=Mock(text="<html><body>日本語</body></html>")
-    )
+    service.http_client.get = AsyncMock(return_value=Mock(text="<html><body>日本語</body></html>"))
     service.gpt_client.get_response = AsyncMock(return_value="要約")
 
     # When: limit=1でcollectメソッドを呼び出す
@@ -403,9 +395,7 @@ async def test_collect_with_duplicate_article(zenn_service_with_mocks):
     mock_parse.return_value = mock_feed
 
     # Given: 重複として判定するDedupTrackerをモック
-    mock_dedup = create_mock_dedup(
-        is_duplicate=True, normalized_title="normalized_title"
-    )
+    mock_dedup = create_mock_dedup(is_duplicate=True, normalized_title="normalized_title")
     mock_dedup.get_original_title = Mock(return_value="元のタイトル")
     mock_load.return_value = mock_dedup
 
@@ -464,6 +454,4 @@ async def test_collect_continues_on_individual_feed_error(zenn_service_with_mock
 
     # Then: エラーがあっても処理は継続され空リストが返される
     assert isinstance(result, list), "結果はリスト型であるべき"
-    assert len(result) == 0, (
-        "部分的なフィードエラーでもエントリが空なら空リストが返されるべき"
-    )
+    assert len(result) == 0, "部分的なフィードエラーでもエントリが空なら空リストが返されるべき"

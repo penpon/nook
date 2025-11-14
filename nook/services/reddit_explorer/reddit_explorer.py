@@ -205,24 +205,18 @@ class RedditExplorer(BaseService):
                                 f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"
                             )
 
-                self.logger.info(
-                    f"合計 {len(candidate_posts)} 件の投稿候補を取得しました"
-                )
+                self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
 
                 # 日付ごとにグループ化して各日独立で処理
                 posts_by_date = {}
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
                         # JSTタイムゾーンに変換して日付を取得
-                        jst_time = post.created_at.astimezone(
-                            timezone(timedelta(hours=9))
-                        )
+                        jst_time = post.created_at.astimezone(timezone(timedelta(hours=9)))
                         post_date = jst_time.date()
                         if post_date not in posts_by_date:
                             posts_by_date[post_date] = []
-                        posts_by_date[post_date].append(
-                            (category, subreddit_name, post)
-                        )
+                        posts_by_date[post_date].append((category, subreddit_name, post))
 
                 # 各日独立で処理
                 saved_files: list[tuple[str, str]] = []
@@ -265,21 +259,15 @@ class RedditExplorer(BaseService):
 
                     # 要約生成
                     log_summarization_start(self.logger)
-                    for idx, (category, subreddit_name, post) in enumerate(
-                        selected_posts, 1
-                    ):
-                        post.comments = await self._retrieve_top_comments_of_post(
-                            post, limit=5
-                        )
+                    for idx, (category, subreddit_name, post) in enumerate(selected_posts, 1):
+                        post.comments = await self._retrieve_top_comments_of_post(post, limit=5)
                         await self._summarize_reddit_post(post)
                         log_summarization_progress(
                             self.logger, idx, len(selected_posts), post.title
                         )
 
                     # 保存
-                    day_saved_files = await self._store_summaries(
-                        selected_posts, [target_date]
-                    )
+                    day_saved_files = await self._store_summaries(selected_posts, [target_date])
                     for json_path, md_path in day_saved_files:
                         log_storage_complete(self.logger, json_path, md_path)
                         saved_files.append((json_path, md_path))
@@ -335,16 +323,11 @@ class RedditExplorer(BaseService):
                 post_type = "gallery"
             elif hasattr(submission, "poll_data") and submission.poll_data:
                 post_type = "poll"
-            elif (
-                hasattr(submission, "crosspost_parent") and submission.crosspost_parent
-            ):
+            elif hasattr(submission, "crosspost_parent") and submission.crosspost_parent:
                 post_type = "crosspost"
             elif submission.is_self:
                 post_type = "text"
-            elif any(
-                submission.url.endswith(ext)
-                for ext in [".jpg", ".jpeg", ".png", ".gif"]
-            ):
+            elif any(submission.url.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif"]):
                 post_type = "image"
             else:
                 post_type = "link"
@@ -381,9 +364,7 @@ class RedditExplorer(BaseService):
                 upvotes=submission.score,
                 text=text_ja,
                 permalink=f"https://www.reddit.com{submission.permalink}",
-                thumbnail=(
-                    submission.thumbnail if hasattr(submission, "thumbnail") else "self"
-                ),
+                thumbnail=(submission.thumbnail if hasattr(submission, "thumbnail") else "self"),
                 popularity_score=float(submission.score),
                 created_at=created_at,
             )
@@ -654,9 +635,7 @@ class RedditExplorer(BaseService):
         sections = list(subreddit_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = (
-                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
-            )
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
             block = markdown[start:end]
             subreddit = match.group("subreddit").strip()
 

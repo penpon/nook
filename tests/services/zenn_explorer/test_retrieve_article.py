@@ -42,9 +42,7 @@ async def test_retrieve_article_success(mock_env_vars):
         )
 
         service.http_client.get = AsyncMock(
-            return_value=Mock(
-                text="<html><body><p>これは日本語の記事です</p></body></html>"
-            )
+            return_value=Mock(text="<html><body><p>これは日本語の記事です</p></body></html>")
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
@@ -109,9 +107,7 @@ async def test_retrieve_article_http_404_error(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = create_mock_entry(
-            title="テスト記事", link="https://example.com/not-found"
-        )
+        entry = create_mock_entry(title="テスト記事", link="https://example.com/not-found")
 
         service.http_client.get = AsyncMock(
             side_effect=httpx.HTTPStatusError(
@@ -184,9 +180,9 @@ async def test_retrieve_article_meta_description_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションがある場合、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションがある場合、Articleオブジェクトが返されるべき"
         assert "これはメタディスクリプションのテキストです。" in result.text
 
 
@@ -218,9 +214,7 @@ async def test_retrieve_article_paragraph_fallback(mock_env_vars):
         </html>
         """
 
-        service.http_client.get = AsyncMock(
-            return_value=Mock(text=html_with_paragraphs)
-        )
+        service.http_client.get = AsyncMock(return_value=Mock(text=html_with_paragraphs))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -252,9 +246,7 @@ async def test_retrieve_article_entry_summary_priority(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "entry.summaryがある場合、Articleオブジェクトが返されるべき"
-        )
+        assert result is not None, "entry.summaryがある場合、Articleオブジェクトが返されるべき"
         assert result.text == "エントリのサマリーテキスト"
 
 
@@ -313,9 +305,9 @@ async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションと段落がある場合、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションと段落がある場合、Articleオブジェクトが返されるべき"
         assert "段落1のテキスト" in result.text
         assert result.title == "テスト記事"
 
@@ -351,9 +343,9 @@ async def test_retrieve_article_no_summary_with_meta_description(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションのみがある場合、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションのみがある場合、Articleオブジェクトが返されるべき"
         assert result.text == "メタディスクリプションのテキスト"
 
 
@@ -386,9 +378,7 @@ async def test_retrieve_article_no_content_anywhere(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "コンテンツがなくてもArticleオブジェクトが返されるべき"
-        )
+        assert result is not None, "コンテンツがなくてもArticleオブジェクトが返されるべき"
         assert result.text == ""
 
 
@@ -416,9 +406,7 @@ async def test_retrieve_article_with_title_attribute_missing(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "段落のみがある場合、Articleオブジェクトが返されるべき"
-        )
+        assert result is not None, "段落のみがある場合、Articleオブジェクトが返されるべき"
         assert result.title == "無題"
 
 
@@ -458,9 +446,7 @@ async def test_retrieve_article_with_five_or_more_paragraphs(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "5つ以上の段落がある場合、Articleオブジェクトが返されるべき"
-        )
+        assert result is not None, "5つ以上の段落がある場合、Articleオブジェクトが返されるべき"
         # 最初の5つの段落が含まれている
         assert "段落1" in result.text
         assert "段落5" in result.text
@@ -501,9 +487,9 @@ async def test_retrieve_article_with_meta_description_empty_content(mock_env_var
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションが空でも段落があればArticleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションが空でも段落があればArticleオブジェクトが返されるべき"
         assert "段落のテキスト" in result.text
 
 
@@ -531,9 +517,9 @@ async def test_retrieve_article_published_at_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "published_parsedが正しく解析されArticleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "published_parsedが正しく解析されArticleオブジェクトが返されるべき"
         assert result.published_at is not None
         # 時刻が正しく解析されているか確認
         assert result.published_at.year == 2024
@@ -570,9 +556,9 @@ async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションの優先順位が正しく、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションの優先順位が正しく、Articleオブジェクトが返されるべき"
         assert result.popularity_score == 200.0
 
 

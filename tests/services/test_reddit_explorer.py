@@ -176,9 +176,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
             mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
 
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 

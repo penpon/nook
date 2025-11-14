@@ -589,9 +589,7 @@ def test_are_duplicates_complex_japanese():
     When: are_duplicatesを呼び出す
     Then: Trueが返される
     """
-    result = TitleNormalizer.are_duplicates(
-        "【速報】最新ニュース！！！", "最新ニュース!"
-    )
+    result = TitleNormalizer.are_duplicates("【速報】最新ニュース！！！", "最新ニュース!")
     assert result is True
 
 
@@ -1167,9 +1165,7 @@ async def test_load_existing_titles_with_logger():
 
     logger = Mock()
 
-    tracker = await load_existing_titles_from_storage(
-        storage, target_dates, logger=logger
-    )
+    tracker = await load_existing_titles_from_storage(storage, target_dates, logger=logger)
 
     # ログが呼ばれたことを確認
     assert logger.debug.called
@@ -1189,9 +1185,7 @@ async def test_load_existing_titles_without_logger():
     storage.load = AsyncMock(return_value="[]")
     storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
-    tracker = await load_existing_titles_from_storage(
-        storage, target_dates, logger=None
-    )
+    tracker = await load_existing_titles_from_storage(storage, target_dates, logger=None)
 
     assert tracker.count() == 0
 

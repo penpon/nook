@@ -87,6 +87,9 @@ ignore = [
     "E501",  # line too long (handled by black)
     "G003",  # Logging statement uses `+` (ロギング文字列連結を許容)
     "G004",
+    "UP017",  # Use datetime.UTC alias (Python 3.11+ feature)
+    "UP041",  # Replace aliased errors with TimeoutError
+    "UP047",  # Generic function should use type parameters
     "F821",
     "C401",
     "C408",
