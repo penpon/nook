@@ -808,6 +808,42 @@ Summary 1
         mock_response.raise_for_status = Mock()
         return mock_response
 
+    @staticmethod
+    def create_mock_arxiv_client(results=None):
+        """arxiv.Clientのモックを作成
+
+        Args:
+            results: resultsメソッドが返すリスト（デフォルトは空リスト）
+
+        Returns:
+            Mock: arxiv.Clientモック
+        """
+        if results is None:
+            results = []
+        mock_client = Mock()
+        mock_client.results.return_value = results
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf(text="Test PDF content"):
+        """pdfplumber PDFオブジェクトのモックを作成
+
+        Args:
+            text: 抽出されるテキスト
+
+        Returns:
+            Mock: PDFモック（コンテキストマネージャー対応）
+        """
+        mock_page = Mock()
+        mock_page.extract_text.return_value = text
+
+        mock_pdf = Mock()
+        mock_pdf.pages = [mock_page]
+        mock_pdf.__enter__.return_value = mock_pdf
+        mock_pdf.__aexit__.return_value = None
+
+        return mock_pdf
+
 
 @pytest.fixture
 def arxiv_helper():

@@ -30,26 +30,19 @@ from nook.services.arxiv_summarizer.arxiv_summarizer import (
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_extract_from_pdf_success(arxiv_service):
+async def test_extract_from_pdf_success(arxiv_service, arxiv_helper):
     """
     Given: 有効なPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: テキストが正常に抽出される
     """
     # Given: モックPDF
-    mock_page = Mock()
-    mock_page.extract_text.return_value = (
-        "This is a test paper content. " * 10
-    )  # 十分な長さ
-
-    mock_pdf = Mock()
-    mock_pdf.pages = [mock_page]
-    mock_pdf.__enter__.return_value = mock_pdf
-    mock_pdf.__exit__.return_value = None
+    mock_pdf = arxiv_helper.create_mock_pdf(
+        "This is a test paper content. " * 10  # 十分な長さ
+    )
 
     # モックHTTPレスポンス
-    mock_response = Mock()
-    mock_response.content = b"%PDF-1.4"
+    mock_response = arxiv_helper.create_mock_pdf_response()
 
     with patch.object(
         arxiv_service,
@@ -58,7 +51,7 @@ async def test_extract_from_pdf_success(arxiv_service):
         return_value=mock_response,
     ), patch("pdfplumber.open", return_value=mock_pdf):
         # When
-        result = await arxiv_service._extract_from_pdf("2301.00001")
+        result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert isinstance(result, str)
@@ -68,15 +61,14 @@ async def test_extract_from_pdf_success(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_extract_from_pdf_empty_content(arxiv_service):
+async def test_extract_from_pdf_empty_content(arxiv_service, arxiv_helper):
     """
     Given: 空のPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: 空文字列が返される
     """
     # Given: 空のHTTPレスポンス
-    mock_response = Mock()
-    mock_response.content = b""
+    mock_response = arxiv_helper.create_mock_pdf_response(content=b"")
 
     with patch.object(
         arxiv_service,
@@ -85,7 +77,7 @@ async def test_extract_from_pdf_empty_content(arxiv_service):
         return_value=mock_response,
     ):
         # When
-        result = await arxiv_service._extract_from_pdf("2301.00001")
+        result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert result == ""
@@ -93,15 +85,14 @@ async def test_extract_from_pdf_empty_content(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_extract_from_pdf_corrupted(arxiv_service):
+async def test_extract_from_pdf_corrupted(arxiv_service, arxiv_helper):
     """
     Given: 破損したPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: 空文字列が返される
     """
     # Given: 破損したPDFデータ
-    mock_response = Mock()
-    mock_response.content = b"corrupted data"
+    mock_response = arxiv_helper.create_mock_pdf_response(content=b"corrupted data")
 
     with patch.object(
         arxiv_service,
@@ -110,7 +101,7 @@ async def test_extract_from_pdf_corrupted(arxiv_service):
         return_value=mock_response,
     ), patch("pdfplumber.open", side_effect=Exception("Corrupted PDF")):
         # When
-        result = await arxiv_service._extract_from_pdf("2301.00001")
+        result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert result == ""
@@ -118,7 +109,7 @@ async def test_extract_from_pdf_corrupted(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_extract_from_pdf_download_error(arxiv_service):
+async def test_extract_from_pdf_download_error(arxiv_service, arxiv_helper):
     """
     Given: PDFダウンロードがエラー
     When: _extract_from_pdfメソッドを呼び出す
@@ -132,7 +123,7 @@ async def test_extract_from_pdf_download_error(arxiv_service):
         side_effect=Exception("Download error"),
     ):
         # When
-        result = await arxiv_service._extract_from_pdf("2301.00001")
+        result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert result == ""
@@ -140,30 +131,23 @@ async def test_extract_from_pdf_download_error(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_extract_from_pdf_filters_short_lines(arxiv_service):
+async def test_extract_from_pdf_filters_short_lines(arxiv_service, arxiv_helper):
     """
     Given: 短い行を含むPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: 短い行がフィルタリングされる
     """
     # Given: 短い行と長い行が混在するPDF
-    mock_page = Mock()
-    mock_page.extract_text.return_value = """Short
+    pdf_text = f"""Short
 1
-arXiv:2301.00001
+arXiv:{arxiv_helper.DEFAULT_ARXIV_ID}
 This is a long enough line that should be kept in the extracted text because it meets the minimum length requirement.
 References
 Another long enough line that should be kept because it is sufficiently long.
 12345"""
 
-    mock_pdf = Mock()
-    mock_pdf.pages = [mock_page]
-    mock_pdf.__enter__.return_value = mock_pdf
-    mock_pdf.__exit__.return_value = None
-
-    # モックHTTPレスポンス
-    mock_response = Mock()
-    mock_response.content = b"%PDF-1.4"
+    mock_pdf = arxiv_helper.create_mock_pdf(pdf_text)
+    mock_response = arxiv_helper.create_mock_pdf_response()
 
     with patch.object(
         arxiv_service,
@@ -172,7 +156,7 @@ Another long enough line that should be kept because it is sufficiently long.
         return_value=mock_response,
     ), patch("pdfplumber.open", return_value=mock_pdf):
         # When
-        result = await arxiv_service._extract_from_pdf("2301.00001")
+        result = await arxiv_service._extract_from_pdf(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert isinstance(result, str)
@@ -190,7 +174,7 @@ Another long enough line that should be kept because it is sufficiently long.
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_extract_from_html_success(arxiv_service):
+async def test_extract_from_html_success(arxiv_service, arxiv_helper):
     """
     Given: 有効なHTML
     When: _extract_from_htmlメソッドを呼び出す
@@ -216,7 +200,7 @@ async def test_extract_from_html_success(arxiv_service):
         return_value=mock_html,
     ):
         # When
-        result = await arxiv_service._extract_from_html("2301.00001")
+        result = await arxiv_service._extract_from_html(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert isinstance(result, str)

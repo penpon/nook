@@ -309,18 +309,16 @@ async def test_stress_continuous_operations(
     arxiv_service, paper_info_factory
 ):
     """
-    ストレステスト: 連続操作
+    ストレステスト: 連続操作（軽量版）
 
-    Given: 一定時間連続で操作を実行
-    When: 30秒間連続でシリアライズを実行
+    Given: 複数の論文データ
+    When: 100回連続でシリアライズを実行
     Then: エラーなく完了し、パフォーマンスが劣化しない
 
     期待値:
     - エラー率: 0%
-    - レスポンスタイム変動: < 20%
+    - レスポンスタイム変動: < 50%（軽量版のため緩い基準）
     """
-    pytest.skip("Stress test - 手動実行用")
-
     # Given
     paper_count = 10
     papers = [
@@ -328,19 +326,16 @@ async def test_stress_continuous_operations(
         for i in range(paper_count)
     ]
 
-    # When: 30秒間連続実行
-    duration = 30  # 秒
-    start_time = time.perf_counter()
-    operation_count = 0
+    # When: 100回連続実行（軽量版）
+    iterations = 100
     response_times = []
 
-    while time.perf_counter() - start_time < duration:
+    for _ in range(iterations):
         op_start = time.perf_counter()
         try:
             result = arxiv_service._serialize_papers(papers)
             op_time = time.perf_counter() - op_start
             response_times.append(op_time)
-            operation_count += 1
         except Exception as e:
             pytest.fail(f"ストレステスト中にエラー発生: {e}")
 
@@ -352,14 +347,14 @@ async def test_stress_continuous_operations(
 
     print(
         f"\n✓ ストレステスト結果:"
-        f"\n  - 実行回数: {operation_count}回"
+        f"\n  - 実行回数: {iterations}回"
         f"\n  - 平均レスポンスタイム: {avg_response_time*1000:.2f}ms"
         f"\n  - 最大レスポンスタイム: {max_response_time*1000:.2f}ms"
         f"\n  - 最小レスポンスタイム: {min_response_time*1000:.2f}ms"
         f"\n  - 変動率: {variation*100:.1f}%"
     )
 
-    assert variation < 0.2, f"レスポンスタイム変動が大きい: {variation*100:.1f}%"
+    assert variation < 0.5, f"レスポンスタイム変動が大きい: {variation*100:.1f}%"
 
 
 # =============================================================================
@@ -367,49 +362,40 @@ async def test_stress_continuous_operations(
 # =============================================================================
 
 
-@pytest.mark.regression
-@pytest.mark.parametrize("operation", ["serialize", "parse", "validate"])
-def test_regression_performance_baseline(
-    arxiv_service, paper_info_factory, operation, benchmark
-):
-    """
-    リグレッションテスト: 性能ベースライン
-
-    Given: 標準的なデータセット
-    When: 各操作を実行
-    Then: ベースラインと比較して性能劣化なし
-
-    使用方法:
-    ```bash
-    # ベースライン保存
-    pytest test_performance.py::test_regression_performance_baseline --benchmark-save=v1.0
-
-    # 比較実行
-    pytest test_performance.py::test_regression_performance_baseline --benchmark-compare=v1.0
-    ```
-
-    Note: pytest-benchmarkが必要
-    """
-    pytest.skip("pytest-benchmark not installed - example test")
-
-    # # Given: 標準データセット
-    # papers = [
-    #     paper_info_factory(arxiv_id=f"2301.{i:05d}")
-    #     for i in range(50)
-    # ]
-    #
-    # # When/Then: ベンチマーク実行
-    # if operation == "serialize":
-    #     benchmark(arxiv_service._serialize_papers, papers)
-    # elif operation == "parse":
-    #     markdown = arxiv_service._render_markdown(
-    #         [p.__dict__ for p in papers],
-    #         datetime(2024, 1, 1)
-    #     )
-    #     benchmark(arxiv_service._parse_markdown, markdown)
-    # elif operation == "validate":
-    #     text = "This is a valid body line." * 10
-    #     benchmark(arxiv_service._is_valid_body_line, text, 80)
+# Note: pytest-benchmarkを使用したリグレッションテストは、
+# ライブラリがインストールされている環境で別途実施可能です。
+#
+# 実装例:
+# @pytest.mark.regression
+# @pytest.mark.parametrize("operation", ["serialize", "parse", "validate"])
+# def test_regression_performance_baseline(
+#     arxiv_service, paper_info_factory, operation, benchmark
+# ):
+#     """
+#     リグレッションテスト: 性能ベースライン
+#
+#     使用方法:
+#     ```bash
+#     # ベースライン保存
+#     pytest test_performance.py::test_regression_performance_baseline --benchmark-save=v1.0
+#
+#     # 比較実行
+#     pytest test_performance.py::test_regression_performance_baseline --benchmark-compare=v1.0
+#     ```
+#     """
+#     papers = [paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(50)]
+#
+#     if operation == "serialize":
+#         benchmark(arxiv_service._serialize_papers, papers)
+#     elif operation == "parse":
+#         markdown = arxiv_service._render_markdown(
+#             [p.__dict__ for p in papers],
+#             datetime(2024, 1, 1)
+#         )
+#         benchmark(arxiv_service._parse_markdown, markdown)
+#     elif operation == "validate":
+#         text = "This is a valid body line." * 10
+#         benchmark(arxiv_service._is_valid_body_line, text, 80)
 
 
 # =============================================================================

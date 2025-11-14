@@ -347,7 +347,7 @@ async def test_download_pdf_success(arxiv_service, arxiv_helper):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_download_pdf_timeout(arxiv_service):
+async def test_download_pdf_timeout(arxiv_service, arxiv_helper):
     """
     Given: PDFダウンロードがタイムアウト
     When: _download_pdf_without_retryメソッドを呼び出す
@@ -355,24 +355,22 @@ async def test_download_pdf_timeout(arxiv_service):
     """
     # Given: タイムアウトするHTTPクライアントをモック
     with patch("httpx.AsyncClient") as mock_client:
-        mock_client_instance = AsyncMock()
+        mock_client_instance = arxiv_helper.create_mock_http_client()
         mock_client_instance.get = AsyncMock(
             side_effect=httpx.TimeoutException("Timeout")
         )
-        mock_client_instance.__aenter__.return_value = mock_client_instance
-        mock_client_instance.__aexit__.return_value = None
         mock_client.return_value = mock_client_instance
 
         # When/Then
         with pytest.raises(httpx.TimeoutException):
             await arxiv_service._download_pdf_without_retry(
-                "https://arxiv.org/pdf/2301.00001"
+                f"https://arxiv.org/pdf/{arxiv_helper.DEFAULT_ARXIV_ID}"
             )
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_download_pdf_404_error(arxiv_service):
+async def test_download_pdf_404_error(arxiv_service, arxiv_helper):
     """
     Given: PDF URLが404エラーを返す
     When: _download_pdf_without_retryメソッドを呼び出す
@@ -386,22 +384,20 @@ async def test_download_pdf_404_error(arxiv_service):
             "Not Found", request=Mock(), response=mock_response
         )
 
-        mock_client_instance = AsyncMock()
+        mock_client_instance = arxiv_helper.create_mock_http_client()
         mock_client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client_instance.__aenter__.return_value = mock_client_instance
-        mock_client_instance.__aexit__.return_value = None
         mock_client.return_value = mock_client_instance
 
         # When/Then
         with pytest.raises(httpx.HTTPStatusError):
             await arxiv_service._download_pdf_without_retry(
-                "https://arxiv.org/pdf/2301.00001"
+                f"https://arxiv.org/pdf/{arxiv_helper.DEFAULT_ARXIV_ID}"
             )
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_download_pdf_500_error(arxiv_service):
+async def test_download_pdf_500_error(arxiv_service, arxiv_helper):
     """
     Given: PDF URLが500エラーを返す
     When: _download_pdf_without_retryメソッドを呼び出す
@@ -415,16 +411,14 @@ async def test_download_pdf_500_error(arxiv_service):
             "Internal Server Error", request=Mock(), response=mock_response
         )
 
-        mock_client_instance = AsyncMock()
+        mock_client_instance = arxiv_helper.create_mock_http_client()
         mock_client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client_instance.__aenter__.return_value = mock_client_instance
-        mock_client_instance.__aexit__.return_value = None
         mock_client.return_value = mock_client_instance
 
         # When/Then
         with pytest.raises(httpx.HTTPStatusError):
             await arxiv_service._download_pdf_without_retry(
-                "https://arxiv.org/pdf/2301.00001"
+                f"https://arxiv.org/pdf/{arxiv_helper.DEFAULT_ARXIV_ID}"
             )
 
 
@@ -435,7 +429,7 @@ async def test_download_pdf_500_error(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_download_html_success(arxiv_service):
+async def test_download_html_success(arxiv_service, arxiv_helper):
     """
     Given: 有効なHTML URL
     When: _download_html_without_retryメソッドを呼び出す
@@ -443,19 +437,17 @@ async def test_download_html_success(arxiv_service):
     """
     # Given: モックHTTPクライアント
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_response = Mock()
-        mock_response.text = "<html><body>Test HTML content</body></html>"
-        mock_response.raise_for_status = Mock()
+        mock_response = arxiv_helper.create_mock_html_response(
+            "<html><body>Test HTML content</body></html>"
+        )
 
-        mock_client = AsyncMock()
+        mock_client = arxiv_helper.create_mock_http_client()
         mock_client.get = AsyncMock(return_value=mock_response)
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
         mock_client_class.return_value = mock_client
 
         # When
         result = await arxiv_service._download_html_without_retry(
-            "https://arxiv.org/html/2301.00001"
+            f"https://arxiv.org/html/{arxiv_helper.DEFAULT_ARXIV_ID}"
         )
 
         # Then
@@ -464,7 +456,7 @@ async def test_download_html_success(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_download_html_404_returns_empty_string(arxiv_service):
+async def test_download_html_404_returns_empty_string(arxiv_service, arxiv_helper):
     """
     Given: HTML URLが404エラーを返す
     When: _download_html_without_retryメソッドを呼び出す
@@ -478,15 +470,13 @@ async def test_download_html_404_returns_empty_string(arxiv_service):
             "Not Found", request=Mock(), response=mock_response
         )
 
-        mock_client = AsyncMock()
+        mock_client = arxiv_helper.create_mock_http_client()
         mock_client.get = AsyncMock(return_value=mock_response)
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
         mock_client_class.return_value = mock_client
 
         # When
         result = await arxiv_service._download_html_without_retry(
-            "https://arxiv.org/html/2301.00001"
+            f"https://arxiv.org/html/{arxiv_helper.DEFAULT_ARXIV_ID}"
         )
 
         # Then
@@ -495,7 +485,7 @@ async def test_download_html_404_returns_empty_string(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_download_html_timeout(arxiv_service):
+async def test_download_html_timeout(arxiv_service, arxiv_helper):
     """
     Given: HTMLダウンロードがタイムアウト
     When: _download_html_without_retryメソッドを呼び出す
@@ -503,16 +493,14 @@ async def test_download_html_timeout(arxiv_service):
     """
     # Given: タイムアウトするHTTPクライアント
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
+        mock_client = arxiv_helper.create_mock_http_client()
         mock_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
         mock_client_class.return_value = mock_client
 
         # When/Then
         with pytest.raises(httpx.TimeoutException):
             await arxiv_service._download_html_without_retry(
-                "https://arxiv.org/html/2301.00001"
+                f"https://arxiv.org/html/{arxiv_helper.DEFAULT_ARXIV_ID}"
             )
 
 
@@ -568,7 +556,7 @@ async def test_retrieve_paper_info_success(arxiv_service, mock_arxiv_paper_facto
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_paper_info_no_results(arxiv_service):
+async def test_retrieve_paper_info_no_results(arxiv_service, arxiv_helper):
     """
     Given: 存在しない論文ID
     When: _retrieve_paper_infoメソッドを呼び出す
@@ -576,8 +564,7 @@ async def test_retrieve_paper_info_no_results(arxiv_service):
     """
     # Given: arxiv.Clientをモック（結果なし）
     with patch("arxiv.Client") as mock_client_class:
-        mock_client = Mock()
-        mock_client.results.return_value = []
+        mock_client = arxiv_helper.create_mock_arxiv_client(results=[])
         mock_client_class.return_value = mock_client
 
         # When
@@ -589,7 +576,7 @@ async def test_retrieve_paper_info_no_results(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_paper_info_api_error(arxiv_service):
+async def test_retrieve_paper_info_api_error(arxiv_service, arxiv_helper):
     """
     Given: arxiv APIがエラーを返す
     When: _retrieve_paper_infoメソッドを呼び出す
@@ -597,12 +584,12 @@ async def test_retrieve_paper_info_api_error(arxiv_service):
     """
     # Given: arxiv.Clientをモック（エラー）
     with patch("arxiv.Client") as mock_client_class:
-        mock_client = Mock()
+        mock_client = arxiv_helper.create_mock_arxiv_client()
         mock_client.results.side_effect = Exception("API Error")
         mock_client_class.return_value = mock_client
 
         # When
-        result = await arxiv_service._retrieve_paper_info("2301.00001")
+        result = await arxiv_service._retrieve_paper_info(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert result is None
@@ -651,7 +638,7 @@ async def test_retrieve_paper_info_with_fallback_to_abstract(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_paper_date_success(arxiv_service):
+async def test_get_paper_date_success(arxiv_service, arxiv_helper):
     """
     Given: 有効な論文ID
     When: _get_paper_dateメソッドを呼び出す
@@ -663,12 +650,11 @@ async def test_get_paper_date_success(arxiv_service):
 
     # arxiv.Clientをモック
     with patch("arxiv.Client") as mock_client_class:
-        mock_client = Mock()
-        mock_client.results.return_value = [mock_paper]
+        mock_client = arxiv_helper.create_mock_arxiv_client(results=[mock_paper])
         mock_client_class.return_value = mock_client
 
         # When
-        result = await arxiv_service._get_paper_date("2301.00001")
+        result = await arxiv_service._get_paper_date(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert result is not None
@@ -677,7 +663,7 @@ async def test_get_paper_date_success(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_paper_date_no_results(arxiv_service):
+async def test_get_paper_date_no_results(arxiv_service, arxiv_helper):
     """
     Given: 存在しない論文ID
     When: _get_paper_dateメソッドを呼び出す
@@ -685,8 +671,7 @@ async def test_get_paper_date_no_results(arxiv_service):
     """
     # Given: arxiv.Clientをモック（結果なし）
     with patch("arxiv.Client") as mock_client_class:
-        mock_client = Mock()
-        mock_client.results.return_value = []
+        mock_client = arxiv_helper.create_mock_arxiv_client(results=[])
         mock_client_class.return_value = mock_client
 
         # When
@@ -698,7 +683,7 @@ async def test_get_paper_date_no_results(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_paper_date_api_error(arxiv_service):
+async def test_get_paper_date_api_error(arxiv_service, arxiv_helper):
     """
     Given: arxiv APIがエラーを返す
     When: _get_paper_dateメソッドを呼び出す
@@ -706,12 +691,12 @@ async def test_get_paper_date_api_error(arxiv_service):
     """
     # Given: arxiv.Clientをモック（エラー）
     with patch("arxiv.Client") as mock_client_class:
-        mock_client = Mock()
+        mock_client = arxiv_helper.create_mock_arxiv_client()
         mock_client.results.side_effect = Exception("API Error")
         mock_client_class.return_value = mock_client
 
         # When
-        result = await arxiv_service._get_paper_date("2301.00001")
+        result = await arxiv_service._get_paper_date(arxiv_helper.DEFAULT_ARXIV_ID)
 
         # Then
         assert result is None
