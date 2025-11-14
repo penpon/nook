@@ -1,3 +1,30 @@
+[dependency-groups]
+dev = [
+    # テストフレームワーク
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-xdist>=3.3.0",
+    "pytest-clarity>=1.0.1",
+    "pytest-env>=0.8.2",
+    # HTTPモック
+    "respx>=0.20.0",
+    # テストデータ生成
+    "faker>=19.0.0",
+    # 時刻固定
+    "freezegun>=1.2.0",
+    # リント・フォーマット
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    # セキュリティチェック
+    "bandit>=1.7.0",
+    "pip-audit>=2.6.0",
+    # カバレッジ
+    "coverage>=7.0.0",
+]
+
 [tool.ruff]
 line-length = 88
 indent-width = 4
