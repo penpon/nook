@@ -15,7 +15,7 @@ nook/services/zenn_explorer/zenn_explorer.py のテスト
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -25,6 +25,16 @@ from bs4 import BeautifulSoup
 
 from nook.services.base_feed_service import Article
 from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
+
+# =============================================================================
+# テスト用定数
+# =============================================================================
+
+# 固定日時（テストの再現性を保証）
+FIXED_DATETIME = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+
+# マジック文字列を定数化
+LOAD_TITLES_PATH = LOAD_TITLES_PATH
 
 # =============================================================================
 # 1. __init__ メソッドのテスト
@@ -111,7 +121,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -165,7 +175,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -218,7 +228,7 @@ async def test_collect_with_target_dates_none(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load:
 
@@ -228,6 +238,12 @@ async def test_collect_with_target_dates_none(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1, limit=10, target_dates=None)
@@ -256,7 +272,7 @@ async def test_collect_network_error(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -283,7 +299,7 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -313,7 +329,7 @@ async def test_collect_http_client_timeout(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -355,7 +371,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ), patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -409,7 +425,7 @@ async def test_collect_with_limit_zero(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -439,7 +455,7 @@ async def test_collect_with_limit_one(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ), patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -509,7 +525,7 @@ def test_select_top_articles_sorts_by_popularity(mock_env_vars):
                 soup=BeautifulSoup("", "html.parser"),
                 category="tech",
                 popularity_score=10.0,
-                published_at=datetime.now(),
+                published_at=FIXED_DATETIME,
             ),
             Article(
                 feed_name="Test",
@@ -519,7 +535,7 @@ def test_select_top_articles_sorts_by_popularity(mock_env_vars):
                 soup=BeautifulSoup("", "html.parser"),
                 category="tech",
                 popularity_score=50.0,
-                published_at=datetime.now(),
+                published_at=FIXED_DATETIME,
             ),
             Article(
                 feed_name="Test",
@@ -529,7 +545,7 @@ def test_select_top_articles_sorts_by_popularity(mock_env_vars):
                 soup=BeautifulSoup("", "html.parser"),
                 category="tech",
                 popularity_score=30.0,
-                published_at=datetime.now(),
+                published_at=FIXED_DATETIME,
             ),
         ]
 
@@ -559,7 +575,7 @@ def test_select_top_articles_with_limit_none(mock_env_vars):
                 soup=BeautifulSoup("", "html.parser"),
                 category="tech",
                 popularity_score=float(i),
-                published_at=datetime.now(),
+                published_at=FIXED_DATETIME,
             )
             for i in range(20)
         ]
@@ -757,7 +773,7 @@ def test_get_summary_prompt_template(mock_env_vars):
             soup=BeautifulSoup("", "html.parser"),
             category="tech",
             popularity_score=10.0,
-            published_at=datetime.now(),
+            published_at=FIXED_DATETIME,
         )
 
         result = service._get_summary_prompt_template(article)
@@ -786,7 +802,7 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -814,7 +830,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ), patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -878,7 +894,7 @@ async def test_collect_with_multiple_categories(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -892,6 +908,12 @@ async def test_collect_with_multiple_categories(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -917,7 +939,7 @@ async def test_collect_feedparser_attribute_error(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -947,7 +969,7 @@ async def test_collect_with_duplicate_article(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -995,7 +1017,7 @@ async def test_collect_with_empty_feed_entries(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -1031,7 +1053,7 @@ async def test_collect_continues_on_individual_feed_error(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ):
 
@@ -1793,7 +1815,7 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock
@@ -1860,7 +1882,7 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock
@@ -1888,6 +1910,12 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1, limit=10)
@@ -1939,7 +1967,7 @@ async def test_collect_feed_without_title_attribute(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load:
 
@@ -1950,6 +1978,12 @@ async def test_collect_feed_without_title_attribute(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -1974,7 +2008,7 @@ async def test_collect_feed_without_feed_attribute(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load:
 
@@ -1983,6 +2017,12 @@ async def test_collect_feed_without_feed_attribute(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -2009,7 +2049,7 @@ async def test_collect_effective_limit_calculation_with_days_greater_than_one(
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service, "_filter_entries", return_value=[]
@@ -2021,6 +2061,12 @@ async def test_collect_effective_limit_calculation_with_days_greater_than_one(
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=3, limit=5)
@@ -2050,7 +2096,7 @@ async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars)
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service, "_filter_entries", return_value=[]
@@ -2062,6 +2108,12 @@ async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars)
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=0, limit=5)
@@ -2094,7 +2146,7 @@ async def test_collect_filters_out_of_range_articles(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock, return_value=None
@@ -2467,7 +2519,7 @@ async def test_collect_preserves_existing_files_path(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock
@@ -2495,6 +2547,12 @@ async def test_collect_preserves_existing_files_path(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -2520,7 +2578,7 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load, patch.object(
             service.storage, "load", new_callable=AsyncMock
@@ -2648,7 +2706,7 @@ def test_select_top_articles_with_same_popularity_score(mock_env_vars):
                 soup=BeautifulSoup("", "html.parser"),
                 category="tech",
                 popularity_score=10.0,  # すべて同じスコア
-                published_at=datetime.now(),
+                published_at=FIXED_DATETIME,
             )
             for i in range(5)
         ]
@@ -2679,7 +2737,7 @@ def test_select_top_articles_with_zero_popularity_scores(mock_env_vars):
                 soup=BeautifulSoup("", "html.parser"),
                 category="tech",
                 popularity_score=0.0,
-                published_at=datetime.now(),
+                published_at=FIXED_DATETIME,
             )
             for i in range(3)
         ]
@@ -2711,7 +2769,7 @@ async def test_collect_finally_block_execution(mock_env_vars):
         ), patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load:
 
@@ -2721,6 +2779,12 @@ async def test_collect_finally_block_execution(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -2856,7 +2920,7 @@ async def test_collect_initializes_http_client_when_none(mock_env_vars):
         ) as mock_setup, patch.object(
             service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
         ), patch(
-            "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+            LOAD_TITLES_PATH,
             new_callable=AsyncMock,
         ) as mock_load:
 
@@ -2866,6 +2930,12 @@ async def test_collect_initializes_http_client_when_none(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             mock_dedup = Mock()
+
+
+            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
+
+
+            mock_dedup.add.return_value = None
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
