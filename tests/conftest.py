@@ -51,6 +51,7 @@ def mock_env_vars(monkeypatch):
 def mock_logger():
     """setup_loggerのモック（テスト全体で共通使用）"""
     from unittest.mock import patch
+
     with patch("nook.common.base_service.setup_logger"):
         yield
 
@@ -97,6 +98,7 @@ async def hn_service_with_client(hacker_news_service):
 def empty_dedup_tracker():
     """空のDedupTrackerインスタンス"""
     from nook.common.dedup import DedupTracker
+
     return DedupTracker()
 
 

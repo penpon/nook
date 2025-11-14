@@ -19,7 +19,6 @@ import pytest
 
 from nook.services.hacker_news.hacker_news import HackerNewsRetriever
 
-
 # =============================================================================
 # 統合テスト: collect メソッド
 # =============================================================================
@@ -145,6 +144,7 @@ async def test_collect_network_error(mock_env_vars):
 
             # RetryExceptionが発生することを期待
             from nook.common.exceptions import RetryException
+
             with pytest.raises(RetryException):
                 await service.collect(target_dates=[date.today()])
 
@@ -206,7 +206,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 ]
             )
             # GPTでエラー
-            service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.generate_async = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -227,7 +229,7 @@ async def test_collect_with_empty_stories(mock_env_vars):
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
             # 空のストーリーリスト
-            service.http_client.get = AsyncMock(return_value=Mock(json=lambda: []))
+            service.http_client.get = AsyncMock(return_value=Mock(json=list))
 
             result = await service.collect(target_dates=[date.today()])
 

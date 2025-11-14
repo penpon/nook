@@ -71,11 +71,11 @@ import respx
 
 from nook.common.dedup import DedupTracker
 from nook.services.hacker_news.hacker_news import (
+    MAX_TEXT_LENGTH,
+    MIN_TEXT_LENGTH,
+    SCORE_THRESHOLD,
     HackerNewsRetriever,
     Story,
-    SCORE_THRESHOLD,
-    MIN_TEXT_LENGTH,
-    MAX_TEXT_LENGTH,
 )
 
 # =============================================================================
@@ -92,15 +92,15 @@ TEST_MIN_TEXT_FOR_FILTER = "A" * (MIN_TEXT_LENGTH + 10)  # 最小テキスト長
 
 # テキスト長関連の定数（マジックナンバー削減）
 TEST_VALID_TEXT_LENGTH = 150  # フィルタ通過する有効なテキスト長
-TEST_SHORT_TEXT_LENGTH = 50   # フィルタで除外される短いテキスト
-TEST_LONG_TEXT_LENGTH = 15000 # フィルタで除外される長いテキスト
+TEST_SHORT_TEXT_LENGTH = 50  # フィルタで除外される短いテキスト
+TEST_LONG_TEXT_LENGTH = 15000  # フィルタで除外される長いテキスト
 TEST_MARKDOWN_TRIM_LENGTH = 500  # マークダウンレンダリングでトリミングされる長さ
-TEST_MARKDOWN_LONG_TEXT = 600    # トリミングが必要な長いテキスト
+TEST_MARKDOWN_LONG_TEXT = 600  # トリミングが必要な長いテキスト
 
 # スコア関連の定数
-TEST_LOW_SCORE = 10      # フィルタで除外される低スコア
-TEST_HIGH_SCORE = 200    # フィルタ通過する高スコア
-TEST_MEDIUM_SCORE = 50   # 境界値テスト用の中程度のスコア
+TEST_LOW_SCORE = 10  # フィルタで除外される低スコア
+TEST_HIGH_SCORE = 200  # フィルタ通過する高スコア
+TEST_MEDIUM_SCORE = 50  # 境界値テスト用の中程度のスコア
 
 
 # =============================================================================
@@ -114,7 +114,7 @@ def create_test_story(
     url: str = TEST_STORY_URL,
     text: str | None = "Test text",
     summary: str | None = None,
-    created_at: datetime | None = None
+    created_at: datetime | None = None,
 ) -> Story:
     """テスト用のStoryオブジェクトを作成するヘルパー関数
 
@@ -138,7 +138,7 @@ def create_test_story(
         url=url,
         text=text,
         summary=summary,
-        created_at=created_at
+        created_at=created_at,
     )
 
 
@@ -156,7 +156,7 @@ def mock_hn_story_response(story_id: int = TEST_STORY_ID, **kwargs) -> dict:
         "id": story_id,
         "title": kwargs.get("title", f"Story {story_id}"),
         "score": kwargs.get("score", TEST_STORY_SCORE),
-        "time": kwargs.get("time", TEST_STORY_TIMESTAMP)
+        "time": kwargs.get("time", TEST_STORY_TIMESTAMP),
     }
 
     if "url" in kwargs:
@@ -542,8 +542,9 @@ def test_load_blocked_domains_file_not_found(mock_env_vars):
     When: _load_blocked_domainsを呼び出す
     Then: デフォルトの空リストが返される
     """
-    with patch("nook.common.base_service.setup_logger"), \
-         patch("builtins.open", side_effect=FileNotFoundError):
+    with patch("nook.common.base_service.setup_logger"), patch(
+        "builtins.open", side_effect=FileNotFoundError
+    ):
         service = HackerNewsRetriever()
 
         assert service.blocked_domains == {"blocked_domains": [], "reasons": {}}
@@ -558,9 +559,9 @@ def test_load_blocked_domains_invalid_json(mock_env_vars):
     """
     import json
 
-    with patch("nook.common.base_service.setup_logger"), \
-         patch("builtins.open", mock_open(read_data="invalid json")), \
-         patch("json.load", side_effect=json.JSONDecodeError("test", "test", 0)):
+    with patch("nook.common.base_service.setup_logger"), patch(
+        "builtins.open", mock_open(read_data="invalid json")
+    ), patch("json.load", side_effect=json.JSONDecodeError("test", "test", 0)):
         service = HackerNewsRetriever()
 
         assert service.blocked_domains == {"blocked_domains": [], "reasons": {}}
@@ -572,29 +573,36 @@ def test_load_blocked_domains_invalid_json(mock_env_vars):
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("url,blocked_domains,expected,test_case", [
-    # ブロックされたドメイン
-    ("https://reuters.com/article", ["reuters.com"], True, "blocked_domain"),
-    ("https://www.reuters.com/article", ["reuters.com"], True, "blocked_domain_with_www"),
-    # ブロックされていないドメイン
-    ("https://example.com/article", ["reuters.com"], False, "not_blocked"),
-    # 空のURL
-    ("", ["reuters.com"], False, "empty_string"),
-    (None, ["reuters.com"], False, "none_value"),
-    # 不正なURL（netloc=""）
-    ("not-a-url", ["reuters.com"], False, "invalid_url"),
-])
-def test_is_blocked_domain(mock_env_vars, mock_logger, url, blocked_domains, expected, test_case):
+@pytest.mark.parametrize(
+    ("url", "blocked_domains", "expected", "test_case"),
+    [
+        # ブロックされたドメイン
+        ("https://reuters.com/article", ["reuters.com"], True, "blocked_domain"),
+        (
+            "https://www.reuters.com/article",
+            ["reuters.com"],
+            True,
+            "blocked_domain_with_www",
+        ),
+        # ブロックされていないドメイン
+        ("https://example.com/article", ["reuters.com"], False, "not_blocked"),
+        # 空のURL
+        ("", ["reuters.com"], False, "empty_string"),
+        (None, ["reuters.com"], False, "none_value"),
+        # 不正なURL（netloc=""）
+        ("not-a-url", ["reuters.com"], False, "invalid_url"),
+    ],
+)
+def test_is_blocked_domain(
+    mock_env_vars, mock_logger, url, blocked_domains, expected, test_case
+):
     """
     Given: 様々なURL条件
     When: _is_blocked_domainを呼び出す
     Then: 適切な判定結果が返される
     """
     service = HackerNewsRetriever()
-    service.blocked_domains = {
-        "blocked_domains": blocked_domains,
-        "reasons": {}
-    }
+    service.blocked_domains = {"blocked_domains": blocked_domains, "reasons": {}}
 
     result = service._is_blocked_domain(url)
     assert result == expected, f"Test case '{test_case}' failed for url='{url}'"
@@ -606,16 +614,26 @@ def test_is_blocked_domain(mock_env_vars, mock_logger, url, blocked_domains, exp
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("url,http1_domains,expected,test_case", [
-    # HTTP/1.1が必要なドメイン
-    ("https://htmlrev.com/page", ["htmlrev.com"], True, "http1_required"),
-    ("https://www.htmlrev.com/page", ["htmlrev.com"], True, "http1_required_with_www"),
-    # HTTP/1.1が不要なドメイン
-    ("https://example.com/page", ["htmlrev.com"], False, "not_required"),
-    # 空のURL
-    ("", ["htmlrev.com"], False, "empty_string"),
-])
-def test_is_http1_required_domain(mock_env_vars, mock_logger, url, http1_domains, expected, test_case):
+@pytest.mark.parametrize(
+    ("url", "http1_domains", "expected", "test_case"),
+    [
+        # HTTP/1.1が必要なドメイン
+        ("https://htmlrev.com/page", ["htmlrev.com"], True, "http1_required"),
+        (
+            "https://www.htmlrev.com/page",
+            ["htmlrev.com"],
+            True,
+            "http1_required_with_www",
+        ),
+        # HTTP/1.1が不要なドメイン
+        ("https://example.com/page", ["htmlrev.com"], False, "not_required"),
+        # 空のURL
+        ("", ["htmlrev.com"], False, "empty_string"),
+    ],
+)
+def test_is_http1_required_domain(
+    mock_env_vars, mock_logger, url, http1_domains, expected, test_case
+):
     """
     Given: 様々なURL条件
     When: _is_http1_required_domainを呼び出す
@@ -625,7 +643,7 @@ def test_is_http1_required_domain(mock_env_vars, mock_logger, url, http1_domains
     service.blocked_domains = {
         "blocked_domains": [],
         "http1_required_domains": http1_domains,
-        "reasons": {}
+        "reasons": {},
     }
 
     result = service._is_http1_required_domain(url)
@@ -670,7 +688,7 @@ async def test_fetch_story_success(mock_env_vars, respx_mock):
             "title": "Test Story",
             "score": 150,
             "url": "https://example.com/test",
-            "time": 1699999999
+            "time": 1699999999,
         }
 
         respx_mock.get("https://hacker-news.firebaseio.com/v0/item/12345.json").mock(
@@ -678,7 +696,10 @@ async def test_fetch_story_success(mock_env_vars, respx_mock):
         )
 
         respx_mock.get("https://example.com/test").mock(
-            return_value=httpx.Response(200, text='<html><meta name="description" content="Test description"></html>')
+            return_value=httpx.Response(
+                200,
+                text='<html><meta name="description" content="Test description"></html>',
+            )
         )
 
         story = await service._fetch_story(12345)
@@ -704,10 +725,7 @@ async def test_fetch_story_deleted(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story_data = {
-            "id": 12345,
-            "deleted": True
-        }
+        story_data = {"id": 12345, "deleted": True}
 
         respx_mock.get("https://hacker-news.firebaseio.com/v0/item/12345.json").mock(
             return_value=httpx.Response(200, json=story_data)
@@ -736,7 +754,7 @@ async def test_fetch_story_missing_timestamp(mock_env_vars, respx_mock):
             "id": 12345,
             "title": "Test Story",
             "score": 50,
-            "text": "Test text" * 20  # MIN_TEXT_LENGTH以上にする
+            "text": "Test text" * 20,  # MIN_TEXT_LENGTH以上にする
         }
 
         respx_mock.get("https://hacker-news.firebaseio.com/v0/item/12345.json").mock(
@@ -793,13 +811,11 @@ async def test_fetch_story_content_meta_description(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = '<html><meta name="description" content="Test meta description"></html>'
+        html_content = (
+            '<html><meta name="description" content="Test meta description"></html>'
+        )
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -824,13 +840,11 @@ async def test_fetch_story_content_og_description(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = '<html><meta property="og:description" content="OG description"></html>'
+        html_content = (
+            '<html><meta property="og:description" content="OG description"></html>'
+        )
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -855,17 +869,13 @@ async def test_fetch_story_content_paragraphs(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = '''<html><body>
+        html_content = """<html><body>
             <p>First paragraph with meaningful content that is longer than 50 characters.</p>
             <p>Second paragraph with even more content to test the extraction logic here.</p>
             <p>Third paragraph continues the pattern of providing substantial text content.</p>
-        </body></html>'''
+        </body></html>"""
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -891,14 +901,10 @@ async def test_fetch_story_content_blocked_domain(mock_env_vars):
         service = HackerNewsRetriever()
         service.blocked_domains = {
             "blocked_domains": ["reuters.com"],
-            "reasons": {"reuters.com": "401 - Authentication required"}
+            "reasons": {"reuters.com": "401 - Authentication required"},
         }
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://reuters.com/article"
-        )
+        story = Story(title="Test", score=100, url="https://reuters.com/article")
 
         await service._fetch_story_content(story)
 
@@ -908,11 +914,14 @@ async def test_fetch_story_content_blocked_domain(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-@pytest.mark.parametrize("status_code,error_message,expected_text", [
-    (401, "401 Unauthorized", "アクセス制限により"),
-    (403, "403 Forbidden", "アクセス制限により"),
-    (404, "404 Not Found", "記事が見つかりませんでした"),
-])
+@pytest.mark.parametrize(
+    ("status_code", "error_message", "expected_text"),
+    [
+        (401, "401 Unauthorized", "アクセス制限により"),
+        (403, "403 Forbidden", "アクセス制限により"),
+        (404, "404 Not Found", "記事が見つかりませんでした"),
+    ],
+)
 async def test_fetch_story_content_http_errors(
     mock_env_vars, mock_logger, status_code, error_message, expected_text
 ):
@@ -924,24 +933,22 @@ async def test_fetch_story_content_http_errors(
     service = HackerNewsRetriever()
     await service.setup_http_client()
 
-    story = Story(
-        title="Test",
-        score=100,
-        url="https://example.com/test"
-    )
+    story = Story(title="Test", score=100, url="https://example.com/test")
 
     # http_client.getメソッドを直接モックしてHTTPStatusErrorを発生させる
     async def mock_get_error(*args, **kwargs):
         raise httpx.HTTPStatusError(
             error_message,
             request=httpx.Request("GET", "https://example.com/test"),
-            response=httpx.Response(status_code)
+            response=httpx.Response(status_code),
         )
 
-    with patch.object(service.http_client, 'get', side_effect=mock_get_error):
+    with patch.object(service.http_client, "get", side_effect=mock_get_error):
         await service._fetch_story_content(story)
 
-    assert expected_text in story.text, f"Expected '{expected_text}' in story.text for HTTP {status_code}"
+    assert (
+        expected_text in story.text
+    ), f"Expected '{expected_text}' in story.text for HTTP {status_code}"
 
     await service.cleanup()
 
@@ -958,11 +965,7 @@ async def test_fetch_story_content_timeout(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://example.com/test")
 
         respx_mock.get("https://example.com/test").mock(
             side_effect=httpx.TimeoutException("timeout")
@@ -987,11 +990,7 @@ async def test_fetch_story_content_ssl_error(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://example.com/test")
 
         respx_mock.get("https://example.com/test").mock(
             side_effect=httpx.ConnectError("SSL handshake failed")
@@ -1018,30 +1017,27 @@ async def test_fetch_story_content_http1_required(mock_env_vars, respx_mock):
         service.blocked_domains = {
             "blocked_domains": [],
             "http1_required_domains": ["htmlrev.com"],
-            "reasons": {}
+            "reasons": {},
         }
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://htmlrev.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://htmlrev.com/test")
 
         html_content = '<html><meta name="description" content="Test"></html>'
         respx_mock.get("https://htmlrev.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
         )
 
-        with patch.object(service.http_client, 'get', new_callable=AsyncMock) as mock_get:
-            mock_get.return_value = Mock(
-                status_code=200,
-                text=html_content
-            )
+        with patch.object(
+            service.http_client, "get", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = Mock(status_code=200, text=html_content)
 
             await service._fetch_story_content(story)
 
             # force_http1=Trueで呼び出されることを確認
-            mock_get.assert_called_once_with("https://htmlrev.com/test", force_http1=True)
+            mock_get.assert_called_once_with(
+                "https://htmlrev.com/test", force_http1=True
+            )
 
         await service.cleanup()
 
@@ -1053,44 +1049,96 @@ async def test_fetch_story_content_http1_required(mock_env_vars, respx_mock):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-@pytest.mark.parametrize("filter_type,story_configs,expected_count,test_case", [
-    # スコアフィルタリング
-    (
-        "score",
-        [
-            {"id": 1, "title": "High Score Story", "score": TEST_HIGH_SCORE, "text": "A" * TEST_VALID_TEXT_LENGTH},  # 通過
-            {"id": 2, "title": "Low Score Story", "score": TEST_LOW_SCORE, "text": "B" * TEST_VALID_TEXT_LENGTH},   # 除外
-            {"id": 3, "title": "Another High Score", "score": TEST_MEDIUM_SCORE, "text": "C" * TEST_VALID_TEXT_LENGTH},  # 通過
-        ],
-        2,  # 2つのストーリーが閾値以上
-        "score_filtering"
-    ),
-    # テキスト長フィルタリング
-    (
-        "text_length",
-        [
-            {"id": 1, "title": "Valid Length Story", "score": TEST_STORY_SCORE, "text": "A" * 500},  # 通過（範囲内）
-            {"id": 2, "title": "Too Short Story", "score": TEST_STORY_SCORE, "text": "B" * TEST_SHORT_TEXT_LENGTH},  # 除外（短すぎ）
-            {"id": 3, "title": "Too Long Story", "score": TEST_STORY_SCORE, "text": "C" * TEST_LONG_TEXT_LENGTH},  # 除外（長すぎ）
-        ],
-        1,
-        "text_length_filtering"
-    ),
-    # スコアソート
-    (
-        "score_sort",
-        [
-            {"id": 1, "title": "Medium Score", "score": TEST_MEDIUM_SCORE, "text": "A" * TEST_VALID_TEXT_LENGTH},
-            {"id": 2, "title": "High Score", "score": TEST_HIGH_SCORE, "text": "B" * TEST_VALID_TEXT_LENGTH},
-            {"id": 3, "title": "Low Score", "score": 30, "text": "C" * TEST_VALID_TEXT_LENGTH},
-        ],
-        3,
-        "score_sorting"
-    ),
-])
+@pytest.mark.parametrize(
+    ("filter_type", "story_configs", "expected_count", "test_case"),
+    [
+        # スコアフィルタリング
+        (
+            "score",
+            [
+                {
+                    "id": 1,
+                    "title": "High Score Story",
+                    "score": TEST_HIGH_SCORE,
+                    "text": "A" * TEST_VALID_TEXT_LENGTH,
+                },  # 通過
+                {
+                    "id": 2,
+                    "title": "Low Score Story",
+                    "score": TEST_LOW_SCORE,
+                    "text": "B" * TEST_VALID_TEXT_LENGTH,
+                },  # 除外
+                {
+                    "id": 3,
+                    "title": "Another High Score",
+                    "score": TEST_MEDIUM_SCORE,
+                    "text": "C" * TEST_VALID_TEXT_LENGTH,
+                },  # 通過
+            ],
+            2,  # 2つのストーリーが閾値以上
+            "score_filtering",
+        ),
+        # テキスト長フィルタリング
+        (
+            "text_length",
+            [
+                {
+                    "id": 1,
+                    "title": "Valid Length Story",
+                    "score": TEST_STORY_SCORE,
+                    "text": "A" * 500,
+                },  # 通過（範囲内）
+                {
+                    "id": 2,
+                    "title": "Too Short Story",
+                    "score": TEST_STORY_SCORE,
+                    "text": "B" * TEST_SHORT_TEXT_LENGTH,
+                },  # 除外（短すぎ）
+                {
+                    "id": 3,
+                    "title": "Too Long Story",
+                    "score": TEST_STORY_SCORE,
+                    "text": "C" * TEST_LONG_TEXT_LENGTH,
+                },  # 除外（長すぎ）
+            ],
+            1,
+            "text_length_filtering",
+        ),
+        # スコアソート
+        (
+            "score_sort",
+            [
+                {
+                    "id": 1,
+                    "title": "Medium Score",
+                    "score": TEST_MEDIUM_SCORE,
+                    "text": "A" * TEST_VALID_TEXT_LENGTH,
+                },
+                {
+                    "id": 2,
+                    "title": "High Score",
+                    "score": TEST_HIGH_SCORE,
+                    "text": "B" * TEST_VALID_TEXT_LENGTH,
+                },
+                {
+                    "id": 3,
+                    "title": "Low Score",
+                    "score": 30,
+                    "text": "C" * TEST_VALID_TEXT_LENGTH,
+                },
+            ],
+            3,
+            "score_sorting",
+        ),
+    ],
+)
 async def test_get_top_stories_filtering(
-    hn_service_with_client, respx_mock,
-    filter_type, story_configs, expected_count, test_case
+    hn_service_with_client,
+    respx_mock,
+    filter_type,
+    story_configs,
+    expected_count,
+    test_case,
 ):
     """
     Given: 様々な条件のストーリー（スコア、テキスト長、ソート順）
@@ -1107,17 +1155,23 @@ async def test_get_top_stories_filtering(
 
     # 各ストーリーのモック
     for config in story_configs:
-        respx_mock.get(f"https://hacker-news.firebaseio.com/v0/item/{config['id']}.json").mock(
-            return_value=httpx.Response(200, json={
-                "id": config["id"],
-                "title": config["title"],
-                "score": config["score"],
-                "time": TEST_STORY_TIMESTAMP,
-                "text": config["text"]
-            })
+        respx_mock.get(
+            f"https://hacker-news.firebaseio.com/v0/item/{config['id']}.json"
+        ).mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": config["id"],
+                    "title": config["title"],
+                    "score": config["score"],
+                    "time": TEST_STORY_TIMESTAMP,
+                    "text": config["text"],
+                },
+            )
         )
 
     from nook.common.dedup import DedupTracker
+
     dedup_tracker = DedupTracker()
 
     stories = await service._get_top_stories(15, dedup_tracker, [date.today()])
@@ -1162,17 +1216,17 @@ async def test_add_to_blocked_domains_new_domain(mock_env_vars, tmp_path):
         blocked_domains_path = tmp_path / "blocked_domains.json"
         blocked_domains_path.write_text('{"blocked_domains": [], "reasons": {}}')
 
-        with patch("os.path.join", return_value=str(blocked_domains_path)), \
-             patch("os.path.exists", return_value=True):
+        with patch("os.path.join", return_value=str(blocked_domains_path)), patch(
+            "os.path.exists", return_value=True
+        ):
 
-            new_domains = {
-                "newdomain.com": "403 - Access denied"
-            }
+            new_domains = {"newdomain.com": "403 - Access denied"}
 
             await service._add_to_blocked_domains(new_domains)
 
             # ファイルが更新されたことを確認
             import json
+
             with open(blocked_domains_path, encoding="utf-8") as f:
                 data = json.load(f)
 
@@ -1197,17 +1251,17 @@ async def test_add_to_blocked_domains_duplicate(mock_env_vars, tmp_path):
             '{"blocked_domains": ["existing.com"], "reasons": {"existing.com": "Test"}}'
         )
 
-        with patch("os.path.join", return_value=str(blocked_domains_path)), \
-             patch("os.path.exists", return_value=True):
+        with patch("os.path.join", return_value=str(blocked_domains_path)), patch(
+            "os.path.exists", return_value=True
+        ):
 
-            new_domains = {
-                "existing.com": "403 - Access denied"
-            }
+            new_domains = {"existing.com": "403 - Access denied"}
 
             await service._add_to_blocked_domains(new_domains)
 
             # ファイルを確認
             import json
+
             with open(blocked_domains_path, encoding="utf-8") as f:
                 data = json.load(f)
 
@@ -1230,8 +1284,9 @@ async def test_update_blocked_domains_from_errors(mock_env_vars, tmp_path):
         blocked_domains_path = tmp_path / "blocked_domains.json"
         blocked_domains_path.write_text('{"blocked_domains": [], "reasons": {}}')
 
-        with patch("os.path.join", return_value=str(blocked_domains_path)), \
-             patch("os.path.exists", return_value=True):
+        with patch("os.path.join", return_value=str(blocked_domains_path)), patch(
+            "os.path.exists", return_value=True
+        ):
 
             # エラーストーリーを作成
             stories = [
@@ -1239,7 +1294,7 @@ async def test_update_blocked_domains_from_errors(mock_env_vars, tmp_path):
                     title="Error Story",
                     score=100,
                     url="https://errordomain.com/article",
-                    text="記事の内容を取得できませんでした。"
+                    text="記事の内容を取得できませんでした。",
                 )
             ]
 
@@ -1247,6 +1302,7 @@ async def test_update_blocked_domains_from_errors(mock_env_vars, tmp_path):
 
             # ファイルが更新されたことを確認
             import json
+
             with open(blocked_domains_path, encoding="utf-8") as f:
                 data = json.load(f)
 
@@ -1271,17 +1327,21 @@ async def test_update_blocked_domains_from_errors_no_errors(mock_env_vars):
                 title="Success Story",
                 score=100,
                 url="https://example.com/article",
-                text="Valid content text here"
+                text="Valid content text here",
             )
         ]
 
-        with patch.object(service, '_add_to_blocked_domains', new_callable=AsyncMock) as mock_add:
+        with patch.object(
+            service, "_add_to_blocked_domains", new_callable=AsyncMock
+        ) as mock_add:
             await service._update_blocked_domains_from_errors(stories)
 
             # _add_to_blocked_domainsが空の辞書で呼び出されないか、
             # 呼び出されても何も追加されない
             if mock_add.called:
-                assert mock_add.call_args[0][0] == {} or len(mock_add.call_args[0][0]) == 0
+                assert (
+                    mock_add.call_args[0][0] == {} or len(mock_add.call_args[0][0]) == 0
+                )
 
 
 # =============================================================================
@@ -1306,7 +1366,7 @@ def test_serialize_stories(mock_env_vars):
                 url="https://example.com/test",
                 text="Test text",
                 summary="Test summary",
-                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc),
             )
         ]
 
@@ -1336,7 +1396,7 @@ def test_render_markdown(mock_env_vars):
                 "title": "Test Story",
                 "score": 100,
                 "url": "https://example.com/test",
-                "summary": "Test summary"
+                "summary": "Test summary",
             }
         ]
 
@@ -1390,10 +1450,7 @@ def test_story_sort_key(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        item = {
-            "score": 100,
-            "published_at": "2024-11-14T12:00:00+00:00"
-        }
+        item = {"score": 100, "published_at": "2024-11-14T12:00:00+00:00"}
 
         score, published = service._story_sort_key(item)
 
@@ -1411,10 +1468,7 @@ def test_story_sort_key_with_invalid_date(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        item = {
-            "score": 100,
-            "published_at": "invalid-date"
-        }
+        item = {"score": 100, "published_at": "invalid-date"}
 
         score, published = service._story_sort_key(item)
 
@@ -1435,9 +1489,9 @@ async def test_summarize_story(mock_env_vars):
 
         story = create_test_story(text="Test text")
 
-        with patch.object(service, 'gpt_client') as mock_gpt:
+        with patch.object(service, "gpt_client") as mock_gpt:
             mock_gpt.generate_async = AsyncMock(return_value="Generated summary")
-            with patch.object(service, 'rate_limit', new_callable=AsyncMock):
+            with patch.object(service, "rate_limit", new_callable=AsyncMock):
                 await service._summarize_story(story)
 
         assert story.summary == "Generated summary"
@@ -1454,10 +1508,7 @@ async def test_summarize_story_no_text(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        story = Story(
-            title="Test Story",
-            score=100
-        )
+        story = Story(title="Test Story", score=100)
 
         await service._summarize_story(story)
 
@@ -1475,15 +1526,11 @@ async def test_summarize_story_error(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        story = Story(
-            title="Test Story",
-            score=100,
-            text="Test text"
-        )
+        story = Story(title="Test Story", score=100, text="Test text")
 
-        with patch.object(service, 'gpt_client') as mock_gpt:
+        with patch.object(service, "gpt_client") as mock_gpt:
             mock_gpt.generate_async = AsyncMock(side_effect=Exception("API Error"))
-            with patch.object(service, 'rate_limit', new_callable=AsyncMock):
+            with patch.object(service, "rate_limit", new_callable=AsyncMock):
                 await service._summarize_story(story)
 
         assert "エラーが発生しました" in story.summary
@@ -1505,13 +1552,13 @@ async def test_load_existing_titles_from_json(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        existing_data = [
-            {"title": "Existing Title 1"},
-            {"title": "Existing Title 2"}
-        ]
+        existing_data = [{"title": "Existing Title 1"}, {"title": "Existing Title 2"}]
 
-        with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=True), \
-             patch.object(service, 'load_json', new_callable=AsyncMock, return_value=existing_data):
+        with patch.object(
+            service.storage, "exists", new_callable=AsyncMock, return_value=True
+        ), patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=existing_data
+        ):
 
             tracker = await service._load_existing_titles()
 
@@ -1541,8 +1588,11 @@ async def test_load_existing_titles_from_markdown(mock_env_vars):
 Some content
 """
 
-        with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=False), \
-             patch.object(service.storage, 'load_markdown', return_value=markdown_content):
+        with patch.object(
+            service.storage, "exists", new_callable=AsyncMock, return_value=False
+        ), patch.object(
+            service.storage, "load_markdown", return_value=markdown_content
+        ):
 
             tracker = await service._load_existing_titles()
 
@@ -1564,7 +1614,12 @@ async def test_load_existing_titles_error(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        with patch.object(service.storage, 'exists', new_callable=AsyncMock, side_effect=Exception("Read error")):
+        with patch.object(
+            service.storage,
+            "exists",
+            new_callable=AsyncMock,
+            side_effect=Exception("Read error"),
+        ):
 
             tracker = await service._load_existing_titles()
 
@@ -1585,12 +1640,14 @@ async def test_load_existing_stories_from_json(mock_env_vars):
 
         existing_data = [
             {"title": "Story 1", "score": 100},
-            {"title": "Story 2", "score": 200}
+            {"title": "Story 2", "score": 200},
         ]
 
         target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
 
-        with patch.object(service, 'load_json', new_callable=AsyncMock, return_value=existing_data):
+        with patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=existing_data
+        ):
 
             stories = await service._load_existing_stories(target_date)
 
@@ -1620,8 +1677,14 @@ async def test_load_existing_stories_from_markdown(mock_env_vars):
 
         target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
 
-        with patch.object(service, 'load_json', new_callable=AsyncMock, return_value=None), \
-             patch.object(service.storage, 'load', new_callable=AsyncMock, return_value=markdown_content):
+        with patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=None
+        ), patch.object(
+            service.storage,
+            "load",
+            new_callable=AsyncMock,
+            return_value=markdown_content,
+        ):
 
             stories = await service._load_existing_stories(target_date)
 
@@ -1643,8 +1706,11 @@ async def test_load_existing_stories_no_file(mock_env_vars):
 
         target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
 
-        with patch.object(service, 'load_json', new_callable=AsyncMock, return_value=None), \
-             patch.object(service.storage, 'load', new_callable=AsyncMock, return_value=None):
+        with patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=None
+        ), patch.object(
+            service.storage, "load", new_callable=AsyncMock, return_value=None
+        ):
 
             stories = await service._load_existing_stories(target_date)
 
@@ -1664,11 +1730,14 @@ async def test_summarize_stories(mock_env_vars):
 
         stories = [
             Story(title="Story 1", score=100, text="Text 1"),
-            Story(title="Story 2", score=200, text="Text 2")
+            Story(title="Story 2", score=200, text="Text 2"),
         ]
 
-        with patch.object(service, '_summarize_story', new_callable=AsyncMock) as mock_summarize, \
-             patch.object(service, '_update_blocked_domains_from_errors', new_callable=AsyncMock) as mock_update:
+        with patch.object(
+            service, "_summarize_story", new_callable=AsyncMock
+        ) as mock_summarize, patch.object(
+            service, "_update_blocked_domains_from_errors", new_callable=AsyncMock
+        ) as mock_update:
 
             await service._summarize_stories(stories)
 
@@ -1719,14 +1788,19 @@ async def test_store_summaries(mock_env_vars):
                 url="https://example.com",
                 text="Test text",
                 summary="Test summary",
-                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc),
             )
         ]
 
         target_dates = [date(2024, 11, 14)]
 
-        with patch('nook.services.hacker_news.hacker_news.store_daily_snapshots', new_callable=AsyncMock) as mock_store:
-            mock_store.return_value = [("/path/to/2024-11-14.json", "/path/to/2024-11-14.md")]
+        with patch(
+            "nook.services.hacker_news.hacker_news.store_daily_snapshots",
+            new_callable=AsyncMock,
+        ) as mock_store:
+            mock_store.return_value = [
+                ("/path/to/2024-11-14.json", "/path/to/2024-11-14.md")
+            ]
 
             result = await service._store_summaries(stories, target_dates)
 
@@ -1769,13 +1843,9 @@ async def test_fetch_story_content_article_element(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = '<html><body><article>Article content here for testing purposes and extraction.</article></body></html>'
+        html_content = "<html><body><article>Article content here for testing purposes and extraction.</article></body></html>"
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -1801,16 +1871,12 @@ async def test_fetch_story_content_short_paragraphs(mock_env_vars, respx_mock):
         service = HackerNewsRetriever()
         await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
+        story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = '''<html><body>
+        html_content = """<html><body>
             <p>Short</p>
             <p>Also short</p>
-        </body></html>'''
+        </body></html>"""
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -1838,7 +1904,7 @@ def test_render_markdown_with_text_only(mock_env_vars):
                 "title": "Test Story",
                 "score": TEST_STORY_SCORE,
                 "url": "https://example.com/test",
-                "text": "A" * TEST_MARKDOWN_LONG_TEXT  # 500文字以上
+                "text": "A" * TEST_MARKDOWN_LONG_TEXT,  # 500文字以上
             }
         ]
 
@@ -1860,18 +1926,16 @@ def test_render_markdown_no_url(mock_env_vars):
         service = HackerNewsRetriever()
 
         records = [
-            {
-                "title": "Test Story Without URL",
-                "score": 100,
-                "summary": "Test summary"
-            }
+            {"title": "Test Story Without URL", "score": 100, "summary": "Test summary"}
         ]
 
         today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
         markdown = service._render_markdown(records, today)
 
         assert "Test Story Without URL" in markdown
-        assert "[" not in markdown.split("## ")[1].split("\n")[0]  # タイトル行にリンク記法がない
+        assert (
+            "[" not in markdown.split("## ")[1].split("\n")[0]
+        )  # タイトル行にリンク記法がない
 
 
 @pytest.mark.unit
@@ -1910,9 +1974,7 @@ def test_story_sort_key_missing_score(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        item = {
-            "published_at": "2024-11-14T12:00:00+00:00"
-        }
+        item = {"published_at": "2024-11-14T12:00:00+00:00"}
 
         score, published = service._story_sort_key(item)
 
@@ -1930,9 +1992,7 @@ def test_story_sort_key_no_published_at(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        item = {
-            "score": 100
-        }
+        item = {"score": 100}
 
         score, published = service._story_sort_key(item)
 
@@ -2061,23 +2121,6 @@ def test_is_blocked_domain_exception_handling(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_is_http1_required_domain_exception_handling(mock_env_vars):
-    """
-    Given: 不正な状態
-    When: _is_http1_required_domainを呼び出す
-    Then: Falseが返される（例外は発生しない）
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.blocked_domains = {"http1_required_domains": None}  # Cause an exception
-
-        result = service._is_http1_required_domain("https://example.com")
-
-        # Should handle exception and return False
-        assert result is False
-
-
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_invalid_timestamp(mock_env_vars, respx_mock):
     """
@@ -2106,9 +2149,7 @@ async def test_fetch_story_invalid_timestamp(mock_env_vars, respx_mock):
 
         # Mock content fetching
         respx_mock.get("https://example.com").mock(
-            return_value=httpx.Response(
-                200, text="<p>" + "Test content" * 20 + "</p>"
-            )
+            return_value=httpx.Response(200, text="<p>" + "Test content" * 20 + "</p>")
         )
 
         story = await service._fetch_story(12345)
@@ -2161,10 +2202,18 @@ async def test_update_blocked_domains_various_error_reasons(hacker_news_service)
         ("error429.com", "HTTP error 429 Too Many Requests", "429 - Too Many Requests"),
         ("error403.com", "HTTP error 403 Access denied", "403 - Access denied"),
         ("error404.com", "HTTP error 404 Not found", "404 - Not found"),
-        ("timeout.com", "Request error: timeout occurred while connecting", "Timeout error"),
+        (
+            "timeout.com",
+            "Request error: timeout occurred while connecting",
+            "Timeout error",
+        ),
         ("sslerror.com", "Request error: SSL handshake failed", "SSL/TLS error"),
         ("requesterror.com", "Request error occurred", None),  # エラー理由は検証しない
-        ("genericerror.com", "HTTP error: Some other error", None),  # エラー理由は検証しない
+        (
+            "genericerror.com",
+            "HTTP error: Some other error",
+            None,
+        ),  # エラー理由は検証しない
     ]
 
     # create_error_story()ヘルパーを使用してストーリーを作成
@@ -2201,7 +2250,9 @@ async def test_update_blocked_domains_various_error_reasons(hacker_news_service)
     async def mock_add_to_blocked_domains(new_domains):
         added_domains.update(new_domains)
 
-    with patch.object(service, '_add_to_blocked_domains', side_effect=mock_add_to_blocked_domains):
+    with patch.object(
+        service, "_add_to_blocked_domains", side_effect=mock_add_to_blocked_domains
+    ):
         # Should not raise an error
         await service._update_blocked_domains_from_errors(stories)
 
@@ -2247,7 +2298,9 @@ async def test_update_blocked_domains_exception_handling(mock_env_vars):
         async def mock_add_to_blocked_domains(new_domains):
             added_domains.update(new_domains)
 
-        with patch.object(service, '_add_to_blocked_domains', side_effect=mock_add_to_blocked_domains):
+        with patch.object(
+            service, "_add_to_blocked_domains", side_effect=mock_add_to_blocked_domains
+        ):
             # Should not raise an error
             await service._update_blocked_domains_from_errors(stories)
 
@@ -2327,10 +2380,15 @@ async def test_collect_http_client_initialization(mock_env_vars):
         service = HackerNewsRetriever()
         service.http_client = None  # Ensure it's None
 
-        with patch.object(service, 'setup_http_client', new_callable=AsyncMock) as mock_setup, \
-             patch.object(service, '_load_existing_titles', new_callable=AsyncMock) as mock_load, \
-             patch.object(service, '_get_top_stories', new_callable=AsyncMock) as mock_get, \
-             patch.object(service, '_store_summaries', new_callable=AsyncMock) as mock_store:
+        with patch.object(
+            service, "setup_http_client", new_callable=AsyncMock
+        ) as mock_setup, patch.object(
+            service, "_load_existing_titles", new_callable=AsyncMock
+        ) as mock_load, patch.object(
+            service, "_get_top_stories", new_callable=AsyncMock
+        ) as mock_get, patch.object(
+            service, "_store_summaries", new_callable=AsyncMock
+        ) as mock_store:
 
             mock_load.return_value = Mock()
             mock_get.return_value = []
@@ -2389,8 +2447,11 @@ async def test_load_existing_titles_with_empty_data(mock_env_vars, mock_logger):
     service = HackerNewsRetriever()
     await service.setup_http_client()
 
-    with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=True), \
-         patch.object(service, 'load_json', new_callable=AsyncMock, return_value=[]):  # Empty data
+    with patch.object(
+        service.storage, "exists", new_callable=AsyncMock, return_value=True
+    ), patch.object(
+        service, "load_json", new_callable=AsyncMock, return_value=[]
+    ):  # Empty data
 
         tracker = await service._load_existing_titles()
 
@@ -2405,7 +2466,9 @@ async def test_load_existing_titles_with_empty_data(mock_env_vars, mock_logger):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_load_existing_titles_with_items_without_title(mock_env_vars, mock_logger):
+async def test_load_existing_titles_with_items_without_title(
+    mock_env_vars, mock_logger
+):
     """
     Given: titleフィールドがないアイテムを含むJSONデータ
     When: _load_existing_titlesを呼び出す
@@ -2423,8 +2486,9 @@ async def test_load_existing_titles_with_items_without_title(mock_env_vars, mock
         {"title": "", "score": 20},  # titleが空文字列
     ]
 
-    with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=True), \
-         patch.object(service, 'load_json', new_callable=AsyncMock, return_value=data):
+    with patch.object(
+        service.storage, "exists", new_callable=AsyncMock, return_value=True
+    ), patch.object(service, "load_json", new_callable=AsyncMock, return_value=data):
 
         tracker = await service._load_existing_titles()
 
@@ -2455,17 +2519,17 @@ async def test_get_top_stories_with_fetch_exception(mock_env_vars, mock_logger):
         )
 
         # _fetch_storyが例外を発生させるようにモック
-        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.side_effect = [
                 Exception("Test exception"),  # 1つ目は例外
                 create_test_story(),  # 2つ目は正常
             ]
 
-            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+            with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
                 stories = await service._get_top_stories(
-                    limit=15,
-                    dedup_tracker=DedupTracker(),
-                    target_dates=[date.today()]
+                    limit=15, dedup_tracker=DedupTracker(), target_dates=[date.today()]
                 )
 
                 # 例外が発生しても処理が継続し、正常なストーリーが返されることを確認
@@ -2496,14 +2560,14 @@ async def test_get_top_stories_story_without_created_at(mock_env_vars, mock_logg
             return_value=httpx.Response(200, json=[1])
         )
 
-        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.return_value = story_without_date
 
-            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+            with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
                 stories = await service._get_top_stories(
-                    limit=15,
-                    dedup_tracker=DedupTracker(),
-                    target_dates=[date.today()]
+                    limit=15, dedup_tracker=DedupTracker(), target_dates=[date.today()]
                 )
 
                 # created_atがNoneなのでフィルタリングされる
@@ -2529,11 +2593,11 @@ async def test_update_blocked_domains_url_parse_error(mock_env_vars, mock_logger
         title="Test",
         score=100,
         url="://invalid-url",  # 不正なURL
-        text="記事の内容を取得できませんでした。"  # エラー状態
+        text="記事の内容を取得できませんでした。",  # エラー状態
     )
 
     # urlparseが例外を発生させるようにモック
-    with patch('nook.services.hacker_news.hacker_news.urlparse') as mock_urlparse:
+    with patch("nook.services.hacker_news.hacker_news.urlparse") as mock_urlparse:
         mock_urlparse.side_effect = Exception("URL parse error")
 
         # 例外が発生しても処理が継続することを確認
@@ -2557,9 +2621,7 @@ async def test_fetch_story_content_status_200_with_article(mock_env_vars, mock_l
     await service.setup_http_client()
 
     story = Story(
-        title="Test Article",
-        score=100,
-        url="https://example.com/article-test"
+        title="Test Article", score=100, url="https://example.com/article-test"
     )
 
     # HTMLレスポンス（メタディスクリプションや段落がなく、article要素のみ）
@@ -2573,12 +2635,9 @@ async def test_fetch_story_content_status_200_with_article(mock_env_vars, mock_l
     """
 
     async def mock_get(*args, **kwargs):
-        return Mock(
-            status_code=200,
-            text=html_content
-        )
+        return Mock(status_code=200, text=html_content)
 
-    with patch.object(service.http_client, 'get', side_effect=mock_get):
+    with patch.object(service.http_client, "get", side_effect=mock_get):
         await service._fetch_story_content(story)
 
     # article要素からテキストが抽出されていることを確認
@@ -2605,10 +2664,15 @@ async def test_collect_with_saved_files_logging(mock_env_vars, mock_logger):
         ("data/hacker_news/2024-11-14.json", "data/hacker_news/2024-11-14.md")
     ]
 
-    with patch.object(service, 'setup_http_client', new_callable=AsyncMock), \
-         patch.object(service, '_load_existing_titles', new_callable=AsyncMock) as mock_load, \
-         patch.object(service, '_get_top_stories', new_callable=AsyncMock) as mock_get, \
-         patch.object(service, '_store_summaries', new_callable=AsyncMock) as mock_store:
+    with patch.object(
+        service, "setup_http_client", new_callable=AsyncMock
+    ), patch.object(
+        service, "_load_existing_titles", new_callable=AsyncMock
+    ) as mock_load, patch.object(
+        service, "_get_top_stories", new_callable=AsyncMock
+    ) as mock_get, patch.object(
+        service, "_store_summaries", new_callable=AsyncMock
+    ) as mock_store:
 
         mock_load.return_value = DedupTracker()
         mock_get.return_value = []
@@ -2644,14 +2708,14 @@ async def test_get_top_stories_with_duplicate_detection(mock_env_vars, mock_logg
             return_value=httpx.Response(200, json=[1, 2, 3])
         )
 
-        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.side_effect = [story1, story2, story3]
 
-            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+            with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
                 stories = await service._get_top_stories(
-                    limit=15,
-                    dedup_tracker=DedupTracker(),
-                    target_dates=[date.today()]
+                    limit=15, dedup_tracker=DedupTracker(), target_dates=[date.today()]
                 )
 
                 # 重複が除外され、2つのストーリーのみが返される
@@ -2673,7 +2737,6 @@ async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
 
     Coverage: Lines 255-259, 265-268, 278 (date grouping and selection logic)
     """
-    from datetime import timedelta
 
     service = HackerNewsRetriever()
     service.http_client = httpx.AsyncClient()
@@ -2682,23 +2745,31 @@ async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
     yesterday = today - timedelta(days=1)
 
     # 2日分のストーリーを作成（スコアは異なる）
-    story_today_1 = create_test_story(title="Today Story 1", score=100, text="A" * 150, created_at=today)
-    story_today_2 = create_test_story(title="Today Story 2", score=90, text="B" * 150, created_at=today)
-    story_yesterday_1 = create_test_story(title="Yesterday Story 1", score=80, text="C" * 150, created_at=yesterday)
+    story_today_1 = create_test_story(
+        title="Today Story 1", score=100, text="A" * 150, created_at=today
+    )
+    story_today_2 = create_test_story(
+        title="Today Story 2", score=90, text="B" * 150, created_at=today
+    )
+    story_yesterday_1 = create_test_story(
+        title="Yesterday Story 1", score=80, text="C" * 150, created_at=yesterday
+    )
 
     with respx.mock:
         respx.get(f"{service.base_url}/topstories.json").mock(
             return_value=httpx.Response(200, json=[1, 2, 3])
         )
 
-        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.side_effect = [story_today_1, story_today_2, story_yesterday_1]
 
-            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+            with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
                 stories = await service._get_top_stories(
                     limit=15,
                     dedup_tracker=DedupTracker(),
-                    target_dates=[today.date(), yesterday.date()]
+                    target_dates=[today.date(), yesterday.date()],
                 )
 
                 # 日付別にグループ化され、ストーリーが選択される
