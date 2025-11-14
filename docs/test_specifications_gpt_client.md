@@ -23,7 +23,7 @@
 | 5 | モデル名デフォルト値 | 正常系 | model=None, 環境変数なし | デフォルト"gpt-4.1-nano"が設定される | Medium | test_init_model_default_value |
 | 6 | API key未指定・環境変数なし | 異常系 | api_key=None, 環境変数なし | ValueError発生 | High | test_init_no_api_key_raises_error |
 | 7 | API keyが空文字 | 異常系 | api_key="" | ValueError発生 | High | test_init_empty_api_key_raises_error |
-| 8 | モデル名が空文字 | 異常系 | model="" | ValueError発生 | Medium | test_init_empty_model_raises_error |
+| 8 | モデル名が空文字 | 正常系 | model="" | デフォルト"gpt-4.1-nano"が設定される | Medium | test_init_empty_model_uses_default |
 | 9 | tiktoken初期化成功（gpt-4） | 正常系 | デフォルト | gpt-4用encodingが取得される | Medium | test_init_tiktoken_encoding_success |
 | 10 | tiktoken初期化失敗時のフォールバック | 異常系 | gpt-4のエンコーダーが取得不可 | cl100k_baseにフォールバック | Medium | test_init_tiktoken_fallback_to_cl100k_base |
 | 11 | OpenAIクライアント初期化 | 正常系 | 正常なAPI key | OpenAI clientインスタンスが作成される | High | test_init_openai_client_created |

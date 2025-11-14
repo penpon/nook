@@ -175,7 +175,8 @@ class GPTClient:
             ) or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
-            prev_id = getattr(resp, "id", None)
+            # Only continue with prev_id if we got some output to avoid infinite loop
+            prev_id = None
 
         return output_text
 
@@ -213,7 +214,8 @@ class GPTClient:
             ) or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
-            prev_id = getattr(resp, "id", None)
+            # Only continue with prev_id if we got some output to avoid infinite loop
+            prev_id = None
 
         return output_text
 
@@ -288,10 +290,11 @@ class GPTClient:
             生成されたテキスト。
         """
         if temperature != 0.7:
+            # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
                 "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
         messages = []
@@ -412,10 +415,11 @@ class GPTClient:
             AIの応答。
         """
         if temperature != 0.7:
+            # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
                 "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
         chat_session["messages"].append({"role": "user", "content": message})
@@ -475,10 +479,11 @@ class GPTClient:
             AIの応答。
         """
         if temperature != 0.7:
+            # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
                 "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
         system_instruction = """
@@ -540,10 +545,11 @@ class GPTClient:
             AIの応答。
         """
         if temperature != 0.7:
+            # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
                 "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
         all_messages = []

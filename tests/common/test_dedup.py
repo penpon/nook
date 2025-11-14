@@ -883,7 +883,7 @@ async def test_load_existing_titles_from_json():
 
     storage = AsyncMock()
     storage.load = AsyncMock(return_value=json.dumps(articles))
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -910,7 +910,7 @@ async def test_load_existing_titles_multiple_dates():
 
     storage = AsyncMock()
     storage.load = AsyncMock(side_effect=load_side_effect)
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -927,8 +927,8 @@ async def test_load_existing_titles_json_not_found():
     target_dates = {date(2024, 1, 15)}
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=FileNotFoundError())
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load = AsyncMock(side_effect=FileNotFoundError)
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -946,7 +946,7 @@ async def test_load_existing_titles_json_decode_error():
 
     storage = AsyncMock()
     storage.load = AsyncMock(return_value="invalid json")
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -965,7 +965,7 @@ async def test_load_existing_titles_empty_json_array():
 
     storage = AsyncMock()
     storage.load = AsyncMock(return_value="[]")
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -987,7 +987,7 @@ async def test_load_existing_titles_no_title_field():
 
     storage = AsyncMock()
     storage.load = AsyncMock(return_value=json.dumps(articles))
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -1010,7 +1010,7 @@ async def test_load_existing_titles_empty_title():
 
     storage = AsyncMock()
     storage.load = AsyncMock(return_value=json.dumps(articles))
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -1038,7 +1038,7 @@ More content.
 """
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=FileNotFoundError())
+    storage.load = AsyncMock(side_effect=FileNotFoundError)
     storage.load_markdown = Mock(return_value=markdown_content)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
@@ -1063,7 +1063,7 @@ async def test_load_existing_titles_multiple_markdown_entries():
 """
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=FileNotFoundError())
+    storage.load = AsyncMock(side_effect=FileNotFoundError)
     storage.load_markdown = Mock(return_value=markdown_content)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
@@ -1081,8 +1081,8 @@ async def test_load_existing_titles_markdown_not_found():
     target_dates = {date(2024, 1, 15)}
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=FileNotFoundError())
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load = AsyncMock(side_effect=FileNotFoundError)
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -1103,7 +1103,7 @@ Some content.
 """
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=FileNotFoundError())
+    storage.load = AsyncMock(side_effect=FileNotFoundError)
     storage.load_markdown = Mock(return_value=markdown_content)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
@@ -1188,7 +1188,7 @@ async def test_load_existing_titles_without_logger():
 
     storage = AsyncMock()
     storage.load = AsyncMock(return_value="[]")
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(
         storage, target_dates, logger=None
@@ -1208,7 +1208,7 @@ async def test_load_existing_titles_io_error():
 
     storage = AsyncMock()
     storage.load = AsyncMock(side_effect=IOError("Disk error"))
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
 
@@ -1226,8 +1226,8 @@ async def test_load_existing_titles_with_logger_file_not_found():
     target_dates = {date(2024, 1, 15)}
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=FileNotFoundError())
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load = AsyncMock(side_effect=FileNotFoundError)
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     logger = Mock()
 
@@ -1250,7 +1250,7 @@ async def test_load_existing_titles_with_logger_json_decode_error():
 
     storage = AsyncMock()
     storage.load = AsyncMock(return_value="invalid json")
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     logger = Mock()
 
@@ -1273,7 +1273,7 @@ async def test_load_existing_titles_with_logger_io_error():
 
     storage = AsyncMock()
     storage.load = AsyncMock(side_effect=IOError("Disk error"))
-    storage.load_markdown = Mock(side_effect=FileNotFoundError())
+    storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     logger = Mock()
 

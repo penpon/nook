@@ -1,7 +1,7 @@
 # テスト仕様書: logging.py
 
 ## 対象モジュール
-- ファイル: nook/common/logging.py
+- ファイル: nook/common/logging_utils.py
 - 現在のカバレッジ: 30.56%
 - 目標カバレッジ: 95%以上
 
