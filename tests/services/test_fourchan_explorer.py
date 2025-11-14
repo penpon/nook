@@ -66,7 +66,6 @@ async def test_collect_success(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test thread</body></html>")
             )
@@ -97,7 +96,6 @@ async def test_collect_network_error(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
             result = await service.collect(target_dates=[date.today()])
@@ -123,7 +121,6 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
             )
@@ -162,7 +159,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test thread</body></html>")
             )

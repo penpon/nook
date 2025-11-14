@@ -512,7 +512,7 @@ class FiveChanExplorer(BaseService):
         for i, user_agent in enumerate(user_agent_strategies):
             try:
                 self.logger.info(
-                    f"403対策戦略 {i+1}/{len(user_agent_strategies)}: {user_agent[:50]}..."
+                    f"403対策戦略 {i + 1}/{len(user_agent_strategies)}: {user_agent[:50]}..."
                 )
 
                 # 極限まで簡素化されたヘッダー
@@ -539,13 +539,13 @@ class FiveChanExplorer(BaseService):
 
                     if response.status_code == 200:
                         if not is_cloudflare:
-                            self.logger.info(f"成功: 戦略{i+1}で正常アクセス")
+                            self.logger.info(f"成功: 戦略{i + 1}で正常アクセス")
                             return response
                         else:
-                            self.logger.warning(f"戦略{i+1}: Cloudflareチャレンジページ検出")
+                            self.logger.warning(f"戦略{i + 1}: Cloudflareチャレンジページ検出")
                     elif response.status_code == 403:
                         if is_cloudflare:
-                            self.logger.warning(f"戦略{i+1}: Cloudflare保護により403エラー")
+                            self.logger.warning(f"戦略{i + 1}: Cloudflare保護により403エラー")
                             # Cloudflareの場合は長時間待機後にリトライ
                             if i < 2:  # 最初の2戦略のみリトライ
                                 self.logger.info("Cloudflare回避: 30秒待機後にリトライ")
@@ -553,20 +553,20 @@ class FiveChanExplorer(BaseService):
                                 continue
                         elif response.text and len(response.text) > 100 and not is_cloudflare:
                             self.logger.warning(
-                                f"403エラーだが有効コンテンツ取得: 戦略{i+1} ({len(response.text)}文字)"
+                                f"403エラーだが有効コンテンツ取得: 戦略{i + 1} ({len(response.text)}文字)"
                             )
                             return response
                         else:
-                            self.logger.warning(f"戦略{i+1}: 403エラー（利用不可コンテンツ）")
+                            self.logger.warning(f"戦略{i + 1}: 403エラー（利用不可コンテンツ）")
                     else:
-                        self.logger.warning(f"戦略{i+1}: HTTPエラー {response.status_code}")
+                        self.logger.warning(f"戦略{i + 1}: HTTPエラー {response.status_code}")
 
                 except Exception as e:
-                    self.logger.warning(f"戦略{i+1}: リクエストエラー - {str(e)}")
+                    self.logger.warning(f"戦略{i + 1}: リクエストエラー - {str(e)}")
                     continue
 
             except Exception as e:
-                self.logger.error(f"戦略{i+1}: 予期しないエラー - {str(e)}")
+                self.logger.error(f"戦略{i + 1}: 予期しないエラー - {str(e)}")
                 continue
 
         # 最終戦略: 代替エンドポイント試行
@@ -623,7 +623,7 @@ class FiveChanExplorer(BaseService):
 
         for i, alt_url in enumerate(alternative_strategies):
             try:
-                self.logger.info(f"代替戦略 {i+1}/{len(alternative_strategies)}: {alt_url}")
+                self.logger.info(f"代替戦略 {i + 1}/{len(alternative_strategies)}: {alt_url}")
                 await asyncio.sleep(3)  # 短い間隔
 
                 response = await self.http_client._client.get(
@@ -644,16 +644,16 @@ class FiveChanExplorer(BaseService):
 
                     if is_valid:
                         self.logger.info(
-                            f"代替戦略{i+1}成功: {response.status_code} ({len(content)}文字)"
+                            f"代替戦略{i + 1}成功: {response.status_code} ({len(content)}文字)"
                         )
                         return response
                     else:
-                        self.logger.warning(f"代替戦略{i+1}: 無効コンテンツ ({len(content)}文字)")
+                        self.logger.warning(f"代替戦略{i + 1}: 無効コンテンツ ({len(content)}文字)")
                 else:
-                    self.logger.warning(f"代替戦略{i+1}: HTTPエラー {response.status_code}")
+                    self.logger.warning(f"代替戦略{i + 1}: HTTPエラー {response.status_code}")
 
             except Exception as e:
-                self.logger.warning(f"代替戦略{i+1}: エラー - {str(e)}")
+                self.logger.warning(f"代替戦略{i + 1}: エラー - {str(e)}")
                 continue
 
         return None
@@ -917,7 +917,9 @@ class FiveChanExplorer(BaseService):
                     timestamp_value = (
                         int(effective_local.timestamp())
                         if effective_local is not None
-                        else int(timestamp_raw) if timestamp_raw else 0
+                        else int(timestamp_raw)
+                        if timestamp_raw
+                        else 0
                     )
 
                     if posts:  # 投稿取得成功時のみスレッド作成

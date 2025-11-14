@@ -65,7 +65,6 @@ async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api):
             ),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_subreddit = Mock()
             mock_submission = Mock()
             mock_submission.title = "Test Post"
@@ -108,7 +107,6 @@ async def test_collect_with_multiple_subreddits(mock_env_vars):
             patch("asyncpraw.Reddit") as mock_reddit,
             patch("tomli.load", return_value={"subreddits": ["python", "programming"]}),
         ):
-
             mock_subreddit = Mock()
             mock_subreddit.hot = AsyncMock(return_value=[])
 
@@ -143,7 +141,6 @@ async def test_collect_network_error(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_reddit.side_effect = Exception("Network error")
 
             with pytest.raises(Exception):
@@ -168,7 +165,6 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch.object(service.storage, "save", new_callable=AsyncMock),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_subreddit = Mock()
             mock_submission = Mock()
             mock_submission.title = "Test"
@@ -214,7 +210,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             ),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_subreddit = Mock()
             mock_submission = Mock()
             mock_submission.title = "Test Post"

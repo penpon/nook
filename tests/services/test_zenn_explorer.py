@@ -99,7 +99,6 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -144,7 +143,6 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             entries = []
@@ -189,7 +187,6 @@ async def test_collect_with_target_dates_none(mock_env_vars):
                 new_callable=AsyncMock,
             ) as mock_load,
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_feed.entries = []
@@ -225,7 +222,6 @@ async def test_collect_network_error(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             mock_parse.side_effect = Exception("Network error")
 
             result = await service.collect(days=1)
@@ -250,7 +246,6 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             mock_feed = Mock()
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
@@ -278,7 +273,6 @@ async def test_collect_http_client_timeout(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -318,7 +312,6 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -364,7 +357,6 @@ async def test_collect_with_limit_zero(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             mock_feed = Mock()
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
@@ -394,7 +386,6 @@ async def test_collect_with_limit_one(mock_env_vars):
             patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test"
             mock_entry = Mock()
@@ -588,7 +579,6 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             mock_parse.side_effect = Exception("Parse error")
 
             result = await service.collect(days=1)
@@ -621,7 +611,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -678,7 +667,6 @@ async def test_collect_with_multiple_categories(mock_env_vars):
             patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_feed.entries = []
@@ -711,7 +699,6 @@ async def test_collect_feedparser_attribute_error(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             mock_parse.side_effect = AttributeError("'NoneType' object has no attribute 'feed'")
 
             result = await service.collect(days=1)
@@ -738,7 +725,6 @@ async def test_collect_with_duplicate_article(mock_env_vars):
             ) as mock_load,
             patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_entry = Mock()
@@ -782,7 +768,6 @@ async def test_collect_with_empty_feed_entries(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             mock_feed = Mock()
             mock_feed.feed.title = "Empty Feed"
             mock_feed.entries = []
@@ -816,7 +801,6 @@ async def test_collect_continues_on_individual_feed_error(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-
             # 1つ目のフィードでエラー, 2つ目は成功
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
@@ -1364,7 +1348,6 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
             patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             # 既存記事データ
             existing_data = json.dumps(
                 [
@@ -1424,7 +1407,6 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
             ) as mock_load,
             patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
         ):
-
             # 既存記事データ
             existing_data = json.dumps(
                 [

@@ -66,7 +66,6 @@ async def test_collect_success_with_stories(mock_env_vars, mock_hn_api):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 side_effect=[
                     Mock(json=lambda: [12345, 67890]),  # トップストーリーID
@@ -107,7 +106,6 @@ async def test_collect_with_multiple_stories(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             service.http_client.get = AsyncMock(
                 side_effect=[
                     Mock(json=lambda: [1, 2, 3]),
@@ -164,7 +162,6 @@ async def test_collect_network_error(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
             with pytest.raises(RetryException):
@@ -184,7 +181,6 @@ async def test_collect_invalid_json(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(return_value=Mock(json=list))
 
             result = await service.collect(target_dates=[date.today()])
@@ -208,7 +204,6 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             service.http_client.get = AsyncMock(
                 side_effect=[
                     Mock(json=lambda: [12345]),
@@ -247,7 +242,6 @@ async def test_collect_with_empty_stories(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(return_value=Mock(json=list))
 
             result = await service.collect(target_dates=[date.today()])
@@ -300,7 +294,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 side_effect=[
                     Mock(json=lambda: [12345]),

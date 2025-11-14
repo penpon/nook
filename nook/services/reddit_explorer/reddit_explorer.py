@@ -460,8 +460,8 @@ class RedditExplorer(BaseService):
         以下のReddit投稿を要約してください。
 
         タイトル: {post.title}
-        本文: {post.text if post.text else '(本文なし)'}
-        URL: {post.url if post.url else '(URLなし)'}
+        本文: {post.text if post.text else "(本文なし)"}
+        URL: {post.url if post.url else "(URLなし)"}
 
         トップコメント:
         {chr(10).join([f"- {comment['text']}" for comment in post.comments])}

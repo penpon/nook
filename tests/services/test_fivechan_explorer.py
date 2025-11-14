@@ -64,7 +64,6 @@ async def test_collect_success(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test thread</body></html>")
             )
@@ -95,7 +94,6 @@ async def test_collect_network_error(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
             result = await service.collect(target_dates=[date.today()])
@@ -121,7 +119,6 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
             )
@@ -160,7 +157,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test thread</body></html>")
             )
@@ -399,9 +395,7 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
         # 注: 実際のdatファイルは末尾に<>がありますが、空要素は無視されます
         dat_data = """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
-""".encode(
-            "shift_jis"
-        )
+""".encode("shift_jis")
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -415,7 +409,6 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
             patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
         ):
-
             posts, latest = await service._get_thread_posts_from_dat(
                 "http://test.5ch.net/test/dat/1234567890.dat"
             )
@@ -454,7 +447,6 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
             patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
         ):
-
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 
             assert len(posts) == 1
@@ -478,9 +470,7 @@ async def test_get_thread_posts_from_dat_malformed_line(mock_env_vars):
         dat_data = """invalid_line
 名無し<>sage<>2024/11/14 12:00:00<>正しい投稿
 another_invalid<>only_two
-""".encode(
-            "shift_jis"
-        )
+""".encode("shift_jis")
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -494,7 +484,6 @@ another_invalid<>only_two
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
             patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
         ):
-
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 
             # 正しいフォーマットの行のみ解析
@@ -527,7 +516,6 @@ async def test_get_thread_posts_from_dat_http_error(mock_env_vars):
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
             patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
         ):
-
             posts, latest = await service._get_thread_posts_from_dat("http://test.dat")
 
             assert posts == []
@@ -559,7 +547,6 @@ async def test_get_thread_posts_from_dat_empty_content(mock_env_vars):
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
             patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
         ):
-
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 
             assert posts == []
@@ -593,7 +580,6 @@ async def test_get_thread_posts_from_dat_encoding_cascade(mock_env_vars):
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
             patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
         ):
-
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 
             # errors='ignore'で処理されるため、エラーなく処理される
