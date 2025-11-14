@@ -150,7 +150,7 @@ class AsyncTaskManager:
 
         try:
             await asyncio.wait_for(task, timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"Task {name} timed out")
             raise
 
