@@ -30,9 +30,7 @@ jobs:
           ${{ runner.os }}-uv-test-
 
     - name: 依存関係のインストール
-      run: |
-        uv venv
-        uv pip install -r requirements.txt -r requirements-test.txt --system
+      run: uv sync --all-groups
 
     - name: ユニットテストの並列実行とカバレッジ確認
       run: |
@@ -93,8 +91,7 @@ jobs:
           ${{ runner.os }}-uv-integration-
 
     - name: 依存関係のインストール
-      run: |
-        uv pip install -r requirements.txt -r requirements-test.txt --system
+      run: uv sync --all-groups
 
     - name: 統合テストの実行
       run: |
@@ -145,8 +142,7 @@ jobs:
           ${{ runner.os }}-uv-lint-
 
     - name: 依存関係のインストール
-      run: |
-        uv pip install -r requirements.txt -r requirements-test.txt --system
+      run: uv sync --all-groups
 
     - name: 静的解析とフォーマットチェック
       run: |
@@ -197,8 +193,7 @@ jobs:
           ${{ runner.os }}-uv-security-
 
     - name: 依存関係のインストール
-      run: |
-        uv pip install -r requirements.txt -r requirements-test.txt --system
+      run: uv sync --all-groups
 
     - name: セキュリティチェック (bandit)
       run: |
