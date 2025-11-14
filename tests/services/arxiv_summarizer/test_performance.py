@@ -337,6 +337,8 @@ async def test_stress_continuous_operations(arxiv_service, paper_info_factory):
 
 # Note: pytest-benchmarkを使用したリグレッションテストは、
 # ライブラリがインストールされている環境で別途実施可能です。
+# pytest-benchmarkがインストールされていない場合、以下のテストはスキップされます。
+# インストール方法: pip install pytest-benchmark
 #
 # 実装例:
 # @pytest.mark.regression
