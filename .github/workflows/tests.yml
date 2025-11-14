@@ -36,8 +36,8 @@ jobs:
       run: |
         set -e
         echo "=== ユニットテストを並列実行中（pytest-xdist使用） ==="
-        echo "注: 統合テスト（-m integration）は別ジョブで実行されます"
-        uv run pytest tests/services/arxiv_summarizer/ -n auto -m "not integration" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
+        echo "注: 統合テスト・性能テストは別ジョブで実行されます"
+        uv run pytest tests/services/arxiv_summarizer/ -n auto -m "not integration and not performance and not memory and not stress" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
         echo ""
         echo "=== カバレッジ率を確認中 ==="
         uv run coverage report --format=text
@@ -118,6 +118,61 @@ jobs:
           echo "- Python バージョン: 3.12"
           echo "- 実行モード: 順次実行（外部リソース使用のため）"
           echo "- ブランチ: ${{ github.ref_name }}"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+  performance-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # 手動実行時のみ
+
+    steps:
+    - name: チェックアウト
+      uses: actions/checkout@v4.1.0
+
+    - name: uv のセットアップ
+      uses: astral-sh/setup-uv@v3.0.0
+
+    - name: キャッシュの復元
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: ${{ runner.os }}-uv-performance-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-performance-
+
+    - name: 依存関係のインストール
+      run: uv sync --all-groups
+
+    - name: 性能テストの実行
+      run: |
+        set -e
+        echo "=== 性能テストを実行中 ==="
+        echo "注: このテストは手動実行時のみ実行されます"
+        uv run pytest tests/services/arxiv_summarizer/ -v -m "performance or memory or stress" --timeout=900 --tb=short -s
+
+    - name: テスト結果サマリーの生成
+      if: always()
+      run: |
+        test_status="${{ job.status }}"
+
+        {
+          echo "## 性能テスト結果サマリー"
+          echo ""
+          echo "### ジョブ状態"
+          if [ "$test_status" = "success" ]; then
+            echo "✅ すべての性能テストが成功しました"
+          else
+            echo "❌ 性能テストが失敗しました"
+          fi
+          echo ""
+          echo "### テスト環境"
+          echo "- Python バージョン: 3.12"
+          echo "- 実行モード: 順次実行"
+          echo "- ブランチ: ${{ github.ref_name }}"
+          echo ""
+          echo "### テストカテゴリ"
+          echo "- performance: レスポンスタイム・スループット"
+          echo "- memory: メモリ使用量"
+          echo "- stress: ストレステスト"
         } >> "$GITHUB_STEP_SUMMARY"
 
   lint:
