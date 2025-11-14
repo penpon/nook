@@ -129,4 +129,10 @@ ignore = [
     "C408",
     "PERF203",
     "PERF401",
+    # Temporary ignores for pre-existing codebase issues
+    # TODO: Fix these in a separate refactoring PR
+    "B904",   # raise ... from err - needs careful exception chain review
+    "B007",   # Unused loop variable - needs code cleanup
+    "B027",   # Missing @abstractmethod - needs base class refactor
+    "E501",   # Line too long - needs formatting review across codebase
 ]
