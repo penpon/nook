@@ -38,6 +38,9 @@ dependencies = [
     "aiofiles>=23.0.0",
 ]
 
+# Dependency pinning strategy: This project uses loose version constraints (>=)
+# because uv's sync/lock mechanism automatically pins transitive dependencies.
+# Run `uv sync` to generate/update the lock file for reproducible builds.
 [dependency-groups]
 dev = [
     # テストフレームワーク
@@ -82,7 +85,6 @@ select = [
     "I",  # isort
     "UP",  # pyupgrade
     "EXE",
-    "F",
     "SIM1",
     # Not included in flake8
     "LOG",
