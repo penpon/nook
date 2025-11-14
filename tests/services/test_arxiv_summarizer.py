@@ -11,10 +11,11 @@ nook/services/arxiv_summarizer/arxiv_summarizer.py のテスト
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
+import httpx
 import pytest
 
 # =============================================================================
@@ -951,3 +952,792 @@ def test_remove_outer_singlequotes_without_quotes():
 
     # Then
     assert result == "normal text"
+
+
+# =============================================================================
+# 10. _retrieve_paper_info メソッドのテスト（arxiv.Search モック）
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_paper_info_success(mock_env_vars):
+    """
+    Given: 有効な論文ID
+    When: _retrieve_paper_infoメソッドを呼び出す
+    Then: 論文情報が正常に取得される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import (
+            ArxivSummarizer,
+            PaperInfo,
+        )
+
+        service = ArxivSummarizer()
+
+        # モックarxiv結果
+        mock_paper = Mock()
+        mock_paper.entry_id = "http://arxiv.org/abs/2301.00001v1"
+        mock_paper.title = "Test Paper Title"
+        mock_paper.summary = "Test abstract"
+        mock_paper.published = datetime(2023, 1, 1, tzinfo=timezone.utc)
+
+        # arxiv.Clientをモック
+        with patch("arxiv.Client") as mock_client_class:
+            mock_client = Mock()
+            mock_results = [mock_paper]
+            mock_client.results.return_value = mock_results
+            mock_client_class.return_value = mock_client
+
+            # 翻訳と本文抽出をモック
+            with patch.object(
+                service, "_translate_to_japanese", new_callable=AsyncMock, return_value="テスト要約"
+            ), patch.object(
+                service, "_extract_body_text", new_callable=AsyncMock, return_value="Test content"
+            ):
+
+                # When
+                result = await service._retrieve_paper_info("2301.00001")
+
+                # Then
+                assert result is not None
+                assert isinstance(result, PaperInfo)
+                assert result.title == "Test Paper Title"
+                assert result.abstract == "テスト要約"
+                assert result.url == "http://arxiv.org/abs/2301.00001v1"
+                assert result.contents == "Test content"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_paper_info_no_results(mock_env_vars):
+    """
+    Given: 存在しない論文ID
+    When: _retrieve_paper_infoメソッドを呼び出す
+    Then: Noneが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # arxiv.Clientをモック（結果なし）
+        with patch("arxiv.Client") as mock_client_class:
+            mock_client = Mock()
+            mock_client.results.return_value = []
+            mock_client_class.return_value = mock_client
+
+            # When
+            result = await service._retrieve_paper_info("9999.99999")
+
+            # Then
+            assert result is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_paper_info_api_error(mock_env_vars):
+    """
+    Given: arxiv APIがエラーを返す
+    When: _retrieve_paper_infoメソッドを呼び出す
+    Then: Noneが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # arxiv.Clientをモック（エラー）
+        with patch("arxiv.Client") as mock_client_class:
+            mock_client = Mock()
+            mock_client.results.side_effect = Exception("API Error")
+            mock_client_class.return_value = mock_client
+
+            # When
+            result = await service._retrieve_paper_info("2301.00001")
+
+            # Then
+            assert result is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_paper_info_with_fallback_to_abstract(mock_env_vars):
+    """
+    Given: 本文抽出が失敗
+    When: _retrieve_paper_infoメソッドを呼び出す
+    Then: アブストラクトが本文として使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import (
+            ArxivSummarizer,
+            PaperInfo,
+        )
+
+        service = ArxivSummarizer()
+
+        # モックarxiv結果
+        mock_paper = Mock()
+        mock_paper.entry_id = "http://arxiv.org/abs/2301.00001v1"
+        mock_paper.title = "Test Paper Title"
+        mock_paper.summary = "Test abstract content"
+        mock_paper.published = datetime(2023, 1, 1, tzinfo=timezone.utc)
+
+        # arxiv.Clientをモック
+        with patch("arxiv.Client") as mock_client_class:
+            mock_client = Mock()
+            mock_client.results.return_value = [mock_paper]
+            mock_client_class.return_value = mock_client
+
+            # 翻訳をモック、本文抽出は空文字列を返す
+            with patch.object(
+                service, "_translate_to_japanese", new_callable=AsyncMock, return_value="テスト要約"
+            ), patch.object(
+                service, "_extract_body_text", new_callable=AsyncMock, return_value=""
+            ):
+
+                # When
+                result = await service._retrieve_paper_info("2301.00001")
+
+                # Then
+                assert result is not None
+                assert isinstance(result, PaperInfo)
+                assert result.contents == "Test abstract content"
+
+
+# =============================================================================
+# 11. _get_paper_date メソッドのテスト（arxiv.Search モック）
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_paper_date_success(mock_env_vars):
+    """
+    Given: 有効な論文ID
+    When: _get_paper_dateメソッドを呼び出す
+    Then: 公開日が正常に取得される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # モックarxiv結果
+        mock_paper = Mock()
+        mock_paper.published = datetime(2023, 1, 15, 10, 30, 0)
+
+        # arxiv.Clientをモック
+        with patch("arxiv.Client") as mock_client_class:
+            mock_client = Mock()
+            mock_client.results.return_value = [mock_paper]
+            mock_client_class.return_value = mock_client
+
+            # When
+            result = await service._get_paper_date("2301.00001")
+
+            # Then
+            assert result is not None
+            assert result == date(2023, 1, 15)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_paper_date_no_results(mock_env_vars):
+    """
+    Given: 存在しない論文ID
+    When: _get_paper_dateメソッドを呼び出す
+    Then: Noneが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # arxiv.Clientをモック（結果なし）
+        with patch("arxiv.Client") as mock_client_class:
+            mock_client = Mock()
+            mock_client.results.return_value = []
+            mock_client_class.return_value = mock_client
+
+            # When
+            result = await service._get_paper_date("9999.99999")
+
+            # Then
+            assert result is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_paper_date_api_error(mock_env_vars):
+    """
+    Given: arxiv APIがエラーを返す
+    When: _get_paper_dateメソッドを呼び出す
+    Then: Noneが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # arxiv.Clientをモック（エラー）
+        with patch("arxiv.Client") as mock_client_class:
+            mock_client = Mock()
+            mock_client.results.side_effect = Exception("API Error")
+            mock_client_class.return_value = mock_client
+
+            # When
+            result = await service._get_paper_date("2301.00001")
+
+            # Then
+            assert result is None
+
+
+# =============================================================================
+# 12. _extract_from_html メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_extract_from_html_success(mock_env_vars):
+    """
+    Given: 有効なHTML
+    When: _extract_from_htmlメソッドを呼び出す
+    Then: テキストが正常に抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # モックHTML
+        mock_html = """
+        <html>
+        <body>
+            <header>Header content</header>
+            <nav>Navigation</nav>
+            <p>This is a long enough paragraph that should be extracted from the HTML content because it meets the minimum length requirement for body text.</p>
+            <p>Another valid paragraph with sufficient length to be considered as body content in the extraction process.</p>
+            <footer>Footer content</footer>
+        </body>
+        </html>
+        """
+
+        with patch.object(
+            service,
+            "_download_html_without_retry",
+            new_callable=AsyncMock,
+            return_value=mock_html,
+        ):
+
+            # When
+            result = await service._extract_from_html("2301.00001")
+
+            # Then
+            assert isinstance(result, str)
+            assert len(result) > 0
+            # ヘッダーやフッターは除外される
+            assert "Header content" not in result
+            assert "Navigation" not in result
+            assert "Footer content" not in result
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_extract_from_html_404_error(mock_env_vars):
+    """
+    Given: HTML URLが404エラーを返す
+    When: _extract_from_htmlメソッドを呼び出す
+    Then: 空文字列が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # 404エラーをモック
+        with patch.object(
+            service, "_download_html_without_retry", new_callable=AsyncMock, return_value=""
+        ):
+
+            # When
+            result = await service._extract_from_html("2301.00001")
+
+            # Then
+            assert result == ""
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_extract_from_html_empty_body(mock_env_vars):
+    """
+    Given: 空のHTML
+    When: _extract_from_htmlメソッドを呼び出す
+    Then: 空文字列が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # 空のHTML
+        mock_html = "<html><body></body></html>"
+
+        with patch.object(
+            service,
+            "_download_html_without_retry",
+            new_callable=AsyncMock,
+            return_value=mock_html,
+        ):
+
+            # When
+            result = await service._extract_from_html("2301.00001")
+
+            # Then
+            assert result == ""
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_extract_from_html_download_error(mock_env_vars):
+    """
+    Given: HTMLダウンロードがエラー
+    When: _extract_from_htmlメソッドを呼び出す
+    Then: 空文字列が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        with patch.object(
+            service,
+            "_download_html_without_retry",
+            new_callable=AsyncMock,
+            side_effect=Exception("Download error"),
+        ):
+
+            # When
+            result = await service._extract_from_html("2301.00001")
+
+            # Then
+            assert result == ""
+
+
+# =============================================================================
+# 13. _download_html_without_retry メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_download_html_success(mock_env_vars):
+    """
+    Given: 有効なHTML URL
+    When: _download_html_without_retryメソッドを呼び出す
+    Then: HTMLが正常にダウンロードされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # モックHTTPクライアント
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_response = Mock()
+            mock_response.text = "<html><body>Test HTML content</body></html>"
+            mock_response.raise_for_status = Mock()
+
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            # When
+            result = await service._download_html_without_retry(
+                "https://arxiv.org/html/2301.00001"
+            )
+
+            # Then
+            assert result == "<html><body>Test HTML content</body></html>"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_download_html_404_returns_empty_string(mock_env_vars):
+    """
+    Given: HTML URLが404エラーを返す
+    When: _download_html_without_retryメソッドを呼び出す
+    Then: 空文字列が返される（例外は発生しない）
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # モックHTTPクライアント
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_response = Mock()
+            mock_response.status_code = 404
+            mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+                "Not Found", request=Mock(), response=mock_response
+            )
+
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            # When
+            result = await service._download_html_without_retry(
+                "https://arxiv.org/html/2301.00001"
+            )
+
+            # Then
+            assert result == ""
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_download_html_timeout(mock_env_vars):
+    """
+    Given: HTMLダウンロードがタイムアウト
+    When: _download_html_without_retryメソッドを呼び出す
+    Then: 例外が再発生する
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # モックHTTPクライアント
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            # When/Then
+            with pytest.raises(httpx.TimeoutException):
+                await service._download_html_without_retry(
+                    "https://arxiv.org/html/2301.00001"
+                )
+
+
+# =============================================================================
+# 14. _extract_body_text メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_extract_body_text_from_html(mock_env_vars):
+    """
+    Given: HTMLが利用可能
+    When: _extract_body_textメソッドを呼び出す
+    Then: HTMLからテキストが抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # HTMLからの抽出が成功
+        with patch.object(
+            service,
+            "_extract_from_html",
+            new_callable=AsyncMock,
+            return_value="HTML extracted text",
+        ):
+
+            # When
+            result = await service._extract_body_text("2301.00001")
+
+            # Then
+            assert result == "HTML extracted text"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_extract_body_text_fallback_to_pdf(mock_env_vars):
+    """
+    Given: HTML抽出が失敗し、PDF抽出が成功
+    When: _extract_body_textメソッドを呼び出す
+    Then: PDFからテキストが抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # HTML抽出は空、PDF抽出は成功
+        with patch.object(
+            service, "_extract_from_html", new_callable=AsyncMock, return_value=""
+        ), patch.object(
+            service,
+            "_extract_from_pdf",
+            new_callable=AsyncMock,
+            return_value="PDF extracted text",
+        ):
+
+            # When
+            result = await service._extract_body_text("2301.00001")
+
+            # Then
+            assert result == "PDF extracted text"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_extract_body_text_both_fail(mock_env_vars):
+    """
+    Given: HTMLとPDFの両方の抽出が失敗
+    When: _extract_body_textメソッドを呼び出す
+    Then: 空文字列が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # HTML、PDF両方とも空
+        with patch.object(
+            service, "_extract_from_html", new_callable=AsyncMock, return_value=""
+        ), patch.object(
+            service, "_extract_from_pdf", new_callable=AsyncMock, return_value=""
+        ):
+
+            # When
+            result = await service._extract_body_text("2301.00001")
+
+            # Then
+            assert result == ""
+
+
+# =============================================================================
+# 15. _is_valid_body_line メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_is_valid_body_line_valid(mock_env_vars):
+    """
+    Given: 有効な本文行
+    When: _is_valid_body_lineメソッドを呼び出す
+    Then: Trueが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # 十分な長さで、ピリオドを含む
+        line = "This is a valid body line with sufficient length and proper sentence structure."
+
+        # When
+        result = service._is_valid_body_line(line, min_length=80)
+
+        # Then
+        assert result is True
+
+
+@pytest.mark.unit
+def test_is_valid_body_line_too_short(mock_env_vars):
+    """
+    Given: 短すぎる行
+    When: _is_valid_body_lineメソッドを呼び出す
+    Then: Falseが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # 短い行
+        line = "Short line."
+
+        # When
+        result = service._is_valid_body_line(line, min_length=80)
+
+        # Then
+        assert result is False
+
+
+@pytest.mark.unit
+def test_is_valid_body_line_with_email(mock_env_vars):
+    """
+    Given: メールアドレスを含む行
+    When: _is_valid_body_lineメソッドを呼び出す
+    Then: Falseが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # メールアドレスを含む
+        line = "Contact us at test@example.com for more information about this research paper."
+
+        # When
+        result = service._is_valid_body_line(line, min_length=80)
+
+        # Then
+        assert result is False
+
+
+@pytest.mark.unit
+def test_is_valid_body_line_with_university(mock_env_vars):
+    """
+    Given: 'university'を含む行
+    When: _is_valid_body_lineメソッドを呼び出す
+    Then: Falseが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # 'university'を含む
+        line = "Department of Computer Science, Stanford University, California, USA contact information."
+
+        # When
+        result = service._is_valid_body_line(line, min_length=80)
+
+        # Then
+        assert result is False
+
+
+@pytest.mark.unit
+def test_is_valid_body_line_no_period(mock_env_vars):
+    """
+    Given: ピリオドを含まない行
+    When: _is_valid_body_lineメソッドを呼び出す
+    Then: Falseが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+
+        # ピリオドなし
+        line = "This is a line without proper punctuation but with sufficient length to pass"
+
+        # When
+        result = service._is_valid_body_line(line, min_length=80)
+
+        # Then
+        assert result is False
+
+
+# =============================================================================
+# 16. _summarize_paper_info メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_paper_info_success(mock_env_vars):
+    """
+    Given: 有効な論文情報
+    When: _summarize_paper_infoメソッドを呼び出す
+    Then: 要約が正常に生成される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import (
+            ArxivSummarizer,
+            PaperInfo,
+        )
+
+        service = ArxivSummarizer()
+
+        paper = PaperInfo(
+            title="Test Paper",
+            abstract="Test abstract",
+            url="http://arxiv.org/abs/2301.00001",
+            contents="Test contents",
+        )
+
+        # GPTクライアントをモック
+        service.gpt_client.generate_async = AsyncMock(return_value="```markdown\nTest summary\n```")
+
+        with patch.object(service, "rate_limit", new_callable=AsyncMock):
+
+            # When
+            await service._summarize_paper_info(paper)
+
+            # Then
+            assert paper.summary == "\nTest summary\n"
+            service.gpt_client.generate_async.assert_called_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_paper_info_gpt_error(mock_env_vars):
+    """
+    Given: GPT APIがエラーを返す
+    When: _summarize_paper_infoメソッドを呼び出す
+    Then: エラーメッセージが要約として設定される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import (
+            ArxivSummarizer,
+            PaperInfo,
+        )
+
+        service = ArxivSummarizer()
+
+        paper = PaperInfo(
+            title="Test Paper",
+            abstract="Test abstract",
+            url="http://arxiv.org/abs/2301.00001",
+            contents="Test contents",
+        )
+
+        # GPTクライアントをモック（エラー）
+        service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
+
+        # When
+        await service._summarize_paper_info(paper)
+
+        # Then
+        assert "要約の生成中にエラーが発生しました" in paper.summary
+        assert "API Error" in paper.summary
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_paper_info_removes_tex_backticks(mock_env_vars):
+    """
+    Given: TeX形式のバッククォートを含む要約
+    When: _summarize_paper_infoメソッドを呼び出す
+    Then: バッククォートが除去される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import (
+            ArxivSummarizer,
+            PaperInfo,
+        )
+
+        service = ArxivSummarizer()
+
+        paper = PaperInfo(
+            title="Test Paper",
+            abstract="Test abstract",
+            url="http://arxiv.org/abs/2301.00001",
+            contents="Test contents",
+        )
+
+        # GPTクライアントをモック（TeX形式含む）
+        service.gpt_client.generate_async = AsyncMock(return_value="`$\\alpha$`")
+
+        with patch.object(service, "rate_limit", new_callable=AsyncMock):
+
+            # When
+            await service._summarize_paper_info(paper)
+
+            # Then
+            assert paper.summary == "$\\alpha$"
