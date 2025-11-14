@@ -64,7 +64,6 @@ class GPTClient:
         except KeyError:
             self.encoding = tiktoken.get_encoding("cl100k_base")
 
-
     def _count_tokens(self, text: str) -> int:
         """テキストのトークン数を計算します。"""
         try:
@@ -175,6 +174,9 @@ class GPTClient:
             ) or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
+            prev_id = getattr(resp, "id", None)
+
+        return output_text
 
     def _call_gpt5_chat(
         self,
@@ -213,16 +215,6 @@ class GPTClient:
             prev_id = getattr(resp, "id", None)
 
         return output_text
-
-    def _supports_max_completion_tokens(self) -> bool:
-        """
-        モデルがmax_completion_tokensパラメータをサポートしているか判定します。
-
-        gpt-5シリーズとgpt-4.1シリーズは max_completion_tokens を使用します。
-        それ以外のモデルは max_tokens を使用します。
-        """
-        model_lower = self.model.lower()
-        return model_lower.startswith("gpt-5") or model_lower.startswith("gpt-4.1")
 
     def _is_gpt5_model(self) -> bool:
         """
@@ -307,25 +299,9 @@ class GPTClient:
         for msg in messages:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
-        # モデルに応じて適切なAPIを使用
-        if self._is_gpt5_model():
-            # Responses API（継続生成込み）
-            output_text = self._call_gpt5(prompt, system_instruction, max_tokens)
-        else:
-            # Chat Completions API を使用
-            completion_params = {
-                "model": self.model,
-                "messages": messages,
-                "temperature": temperature,
-            }
 
-            if self._supports_max_completion_tokens():
-                completion_params["max_completion_tokens"] = max_tokens
-            else:
-                completion_params["max_tokens"] = max_tokens
-
-            response = self.client.chat.completions.create(**completion_params)
-            output_text = response.choices[0].message.content
+        # GPT-5 Responses API を使用
+        output_text = self._call_gpt5(prompt, system_instruction, max_tokens)
 
         # 出力トークン数の計算
         output_tokens = self._count_tokens(output_text)
@@ -436,24 +412,10 @@ class GPTClient:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
 
-        # モデルに応じて適切なAPIを使用
-        if self._is_gpt5_model():
-            assistant_message = self._call_gpt5_chat(
-                chat_session["messages"], None, max_tokens
-            )
-        else:
-            completion_params = {
-                "model": self.model,
-                "messages": chat_session["messages"],
-                "temperature": temperature,
-            }
-            if self._supports_max_completion_tokens():
-                completion_params["max_completion_tokens"] = max_tokens
-            else:
-                completion_params["max_tokens"] = max_tokens
-
-            response = self.client.chat.completions.create(**completion_params)
-            assistant_message = response.choices[0].message.content
+        # GPT-5 Responses API を使用
+        assistant_message = self._call_gpt5_chat(
+            chat_session["messages"], None, max_tokens
+        )
         output_tokens = self._count_tokens(assistant_message)
 
         # 料金計算
@@ -518,25 +480,10 @@ class GPTClient:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
 
-        # モデルに応じて適切なAPIを使用
-        if self._is_gpt5_model():
-            output_text = self._call_gpt5_chat(
-                messages, system_instruction=None, max_tokens=max_tokens
-            )
-        else:
-            completion_params = {
-                "model": self.model,
-                "messages": messages,
-                "temperature": temperature,
-            }
-            if self._supports_max_completion_tokens():
-                completion_params["max_completion_tokens"] = max_tokens
-            else:
-                completion_params["max_tokens"] = max_tokens
-
-            response = self.client.chat.completions.create(**completion_params)
-            # 出力トークン数の計算
-            output_text = response.choices[0].message.content
+        # GPT-5 Responses API を使用
+        output_text = self._call_gpt5_chat(
+            messages, system_instruction=None, max_tokens=max_tokens
+        )
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算
@@ -584,25 +531,10 @@ class GPTClient:
             input_text += msg["content"] + " "
         input_tokens = self._count_tokens(input_text.strip())
 
-        # モデルに応じて適切なAPIを使用
-        if self._is_gpt5_model():
-            output_text = self._call_gpt5_chat(
-                all_messages, system_instruction=None, max_tokens=max_tokens
-            )
-        else:
-            completion_params = {
-                "model": self.model,
-                "messages": all_messages,
-                "temperature": temperature,
-            }
-            if self._supports_max_completion_tokens():
-                completion_params["max_completion_tokens"] = max_tokens
-            else:
-                completion_params["max_tokens"] = max_tokens
-
-            response = self.client.chat.completions.create(**completion_params)
-            # 出力トークン数の計算
-            output_text = response.choices[0].message.content
+        # GPT-5 Responses API を使用
+        output_text = self._call_gpt5_chat(
+            all_messages, system_instruction=None, max_tokens=max_tokens
+        )
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算

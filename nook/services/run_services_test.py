@@ -53,7 +53,7 @@ class ServiceRunnerTest:
             "4chan": FourChanExplorer,
             "5chan": FiveChanExplorer,
         }
-        
+
         # サービスインスタンスを保持（必要時にのみ作成）
         self.sync_services = {}
 
@@ -93,7 +93,9 @@ class ServiceRunnerTest:
             # テスト用：すべてのサービスで1件に制限
             if service_name == "hacker_news":
                 # Hacker Newsは1記事に制限し、sorted_target_dates を渡す
-                result = await service.collect(limit=1, target_dates=sorted_target_dates)
+                result = await service.collect(
+                    limit=1, target_dates=sorted_target_dates
+                )
                 saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
                 # Tech News/Business Newsは1記事に制限し、sorted_target_dates を渡す
@@ -109,11 +111,15 @@ class ServiceRunnerTest:
                 saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは1記事に制限
-                result = await service.collect(limit=1, target_dates=sorted_target_dates)
+                result = await service.collect(
+                    limit=1, target_dates=sorted_target_dates
+                )
                 saved_files = result if result else []
             elif service_name == "github_trending":
                 # GitHub Trendingは1件に制限
-                result = await service.collect(limit=1, target_dates=sorted_target_dates)
+                result = await service.collect(
+                    limit=1, target_dates=sorted_target_dates
+                )
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
@@ -146,11 +152,15 @@ class ServiceRunnerTest:
         if service_name not in self.sync_services:
             # 4chanサービスはテストモードで初期化して遅延を短縮
             if service_name == "4chan":
-                self.sync_services[service_name] = self.service_classes[service_name](test_mode=True)
+                self.sync_services[service_name] = self.service_classes[service_name](
+                    test_mode=True
+                )
             else:
                 self.sync_services[service_name] = self.service_classes[service_name]()
 
-        logger.info(f"Running service: {service_name} with days={days} (テスト用：1件制限)")
+        logger.info(
+            f"Running service: {service_name} with days={days} (テスト用：1件制限)"
+        )
 
         target_dates = target_dates_set(days)
         # target_datesをsortedのlist型に変換して各サービスに渡す
@@ -158,7 +168,10 @@ class ServiceRunnerTest:
 
         try:
             await self._run_sync_service(
-                service_name, self.sync_services[service_name], days, sorted_target_dates
+                service_name,
+                self.sync_services[service_name],
+                days,
+                sorted_target_dates,
             )
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)
@@ -174,7 +187,9 @@ async def main():
     """メイン実行関数"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Nookサービスをテスト用に1件ずつ実行します")
+    parser = argparse.ArgumentParser(
+        description="Nookサービスをテスト用に1件ずつ実行します"
+    )
     parser.add_argument(
         "--service",
         choices=[

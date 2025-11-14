@@ -101,13 +101,15 @@ class GithubTrending(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        effective_target_dates = target_dates if target_dates is not None else target_dates_set(1)
+        effective_target_dates = (
+            target_dates if target_dates is not None else target_dates_set(1)
+        )
 
         # 日付ごとに処理
         saved_files: list[tuple[str, str]] = []
         for target_date in sorted(effective_target_dates):
             date_str = target_date.strftime("%Y-%m-%d")
-            
+
             # その日の既存リポジトリ名を取得
             existing_names_for_date = set()
             try:
@@ -130,7 +132,9 @@ class GithubTrending(BaseService):
             all_repositories = []
 
             # 言語指定なしのリポジトリを取得
-            repositories = await self._retrieve_repositories("any", limit, dedup_tracker)
+            repositories = await self._retrieve_repositories(
+                "any", limit, dedup_tracker
+            )
             all_repositories.append(("all", repositories))
             await self.rate_limit()  # レート制限を遵守
 
@@ -180,23 +184,23 @@ class GithubTrending(BaseService):
 
                 # 要約生成
                 log_summarization_start(self.logger)
-                
+
                 # 言語ごとに再グループ化して翻訳
                 repos_by_language = {}
                 for language, repositories in all_repositories:
                     repos_by_language[language] = [
-                        repo for repo in repositories 
-                        if repo in truly_new_repositories
+                        repo for repo in repositories if repo in truly_new_repositories
                     ]
-                
+
                 repos_for_translation = [
-                    (lang, repos) for lang, repos in repos_by_language.items() 
-                    if repos
+                    (lang, repos) for lang, repos in repos_by_language.items() if repos
                 ]
-                
+
                 translated_repos = await self._translate_repositories(
                     repos_for_translation,
-                    progress_callback=lambda idx, total, name: log_summarization_progress(self.logger, idx, total, name)
+                    progress_callback=lambda idx, total, name: log_summarization_progress(
+                        self.logger, idx, total, name
+                    ),
                 )
 
                 # 保存処理
@@ -314,7 +318,10 @@ class GithubTrending(BaseService):
         return tracker
 
     async def _translate_repositories(
-        self, repositories_by_language: list[tuple[str, list[Repository]]], *, progress_callback=None
+        self,
+        repositories_by_language: list[tuple[str, list[Repository]]],
+        *,
+        progress_callback=None,
     ) -> list[tuple[str, list[Repository]]]:
         """
         リポジトリの説明を日本語に翻訳します。
@@ -334,7 +341,7 @@ class GithubTrending(BaseService):
         # 進捗カウンターを初期化
         total_repos = sum(len(repos) for _, repos in repositories_by_language)
         current_idx = 0
-        
+
         try:
             for language, repositories in repositories_by_language:
                 for repo in repositories:
@@ -365,12 +372,12 @@ class GithubTrending(BaseService):
                             if repo.description:
                                 repo.description = repo.description.strip()
                             await self.rate_limit()  # API呼び出し後のレート制限
-                            
+
                             # 進捗表示
                             current_idx += 1
                             if progress_callback:
                                 progress_callback(current_idx, total_repos, repo.name)
-                                
+
                         except Exception as e:
                             self.logger.error(
                                 f"Error translating description for {repo.name}: {str(e)}"

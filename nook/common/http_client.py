@@ -271,7 +271,7 @@ class AsyncHTTPClient:
                 error_summary = f"Access denied (403)"
             else:
                 error_summary = f"Connection error"
-            
+
             logger.warning(f"Cloudscraper failed for {url}: {error_summary}")
             # 元の403エラーを再発生
             raise APIException(

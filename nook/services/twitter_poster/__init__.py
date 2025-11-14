@@ -1,1 +1,1 @@
-"""TwitterPosterパッケージ。""" 
+"""TwitterPosterパッケージ。"""

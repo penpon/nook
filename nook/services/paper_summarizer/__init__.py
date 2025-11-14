@@ -1,1 +1,1 @@
-"""PaperSummarizerパッケージ。""" 
+"""PaperSummarizerパッケージ。"""

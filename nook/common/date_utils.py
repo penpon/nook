@@ -8,7 +8,7 @@ from typing import Iterable, Set
 
 def _local_timezone() -> timezone:
     """Return JST (Japan Standard Time) timezone."""
-    
+
     return timezone(timedelta(hours=9))  # JST = UTC+9
 
 

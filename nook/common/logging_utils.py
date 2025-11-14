@@ -31,12 +31,12 @@ def log_article_counts(logger, existing_count: int, new_count: int) -> None:
     new_count : int
         新規記事数
     """
-    logger.info(
-        f"   📊 既存: {existing_count}件（保持） | 新規: {new_count}件"
-    )
+    logger.info(f"   📊 既存: {existing_count}件（保持） | 新規: {new_count}件")
 
 
-def log_summary_candidates(logger, candidates: List[Any], score_attr: str = "popularity_score") -> None:
+def log_summary_candidates(
+    logger, candidates: List[Any], score_attr: str = "popularity_score"
+) -> None:
     """
     要約対象記事のリストを出力します。
 
@@ -54,10 +54,10 @@ def log_summary_candidates(logger, candidates: List[Any], score_attr: str = "pop
 
     logger.info(f"   ✅ 要約対象: {len(candidates)}件を選択")
     for idx, item in enumerate(candidates, 1):
-        if hasattr(item, 'title'):
+        if hasattr(item, "title"):
             title = item.title
         else:
-            title = getattr(item, 'name', str(item))
+            title = getattr(item, "name", str(item))
 
         score = getattr(item, score_attr, 0)
         if isinstance(score, float):
