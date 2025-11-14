@@ -917,9 +917,7 @@ class FiveChanExplorer(BaseService):
                     timestamp_value = (
                         int(effective_local.timestamp())
                         if effective_local is not None
-                        else int(timestamp_raw)
-                        if timestamp_raw
-                        else 0
+                        else int(timestamp_raw) if timestamp_raw else 0
                     )
 
                     if posts:  # 投稿取得成功時のみスレッド作成

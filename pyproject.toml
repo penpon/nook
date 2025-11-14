@@ -91,6 +91,7 @@ ignore = [
     "UP041",  # Replace aliased errors with TimeoutError
     "UP047",  # Generic function should use type parameters
     "F821",
+    "F841",  # Local variable assigned but never used (デバッグ用途のため許容)
     "C401",
     "C408",
     "PERF203",

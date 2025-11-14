@@ -391,9 +391,9 @@ def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars
         with patch.object(service.storage, "load_markdown", return_value=markdown_content):
             result = service._load_existing_titles()
 
-            assert result is not None, (
-                "Markdownからタイトルが読み込まれ、DedupTrackerが返されるべき"
-            )
+            assert (
+                result is not None
+            ), "Markdownからタイトルが読み込まれ、DedupTrackerが返されるべき"
             # タイトルが追加されていることを確認
             is_dup1, _ = result.is_duplicate("既存記事タイトル1")
             is_dup2, _ = result.is_duplicate("既存記事タイトル2")
@@ -862,9 +862,9 @@ async def test_collect_filters_out_of_range_articles(mock_env_vars):
 
             # 範囲外の記事は保存されないはず
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) >= 0, (
-                "日付範囲外の記事はフィルタされるため、空または一部の記事が返されるべき"
-            )
+            assert (
+                len(result) >= 0
+            ), "日付範囲外の記事はフィルタされるため、空または一部の記事が返されるべき"
 
 
 # =============================================================================

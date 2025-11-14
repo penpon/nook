@@ -180,9 +180,9 @@ async def test_retrieve_article_meta_description_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションがある場合、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションがある場合、Articleオブジェクトが返されるべき"
         assert "これはメタディスクリプションのテキストです。" in result.text
 
 
@@ -305,9 +305,9 @@ async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションと段落がある場合、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションと段落がある場合、Articleオブジェクトが返されるべき"
         assert "段落1のテキスト" in result.text
         assert result.title == "テスト記事"
 
@@ -343,9 +343,9 @@ async def test_retrieve_article_no_summary_with_meta_description(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションのみがある場合、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションのみがある場合、Articleオブジェクトが返されるべき"
         assert result.text == "メタディスクリプションのテキスト"
 
 
@@ -487,9 +487,9 @@ async def test_retrieve_article_with_meta_description_empty_content(mock_env_var
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションが空でも段落があればArticleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションが空でも段落があればArticleオブジェクトが返されるべき"
         assert "段落のテキスト" in result.text
 
 
@@ -517,9 +517,9 @@ async def test_retrieve_article_published_at_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "published_parsedが正しく解析されArticleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "published_parsedが正しく解析されArticleオブジェクトが返されるべき"
         assert result.published_at is not None
         # 時刻が正しく解析されているか確認
         assert result.published_at.year == 2024
@@ -556,9 +556,9 @@ async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, (
-            "メタディスクリプションの優先順位が正しく、Articleオブジェクトが返されるべき"
-        )
+        assert (
+            result is not None
+        ), "メタディスクリプションの優先順位が正しく、Articleオブジェクトが返されるべき"
         assert result.popularity_score == 200.0
 
 

@@ -395,7 +395,9 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
         # 注: 実際のdatファイルは末尾に<>がありますが、空要素は無視されます
         dat_data = """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
-""".encode("shift_jis")
+""".encode(
+            "shift_jis"
+        )
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -470,7 +472,9 @@ async def test_get_thread_posts_from_dat_malformed_line(mock_env_vars):
         dat_data = """invalid_line
 名無し<>sage<>2024/11/14 12:00:00<>正しい投稿
 another_invalid<>only_two
-""".encode("shift_jis")
+""".encode(
+            "shift_jis"
+        )
 
         mock_response = Mock()
         mock_response.status_code = 200
