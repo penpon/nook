@@ -790,7 +790,6 @@ async def test_malicious_input_in_thread_title(fivechan_service, mock_httpx_clie
 
     # データが返される場合、危険な文字列が含まれていないことを確認
     if result:
-        result_str = str(result)
         # SQL Injectionの検証
         if "DROP TABLE" in malicious_input or "DELETE FROM" in malicious_input:
             # データベース操作が含まれていないことを確認（文字列として保存されている）

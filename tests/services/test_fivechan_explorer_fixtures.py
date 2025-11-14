@@ -1,7 +1,19 @@
-"""test_fivechan_explorer.py用の共通フィクスチャ"""
+"""
+参考用フィクスチャファイル（未使用）
+
+このファイルのフィクスチャは tests/conftest.py に統合されています。
+このファイルはリファクタリングの参考例として保持されていますが、
+実際のテストでは使用されていません。
+
+使用中のフィクスチャは以下を参照してください：
+- tests/conftest.py (630-670行)
+  - fivechan_service
+  - mock_httpx_client
+  - mock_cloudscraper
+"""
 
 import pytest
-from unittest.mock import patch, Mock, AsyncMock
+from unittest.mock import patch, Mock
 
 
 @pytest.fixture
