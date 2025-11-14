@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Script to fix common lint issues."""
 
-import re
 import subprocess
 import sys
-from pathlib import Path
 
 
 def run_ruff_fix():
