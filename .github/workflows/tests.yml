@@ -11,8 +11,8 @@ permissions:
   contents: write  # 自動フォーマット時のコミット＆プッシュに必要
 
 jobs:
-  test:
-    runs-on: ubuntu-slim
+  unit-test:
+    runs-on: ubuntu-latest
 
     steps:
     - name: チェックアウト
@@ -33,12 +33,12 @@ jobs:
       run: |
         uv pip install -r requirements.txt -r requirements-test.txt --system
 
-    - name: ユニットテストの実行とカバレッジ確認
+    - name: ユニットテストの並列実行とカバレッジ確認
       run: |
         set -e
-        echo "=== ユニットテストを実行中 ==="
-        echo "注: 統合テスト（-m integration）はCI環境ではスキップされます"
-        uv run pytest tests/services/arxiv_summarizer/ -v -m "not integration" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
+        echo "=== ユニットテストを並列実行中（pytest-xdist使用） ==="
+        echo "注: 統合テスト（-m integration）は別ジョブで実行されます"
+        uv run pytest tests/services/arxiv_summarizer/ -n auto -m "not integration" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
         echo ""
         echo "=== カバレッジ率を確認中 ==="
         uv run coverage report --format=text
@@ -49,17 +49,18 @@ jobs:
         test_status="${{ job.status }}"
 
         {
-          echo "## テスト結果サマリー"
+          echo "## ユニットテスト結果サマリー"
           echo ""
           echo "### ジョブ状態"
           if [ "$test_status" = "success" ]; then
-            echo "✅ すべてのテストとカバレッジチェックが成功しました"
+            echo "✅ すべてのユニットテストとカバレッジチェックが成功しました"
           else
-            echo "❌ テストまたはカバレッジチェックが失敗しました"
+            echo "❌ ユニットテストまたはカバレッジチェックが失敗しました"
           fi
           echo ""
           echo "### テスト環境"
           echo "- Python バージョン: 3.12"
+          echo "- 並列実行: pytest-xdist (-n auto)"
           echo "- ブランチ: ${{ github.ref_name }}"
           echo ""
           if [ -f coverage.xml ] && [ "$test_status" = "success" ]; then
@@ -70,6 +71,55 @@ jobs:
           elif [ ! -f coverage.xml ]; then
             echo "⚠️ カバレッジレポート（coverage.xml）が見つかりません"
           fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
+  integration-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: チェックアウト
+      uses: actions/checkout@v4.1.0
+
+    - name: uv のセットアップ
+      uses: astral-sh/setup-uv@v3.0.0
+
+    - name: キャッシュの復元
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: ${{ runner.os }}-uv-integration-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-integration-
+
+    - name: 依存関係のインストール
+      run: |
+        uv pip install -r requirements.txt -r requirements-test.txt --system
+
+    - name: 統合テストの実行
+      run: |
+        set -e
+        echo "=== 統合テストを順次実行中 ==="
+        uv run pytest tests/services/arxiv_summarizer/ -v -m "integration" --timeout=600 --tb=short
+
+    - name: テスト結果サマリーの生成
+      if: always()
+      run: |
+        test_status="${{ job.status }}"
+
+        {
+          echo "## 統合テスト結果サマリー"
+          echo ""
+          echo "### ジョブ状態"
+          if [ "$test_status" = "success" ]; then
+            echo "✅ すべての統合テストが成功しました"
+          else
+            echo "❌ 統合テストが失敗しました"
+          fi
+          echo ""
+          echo "### テスト環境"
+          echo "- Python バージョン: 3.12"
+          echo "- 実行モード: 順次実行（外部リソース使用のため）"
+          echo "- ブランチ: ${{ github.ref_name }}"
         } >> "$GITHUB_STEP_SUMMARY"
 
   lint:
