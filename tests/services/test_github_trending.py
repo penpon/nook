@@ -20,7 +20,71 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 
+from nook.common.dedup import DedupTracker
 from nook.services.github_trending.github_trending import GithubTrending, Repository
+
+# テスト定数
+TEST_REPO_NAME = "test/repo"
+TEST_REPO_STARS = 100
+TEST_LIMIT = 5
+
+
+# =============================================================================
+# Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def mock_service():
+    """GithubTrendingサービスのモックを提供"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+        yield service
+
+
+@pytest.fixture
+def sample_repository():
+    """サンプルRepositoryオブジェクトを提供"""
+    return Repository(
+        name=TEST_REPO_NAME,
+        description="Test description",
+        link=f"https://github.com/{TEST_REPO_NAME}",
+        stars=TEST_REPO_STARS,
+    )
+
+
+@pytest.fixture
+def dedup_tracker():
+    """DedupTrackerインスタンスを提供"""
+    return DedupTracker()
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def create_mock_html(repos: list[dict[str, str]]) -> str:
+    """テスト用のGitHub Trending HTMLを生成
+
+    Args:
+        repos: リポジトリ情報のリスト [{"name": "test/repo", "stars": "100"}, ...]
+
+    Returns:
+        モックHTMLstring
+    """
+    articles = []
+    for repo in repos:
+        article = f"""
+            <article class="Box-row">
+                <h2 class="h3"><a href="/{repo['name']}">{repo['name']}</a></h2>
+                <a class="Link--muted">{repo.get('stars', '0')}</a>
+            </article>
+        """
+        articles.append(article)
+
+    return f"<html><body>{''.join(articles)}</body></html>"
+
 
 # =============================================================================
 # 1. __init__ メソッドのテスト
@@ -132,7 +196,6 @@ async def test_retrieve_repositories_success(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
 
         dedup_tracker = DedupTracker()
 
@@ -165,7 +228,6 @@ async def test_retrieve_repositories_with_limit(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
 
         dedup_tracker = DedupTracker()
 
@@ -206,7 +268,6 @@ async def test_retrieve_repositories_deduplication(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
 
         dedup_tracker = DedupTracker()
         dedup_tracker.add("test/repo1")
@@ -498,7 +559,7 @@ def test_serialize_repositories(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_star_count_with_comma(mock_env_vars):
+async def test_retrieve_repositories_star_count_with_comma(mock_env_vars, dedup_tracker):
     """
     Given: カンマ区切りのスター数
     When: _retrieve_repositoriesを呼び出す
@@ -508,30 +569,18 @@ async def test_retrieve_repositories_star_count_with_comma(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
-
-        dedup_tracker = DedupTracker()
-
-        mock_html = """
-        <html><body>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo">test/repo</a></h2>
-                <a class="Link--muted">1,234</a>
-            </article>
-        </body></html>
-        """
-
+        mock_html = create_mock_html([{"name": TEST_REPO_NAME, "stars": "1,234"}])
         service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
 
-        repos = await service._retrieve_repositories("python", 5, dedup_tracker)
+        repos = await service._retrieve_repositories("python", TEST_LIMIT, dedup_tracker)
 
-        assert len(repos) == 1
-        assert repos[0].stars == 1234
+        assert len(repos) == 1, f"期待: 1リポジトリ, 実際: {len(repos)}"
+        assert repos[0].stars == 1234, f"期待: 1234スター, 実際: {repos[0].stars}"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_star_count_no_digits(mock_env_vars):
+async def test_retrieve_repositories_star_count_no_digits(mock_env_vars, dedup_tracker):
     """
     Given: 数値以外のスター数
     When: _retrieve_repositoriesを呼び出す
@@ -541,25 +590,13 @@ async def test_retrieve_repositories_star_count_no_digits(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
-
-        dedup_tracker = DedupTracker()
-
-        mock_html = """
-        <html><body>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo">test/repo</a></h2>
-                <a class="Link--muted">N/A</a>
-            </article>
-        </body></html>
-        """
-
+        mock_html = create_mock_html([{"name": TEST_REPO_NAME, "stars": "N/A"}])
         service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
 
-        repos = await service._retrieve_repositories("python", 5, dedup_tracker)
+        repos = await service._retrieve_repositories("python", TEST_LIMIT, dedup_tracker)
 
-        assert len(repos) == 1
-        assert repos[0].stars == 0
+        assert len(repos) == 1, f"期待: 1リポジトリ, 実際: {len(repos)}"
+        assert repos[0].stars == 0, f"期待: 0スター（非数値はデフォルト0）, 実際: {repos[0].stars}"
 
 
 @pytest.mark.unit
@@ -574,7 +611,6 @@ async def test_retrieve_repositories_missing_name_element(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
 
         dedup_tracker = DedupTracker()
 
@@ -605,7 +641,6 @@ async def test_retrieve_repositories_api_exception(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
 
         dedup_tracker = DedupTracker()
 
@@ -1218,7 +1253,6 @@ async def test_retrieve_repositories_with_empty_language(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        from nook.common.dedup import DedupTracker
 
         dedup_tracker = DedupTracker()
 
