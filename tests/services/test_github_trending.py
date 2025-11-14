@@ -604,61 +604,55 @@ async def test_load_existing_repositories_by_date_from_json_dict(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_load_existing_repositories_by_date_from_markdown(mock_env_vars):
+async def test_load_existing_repositories_by_date_from_markdown(mock_env_vars, mock_service):
     """
     Given: JSONがなくMarkdownファイルのみ存在
     When: _load_existing_repositories_by_dateを呼び出す
     Then: Markdownから解析されたデータが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-
-        markdown_content = """# GitHub トレンドリポジトリ (2024-01-01)
+    markdown_content = f"""# GitHub トレンドリポジトリ (2024-01-01)
 
 ## Python
 
-### [test/repo](https://github.com/test/repo)
+### [{TEST_REPO_NAME}](https://github.com/{TEST_REPO_NAME})
 
 Test description
 
-⭐ スター数: 100
+⭐ スター数: {TEST_REPO_STARS}
 
 ---
 
 """
 
-        with patch.object(
-            service, "load_json", new_callable=AsyncMock, return_value=None
-        ), patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=markdown_content
-        ):
-            result = await service._load_existing_repositories_by_date(
-                datetime(2024, 1, 1)
-            )
+    with patch.object(
+        mock_service, "load_json", new_callable=AsyncMock, return_value=None
+    ), patch.object(
+        mock_service.storage, "load", new_callable=AsyncMock, return_value=markdown_content
+    ):
+        result = await mock_service._load_existing_repositories_by_date(
+            datetime(2024, 1, 1)
+        )
 
-            assert len(result) == 1
-            assert result[0]["name"] == "test/repo"
+        assert len(result) == 1, "結果は1件であるべきです"
+        assert result[0]["name"] == TEST_REPO_NAME, "リポジトリ名が正しくありません"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_load_existing_repositories_by_date_no_files(mock_env_vars):
+async def test_load_existing_repositories_by_date_no_files(mock_env_vars, mock_service):
     """
     Given: JSONもMarkdownも存在しない
     When: _load_existing_repositories_by_dateを呼び出す
     Then: 空リストが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    with patch.object(
+        mock_service, "load_json", new_callable=AsyncMock, return_value=None
+    ), patch.object(mock_service.storage, "load", new_callable=AsyncMock, return_value=None):
+        result = await mock_service._load_existing_repositories_by_date(
+            datetime(2024, 1, 1)
+        )
 
-        with patch.object(
-            service, "load_json", new_callable=AsyncMock, return_value=None
-        ), patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None):
-            result = await service._load_existing_repositories_by_date(
-                datetime(2024, 1, 1)
-            )
-
-            assert result == []
+        assert result == [], "ファイルが存在しない場合は空リストが返されるべきです"
 
 
 # =============================================================================
@@ -738,33 +732,27 @@ def test_load_existing_repositories_error(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_store_summaries_empty_repositories(mock_env_vars):
+async def test_store_summaries_empty_repositories(mock_env_vars, mock_service):
     """
     Given: 空のリポジトリリスト
     When: _store_summariesを呼び出す
     Then: 空リストが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    result = await mock_service._store_summaries([], None, [date.today()])
 
-        result = await service._store_summaries([], None, [date.today()])
-
-        assert result == []
+    assert result == [], "空のリポジトリリストの場合は空リストが返されるべきです"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_store_summaries_for_date_empty_repositories_raises(mock_env_vars):
+async def test_store_summaries_for_date_empty_repositories_raises(mock_env_vars, mock_service):
     """
     Given: 空のリポジトリリスト
     When: _store_summaries_for_dateを呼び出す
     Then: ValueErrorが発生する
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-
-        with pytest.raises(ValueError, match="保存するリポジトリがありません"):
-            await service._store_summaries_for_date([], date.today())
+    with pytest.raises(ValueError, match="保存するリポジトリがありません"):
+        await mock_service._store_summaries_for_date([], date.today())
 
 
 @pytest.mark.unit
@@ -805,56 +793,47 @@ async def test_store_summaries_success(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_repository_sort_key_invalid_published_at(mock_env_vars):
+def test_repository_sort_key_invalid_published_at(mock_env_vars, mock_service):
     """
     Given: 不正なpublished_at値
     When: _repository_sort_keyを呼び出す
     Then: datetime.minが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    record = {"stars": TEST_REPO_STARS, "published_at": "invalid-date"}
 
-        record = {"stars": 100, "published_at": "invalid-date"}
+    result = mock_service._repository_sort_key(record)
 
-        result = service._repository_sort_key(record)
-
-        assert result[0] == 100
-        assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
+    assert result[0] == TEST_REPO_STARS, "スター数が正しくありません"
+    assert result[1] == datetime.min.replace(tzinfo=timezone.utc), "不正な日付の場合はdatetime.minが返されるべきです"
 
 
 @pytest.mark.unit
-def test_repository_sort_key_missing_published_at(mock_env_vars):
+def test_repository_sort_key_missing_published_at(mock_env_vars, mock_service):
     """
     Given: published_atがない
     When: _repository_sort_keyを呼び出す
     Then: datetime.minが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    record = {"stars": TEST_REPO_STARS}
 
-        record = {"stars": 100}
+    result = mock_service._repository_sort_key(record)
 
-        result = service._repository_sort_key(record)
-
-        assert result[0] == 100
-        assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
+    assert result[0] == TEST_REPO_STARS, "スター数が正しくありません"
+    assert result[1] == datetime.min.replace(tzinfo=timezone.utc), "published_atがない場合はdatetime.minが返されるべきです"
 
 
 @pytest.mark.unit
-def test_repository_sort_key_missing_stars(mock_env_vars):
+def test_repository_sort_key_missing_stars(mock_env_vars, mock_service):
     """
     Given: starsがない
     When: _repository_sort_keyを呼び出す
     Then: 0が返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    record = {"published_at": datetime.now(timezone.utc).isoformat()}
 
-        record = {"published_at": datetime.now(timezone.utc).isoformat()}
+    result = mock_service._repository_sort_key(record)
 
-        result = service._repository_sort_key(record)
-
-        assert result[0] == 0
+    assert result[0] == 0, "starsがない場合は0が返されるべきです"
 
 
 # =============================================================================
@@ -956,44 +935,38 @@ async def test_translate_repositories_general_exception(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_render_markdown_empty_repositories(mock_env_vars):
+def test_render_markdown_empty_repositories(mock_env_vars, mock_service):
     """
     Given: 空のリポジトリレコード
     When: _render_markdownを呼び出す
     Then: ヘッダーのみのMarkdownが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    result = mock_service._render_markdown([], datetime.now())
 
-        result = service._render_markdown([], datetime.now())
-
-        assert "# GitHub トレンドリポジトリ" in result
+    assert "# GitHub トレンドリポジトリ" in result, "ヘッダーが含まれているべきです"
 
 
 @pytest.mark.unit
-def test_render_markdown_with_all_language(mock_env_vars):
+def test_render_markdown_with_all_language(mock_env_vars, mock_service):
     """
     Given: language='all'のリポジトリ
     When: _render_markdownを呼び出す
     Then: 「すべての言語」として表示される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    records = [
+        {
+            "language": "all",
+            "name": TEST_REPO_NAME,
+            "description": "Test",
+            "link": f"https://github.com/{TEST_REPO_NAME}",
+            "stars": TEST_REPO_STARS,
+        }
+    ]
 
-        records = [
-            {
-                "language": "all",
-                "name": "test/repo",
-                "description": "Test",
-                "link": "https://github.com/test/repo",
-                "stars": 100,
-            }
-        ]
+    result = mock_service._render_markdown(records, datetime.now())
 
-        result = service._render_markdown(records, datetime.now())
-
-        assert "すべての言語" in result
-        assert "test/repo" in result
+    assert "すべての言語" in result, "「すべての言語」セクションが含まれているべきです"
+    assert TEST_REPO_NAME in result, "リポジトリ名が含まれているべきです"
 
 
 # =============================================================================
@@ -1032,16 +1005,13 @@ async def test_translate_repositories_outer_exception(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_parse_markdown_multiple_languages(mock_env_vars):
+def test_parse_markdown_multiple_languages(mock_env_vars, mock_service):
     """
     Given: 複数言語のMarkdown
     When: _parse_markdownを呼び出す
     Then: すべてのリポジトリが解析される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-
-        markdown = """# GitHub トレンドリポジトリ (2024-01-01)
+    markdown = f"""# GitHub トレンドリポジトリ (2024-01-01)
 
 ## Python
 
@@ -1049,7 +1019,7 @@ def test_parse_markdown_multiple_languages(mock_env_vars):
 
 Test 1
 
-⭐ スター数: 100
+⭐ スター数: {TEST_REPO_STARS}
 
 ---
 
@@ -1065,41 +1035,38 @@ Test 2
 
 """
 
-        result = service._parse_markdown(markdown)
+    result = mock_service._parse_markdown(markdown)
 
-        assert len(result) == 2
-        assert result[0]["language"] == "python"
-        assert result[1]["language"] == "javascript"
+    assert len(result) == 2, "2件のリポジトリが解析されるべきです"
+    assert result[0]["language"] == "python", "1件目の言語はpythonであるべきです"
+    assert result[1]["language"] == "javascript", "2件目の言語はjavascriptであるべきです"
 
 
 @pytest.mark.unit
-def test_parse_markdown_all_language(mock_env_vars):
+def test_parse_markdown_all_language(mock_env_vars, mock_service):
     """
     Given: 「すべての言語」セクション
     When: _parse_markdownを呼び出す
     Then: language='all'として解析される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
-
-        markdown = """# GitHub トレンドリポジトリ (2024-01-01)
+    markdown = f"""# GitHub トレンドリポジトリ (2024-01-01)
 
 ## すべての言語
 
-### [test/repo](https://github.com/test/repo)
+### [{TEST_REPO_NAME}](https://github.com/{TEST_REPO_NAME})
 
 Test
 
-⭐ スター数: 100
+⭐ スター数: {TEST_REPO_STARS}
 
 ---
 
 """
 
-        result = service._parse_markdown(markdown)
+    result = mock_service._parse_markdown(markdown)
 
-        assert len(result) == 1
-        assert result[0]["language"] == "all"
+    assert len(result) == 1, "1件のリポジトリが解析されるべきです"
+    assert result[0]["language"] == "all", "言語は'all'として解析されるべきです"
 
 
 # =============================================================================
@@ -1109,29 +1076,26 @@ Test
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_load_existing_repositories_by_date_from_json_list(mock_env_vars):
+async def test_load_existing_repositories_by_date_from_json_list(mock_env_vars, mock_service):
     """
     Given: リスト形式のJSONファイルが存在
     When: _load_existing_repositories_by_dateを呼び出す
     Then: そのままリストが返される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = GithubTrending()
+    existing_data = [
+        {"language": "python", "name": "test/repo1", "stars": TEST_REPO_STARS},
+        {"language": "javascript", "name": "test/repo2", "stars": 200},
+    ]
 
-        existing_data = [
-            {"language": "python", "name": "test/repo1", "stars": 100},
-            {"language": "javascript", "name": "test/repo2", "stars": 200},
-        ]
+    with patch.object(
+        mock_service, "load_json", new_callable=AsyncMock, return_value=existing_data
+    ):
+        result = await mock_service._load_existing_repositories_by_date(
+            datetime(2024, 1, 1)
+        )
 
-        with patch.object(
-            service, "load_json", new_callable=AsyncMock, return_value=existing_data
-        ):
-            result = await service._load_existing_repositories_by_date(
-                datetime(2024, 1, 1)
-            )
-
-            assert len(result) == 2
-            assert result == existing_data
+        assert len(result) == 2, "2件のリポジトリが返されるべきです"
+        assert result == existing_data, "リスト形式のJSONはそのまま返されるべきです"
 
 
 # =============================================================================
