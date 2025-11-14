@@ -432,7 +432,8 @@ def test_is_within_target_dates_out_of_range():
 @pytest.mark.unit
 def test_is_within_target_dates_multiple_dates():
     """
-    Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates={date(2024,1,14), date(2024,1,15), date(2024,1,16)}
+    Given: dt=datetime(2024,1,15,10,0, tzinfo=JST),
+           target_dates={date(2024,1,14), date(2024,1,15), date(2024,1,16)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -542,7 +543,8 @@ def test_is_within_target_dates_jst_midnight_end():
 @pytest.mark.unit
 def test_is_within_target_dates_utc_crosses_day():
     """
-    Given: dt=datetime(2024,1,14,20,0,0, tzinfo=UTC)（JST 01/15 05:00）, target_dates={date(2024,1,15)}
+    Given: dt=datetime(2024,1,14,20,0,0, tzinfo=UTC)（JST 01/15 05:00）,
+           target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -556,7 +558,8 @@ def test_is_within_target_dates_utc_crosses_day():
 @pytest.mark.unit
 def test_is_within_target_dates_utc_different_day():
     """
-    Given: dt=datetime(2024,1,15,2,0,0, tzinfo=UTC)（JST 01/15 11:00）, target_dates={date(2024,1,14)}
+    Given: dt=datetime(2024,1,15,2,0,0, tzinfo=UTC)（JST 01/15 11:00）,
+           target_dates={date(2024,1,14)}
     When: is_within_target_datesを呼び出す
     Then: Falseが返される
     """

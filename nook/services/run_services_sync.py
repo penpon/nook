@@ -128,7 +128,7 @@ def run_reddit_explorer():
             "REDDIT_CLIENT_SECRET"
         ):
             print(
-                "警告: REDDIT_CLIENT_ID または REDDIT_CLIENT_SECRET が設定されていません。"
+                "警告: REDDIT_CLIENT_ID または REDDIT_CLIENT_SECRET が設定されていません。"  # noqa: E501
             )
             print("Reddit APIを使用するには、これらの環境変数を設定してください。")
             return

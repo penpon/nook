@@ -60,7 +60,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             )
 
         # システムプロンプトの作成
-        system_prompt = "あなたは親切なアシスタントです。ユーザーが提供したコンテンツについて質問に答えてください。"
+        system_prompt = "あなたは親切なアシスタントです。ユーザーが提供したコンテンツについて質問に答えてください。"  # noqa: E501
         if request.markdown:
             system_prompt += (
                 f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"

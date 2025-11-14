@@ -119,7 +119,7 @@ class GithubTrending(BaseService):
                 }
             except Exception as e:
                 self.logger.debug(
-                    f"既存リポジトリファイル {date_str}.json の読み込みに失敗しました: {e}"
+                    f"既存リポジトリファイル {date_str}.json の読み込みに失敗しました: {e}"  # noqa: E501
                 )
 
             # 重複トラッカーを初期化
@@ -196,7 +196,7 @@ class GithubTrending(BaseService):
 
                 translated_repos = await self._translate_repositories(
                     repos_for_translation,
-                    progress_callback=lambda idx, total, name: log_summarization_progress(
+                    progress_callback=lambda idx, total, name: log_summarization_progress(  # noqa: E501
                         self.logger, idx, total, name
                     ),
                 )
@@ -378,7 +378,7 @@ class GithubTrending(BaseService):
 
                         except Exception as e:
                             self.logger.error(
-                                f"Error translating description for {repo.name}: {str(e)}"
+                                f"Error translating description for {repo.name}: {str(e)}"  # noqa: E501
                             )
 
         except Exception as e:

@@ -55,16 +55,16 @@ async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api):
 
         service = RedditExplorer()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ), patch(
-            "asyncpraw.Reddit"
-        ) as mock_reddit:
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
 
             mock_subreddit = Mock()
             mock_submission = Mock()
@@ -102,12 +102,11 @@ async def test_collect_with_multiple_subreddits(mock_env_vars):
 
         service = RedditExplorer()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch(
-            "asyncpraw.Reddit"
-        ) as mock_reddit, patch(
-            "tomli.load", return_value={"subreddits": ["python", "programming"]}
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch("asyncpraw.Reddit") as mock_reddit,
+            patch("tomli.load", return_value={"subreddits": ["python", "programming"]}),
         ):
 
             mock_subreddit = Mock()
@@ -140,9 +139,10 @@ async def test_collect_network_error(mock_env_vars):
 
         service = RedditExplorer()
 
-        with patch.object(service, "setup_http_client", new_callable=AsyncMock), patch(
-            "asyncpraw.Reddit"
-        ) as mock_reddit:
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
 
             mock_reddit.side_effect = Exception("Network error")
 
@@ -164,11 +164,11 @@ async def test_collect_gpt_api_error(mock_env_vars):
 
         service = RedditExplorer()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch(
-            "asyncpraw.Reddit"
-        ) as mock_reddit:
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
 
             mock_subreddit = Mock()
             mock_submission = Mock()
@@ -207,16 +207,16 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 
         service = RedditExplorer()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ), patch(
-            "asyncpraw.Reddit"
-        ) as mock_reddit:
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
 
             mock_subreddit = Mock()
             mock_submission = Mock()

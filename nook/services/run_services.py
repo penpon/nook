@@ -76,7 +76,7 @@ class ServiceRunner:
         logger.info("\n" + "━" * 60)
         if len(sorted_dates) <= 1:
             logger.info(
-                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}"
+                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}"  # noqa: E501
             )
         else:
             start_date = sorted_dates[0]

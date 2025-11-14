@@ -55,13 +55,14 @@ async def test_collect_success(mock_env_vars):
         service = FiveChanExplorer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
 
             service.http_client.get = AsyncMock(
@@ -116,9 +117,10 @@ async def test_collect_gpt_api_error(mock_env_vars):
         service = FiveChanExplorer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock):
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
@@ -151,13 +153,14 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
         service = FiveChanExplorer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
 
             service.http_client.get = AsyncMock(
@@ -191,7 +194,7 @@ async def test_get_subject_txt_data_success(mock_env_vars):
         service = FiveChanExplorer()
 
         # Shift_JISエンコードのsubject.txtデータ
-        subject_data = "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n".encode(
+        subject_data = "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n".encode(  # noqa: E501
             "shift_jis"
         )
 
@@ -398,8 +401,10 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
 
         # dat形式: name<>mail<>date ID<>message<>
         # 注: 実際のdatファイルは末尾に<>がありますが、空要素は無視されます
-        dat_data = """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
-名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
+        line1 = "名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234"
+        line2 = "名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678"
+        dat_data = f"""{line1}<>AIについて語りましょう
+{line2}<>機械学習は面白い
 """.encode(
             "shift_jis"
         )
@@ -412,8 +417,9 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
         mock_scraper.get = Mock(return_value=mock_response)
         mock_scraper.headers = {}
 
-        with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-            "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)),
         ):
 
             posts, latest = await service._get_thread_posts_from_dat(
@@ -452,8 +458,9 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
         mock_scraper.get = Mock(return_value=mock_response)
         mock_scraper.headers = {}
 
-        with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-            "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)),
         ):
 
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
@@ -491,8 +498,9 @@ another_invalid<>only_two
         mock_scraper.get = Mock(return_value=mock_response)
         mock_scraper.headers = {}
 
-        with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-            "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)),
         ):
 
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
@@ -523,8 +531,9 @@ async def test_get_thread_posts_from_dat_http_error(mock_env_vars):
         mock_scraper.get = Mock(return_value=mock_response)
         mock_scraper.headers = {}
 
-        with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-            "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)),
         ):
 
             posts, latest = await service._get_thread_posts_from_dat("http://test.dat")
@@ -554,8 +563,9 @@ async def test_get_thread_posts_from_dat_empty_content(mock_env_vars):
         mock_scraper.get = Mock(return_value=mock_response)
         mock_scraper.headers = {}
 
-        with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-            "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)),
         ):
 
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
@@ -587,8 +597,9 @@ async def test_get_thread_posts_from_dat_encoding_cascade(mock_env_vars):
         mock_scraper.get = Mock(return_value=mock_response)
         mock_scraper.headers = {}
 
-        with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-            "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)),
         ):
 
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")

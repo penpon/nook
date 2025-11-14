@@ -152,17 +152,17 @@ class FiveChanExplorer(BaseService):
 
         # User-Agentローテーション用のリスト
         self.user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",  # noqa: E501
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",  # noqa: E501
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",  # noqa: E501
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",  # noqa: E501
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",  # noqa: E501
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0",  # noqa: E501
         ]
 
         # ブラウザヘッダーの完全設定（User-Agentは動的に設定）
         self.browser_headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",  # noqa: E501
             "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
             "Cache-Control": "no-cache",
@@ -284,7 +284,7 @@ class FiveChanExplorer(BaseService):
                     if attempt < max_retries:
                         wait_time = self._calculate_backoff_delay(attempt)
                         self.logger.warning(
-                            f"サーバーエラー ({response.status_code}): {wait_time}秒後にリトライします"
+                            f"サーバーエラー ({response.status_code}): {wait_time}秒後にリトライします"  # noqa: E501
                         )
                         await asyncio.sleep(wait_time)
                         continue
@@ -356,7 +356,7 @@ class FiveChanExplorer(BaseService):
             for board_id, board_name in self.target_boards.items():
                 try:
                     self.logger.info(
-                        f"板 /{board_id}/({board_name}) からのスレッド取得を開始します..."
+                        f"板 /{board_id}/({board_name}) からのスレッド取得を開始します..."  # noqa: E501
                     )
                     threads = await self._retrieve_ai_threads(
                         board_id,
@@ -365,7 +365,7 @@ class FiveChanExplorer(BaseService):
                         effective_target_dates,
                     )
                     self.logger.info(
-                        f"板 /{board_id}/({board_name}) から {len(threads)} 件のスレッドを取得しました"
+                        f"板 /{board_id}/({board_name}) から {len(threads)} 件のスレッドを取得しました"  # noqa: E501
                     )
 
                     candidate_threads.extend(threads)
@@ -518,9 +518,9 @@ class FiveChanExplorer(BaseService):
             # 戦略2: 古いFirefox（検出回避）
             "Mozilla/5.0 (Windows NT 6.1; rv:12.0) Gecko/20100101 Firefox/12.0",
             # 戦略3: 古いChrome（最低限）
-            "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36",  # noqa: E501
             # 戦略4: モバイル回避（サーバー負荷軽減と判断される場合）
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11A465 Safari/9537.53",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11A465 Safari/9537.53",  # noqa: E501
             # 戦略5: 検索エンジンbot模倣（アクセス許可される場合）
             "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
         ]
@@ -528,7 +528,7 @@ class FiveChanExplorer(BaseService):
         for i, user_agent in enumerate(user_agent_strategies):
             try:
                 self.logger.info(
-                    f"403対策戦略 {i+1}/{len(user_agent_strategies)}: {user_agent[:50]}..."
+                    f"403対策戦略 {i+1}/{len(user_agent_strategies)}: {user_agent[:50]}..."  # noqa: E501
                 )
 
                 # 極限まで簡素化されたヘッダー
@@ -578,7 +578,7 @@ class FiveChanExplorer(BaseService):
                             and not is_cloudflare
                         ):
                             self.logger.warning(
-                                f"403エラーだが有効コンテンツ取得: 戦略{i+1} ({len(response.text)}文字)"
+                                f"403エラーだが有効コンテンツ取得: 戦略{i+1} ({len(response.text)}文字)"  # noqa: E501
                             )
                             return response
                         else:
@@ -644,7 +644,7 @@ class FiveChanExplorer(BaseService):
         ]
 
         headers = {
-            "User-Agent": "Mozilla/5.0 (Linux; Android 8.0.0; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.80 Mobile Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Linux; Android 8.0.0; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.80 Mobile Safari/537.36",  # noqa: E501
             "Accept": "text/plain, text/html, */*",
             "Accept-Language": "ja,en;q=0.9",
             "Connection": "close",
@@ -675,7 +675,7 @@ class FiveChanExplorer(BaseService):
 
                     if is_valid:
                         self.logger.info(
-                            f"代替戦略{i+1}成功: {response.status_code} ({len(content)}文字)"
+                            f"代替戦略{i+1}成功: {response.status_code} ({len(content)}文字)"  # noqa: E501
                         )
                         return response
                     else:
@@ -1009,7 +1009,7 @@ class FiveChanExplorer(BaseService):
                     await asyncio.sleep(2)
 
             self.logger.info(
-                f"【突破成功】板 {board_id}: {len(ai_threads)}件のAI関連スレッド取得完了"
+                f"【突破成功】板 {board_id}: {len(ai_threads)}件のAI関連スレッド取得完了"  # noqa: E501
             )
             return ai_threads
 
