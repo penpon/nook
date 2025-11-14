@@ -665,7 +665,11 @@ def test_extract_popularity_with_meta_tag(mock_env_vars):
 
         entry = Mock()
         soup = BeautifulSoup(
-            '<html><head><meta property="article:reaction_count" content="100"></head></html>',
+            (
+                "<html><head>"
+                '<meta property="article:reaction_count" content="100">'
+                "</head></html>"
+            ),
             "html.parser",
         )
 
@@ -1137,7 +1141,8 @@ async def test_retrieve_article_meta_description_extraction(mock_env_vars):
         html_with_meta = """
         <html>
         <head>
-            <meta name="description" content="これはメタディスクリプションのテキストです。">
+            <meta name="description"
+                  content="これはメタディスクリプションのテキストです。">
         </head>
         <body></body>
         </html>
