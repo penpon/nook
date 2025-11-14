@@ -167,21 +167,6 @@ async def test_collect_success_with_valid_feed(mock_env_vars, respx_mock):
         service = TechFeed()
         service.http_client = AsyncMock()
 
-        # RSSフィードのモック
-        mock_feed_xml = """<?xml version="1.0"?>
-        <rss version="2.0">
-            <channel>
-                <title>Test Feed</title>
-                <item>
-                    <title>テスト記事</title>
-                    <link>https://example.com/article1</link>
-                    <pubDate>Mon, 14 Nov 2024 00:00:00 +0000</pubDate>
-                    <description>テスト記事の説明</description>
-                </item>
-            </channel>
-        </rss>
-        """
-
         # HTMLページのモック（日本語コンテンツ）
         mock_html = """
         <html>
@@ -407,8 +392,6 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
             mock_feed = Mock()
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
-
-            mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -914,7 +897,7 @@ async def test_retrieve_article_non_japanese_content(mock_env_vars):
             )
         )
 
-        result = await service._retrieve_article(entry, "Test Feed", "tech")
+        _result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         # 日本語判定で除外される可能性がある
         # 実装次第でNoneまたはArticleが返される
@@ -1309,7 +1292,7 @@ async def test_collect_feed_toml_load_failure_handling(mock_env_vars):
             "builtins.open", side_effect=FileNotFoundError("feed.toml not found")
         ):
             with pytest.raises(FileNotFoundError):
-                service = TechFeed()
+                _service = TechFeed()
 
 
 # 重複検出テストは複雑なため、シンプルなテストに置き換え
@@ -1344,8 +1327,6 @@ async def test_collect_no_saved_files(mock_env_vars):
             mock_feed.feed.title = "Test Feed"
             mock_feed.entries = []  # 記事なし
             mock_parse.return_value = mock_feed
-
-            mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -1532,7 +1513,7 @@ async def test_retrieve_article_empty_html(mock_env_vars):
 
         service.http_client.get = AsyncMock(return_value=Mock(text="<html></html>"))
 
-        result = await service._retrieve_article(entry, "Test Feed", "tech")
+        _result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         # 空HTMLでも日本語判定で除外される可能性
         # または空のArticleが返される
@@ -1560,7 +1541,7 @@ async def test_retrieve_article_malformed_html(mock_env_vars):
             return_value=Mock(text="<html><body><p>不正なHTML<p><div>閉じタグなし")
         )
 
-        result = await service._retrieve_article(entry, "Test Feed", "tech")
+        _result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         # BeautifulSoupは不正HTMLでも解析を試みる
         # 日本語判定を通過すればArticleが返される
@@ -1940,8 +1921,6 @@ async def test_collect_multiple_categories(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
             result = await service.collect(days=1)
 
             # feedparser.parseが2回呼ばれる（カテゴリ数分）
@@ -2260,8 +2239,6 @@ async def test_collect_date_filtering_out_of_range(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(
                     text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'
@@ -2418,12 +2395,12 @@ async def test_store_summaries_with_articles(mock_env_vars):
     Then: 記事が保存される
     """
     with patch("nook.common.base_service.setup_logger"):
-        service = TechFeed()
-
         from datetime import date, datetime
 
         from bs4 import BeautifulSoup
         from nook.services.base_feed_service import Article
+
+        service = TechFeed()
 
         articles = [
             Article(

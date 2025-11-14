@@ -12,7 +12,7 @@ nook/services/reddit_explorer/reddit_explorer.py のテスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -211,8 +211,8 @@ async def test_utc_to_jst_conversion(
 
     assert len(posts) == 1
     assert posts[0].created_at is not None
-    assert posts[0].created_at.tzinfo == timezone.utc
-    expected_dt = datetime.fromtimestamp(utc_timestamp, tz=timezone.utc)
+    assert posts[0].created_at.tzinfo == UTC
+    expected_dt = datetime.fromtimestamp(utc_timestamp, tz=UTC)
     assert posts[0].created_at == expected_dt
 
 
@@ -704,7 +704,7 @@ def test_select_top_posts(reddit_explorer_service):
         upvotes=100,
         text="",
         popularity_score=100.0,
-        created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
     post2 = RedditPost(
@@ -715,7 +715,7 @@ def test_select_top_posts(reddit_explorer_service):
         upvotes=200,
         text="",
         popularity_score=200.0,
-        created_at=datetime(2024, 1, 2, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 2, tzinfo=UTC),
     )
 
     post3 = RedditPost(
@@ -726,7 +726,7 @@ def test_select_top_posts(reddit_explorer_service):
         upvotes=150,
         text="",
         popularity_score=150.0,
-        created_at=datetime(2024, 1, 3, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 3, tzinfo=UTC),
     )
 
     posts = [
@@ -766,7 +766,7 @@ def test_serialize_posts(reddit_explorer_service):
         permalink="/r/test/comments/post1",
         thumbnail="self",
         popularity_score=100.0,
-        created_at=datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC),
     )
     post1.summary = "Summary 1"
     post1.comments = [{"text": "Comment 1", "score": 10}]
@@ -841,7 +841,7 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
         upvotes=100,
         text="Content",
         permalink="/r/test/comments/test123",
-        created_at=datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC),
     )
     post.summary = "Summary"
 
@@ -1289,7 +1289,7 @@ def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
         upvotes=100,
         text="",
         popularity_score=100.0,
-        created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
     posts = [("tech", "python", post1)]
