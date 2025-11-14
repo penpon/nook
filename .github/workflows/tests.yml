@@ -37,7 +37,7 @@ jobs:
         set -e
         echo "=== ユニットテストを並列実行中（pytest-xdist使用） ==="
         echo "注: 統合テスト・性能テストは別ジョブで実行されます"
-        uv run pytest tests/services/arxiv_summarizer/ -n auto -m "not integration and not performance and not memory and not stress" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
+        uv run pytest tests/services/arxiv_summarizer/ -n auto -m "not integration and not performance and not memory and not stress" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --cov-fail-under=85 --timeout=300 --tb=short
         echo ""
         echo "=== カバレッジ率を確認中 ==="
         uv run coverage report --format=text
