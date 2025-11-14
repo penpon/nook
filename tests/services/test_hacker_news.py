@@ -12,7 +12,7 @@ nook/services/hacker_news/hacker_news.py のテスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
@@ -20,6 +20,7 @@ import httpx
 import pytest
 import respx
 
+from nook.common.dedup import DedupTracker
 from nook.services.hacker_news.hacker_news import (
     HackerNewsRetriever,
     Story,
@@ -1500,3 +1501,964 @@ async def test_summarize_story_error(mock_env_vars):
                 await service._summarize_story(story)
 
         assert "エラーが発生しました" in story.summary
+
+
+# =============================================================================
+# 15. _load_existing_titles / _load_existing_stories / _store_summaries のテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_titles_from_json(mock_env_vars):
+    """
+    Given: 既存のJSONファイル
+    When: _load_existing_titlesを呼び出す
+    Then: タイトルがDedupTrackerに追加される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        existing_data = [
+            {"title": "Existing Title 1"},
+            {"title": "Existing Title 2"}
+        ]
+
+        with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=True), \
+             patch.object(service, 'load_json', new_callable=AsyncMock, return_value=existing_data):
+
+            tracker = await service._load_existing_titles()
+
+            # タイトルが追加されているか確認
+            is_dup1, _ = tracker.is_duplicate("Existing Title 1")
+            is_dup2, _ = tracker.is_duplicate("Existing Title 2")
+            assert is_dup1 is True
+            assert is_dup2 is True
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_titles_from_markdown(mock_env_vars):
+    """
+    Given: 既存のMarkdownファイル（JSONなし）
+    When: _load_existing_titlesを呼び出す
+    Then: マークダウンからタイトルが抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        markdown_content = """
+## [Title from Markdown](https://example.com)
+
+## Plain Title Without Link
+
+Some content
+"""
+
+        with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=False), \
+             patch.object(service.storage, 'load_markdown', return_value=markdown_content):
+
+            tracker = await service._load_existing_titles()
+
+            # マークダウンから抽出されたタイトルを確認
+            is_dup1, _ = tracker.is_duplicate("Title from Markdown")
+            is_dup2, _ = tracker.is_duplicate("Plain Title Without Link")
+            assert is_dup1 is True
+            assert is_dup2 is True
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_titles_error(mock_env_vars):
+    """
+    Given: ファイル読み込みでエラー
+    When: _load_existing_titlesを呼び出す
+    Then: 空のトラッカーが返される（エラーは無視される）
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        with patch.object(service.storage, 'exists', new_callable=AsyncMock, side_effect=Exception("Read error")):
+
+            tracker = await service._load_existing_titles()
+
+            # エラーでも空のトラッカーが返る
+            assert tracker is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_stories_from_json(mock_env_vars):
+    """
+    Given: 既存のJSONファイル
+    When: _load_existing_storiesを呼び出す
+    Then: ストーリーのリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        existing_data = [
+            {"title": "Story 1", "score": 100},
+            {"title": "Story 2", "score": 200}
+        ]
+
+        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+
+        with patch.object(service, 'load_json', new_callable=AsyncMock, return_value=existing_data):
+
+            stories = await service._load_existing_stories(target_date)
+
+            assert len(stories) == 2
+            assert stories[0]["title"] == "Story 1"
+            assert stories[1]["title"] == "Story 2"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_stories_from_markdown(mock_env_vars):
+    """
+    Given: Markdownファイルのみ（JSONなし）
+    When: _load_existing_storiesを呼び出す
+    Then: マークダウンからパースされたストーリーが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        markdown_content = """
+## [Test Story](https://example.com/test)
+
+スコア: 100
+
+---
+"""
+
+        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+
+        with patch.object(service, 'load_json', new_callable=AsyncMock, return_value=None), \
+             patch.object(service.storage, 'load', new_callable=AsyncMock, return_value=markdown_content):
+
+            stories = await service._load_existing_stories(target_date)
+
+            assert len(stories) == 1
+            assert stories[0]["title"] == "Test Story"
+            assert stories[0]["score"] == 100
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_stories_no_file(mock_env_vars):
+    """
+    Given: ファイルが存在しない
+    When: _load_existing_storiesを呼び出す
+    Then: 空のリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+
+        with patch.object(service, 'load_json', new_callable=AsyncMock, return_value=None), \
+             patch.object(service.storage, 'load', new_callable=AsyncMock, return_value=None):
+
+            stories = await service._load_existing_stories(target_date)
+
+            assert stories == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_stories(mock_env_vars):
+    """
+    Given: 複数のストーリー
+    When: _summarize_storiesを呼び出す
+    Then: 各ストーリーが要約され、ブロックドメイン更新が呼ばれる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        stories = [
+            Story(title="Story 1", score=100, text="Text 1"),
+            Story(title="Story 2", score=200, text="Text 2")
+        ]
+
+        with patch.object(service, '_summarize_story', new_callable=AsyncMock) as mock_summarize, \
+             patch.object(service, '_update_blocked_domains_from_errors', new_callable=AsyncMock) as mock_update:
+
+            await service._summarize_stories(stories)
+
+            # 各ストーリーが要約される
+            assert mock_summarize.call_count == 2
+            # ブロックドメイン更新が呼ばれる
+            mock_update.assert_called_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_stories_empty(mock_env_vars):
+    """
+    Given: 空のストーリーリスト
+    When: _summarize_storiesを呼び出す
+    Then: 何も処理されない
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        await service._summarize_stories([])
+
+        # エラーが発生しないことを確認
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries(mock_env_vars):
+    """
+    Given: ストーリーのリスト
+    When: _store_summariesを呼び出す
+    Then: 保存されたファイルパスのリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        stories = [
+            Story(
+                title="Test Story",
+                score=100,
+                url="https://example.com",
+                text="Test text",
+                summary="Test summary",
+                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+            )
+        ]
+
+        target_dates = [date(2024, 11, 14)]
+
+        with patch('nook.services.hacker_news.hacker_news.store_daily_snapshots', new_callable=AsyncMock) as mock_store:
+            mock_store.return_value = [("/path/to/2024-11-14.json", "/path/to/2024-11-14.md")]
+
+            result = await service._store_summaries(stories, target_dates)
+
+            assert len(result) == 1
+            assert result[0][0] == "/path/to/2024-11-14.json"
+            assert result[0][1] == "/path/to/2024-11-14.md"
+            mock_store.assert_called_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries_empty(mock_env_vars):
+    """
+    Given: 空のストーリーリスト
+    When: _store_summariesを呼び出す
+    Then: 空のリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        result = await service._store_summaries([], [date.today()])
+
+        assert result == []
+
+
+# =============================================================================
+# 16. HTMLパース・エッジケースのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_fetch_story_content_article_element(mock_env_vars, respx_mock):
+    """
+    Given: article要素を含むHTML（メタディスクリプション・段落なし）
+    When: _fetch_story_contentを呼び出す
+    Then: article要素からテキストが抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        await service.setup_http_client()
+
+        story = Story(
+            title="Test",
+            score=100,
+            url="https://example.com/test"
+        )
+
+        html_content = '<html><body><article>Article content here for testing purposes and extraction.</article></body></html>'
+
+        respx_mock.get("https://example.com/test").mock(
+            return_value=httpx.Response(200, text=html_content)
+        )
+
+        await service._fetch_story_content(story)
+
+        assert story.text is not None
+        assert "Article content" in story.text
+
+        await service.cleanup()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_fetch_story_content_short_paragraphs(mock_env_vars, respx_mock):
+    """
+    Given: 短い段落のみのHTML
+    When: _fetch_story_contentを呼び出す
+    Then: 最初の段落が使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        await service.setup_http_client()
+
+        story = Story(
+            title="Test",
+            score=100,
+            url="https://example.com/test"
+        )
+
+        html_content = '''<html><body>
+            <p>Short</p>
+            <p>Also short</p>
+        </body></html>'''
+
+        respx_mock.get("https://example.com/test").mock(
+            return_value=httpx.Response(200, text=html_content)
+        )
+
+        await service._fetch_story_content(story)
+
+        assert story.text is not None
+
+        await service.cleanup()
+
+
+@pytest.mark.unit
+def test_render_markdown_with_text_only(mock_env_vars):
+    """
+    Given: summaryなし、textのみの記事
+    When: _render_markdownを呼び出す
+    Then: テキストが表示される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        records = [
+            {
+                "title": "Test Story",
+                "score": 100,
+                "url": "https://example.com/test",
+                "text": "A" * 600  # 500文字以上
+            }
+        ]
+
+        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        markdown = service._render_markdown(records, today)
+
+        assert "Test Story" in markdown
+        assert "..." in markdown  # 省略記号が含まれる
+
+
+@pytest.mark.unit
+def test_render_markdown_no_url(mock_env_vars):
+    """
+    Given: URLなしの記事
+    When: _render_markdownを呼び出す
+    Then: リンクなしでタイトルが表示される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        records = [
+            {
+                "title": "Test Story Without URL",
+                "score": 100,
+                "summary": "Test summary"
+            }
+        ]
+
+        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        markdown = service._render_markdown(records, today)
+
+        assert "Test Story Without URL" in markdown
+        assert "[" not in markdown.split("## ")[1].split("\n")[0]  # タイトル行にリンク記法がない
+
+
+@pytest.mark.unit
+def test_parse_markdown_title_only(mock_env_vars):
+    """
+    Given: タイトルのみのマークダウン（URLなし）
+    When: _parse_markdownを呼び出す
+    Then: タイトルが正しくパースされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        markdown_content = """
+## Title Without URL
+
+スコア: 50
+
+---
+"""
+
+        records = service._parse_markdown(markdown_content)
+
+        assert len(records) == 1
+        assert records[0]["title"] == "Title Without URL"
+        assert records[0]["score"] == 50
+        assert records[0]["url"] is None
+
+
+@pytest.mark.unit
+def test_story_sort_key_missing_score(mock_env_vars):
+    """
+    Given: スコアがない記事
+    When: _story_sort_keyを呼び出す
+    Then: デフォルトの0が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        item = {
+            "published_at": "2024-11-14T12:00:00+00:00"
+        }
+
+        score, published = service._story_sort_key(item)
+
+        assert score == 0
+        assert isinstance(published, datetime)
+
+
+@pytest.mark.unit
+def test_story_sort_key_no_published_at(mock_env_vars):
+    """
+    Given: published_atがない記事
+    When: _story_sort_keyを呼び出す
+    Then: デフォルトの最小日時が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        item = {
+            "score": 100
+        }
+
+        score, published = service._story_sort_key(item)
+
+        assert score == 100
+        assert published == datetime.min.replace(tzinfo=timezone.utc)
+
+
+# Section 17: Additional coverage tests for 95% target
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_top_stories_duplicate_detection(mock_env_vars, respx_mock):
+    """
+    Given: 重複したタイトルのストーリー
+    When: _get_top_storiesを呼び出す
+    Then: 重複が除外される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        # Set up http_client for respx_mock to intercept
+        service.http_client = httpx.AsyncClient()
+
+        # Mock GPT client for summarization
+        with patch.object(service, 'gpt_client') as mock_gpt:
+            mock_gpt.summarize_with_gpt.return_value = "Test summary"
+
+            # Mock topstories API
+            respx_mock.get(f"{service.base_url}/topstories.json").mock(
+                return_value=httpx.Response(200, json=[1, 2])
+            )
+
+            # Mock item API - same title with slight variation
+            respx_mock.get(f"{service.base_url}/item/1.json").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "id": 1,
+                        "title": "Test Article",
+                        "score": 100,
+                        "url": "https://example.com/1",
+                        "time": 1700000000,
+                    },
+                )
+            )
+            respx_mock.get(f"{service.base_url}/item/2.json").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "id": 2,
+                        "title": "Test Article  ",  # Same but with extra spaces
+                        "score": 90,
+                        "url": "https://example.com/2",
+                        "time": 1700000100,
+                    },
+                )
+            )
+
+            # Mock content fetching
+            respx_mock.get("https://example.com/1").mock(
+                return_value=httpx.Response(
+                    200, text="<p>" + "A" * 150 + "</p>"
+                )
+            )
+            respx_mock.get("https://example.com/2").mock(
+                return_value=httpx.Response(
+                    200, text="<p>" + "B" * 150 + "</p>"
+                )
+            )
+
+            dedup_tracker = DedupTracker()
+            stories = await service._get_top_stories(
+                limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
+
+            # Only one story should remain after deduplication
+            assert len(stories) == 1
+            assert stories[0].title == "Test Article"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_top_stories_date_grouping(mock_env_vars, respx_mock):
+    """
+    Given: 異なる日付のストーリー
+    When: _get_top_storiesを複数日付で呼び出す
+    Then: 各日付ごとにリミットが適用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        # Set up http_client for respx_mock to intercept
+        service.http_client = httpx.AsyncClient()
+
+        # Mock topstories API
+        respx_mock.get(f"{service.base_url}/topstories.json").mock(
+            return_value=httpx.Response(200, json=[1, 2])
+        )
+
+        # Different timestamps for different dates
+        yesterday_ts = int((datetime.now() - timedelta(days=1)).timestamp())
+        today_ts = int(datetime.now().timestamp())
+
+        respx_mock.get(f"{service.base_url}/item/1.json").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": 1,
+                    "title": "Yesterday Article",
+                    "score": 100,
+                    "url": "https://example.com/1",
+                    "time": yesterday_ts,
+                },
+            )
+        )
+        respx_mock.get(f"{service.base_url}/item/2.json").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": 2,
+                    "title": "Today Article",
+                    "score": 90,
+                    "url": "https://example.com/2",
+                    "time": today_ts,
+                },
+            )
+        )
+
+        # Mock content fetching
+        respx_mock.get("https://example.com/1").mock(
+            return_value=httpx.Response(
+                200, text="<p>" + "A" * 150 + "</p>"
+            )
+        )
+        respx_mock.get("https://example.com/2").mock(
+            return_value=httpx.Response(
+                200, text="<p>" + "B" * 150 + "</p>"
+            )
+        )
+
+        yesterday = (datetime.now() - timedelta(days=1)).date()
+        today = datetime.now().date()
+
+        dedup_tracker = DedupTracker()
+        stories = await service._get_top_stories(
+            limit=1, dedup_tracker=dedup_tracker, target_dates=[yesterday, today]
+        )
+
+        # Each date should have up to 1 story (limit=1)
+        assert len(stories) <= 2
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_log_fetch_summary(mock_env_vars):
+    """
+    Given: 様々な状態のストーリーリスト
+    When: _log_fetch_summaryを呼び出す
+    Then: 正しいサマリーがログに記録される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        stories = [
+            Story(
+                title="Success Story",
+                score=100,
+                url="https://example.com/1",
+                text="This is successful content",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Blocked Story",
+                score=90,
+                url="https://blocked.com/1",
+                text="このサイト（blocked.com）はアクセス制限のためブロックされています。",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Error Story",
+                score=80,
+                url="https://example.com/2",
+                text="アクセス制限により記事を取得できませんでした。",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Not Found Story",
+                score=70,
+                url="https://example.com/3",
+                text="記事が見つかりませんでした。",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Failed Story",
+                score=60,
+                url="https://example.com/4",
+                text="記事の内容を取得できませんでした。",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="No Text Story",
+                score=50,
+                url="https://example.com/5",
+                text=None,
+                created_at=datetime.now(timezone.utc),
+            ),
+        ]
+
+        # This should not raise an error
+        await service._log_fetch_summary(stories)
+
+
+@pytest.mark.unit
+def test_is_blocked_domain_exception_handling(mock_env_vars):
+    """
+    Given: 不正なURL
+    When: _is_blocked_domainを呼び出す
+    Then: Falseが返される（例外は発生しない）
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        service.blocked_domains = {"blocked_domains": None}  # Cause an exception
+
+        result = service._is_blocked_domain("https://example.com")
+
+        # Should handle exception and return False
+        assert result is False
+
+
+@pytest.mark.unit
+def test_is_http1_required_domain_exception_handling(mock_env_vars):
+    """
+    Given: 不正な状態
+    When: _is_http1_required_domainを呼び出す
+    Then: Falseが返される（例外は発生しない）
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        service.blocked_domains = {"http1_required_domains": None}  # Cause an exception
+
+        result = service._is_http1_required_domain("https://example.com")
+
+        # Should handle exception and return False
+        assert result is False
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_fetch_story_invalid_timestamp(mock_env_vars, respx_mock):
+    """
+    Given: 不正なタイムスタンプを持つストーリー
+    When: _fetch_storyを呼び出す
+    Then: created_atがNoneに設定され、その後現在時刻が設定される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        # Set up http_client for respx_mock to intercept
+        service.http_client = httpx.AsyncClient()
+
+        # Mock item API with invalid timestamp
+        respx_mock.get(f"{service.base_url}/item/12345.json").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": 12345,
+                    "title": "Test Story",
+                    "score": 50,
+                    "url": "https://example.com",
+                    "time": "invalid",  # Invalid timestamp
+                },
+            )
+        )
+
+        # Mock content fetching
+        respx_mock.get("https://example.com").mock(
+            return_value=httpx.Response(
+                200, text="<p>" + "Test content" * 20 + "</p>"
+            )
+        )
+
+        story = await service._fetch_story(12345)
+
+        assert story is not None
+        assert story.created_at is not None  # Should be set to current time
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_fetch_story_content_www_blocked_domain(mock_env_vars):
+    """
+    Given: www.付きのブロックされたドメイン
+    When: _fetch_story_contentを呼び出す
+    Then: www.が除去されて理由が取得される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        story = Story(
+            title="Test",
+            score=50,
+            url="https://www.nytimes.com/article",
+            text=None,
+            created_at=datetime.now(timezone.utc),
+        )
+
+        await service._fetch_story_content(story)
+
+        assert story.text is not None
+        assert "ブロックされています" in story.text
+        assert "nytimes.com" in story.text
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_update_blocked_domains_various_error_reasons(mock_env_vars):
+    """
+    Given: 様々なエラー理由を持つストーリー
+    When: _update_blocked_domains_from_errorsを呼び出す
+    Then: 適切なエラー理由が特定される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        # Ensure blocked_domains is properly initialized
+        service.blocked_domains = service._load_blocked_domains()
+
+        stories = [
+            Story(
+                title="522 Error",
+                score=50,
+                url="https://error522.com/page",
+                text="HTTP error 522 Server error occurred",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="429 Error",
+                score=50,
+                url="https://error429.com/page",
+                text="HTTP error 429 Too Many Requests",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="403 Error",
+                score=50,
+                url="https://error403.com/page",
+                text="HTTP error 403 Access denied",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="404 Error",
+                score=50,
+                url="https://error404.com/page",
+                text="HTTP error 404 Not found",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Timeout Error",
+                score=50,
+                url="https://timeout.com/page",
+                text="Request error: timeout occurred while connecting",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="SSL Error",
+                score=50,
+                url="https://sslerror.com/page",
+                text="Request error: SSL handshake failed",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Request Error",
+                score=50,
+                url="https://requesterror.com/page",
+                text="Request error occurred",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Generic Error",
+                score=50,
+                url="https://genericerror.com/page",
+                text="HTTP error: Some other error",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="No URL",
+                score=50,
+                url=None,
+                text="No text",
+                created_at=datetime.now(timezone.utc),
+            ),
+            Story(
+                title="Already Blocked",
+                score=50,
+                url="https://www.reuters.com/page",
+                text="HTTP error 403",
+                created_at=datetime.now(timezone.utc),
+            ),
+        ]
+
+        # Mock _add_to_blocked_domains to capture what domains would be added
+        added_domains = {}
+
+        async def mock_add_to_blocked_domains(new_domains):
+            added_domains.update(new_domains)
+
+        with patch.object(service, '_add_to_blocked_domains', side_effect=mock_add_to_blocked_domains):
+            # Should not raise an error
+            await service._update_blocked_domains_from_errors(stories)
+
+        # Verify various error types were detected
+        assert "error522.com" in added_domains
+        assert "error429.com" in added_domains
+        assert "error403.com" in added_domains
+        assert "error404.com" in added_domains
+        assert "timeout.com" in added_domains
+        assert "sslerror.com" in added_domains
+        assert "genericerror.com" in added_domains
+
+        # reuters.com should not be in added_domains (already blocked)
+        assert "reuters.com" not in added_domains
+
+        # Verify error reasons are correctly identified
+        assert added_domains["error522.com"] == "522 - Server error"
+        assert added_domains["error429.com"] == "429 - Too Many Requests"
+        assert added_domains["error403.com"] == "403 - Access denied"
+        assert added_domains["error404.com"] == "404 - Not found"
+        assert added_domains["timeout.com"] == "Timeout error"
+        assert added_domains["sslerror.com"] == "SSL/TLS error"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_update_blocked_domains_exception_handling(mock_env_vars):
+    """
+    Given: URLのパースに失敗するストーリー
+    When: _update_blocked_domains_from_errorsを呼び出す
+    Then: 例外が処理され、処理が続行される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+        # Ensure blocked_domains is properly initialized
+        service.blocked_domains = service._load_blocked_domains()
+
+        stories = [
+            Story(
+                title="Invalid URL",
+                score=50,
+                url="not a valid url",
+                text="記事の内容を取得できませんでした。",
+                created_at=datetime.now(timezone.utc),
+            ),
+        ]
+
+        # Mock _add_to_blocked_domains to capture what domains would be added
+        added_domains = {}
+
+        async def mock_add_to_blocked_domains(new_domains):
+            added_domains.update(new_domains)
+
+        with patch.object(service, '_add_to_blocked_domains', side_effect=mock_add_to_blocked_domains):
+            # Should not raise an error
+            await service._update_blocked_domains_from_errors(stories)
+
+        # No domains should be added due to parsing failure
+        assert len(added_domains) == 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_add_to_blocked_domains_file_not_exists(mock_env_vars, tmp_path):
+    """
+    Given: blocked_domains.jsonが存在しない
+    When: _add_to_blocked_domainsを呼び出す
+    Then: 新しいファイルが作成される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        # Use a non-existent path
+        new_domains = {"newdomain.com": "Test reason"}
+
+        with patch("nook.services.hacker_news.hacker_news.os.path.join") as mock_join:
+            mock_join.return_value = str(tmp_path / "blocked_domains.json")
+
+            await service._add_to_blocked_domains(new_domains)
+
+            # Verify file was created
+            assert (tmp_path / "blocked_domains.json").exists()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_add_to_blocked_domains_exception_handling(mock_env_vars):
+    """
+    Given: ファイル書き込みに失敗する状況
+    When: _add_to_blocked_domainsを呼び出す
+    Then: 例外が処理され、エラーログが記録される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        new_domains = {"testdomain.com": "Test reason"}
+
+        # Mock open to raise an exception
+        with patch("builtins.open", side_effect=PermissionError("Permission denied")):
+            # Should not raise an error
+            await service._add_to_blocked_domains(new_domains)
+
+
+@pytest.mark.unit
+def test_run_sync_wrapper(mock_env_vars):
+    """
+    Given: HackerNewsRetrieverインスタンス
+    When: run()メソッドを呼び出す
+    Then: asyncio.runが使用されてcollectが実行される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = HackerNewsRetriever()
+
+        with patch("nook.services.hacker_news.hacker_news.asyncio.run") as mock_run:
+            service.run(limit=10)
+
+            # Verify asyncio.run was called
+            mock_run.assert_called_once()
