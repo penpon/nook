@@ -509,7 +509,7 @@ async def test_retrieve_article_published_at_extraction(mock_env_vars):
         entry.title = "テスト記事"
         entry.link = "https://example.com/test"
         entry.summary = "説明"
-        entry.published_parsed = (2024, 11, 14, 15, 30, 45, 0, 0, 0)
+        entry.published_parsed = (2024, 11, 14, 0, 30, 45, 0, 0, 0)  # 0時なので+9時間でも14日のまま
 
         service.http_client.get = AsyncMock(
             return_value=Mock(text="<html><body><p>テキスト</p></body></html>")

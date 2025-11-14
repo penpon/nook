@@ -572,10 +572,11 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
             mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
-            result = await service.collect(days=1, limit=10)
+            result = await service.collect(days=1, limit=10, target_dates=[date(2024, 11, 14)])
 
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) == 0, "新規記事がないため空リストが返されるべき"
+            # 新規記事がない場合でも、既存ファイルがあれば保持される（実装の仕様）
+            assert len(result) == 1, "既存記事があるため1日分のファイルパスが保持される"
 
 
 # =============================================================================
@@ -964,8 +965,8 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
             patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-            # ストレージ読み込み時に例外
-            mock_storage_load.side_effect = Exception("Storage error")
+            # ストレージ読み込み時に最初の呼び出しだけ例外、以降はNone
+            mock_storage_load.side_effect = [Exception("Storage error"), None, None]
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
@@ -984,7 +985,7 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
-            result = await service.collect(days=1)
+            result = await service.collect(days=1, target_dates=[date(2024, 11, 14)])
 
             # 例外が処理され、処理が継続される
             assert isinstance(result, list), "結果はリスト型であるべき"

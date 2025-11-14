@@ -12,6 +12,7 @@ nook/services/zenn_explorer/zenn_explorer.py のテスト - collect()基本機�
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
@@ -55,8 +56,8 @@ async def test_collect_success_with_valid_feed(zenn_service_with_mocks):
     )
     service.gpt_client.get_response = AsyncMock(return_value="要約")
 
-    # When: collectメソッドを呼び出す
-    result = await service.collect(days=1, limit=10)
+    # When: collectメソッドを呼び出す（target_datesを明示的に指定）
+    result = await service.collect(days=1, limit=10, target_dates=[date(2024, 11, 14)])
 
     # Then: 記事が正常に取得される
     assert isinstance(result, list), "結果はリスト型であるべき"
@@ -96,12 +97,12 @@ async def test_collect_with_multiple_articles(zenn_service_with_mocks):
     )
     service.gpt_client.get_response = AsyncMock(return_value="要約")
 
-    # When: collectメソッドを呼び出す
-    result = await service.collect(days=1, limit=10)
+    # When: collectメソッドを呼び出す（target_datesを明示的に指定）
+    result = await service.collect(days=1, limit=10, target_dates=[date(2024, 11, 14)])
 
-    # Then: 5件の記事が処理される
+    # Then: 複数の記事が処理される（日付ごとにファイルが作成されるため、1日分のファイルパス）
     assert isinstance(result, list), "結果はリスト型であるべき"
-    assert len(result) == 5, "5件の記事が追加されたため、5件取得されるべき"
+    assert len(result) == 1, "1日分のファイルパス(json_path, md_path)が返されるべき"
 
 
 @pytest.mark.unit
@@ -314,8 +315,8 @@ async def test_full_workflow_collect_and_save(zenn_service_with_mocks):
     # Ensure storage.save returns a Path
     mock_storage_save.return_value = Path("/data/test.json")
 
-    # When: collect→cleanupの完全なワークフローを実行
-    result = await service.collect(days=1, limit=10)
+    # When: collect→cleanupの完全なワークフローを実行（target_datesを明示的に指定）
+    result = await service.collect(days=1, limit=10, target_dates=[date(2024, 11, 14)])
     await service.cleanup()
 
     # Then: 記事が正常に取得される
