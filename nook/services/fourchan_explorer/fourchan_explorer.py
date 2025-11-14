@@ -132,7 +132,8 @@ class FourChanExplorer(BaseService):
         # boards.tomlが存在しない場合はデフォルト値を使用
         if not boards_file.exists():
             self.logger.warning(
-                f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。"
+                f"警告: {boards_file} が見つかりません。"
+                "デフォルトのボードを使用します。"
             )
             return ["g", "sci", "biz", "pol"]
 
@@ -140,8 +141,17 @@ class FourChanExplorer(BaseService):
             with open(boards_file, "rb") as f:
                 config = tomli.load(f)
                 boards_dict = config.get("boards", {})
-                # ボードIDのリストを返す
-                return list(boards_dict.keys())
+                # enabled=trueのボードのみを返す（enabledキーがない場合はTrue扱い）
+                enabled_boards = []
+                for board_id, board_config in boards_dict.items():
+                    # board_configが辞書でenabledキーを持つ場合のみチェック
+                    if isinstance(board_config, dict):
+                        if board_config.get("enabled", True):
+                            enabled_boards.append(board_id)
+                    else:
+                        # 文字列値の場合（後方互換性）
+                        enabled_boards.append(board_id)
+                return enabled_boards
         except Exception as e:
             self.logger.error(f"エラー: boards.tomlの読み込みに失敗しました: {e}")
             self.logger.info("デフォルトのボードを使用します。")
@@ -206,7 +216,8 @@ class FourChanExplorer(BaseService):
                         effective_target_dates,
                     )
                     self.logger.info(
-                        f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました"
+                        f"ボード /{board}/ から {len(threads)} 件の"
+                        "スレッドを取得しました"
                     )
                     candidate_threads.extend(threads)
 
@@ -421,7 +432,8 @@ class FourChanExplorer(BaseService):
                     else:
                         # これは355行目の検証により理論的には発生しないが、防御的に処理
                         self.logger.warning(
-                            "スレッド %s の有効日時とタイムスタンプが両方とも取得できませんでした",
+                            "スレッド %s の有効日時とタイムスタンプが"
+                            "両方とも取得できませんでした",
                             thread_id,
                         )
                         continue
@@ -574,12 +586,12 @@ class FourChanExplorer(BaseService):
 
         ボード: /{thread.board}/
         {thread_content}
-        
+
         要約は以下の形式で行い、日本語で回答してください:
         1. スレッドの主な内容（1-2文）
         2. 議論の主要ポイント（箇条書き3-5点）
         3. スレッドの全体的な論調
-        
+
         注意：攻撃的な内容やヘイトスピーチは緩和し、主要な技術的議論に焦点を当ててください。
         """
 

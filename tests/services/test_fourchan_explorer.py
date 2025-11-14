@@ -12,14 +12,13 @@ nook/services/fourchan_explorer/fourchan_explorer.py のテスト
 from __future__ import annotations
 
 import asyncio
-import re
+import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
 import httpx
 import pytest
-import respx
 
 # =============================================================================
 # テスト定数
@@ -210,7 +209,9 @@ def assert_gpt_called_with_thread_content(mock_gpt, thread):
 
     # プロンプトにスレッドタイトルが含まれていることを確認
     prompt = call_args.kwargs["prompt"]
-    assert thread.title in prompt, f"Prompt should contain thread title '{thread.title}'"
+    assert (
+        thread.title in prompt
+    ), f"Prompt should contain thread title '{thread.title}'"
 
 
 def assert_valid_thread_sort_key(sort_key):
@@ -264,13 +265,14 @@ async def test_collect_success(mock_env_vars):
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
 
             service.http_client.get = AsyncMock(
@@ -325,9 +327,10 @@ async def test_collect_gpt_api_error(mock_env_vars):
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock):
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
@@ -360,13 +363,14 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
         ):
 
             service.http_client.get = AsyncMock(
@@ -441,14 +445,14 @@ def test_load_boards_invalid_toml(mock_env_vars, tmp_path):
 
         service = FourChanExplorer()
 
-        # Path(__file__).parent / "boards.toml" が boards_file を返すようにモック
-        with patch("pathlib.Path") as mock_path_class:
-            mock_file_path = Mock()
-            mock_parent = Mock()
-            mock_parent.__truediv__ = Mock(return_value=boards_file)
-            mock_file_path.parent = mock_parent
-            mock_path_class.return_value = mock_file_path
-
+        # boards.tomlのパスをtmp_pathにリダイレクト
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch(
+                "builtins.open",
+                mock_open(read_data=b"invalid toml content {{{"),
+            ),
+        ):
             boards = service._load_boards()
 
         assert isinstance(boards, list)
@@ -1341,13 +1345,15 @@ async def test_summarize_thread_success(fourchan_service, thread_factory):
 
     # カスタムアサーションを使用
     assert_thread_summary_generated(thread, "これはAIに関する議論です。")
-    assert_gpt_called_with_thread_content(fourchan_service.gpt_client.generate_content, thread)
+    assert_gpt_called_with_thread_content(
+        fourchan_service.gpt_client.generate_content, thread
+    )
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "posts,expected_summary,tags_to_check",
+    ("posts", "expected_summary", "tags_to_check"),
     [
         # HTMLタグ除去テスト
         (
@@ -1408,7 +1414,9 @@ async def test_summarize_thread_empty_posts(fourchan_service, thread_factory):
     """
     thread = thread_factory(title="Empty Thread", posts=[])
 
-    fourchan_service.gpt_client.generate_content = Mock(return_value="空のスレッドです。")
+    fourchan_service.gpt_client.generate_content = Mock(
+        return_value="空のスレッドです。"
+    )
 
     await fourchan_service._summarize_thread(thread)
 
@@ -1888,7 +1896,7 @@ async def test_retrieve_ai_threads_catalog_invalid_json(mock_env_vars, respx_moc
 
         dedup_tracker = DedupTracker()
 
-        with pytest.raises(Exception):
+        with pytest.raises(json.JSONDecodeError):
             await service._retrieve_ai_threads(
                 "g",
                 limit=None,
@@ -2632,7 +2640,6 @@ def test_load_boards_with_disabled_boards(mock_env_vars):
     When: _load_boards()を呼び出す
     Then: enabledなボードのみが返される
     """
-    import tomli
 
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
@@ -2653,19 +2660,21 @@ name = "Science"
 
         mock_file = mock_open(read_data=toml_content)
 
-        with patch("builtins.open", mock_file):
-            with patch("pathlib.Path.exists", return_value=True):
-                with patch("pathlib.Path.__truediv__") as mock_div:
-                    # Pathの演算子をモック
-                    mock_path = Mock()
-                    mock_div.return_value = mock_path
-                    mock_path.exists.return_value = True
+        with (
+            patch("builtins.open", mock_file),
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.__truediv__") as mock_div,
+        ):
+            # Pathの演算子をモック
+            mock_path = Mock()
+            mock_div.return_value = mock_path
+            mock_path.exists.return_value = True
 
-                    boards = service._load_boards()
+            boards = service._load_boards()
 
-                    # enabled=trueのgボードのみ
-                    assert len(boards) == 1
-                    assert boards[0] == "g"
+            # enabled=trueのgボードのみ
+            assert len(boards) == 1
+            assert boards[0] == "g"
 
 
 # =============================================================================
@@ -3053,15 +3062,17 @@ def test_run_method_calls_collect(mock_env_vars):
         service = FourChanExplorer()
 
         # asyncio.runをモックしてcollect()の呼び出しを検証
-        with patch("asyncio.run") as mock_asyncio_run:
-            with patch.object(service, "collect", new_callable=AsyncMock) as mock_collect:
-                service.run(thread_limit=10)
+        with (
+            patch("asyncio.run") as mock_asyncio_run,
+            patch.object(service, "collect", new_callable=AsyncMock),
+        ):
+            service.run(thread_limit=10)
 
-                # asyncio.runが呼び出されたことを確認
-                mock_asyncio_run.assert_called_once()
-                # asyncio.runに渡された引数（コルーチン）を取得
-                called_coro = mock_asyncio_run.call_args[0][0]
-                # コルーチンであることを確認
-                assert asyncio.iscoroutine(called_coro)
-                # コルーチンをクローズ（メモリリーク防止）
-                called_coro.close()
+            # asyncio.runが呼び出されたことを確認
+            mock_asyncio_run.assert_called_once()
+            # asyncio.runに渡された引数（コルーチン）を取得
+            called_coro = mock_asyncio_run.call_args[0][0]
+            # コルーチンであることを確認
+            assert asyncio.iscoroutine(called_coro)
+            # コルーチンをクローズ（メモリリーク防止）
+            called_coro.close()
