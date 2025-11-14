@@ -303,7 +303,7 @@ class GPTClient:
         messages.append({"role": "user", "content": prompt})
 
         # トークン数の計算
-        service = service_name or self._get_calling_service()
+        _ = service_name or self._get_calling_service()
         input_text = ""
         for msg in messages:
             input_text += msg["content"] + " "
@@ -316,7 +316,7 @@ class GPTClient:
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_cost(input_tokens, output_tokens)
 
         return output_text
 
@@ -423,7 +423,7 @@ class GPTClient:
         chat_session["messages"].append({"role": "user", "content": message})
 
         # トークン数の計算
-        service = self._get_calling_service()
+        _ = self._get_calling_service()
         input_text = ""
         for msg in chat_session["messages"]:
             input_text += msg["content"] + " "
@@ -436,7 +436,7 @@ class GPTClient:
         output_tokens = self._count_tokens(assistant_message)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_cost(input_tokens, output_tokens)
 
         chat_session["messages"].append(
             {"role": "assistant", "content": assistant_message}
@@ -499,7 +499,7 @@ class GPTClient:
         )
 
         # トークン数の計算
-        service = self._get_calling_service()
+        _ = self._get_calling_service()
         input_text = ""
         for msg in messages:
             input_text += msg["content"] + " "
@@ -512,7 +512,7 @@ class GPTClient:
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_cost(input_tokens, output_tokens)
 
         return output_text
 
@@ -558,7 +558,7 @@ class GPTClient:
         all_messages.extend(messages)
 
         # トークン数の計算
-        service = self._get_calling_service()
+        _ = self._get_calling_service()
         input_text = ""
         for msg in all_messages:
             input_text += msg["content"] + " "
@@ -571,6 +571,6 @@ class GPTClient:
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_cost(input_tokens, output_tokens)
 
         return output_text

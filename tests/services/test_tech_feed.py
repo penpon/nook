@@ -55,7 +55,7 @@ def test_init_with_custom_storage_dir(mock_env_vars):
     Then: インスタンスが正常に作成される
     """
     with patch("nook.common.base_service.setup_logger"):
-        service = TechFeed(storage_dir="/tmp/custom")
+        service = TechFeed(storage_dir="/tmp/custom")  # nosec B108 - Safe for test context
 
         assert service.service_name == "tech_feed"
         assert service.feed_config is not None

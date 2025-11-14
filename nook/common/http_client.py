@@ -262,7 +262,7 @@ class AsyncHTTPClient:
 
         except Exception as e:
             # エラーの種類を特定して簡潔に出力
-            error_type = type(e).__name__
+            _ = type(e).__name__
             if "SSL" in str(e) or "handshake" in str(e).lower():
                 error_summary = "SSL/TLS handshake error"
             elif "timeout" in str(e).lower():

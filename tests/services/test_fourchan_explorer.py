@@ -2803,7 +2803,7 @@ def test_init_with_storage_path_not_ending_with_service_name(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 
-        service = FourChanExplorer(storage_dir="/tmp/data")
+        service = FourChanExplorer(storage_dir="/tmp/data")  # nosec B108 - Safe for test context
 
         # storage_pathにfourchan_explorerが追加されている
         assert str(service.storage.base_dir).endswith("fourchan_explorer")
@@ -2819,10 +2819,10 @@ def test_init_with_storage_path_already_ending_with_service_name(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 
-        service = FourChanExplorer(storage_dir="/tmp/data/fourchan_explorer")
+        service = FourChanExplorer(storage_dir="/tmp/data/fourchan_explorer")  # nosec B108
 
         # 二重にfourchan_explorerが追加されない
-        assert str(service.storage.base_dir) == "/tmp/data/fourchan_explorer"
+        assert str(service.storage.base_dir) == "/tmp/data/fourchan_explorer"  # nosec B108
 
 
 # =============================================================================

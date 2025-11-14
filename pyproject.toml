@@ -15,6 +15,8 @@ dependencies = [
     "pandas>=2.3.3",
     "playwright>=1.40.0",
     "python-dotenv>=1.0.0",
+    "httpx>=0.25.0",
+    "requests>=2.31.0",
 ]
 
 [dependency-groups]
@@ -24,6 +26,7 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-cov>=6.0.0",
     "pytest-timeout>=2.3.0",
+    "respx>=0.20.0",
     "black>=24.0.0",
     "ruff>=0.6.0",
     "bandit>=1.7.0",

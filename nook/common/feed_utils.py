@@ -51,7 +51,7 @@ def _parse_iso_datetime(value: str) -> datetime | None:
     if parsed.tzinfo is None:
         return parsed + timedelta(hours=9)
 
-    return parsed.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(hours=9)
+    return parsed.astimezone(datetime.UTC).replace(tzinfo=None) + timedelta(hours=9)
 
 
 def parse_entry_datetime(entry: Any) -> datetime | None:
@@ -65,7 +65,7 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         except (TypeError, ValueError):
             continue
 
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(
+        return datetime.fromtimestamp(timestamp, tz=datetime.UTC).replace(
             tzinfo=None
         ) + timedelta(hours=9)
 
