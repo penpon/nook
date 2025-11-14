@@ -661,7 +661,11 @@ def mock_cloudscraper():
     mock_scraper = Mock()
     mock_scraper.headers = {}
 
+    async def _fake_to_thread(fn, *args, **kwargs):
+        """asyncio.to_threadの代替（同期的に実行）"""
+        return fn(*args, **kwargs)
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+        "asyncio.to_thread", new=_fake_to_thread
     ):
         yield mock_scraper

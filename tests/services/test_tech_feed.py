@@ -2280,12 +2280,6 @@ async def test_store_summaries_with_articles(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = TechFeed()
 
-        from datetime import date, datetime
-
-        from bs4 import BeautifulSoup
-
-        from nook.services.base_feed_service import Article
-
         articles = [
             Article(
                 feed_name="Test",

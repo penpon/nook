@@ -382,7 +382,8 @@ async def test_get_subject_txt_data_encoding_fallback(
     result = await fivechan_service._get_subject_txt_data("test")
 
     # CP932フォールバックで処理される
-    assert len(result) >= 0, f"Expected non-negative length but got {len(result)}"
+    assert len(result) >= 1, f"Expected at least one thread but got {len(result)}"
+    assert result[0]["post_count"] == 30, f"Expected post_count=30 but got {result[0]['post_count']}"
 
 
 # =============================================================================
@@ -1135,6 +1136,8 @@ async def test_retry_backoff_performance(fivechan_service, mock_httpx_client):
     start_time = time.time()
 
     mock_httpx_client.get = failing_then_success
+    # Ensure _get_with_retry uses the mocked client
+    fivechan_service.http_client = mock_httpx_client
 
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         result = await fivechan_service._get_with_retry(
