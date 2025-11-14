@@ -274,7 +274,7 @@
 
 ### 3.4 github_trending ユニットテスト実装
 
-- [-] 3.4. github_trending ユニットテスト実装（20-25テストケース）
+- [x] 3.4. github_trending ユニットテスト実装（20-25テストケース）
   - File: tests/services/test_github_trending.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（5-7ケース）**:
