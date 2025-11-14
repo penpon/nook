@@ -80,4 +80,4 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(
             status_code=500,
             detail=f"チャットリクエストの処理中にエラーが発生しました: {str(e)}",
-        )
+        ) from e
