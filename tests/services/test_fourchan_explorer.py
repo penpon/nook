@@ -1063,3 +1063,1029 @@ def test_thread_sort_key_missing_fields(mock_env_vars):
         assert len(key) == 2
         assert key[0] == 0.0
         assert isinstance(key[1], datetime)
+
+
+@pytest.mark.unit
+def test_thread_sort_key_with_timestamp_fallback(mock_env_vars):
+    """
+    Given: published_atがなくtimestampのみのレコード
+    When: _thread_sort_key()を呼び出す
+    Then: timestampから日時が計算される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        record = {"popularity_score": 5.0, "timestamp": 1699999999}
+
+        key = service._thread_sort_key(record)
+
+        assert isinstance(key, tuple)
+        assert key[0] == 5.0
+        assert isinstance(key[1], datetime)
+
+
+@pytest.mark.unit
+def test_thread_sort_key_with_invalid_timestamp(mock_env_vars):
+    """
+    Given: 不正なtimestampのレコード
+    When: _thread_sort_key()を呼び出す
+    Then: datetime.minが使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        record = {"popularity_score": 5.0, "timestamp": "invalid"}
+
+        key = service._thread_sort_key(record)
+
+        assert isinstance(key, tuple)
+        assert key[0] == 5.0
+        assert key[1] == datetime.min.replace(tzinfo=timezone.utc)
+
+
+# =============================================================================
+# 14. 内部メソッドの単体テスト - _summarize_thread()
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_thread_success(mock_env_vars):
+    """
+    Given: 有効なスレッドオブジェクト
+    When: _summarize_thread()を呼び出す
+    Then: 要約が正常に生成される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        thread = Thread(
+            thread_id=123456,
+            title="AI Discussion",
+            url="https://boards.4chan.org/g/thread/123456",
+            board="g",
+            posts=[
+                {"no": 123456, "com": "What do you think about GPT-4?"},
+                {"no": 123457, "com": "It's amazing!"},
+            ],
+            timestamp=1699999999,
+        )
+
+        service.gpt_client.generate_content = Mock(
+            return_value="これはAIに関する議論です。"
+        )
+
+        await service._summarize_thread(thread)
+
+        assert thread.summary == "これはAIに関する議論です。"
+        service.gpt_client.generate_content.assert_called_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_thread_with_html_tags(mock_env_vars):
+    """
+    Given: HTMLタグを含む投稿
+    When: _summarize_thread()を呼び出す
+    Then: HTMLタグが除去されて要約が生成される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        thread = Thread(
+            thread_id=123456,
+            title="Test Thread",
+            url="https://boards.4chan.org/g/thread/123456",
+            board="g",
+            posts=[
+                {"no": 123456, "com": "<b>Bold text</b> and <i>italic</i>"},
+            ],
+            timestamp=1699999999,
+        )
+
+        service.gpt_client.generate_content = Mock(return_value="テスト要約")
+
+        await service._summarize_thread(thread)
+
+        # generate_contentが呼び出されたことを確認
+        assert service.gpt_client.generate_content.called
+        call_args = service.gpt_client.generate_content.call_args
+        # promptにHTMLタグが除去されたテキストが含まれていることを確認
+        assert "<b>" not in call_args.kwargs["prompt"]
+        assert "<i>" not in call_args.kwargs["prompt"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_thread_empty_posts(mock_env_vars):
+    """
+    Given: 空の投稿リスト
+    When: _summarize_thread()を呼び出す
+    Then: エラーなく処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        thread = Thread(
+            thread_id=123456,
+            title="Empty Thread",
+            url="https://boards.4chan.org/g/thread/123456",
+            board="g",
+            posts=[],
+            timestamp=1699999999,
+        )
+
+        service.gpt_client.generate_content = Mock(return_value="空のスレッドです。")
+
+        await service._summarize_thread(thread)
+
+        assert thread.summary == "空のスレッドです。"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_thread_gpt_error(mock_env_vars):
+    """
+    Given: GPT APIがエラーを返す
+    When: _summarize_thread()を呼び出す
+    Then: エラーメッセージが要約に設定される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        thread = Thread(
+            thread_id=123456,
+            title="Test Thread",
+            url="https://boards.4chan.org/g/thread/123456",
+            board="g",
+            posts=[{"no": 123456, "com": "Test post"}],
+            timestamp=1699999999,
+        )
+
+        service.gpt_client.generate_content = Mock(
+            side_effect=Exception("API rate limit exceeded")
+        )
+
+        await service._summarize_thread(thread)
+
+        assert "エラーが発生しました" in thread.summary
+        assert "API rate limit exceeded" in thread.summary
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_summarize_thread_with_many_replies(mock_env_vars):
+    """
+    Given: 多数の返信があるスレッド
+    When: _summarize_thread()を呼び出す
+    Then: 最大5件の返信のみが処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        posts = [{"no": i, "com": f"Post {i}"} for i in range(20)]
+
+        thread = Thread(
+            thread_id=123456,
+            title="Popular Thread",
+            url="https://boards.4chan.org/g/thread/123456",
+            board="g",
+            posts=posts,
+            timestamp=1699999999,
+        )
+
+        service.gpt_client.generate_content = Mock(return_value="人気スレッドの要約")
+
+        await service._summarize_thread(thread)
+
+        # generate_contentが呼び出されたことを確認
+        call_args = service.gpt_client.generate_content.call_args
+        prompt_text = call_args.kwargs["prompt"]
+
+        # OPと最大5件の返信のみが含まれることを確認
+        assert "返信 1:" in prompt_text
+        assert "返信 5:" in prompt_text
+        assert "返信 6:" not in prompt_text
+
+
+# =============================================================================
+# 15. 内部メソッドの単体テスト - _select_top_threads()
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_select_top_threads_within_limit(mock_env_vars):
+    """
+    Given: limit以下のスレッド数
+    When: _select_top_threads()を呼び出す
+    Then: すべてのスレッドが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        threads = [
+            Thread(
+                thread_id=i,
+                title=f"Thread {i}",
+                url=f"https://example.com/{i}",
+                board="g",
+                posts=[],
+                timestamp=1699999999,
+                popularity_score=float(i),
+            )
+            for i in range(5)
+        ]
+
+        result = service._select_top_threads(threads, limit=10)
+
+        assert len(result) == 5
+
+
+@pytest.mark.unit
+def test_select_top_threads_exceeds_limit(mock_env_vars):
+    """
+    Given: limitを超えるスレッド数
+    When: _select_top_threads()を呼び出す
+    Then: 人気スコアの高い順にlimit件が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        threads = [
+            Thread(
+                thread_id=i,
+                title=f"Thread {i}",
+                url=f"https://example.com/{i}",
+                board="g",
+                posts=[],
+                timestamp=1699999999,
+                popularity_score=float(i),
+            )
+            for i in range(20)
+        ]
+
+        result = service._select_top_threads(threads, limit=5)
+
+        assert len(result) == 5
+        # 人気スコアの高い順（19, 18, 17, 16, 15）
+        assert result[0].popularity_score == 19.0
+        assert result[4].popularity_score == 15.0
+
+
+@pytest.mark.unit
+def test_select_top_threads_empty_list(mock_env_vars):
+    """
+    Given: 空のスレッドリスト
+    When: _select_top_threads()を呼び出す
+    Then: 空のリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        result = service._select_top_threads([], limit=10)
+
+        assert result == []
+
+
+@pytest.mark.unit
+def test_select_top_threads_with_same_score(mock_env_vars):
+    """
+    Given: 同じ人気スコアのスレッド
+    When: _select_top_threads()を呼び出す
+    Then: タイムスタンプで二次ソートされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import (
+            FourChanExplorer,
+            Thread,
+        )
+
+        service = FourChanExplorer()
+
+        threads = [
+            Thread(
+                thread_id=1,
+                title="Old Thread",
+                url="https://example.com/1",
+                board="g",
+                posts=[],
+                timestamp=1699999999,
+                popularity_score=10.0,
+            ),
+            Thread(
+                thread_id=2,
+                title="New Thread",
+                url="https://example.com/2",
+                board="g",
+                posts=[],
+                timestamp=1700000000,
+                popularity_score=10.0,
+            ),
+        ]
+
+        result = service._select_top_threads(threads, limit=5)
+
+        assert len(result) == 2
+        # スレッドが選択されることを確認
+        result_ids = {t.thread_id for t in result}
+        assert result_ids == {1, 2}
+
+
+# =============================================================================
+# 16. 内部メソッドの単体テスト - _load_existing_titles()
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_load_existing_titles_with_valid_markdown(mock_env_vars):
+    """
+    Given: 有効なMarkdownファイル
+    When: _load_existing_titles()を呼び出す
+    Then: タイトルが正しく抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        markdown_content = """# 4chan AI関連スレッド
+
+## /g/
+
+### [AI Discussion Thread](https://example.com/1)
+
+作成日時: <t:1699999999:F>
+
+**要約**:
+Test summary 1
+
+---
+
+### [Machine Learning Thread](https://example.com/2)
+
+作成日時: <t:1699999999:F>
+
+**要約**:
+Test summary 2
+
+---
+"""
+
+        with patch.object(
+            service.storage, "load_markdown", return_value=markdown_content
+        ):
+            tracker = service._load_existing_titles()
+
+            # タイトルが追加されたか確認
+            is_dup1, _ = tracker.is_duplicate("AI Discussion Thread")
+            is_dup2, _ = tracker.is_duplicate("Machine Learning Thread")
+
+            assert is_dup1 is True
+            assert is_dup2 is True
+
+
+@pytest.mark.unit
+def test_load_existing_titles_empty_markdown(mock_env_vars):
+    """
+    Given: 空のMarkdownファイル
+    When: _load_existing_titles()を呼び出す
+    Then: 空のTrackerが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        with patch.object(service.storage, "load_markdown", return_value=""):
+            tracker = service._load_existing_titles()
+
+            is_dup, _ = tracker.is_duplicate("New Thread")
+            assert is_dup is False
+
+
+@pytest.mark.unit
+def test_load_existing_titles_with_error(mock_env_vars):
+    """
+    Given: Markdownの読み込みでエラーが発生
+    When: _load_existing_titles()を呼び出す
+    Then: 空のTrackerが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        with patch.object(
+            service.storage, "load_markdown", side_effect=Exception("File not found")
+        ):
+            tracker = service._load_existing_titles()
+
+            # エラーが発生しても空のTrackerが返される
+            is_dup, _ = tracker.is_duplicate("New Thread")
+            assert is_dup is False
+
+
+# =============================================================================
+# 17. 内部メソッドの単体テスト - _load_existing_threads()
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_threads_from_json(mock_env_vars):
+    """
+    Given: 有効なJSONファイル
+    When: _load_existing_threads()を呼び出す
+    Then: スレッドデータが正しく読み込まれる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        json_data = {
+            "g": [
+                {
+                    "thread_id": 123456,
+                    "title": "Test Thread",
+                    "url": "https://example.com/123456",
+                    "timestamp": 1699999999,
+                    "summary": "Test summary",
+                }
+            ]
+        }
+
+        with patch.object(service, "load_json", new_callable=AsyncMock) as mock_load:
+            mock_load.return_value = json_data
+
+            target_date = datetime(2024, 11, 14)
+            result = await service._load_existing_threads(target_date)
+
+            assert len(result) == 1
+            assert result[0]["thread_id"] == 123456
+            assert result[0]["board"] == "g"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_threads_from_markdown(mock_env_vars):
+    """
+    Given: JSONがなくMarkdownファイルのみ
+    When: _load_existing_threads()を呼び出す
+    Then: Markdownからスレッドデータが読み込まれる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        markdown_content = """# 4chan AI関連スレッド (2024-11-14)
+
+## /g/
+
+### [Test Thread](https://boards.4chan.org/g/thread/123456)
+
+作成日時: <t:1699999999:F>
+
+**要約**:
+Test summary
+
+---
+"""
+
+        with patch.object(service, "load_json", new_callable=AsyncMock) as mock_load:
+            mock_load.return_value = None
+
+            with patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load:
+                mock_storage_load.return_value = markdown_content
+
+                target_date = datetime(2024, 11, 14)
+                result = await service._load_existing_threads(target_date)
+
+                assert len(result) == 1
+                assert result[0]["thread_id"] == 123456
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_threads_no_data(mock_env_vars):
+    """
+    Given: JSONもMarkdownも存在しない
+    When: _load_existing_threads()を呼び出す
+    Then: 空のリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        with patch.object(service, "load_json", new_callable=AsyncMock) as mock_load:
+            mock_load.return_value = None
+
+            with patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load:
+                mock_storage_load.return_value = None
+
+                target_date = datetime(2024, 11, 14)
+                result = await service._load_existing_threads(target_date)
+
+                assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_threads_list_format(mock_env_vars):
+    """
+    Given: リスト形式のJSONデータ
+    When: _load_existing_threads()を呼び出す
+    Then: そのまま返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        json_data = [
+            {
+                "thread_id": 123456,
+                "title": "Test Thread",
+                "board": "g",
+            }
+        ]
+
+        with patch.object(service, "load_json", new_callable=AsyncMock) as mock_load:
+            mock_load.return_value = json_data
+
+            target_date = datetime(2024, 11, 14)
+            result = await service._load_existing_threads(target_date)
+
+            assert len(result) == 1
+            assert result[0]["thread_id"] == 123456
+
+
+# =============================================================================
+# 18. catalog.json エッジケーステスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_catalog_invalid_json(mock_env_vars, respx_mock):
+    """
+    Given: catalog.jsonが不正なJSON
+    When: _retrieve_ai_threads()を呼び出す
+    Then: 例外が発生する
+    """
+    respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
+        return_value=httpx.Response(200, text="invalid json {{{")
+    )
+
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.common.dedup import DedupTracker
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer(test_mode=True)
+        await service.setup_http_client()
+
+        dedup_tracker = DedupTracker()
+
+        with pytest.raises(Exception):
+            await service._retrieve_ai_threads(
+                "g",
+                limit=None,
+                dedup_tracker=dedup_tracker,
+                target_dates=[date.today()],
+            )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_catalog_timeout(mock_env_vars, respx_mock):
+    """
+    Given: catalog.jsonのリクエストがタイムアウト
+    When: _retrieve_ai_threads()を呼び出す
+    Then: RetryExceptionが発生する（リトライ後）
+    """
+    respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
+        side_effect=httpx.TimeoutException("Request timeout")
+    )
+
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.common.dedup import DedupTracker
+        from nook.common.exceptions import RetryException
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer(test_mode=True)
+        await service.setup_http_client()
+
+        dedup_tracker = DedupTracker()
+
+        with pytest.raises(RetryException):
+            await service._retrieve_ai_threads(
+                "g",
+                limit=None,
+                dedup_tracker=dedup_tracker,
+                target_dates=[date.today()],
+            )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_empty_catalog(mock_env_vars, respx_mock):
+    """
+    Given: 空のcatalog.json
+    When: _retrieve_ai_threads()を呼び出す
+    Then: 空のリストが返される
+    """
+    respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.common.dedup import DedupTracker
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer(test_mode=True)
+        await service.setup_http_client()
+
+        dedup_tracker = DedupTracker()
+        threads = await service._retrieve_ai_threads(
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+        )
+
+        assert isinstance(threads, list)
+        assert len(threads) == 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
+    """
+    Given: subjectフィールドがないスレッド
+    When: _retrieve_ai_threads()を呼び出す
+    Then: デフォルトタイトルが使用される
+    """
+    respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "page": 0,
+                    "threads": [
+                        {
+                            "no": 123456,
+                            "com": "AI and machine learning discussion",
+                            "time": int(datetime.now(timezone.utc).timestamp()),
+                            "last_modified": int(
+                                datetime.now(timezone.utc).timestamp()
+                            ),
+                        }
+                    ],
+                }
+            ],
+        )
+    )
+
+    respx_mock.get("https://a.4cdn.org/g/thread/123456.json").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "posts": [
+                    {"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}
+                ]
+            },
+        )
+    )
+
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.common.dedup import DedupTracker
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer(test_mode=True)
+        await service.setup_http_client()
+
+        dedup_tracker = DedupTracker()
+        threads = await service._retrieve_ai_threads(
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+        )
+
+        assert len(threads) == 1
+        assert "Untitled Thread" in threads[0].title
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
+    """
+    Given: HTMLタグを含むコメント
+    When: _retrieve_ai_threads()を呼び出す
+    Then: HTMLタグが除去されてキーワードマッチングされる
+    """
+    respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "page": 0,
+                    "threads": [
+                        {
+                            "no": 123456,
+                            "sub": "Test Thread",
+                            "com": "<b>GPT-4</b> and <i>machine learning</i>",
+                            "time": int(datetime.now(timezone.utc).timestamp()),
+                            "last_modified": int(
+                                datetime.now(timezone.utc).timestamp()
+                            ),
+                        }
+                    ],
+                }
+            ],
+        )
+    )
+
+    respx_mock.get("https://a.4cdn.org/g/thread/123456.json").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "posts": [
+                    {"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}
+                ]
+            },
+        )
+    )
+
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.common.dedup import DedupTracker
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer(test_mode=True)
+        await service.setup_http_client()
+
+        dedup_tracker = DedupTracker()
+        threads = await service._retrieve_ai_threads(
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+        )
+
+        assert len(threads) == 1
+
+
+# =============================================================================
+# 19. JSON解析エッジケーステスト
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_parse_markdown_multiple_boards(mock_env_vars):
+    """
+    Given: 複数のボードを含むMarkdown
+    When: _parse_markdown()を呼び出す
+    Then: すべてのボードのスレッドが抽出される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        markdown = """# 4chan AI関連スレッド (2024-11-14)
+
+## /g/
+
+### [Thread 1](https://boards.4chan.org/g/thread/111111)
+
+作成日時: <t:1699999999:F>
+
+**要約**:
+Summary 1
+
+---
+
+## /sci/
+
+### [Thread 2](https://boards.4chan.org/sci/thread/222222)
+
+作成日時: <t:1699999999:F>
+
+**要約**:
+Summary 2
+
+---
+"""
+
+        records = service._parse_markdown(markdown)
+
+        assert len(records) == 2
+        assert records[0]["board"] == "g"
+        assert records[0]["thread_id"] == 111111
+        assert records[1]["board"] == "sci"
+        assert records[1]["thread_id"] == 222222
+
+
+@pytest.mark.unit
+def test_parse_markdown_missing_summary(mock_env_vars):
+    """
+    Given: 要約がないMarkdown
+    When: _parse_markdown()を呼び出す
+    Then: 空の要約として処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        markdown = """# 4chan AI関連スレッド (2024-11-14)
+
+## /g/
+
+### [Test Thread](https://boards.4chan.org/g/thread/123456)
+
+作成日時: <t:1699999999:F>
+
+**要約**:
+
+---
+"""
+
+        records = service._parse_markdown(markdown)
+
+        assert len(records) == 1
+        assert records[0]["summary"] == ""
+
+
+@pytest.mark.unit
+def test_parse_markdown_malformed(mock_env_vars):
+    """
+    Given: 不正な形式のMarkdown
+    When: _parse_markdown()を呼び出す
+    Then: 可能な限り解析される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        markdown = """# Random header
+
+Some random text
+
+### [Thread without board](https://example.com/thread/123)
+"""
+
+        records = service._parse_markdown(markdown)
+
+        # 不正な形式なので何も抽出されない
+        assert len(records) == 0
+
+
+@pytest.mark.unit
+def test_render_markdown_with_missing_fields(mock_env_vars):
+    """
+    Given: フィールドが欠損したレコード
+    When: _render_markdown()を呼び出す
+    Then: デフォルト値が使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        records = [
+            {
+                "thread_id": 123,
+                "url": "https://example.com/123",
+                # titleとsummaryが欠損
+            }
+        ]
+
+        today = datetime(2024, 11, 14)
+        markdown = service._render_markdown(records, today)
+
+        assert isinstance(markdown, str)
+        assert "無題スレッド #123" in markdown
+
+
+# =============================================================================
+# 20. popularity score 追加エッジケーステスト
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_calculate_popularity_with_invalid_timestamp(mock_env_vars):
+    """
+    Given: 不正なタイムスタンプ
+    When: _calculate_popularity()を呼び出す
+    Then: recency_bonusが0になるがエラーは発生しない
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        thread_metadata = {
+            "replies": 10,
+            "images": 5,
+            "bumps": 3,
+            "last_modified": "invalid",
+        }
+        posts = [{"no": 1}]
+
+        score = service._calculate_popularity(thread_metadata, posts)
+
+        # replies(10) + images*2(10) + bumps(3) + len(posts)(1) = 24
+        assert score == 24.0
+
+
+@pytest.mark.unit
+def test_calculate_popularity_with_future_timestamp(mock_env_vars):
+    """
+    Given: 未来のタイムスタンプ
+    When: _calculate_popularity()を呼び出す
+    Then: 計算は正常に行われる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        future_timestamp = int(datetime.now().timestamp()) + 86400  # 1日後
+
+        thread_metadata = {
+            "replies": 10,
+            "images": 5,
+            "bumps": 3,
+            "last_modified": future_timestamp,
+        }
+        posts = []
+
+        score = service._calculate_popularity(thread_metadata, posts)
+
+        assert isinstance(score, float)
+        # 未来のタイムスタンプでもエラーにならない
+        assert score > 0
+
+
+@pytest.mark.unit
+def test_calculate_popularity_zero_values(mock_env_vars):
+    """
+    Given: すべてのフィールドが0
+    When: _calculate_popularity()を呼び出す
+    Then: 0.0が返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
+
+        service = FourChanExplorer()
+
+        thread_metadata = {
+            "replies": 0,
+            "images": 0,
+            "bumps": 0,
+        }
+        posts = []
+
+        score = service._calculate_popularity(thread_metadata, posts)
+
+        assert score == 0.0
