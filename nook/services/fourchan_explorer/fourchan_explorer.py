@@ -567,7 +567,7 @@ class FourChanExplorer(BaseService):
             if reply_text:
                 # HTMLタグを除去
                 reply_text = re.sub(r"<[^>]*>", " ", reply_text)
-                thread_content += f"返信 {i+1}: {reply_text}\n\n"
+                thread_content += f"返信 {i + 1}: {reply_text}\n\n"
 
         prompt = f"""
         以下の4chanスレッドを要約してください。

@@ -1169,11 +1169,14 @@ Summary
 
 """
 
-    with patch.object(
-        reddit_explorer_service, "load_json", new_callable=AsyncMock
-    ) as mock_load_json, patch.object(
-        reddit_explorer_service.storage, "load", new_callable=AsyncMock
-    ) as mock_load_md:
+    with (
+        patch.object(
+            reddit_explorer_service, "load_json", new_callable=AsyncMock
+        ) as mock_load_json,
+        patch.object(
+            reddit_explorer_service.storage, "load", new_callable=AsyncMock
+        ) as mock_load_md,
+    ):
         mock_load_json.return_value = None
         mock_load_md.return_value = markdown
 
@@ -1192,11 +1195,14 @@ async def test_load_existing_posts_no_data(reddit_explorer_service):
     When: _load_existing_postsで読み込み
     Then: 空リストが返される
     """
-    with patch.object(
-        reddit_explorer_service, "load_json", new_callable=AsyncMock
-    ) as mock_load_json, patch.object(
-        reddit_explorer_service.storage, "load", new_callable=AsyncMock
-    ) as mock_load_md:
+    with (
+        patch.object(
+            reddit_explorer_service, "load_json", new_callable=AsyncMock
+        ) as mock_load_json,
+        patch.object(
+            reddit_explorer_service.storage, "load", new_callable=AsyncMock
+        ) as mock_load_md,
+    ):
         mock_load_json.return_value = None
         mock_load_md.return_value = None
 

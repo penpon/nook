@@ -86,20 +86,21 @@ async def test_collect_success_with_trending_repos(mock_env_vars):
         </body></html>
         """
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
             service.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
 
@@ -120,18 +121,20 @@ async def test_collect_with_multiple_languages(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch(
-            "tomli.load",
-            return_value={"general": ["python"], "specific": ["javascript"]},
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch(
+                "tomli.load",
+                return_value={"general": ["python"], "specific": ["javascript"]},
+            ),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )
@@ -155,15 +158,16 @@ async def test_collect_with_target_dates(mock_env_vars):
 
         target_date = date.today() - timedelta(days=1)
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )
@@ -185,15 +189,16 @@ async def test_collect_with_limit_parameter(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )
@@ -220,15 +225,15 @@ async def test_collect_network_error(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 side_effect=httpx.TimeoutException("Timeout")
             )
@@ -250,15 +255,15 @@ async def test_collect_invalid_html(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Invalid</body></html>")
             )
@@ -288,15 +293,16 @@ async def test_collect_gpt_api_error(mock_env_vars):
         </body></html>
         """
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
             service.gpt_client.generate_async = AsyncMock(
                 side_effect=Exception("API Error")
@@ -324,15 +330,15 @@ async def test_collect_with_empty_html(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )
@@ -354,15 +360,16 @@ async def test_collect_with_none_target_dates(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )
@@ -661,23 +668,26 @@ async def test_store_summaries_for_date_success(mock_env_vars):
             )
         ]
 
-        with patch.object(
-            service,
-            "save_json",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ), patch.object(
-            service,
-            "save_markdown",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.md"),
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(
+                service,
+                "save_json",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+            patch.object(
+                service,
+                "save_markdown",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.md"),
+            ),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             json_path, md_path = await service._store_summaries_for_date(
                 [("python", repos)], date.today()
             )
@@ -780,20 +790,21 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
         </body></html>
         """
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
             service.gpt_client.generate_async = AsyncMock(return_value="要約")
 
@@ -823,15 +834,16 @@ async def test_collect_with_existing_repositories(mock_env_vars):
 
         existing_repos = [{"name": "test/repo", "stars": 100}]
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=existing_repos,
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=existing_repos,
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )
@@ -860,15 +872,16 @@ async def test_collect_with_multiple_dates(mock_env_vars):
 
         dates = [date.today(), date.today() - timedelta(days=1)]
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )
@@ -950,15 +963,15 @@ async def test_collect_initializes_http_client(mock_env_vars):
 
         assert service.http_client is None
 
-        with patch.object(
-            service.storage, "save", new_callable=AsyncMock
-        ), patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             # setup_http_clientを実際に実行してモックのHTTPクライアントを設定
             async def setup_http():
                 service.http_client = AsyncMock()
@@ -989,17 +1002,19 @@ async def test_collect_respects_rate_limit(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-        with patch.object(
-            service, "setup_http_client", new_callable=AsyncMock
-        ), patch.object(service.storage, "save", new_callable=AsyncMock), patch.object(
-            service, "rate_limit", new_callable=AsyncMock
-        ) as mock_rate_limit, patch.object(
-            service,
-            "_load_existing_repositories_by_date",
-            new_callable=AsyncMock,
-            return_value=[],
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service, "rate_limit", new_callable=AsyncMock
+            ) as mock_rate_limit,
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body></body></html>")
             )

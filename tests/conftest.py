@@ -749,5 +749,3 @@ def async_generator_helper():
             yield item
 
     return _async_generator
-
-

@@ -66,8 +66,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         )
         if request.markdown:
             system_prompt += (
-                f"\n\n以下のコンテンツに基づいて回答してください:"
-                f"\n\n{request.markdown}"
+                f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"
             )
 
         # GPT APIを呼び出し

@@ -232,9 +232,9 @@ async def main():
             logger.warning("テスト用：すべてのサービスを1件制限で実行します")
             # テスト用なので1サービスずつ実行
             for service_name in runner.service_classes.keys():
-                logger.info(f"\n{'='*80}")
+                logger.info(f"\n{'=' * 80}")
                 logger.info(f"テスト実行: {service_name}")
-                logger.info(f"{'='*80}")
+                logger.info(f"{'=' * 80}")
                 await runner.run_service(service_name, args.days)
         else:
             await runner.run_service(args.service, args.days)
