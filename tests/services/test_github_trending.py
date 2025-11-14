@@ -180,7 +180,7 @@ def test_repository_with_zero_stars():
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_success(mock_env_vars):
+async def test_retrieve_repositories_success(mock_env_vars, dedup_tracker):
     """
     Given: 有効なHTMLレスポンス
     When: _retrieve_repositoriesを呼び出す
@@ -190,18 +190,7 @@ async def test_retrieve_repositories_success(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-
-        dedup_tracker = DedupTracker()
-
-        mock_html = """
-        <html><body>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo">test/repo</a></h2>
-                <p>Description</p>
-                <a class="Link--muted">500</a>
-            </article>
-        </body></html>
-        """
+        mock_html = create_mock_html([{"name": "test/repo", "stars": "500"}])
 
         service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
 
@@ -212,7 +201,7 @@ async def test_retrieve_repositories_success(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_with_limit(mock_env_vars):
+async def test_retrieve_repositories_with_limit(mock_env_vars, dedup_tracker):
     """
     Given: limitを超えるリポジトリが存在
     When: _retrieve_repositoriesを呼び出す
@@ -222,26 +211,12 @@ async def test_retrieve_repositories_with_limit(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-
-        dedup_tracker = DedupTracker()
-
         # 複数のリポジトリを含むHTML
-        mock_html = """
-        <html><body>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo1">test/repo1</a></h2>
-                <a class="Link--muted">100</a>
-            </article>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo2">test/repo2</a></h2>
-                <a class="Link--muted">200</a>
-            </article>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo3">test/repo3</a></h2>
-                <a class="Link--muted">300</a>
-            </article>
-        </body></html>
-        """
+        mock_html = create_mock_html([
+            {"name": "test/repo1", "stars": "100"},
+            {"name": "test/repo2", "stars": "200"},
+            {"name": "test/repo3", "stars": "300"}
+        ])
 
         service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
 
@@ -252,7 +227,7 @@ async def test_retrieve_repositories_with_limit(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_deduplication(mock_env_vars):
+async def test_retrieve_repositories_deduplication(mock_env_vars, dedup_tracker):
     """
     Given: 重複するリポジトリ名
     When: _retrieve_repositoriesを呼び出す
@@ -262,18 +237,9 @@ async def test_retrieve_repositories_deduplication(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-
-        dedup_tracker = DedupTracker()
         dedup_tracker.add("test/repo1")
 
-        mock_html = """
-        <html><body>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo1">test/repo1</a></h2>
-                <a class="Link--muted">100</a>
-            </article>
-        </body></html>
-        """
+        mock_html = create_mock_html([{"name": "test/repo1", "stars": "100"}])
 
         service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
 
@@ -595,7 +561,7 @@ async def test_retrieve_repositories_star_count_no_digits(mock_env_vars, dedup_t
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_missing_name_element(mock_env_vars):
+async def test_retrieve_repositories_missing_name_element(mock_env_vars, dedup_tracker):
     """
     Given: h2 aタグがないHTML
     When: _retrieve_repositoriesを呼び出す
@@ -604,9 +570,6 @@ async def test_retrieve_repositories_missing_name_element(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = GithubTrending()
         service.http_client = AsyncMock()
-
-
-        dedup_tracker = DedupTracker()
 
         mock_html = """
         <html><body>
@@ -625,7 +588,7 @@ async def test_retrieve_repositories_missing_name_element(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_api_exception(mock_env_vars):
+async def test_retrieve_repositories_api_exception(mock_env_vars, dedup_tracker):
     """
     Given: HTTPリクエストが例外を発生
     When: _retrieve_repositoriesを呼び出す
@@ -634,9 +597,6 @@ async def test_retrieve_repositories_api_exception(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = GithubTrending()
         service.http_client = AsyncMock()
-
-
-        dedup_tracker = DedupTracker()
 
         service.http_client.get = AsyncMock(
             side_effect=httpx.HTTPStatusError(
@@ -1237,7 +1197,7 @@ async def test_load_existing_repositories_by_date_from_json_list(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_repositories_with_empty_language(mock_env_vars):
+async def test_retrieve_repositories_with_empty_language(mock_env_vars, dedup_tracker):
     """
     Given: 空文字列の言語指定
     When: _retrieve_repositoriesを呼び出す
@@ -1247,17 +1207,7 @@ async def test_retrieve_repositories_with_empty_language(mock_env_vars):
         service = GithubTrending()
         service.http_client = AsyncMock()
 
-
-        dedup_tracker = DedupTracker()
-
-        mock_html = """
-        <html><body>
-            <article class="Box-row">
-                <h2 class="h3"><a href="/test/repo">test/repo</a></h2>
-                <a class="Link--muted">100</a>
-            </article>
-        </body></html>
-        """
+        mock_html = create_mock_html([{"name": "test/repo", "stars": "100"}])
 
         service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
 
