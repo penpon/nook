@@ -325,9 +325,7 @@ def test_add_domain_rate_limit_custom_per_and_burst():
     Then: 正しく設定される
     """
     client = RateLimitedHTTPClient()
-    client.add_domain_rate_limit(
-        "example.com", rate=100, per=timedelta(minutes=1), burst=150
-    )
+    client.add_domain_rate_limit("example.com", rate=100, per=timedelta(minutes=1), burst=150)
 
     limiter = client.domain_rate_limits["example.com"]
     assert limiter.rate == 100
@@ -413,9 +411,7 @@ async def test_http_client_get_default_rate_limit():
         mock_response.status_code = 200
 
         # 親クラスのメソッドをモック
-        with patch(
-            "nook.common.http_client.AsyncHTTPClient.get", return_value=mock_response
-        ):
+        with patch("nook.common.http_client.AsyncHTTPClient.get", return_value=mock_response):
             # 実際にgetを呼び出す
             client_real = RateLimitedHTTPClient()
             result = await client_real.get("https://example.com/path")
@@ -438,9 +434,7 @@ async def test_http_client_get_domain_specific_rate_limit():
     mock_response = AsyncMock(spec=httpx.Response)
     mock_response.status_code = 200
 
-    with patch(
-        "nook.common.http_client.AsyncHTTPClient.get", return_value=mock_response
-    ):
+    with patch("nook.common.http_client.AsyncHTTPClient.get", return_value=mock_response):
         result = await client.get("https://example.com/path")
         assert result.status_code == 200
 
@@ -458,9 +452,7 @@ async def test_http_client_post_rate_limit():
     mock_response = AsyncMock(spec=httpx.Response)
     mock_response.status_code = 201
 
-    with patch(
-        "nook.common.http_client.AsyncHTTPClient.post", return_value=mock_response
-    ):
+    with patch("nook.common.http_client.AsyncHTTPClient.post", return_value=mock_response):
         result = await client.post("https://example.com/api", json={"data": "test"})
         assert result.status_code == 201
 
@@ -479,9 +471,7 @@ async def test_http_client_multiple_requests_rate_limited():
     mock_response = AsyncMock(spec=httpx.Response)
     mock_response.status_code = 200
 
-    with patch(
-        "nook.common.http_client.AsyncHTTPClient.get", return_value=mock_response
-    ):
+    with patch("nook.common.http_client.AsyncHTTPClient.get", return_value=mock_response):
         # 2回は即座に成功（burst=2）
         result1 = await client.get("https://example.com/1")
         result2 = await client.get("https://example.com/2")

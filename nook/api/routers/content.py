@@ -15,12 +15,10 @@ PAPER_SUMMARY_TITLE_MAPPING = {
     "1. 既存研究では何ができなかったのか": "🔍 研究背景と課題",
     "2. どのようなアプローチでそれを解決しようとしたか": "💡 提案手法",
     "3. 結果、何が達成できたのか": "🎯 主要な成果",
-    "4. 制限や問題点は何ですか。"
-    "本文で言及されているやあなたが考えるものも含めて教えてください": (
+    "4. 制限や問題点は何ですか。本文で言及されているやあなたが考えるものも含めて教えてください": (
         "⚠️ 限界と今後の課題"
     ),
-    "5. 技術的な詳細について。"
-    "技術者が読むことを想定したトーンで教えてください": "🔧 技術詳細",
+    "5. 技術的な詳細について。技術者が読むことを想定したトーンで教えてください": "🔧 技術詳細",
     "6. コストや物理的な詳細について教えてください。"
     "例えばトレーニングに使用したGPUの数や時間、データセット、"
     "モデルのサイズなど": "💻 計算リソースと規模",
@@ -38,9 +36,7 @@ def convert_paper_summary_titles(content: str) -> str:
         # 質問文の全体または一部にマッチするよう調整
         # "4. 制限や問題点は何ですか。"のような質問文に対応
         if original_title in result:
-            result = result.replace(
-                original_title, PAPER_SUMMARY_TITLE_MAPPING[original_title]
-            )
+            result = result.replace(original_title, PAPER_SUMMARY_TITLE_MAPPING[original_title])
 
     return result
 
@@ -89,9 +85,7 @@ async def get_content(
 
     # キャッシュ制御ヘッダーを設定（キャッシュを無効化）
     if response:
-        response.headers["Cache-Control"] = (
-            "no-store, no-cache, must-revalidate, max-age=0"
-        )
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
 
@@ -102,9 +96,7 @@ async def get_content(
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
-            raise HTTPException(
-                status_code=400, detail=f"Invalid date format: {date}"
-            ) from None
+            raise HTTPException(status_code=400, detail=f"Invalid date format: {date}") from None
     else:
         target_date = datetime.now()
 
@@ -119,9 +111,7 @@ async def get_content(
             stories_data = storage.load_json(service_name, target_date)
             if stories_data:
                 # スコアで降順ソート
-                sorted_stories = sorted(
-                    stories_data, key=lambda x: x.get("score", 0), reverse=True
-                )
+                sorted_stories = sorted(stories_data, key=lambda x: x.get("score", 0), reverse=True)
                 for story in sorted_stories:
                     # 要約があれば要約を、なければ本文を使用
                     content = ""

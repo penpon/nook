@@ -55,9 +55,7 @@ async def test_collect_multiple_categories_processing(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -203,9 +201,7 @@ async def test_collect_storage_save_failure(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -307,9 +303,7 @@ async def test_retrieve_article_http_timeout(mock_env_vars):
         entry.title = "テスト"
         entry.link = "https://example.com/test"
 
-        service.http_client.get = AsyncMock(
-            side_effect=httpx.TimeoutException("Timeout")
-        )
+        service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -420,9 +414,7 @@ async def test_retrieve_article_malformed_html(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         # 不正なHTML（閉じタグなし）
-        service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body><p>テキスト")
-        )
+        service.http_client.get = AsyncMock(return_value=Mock(text="<html><body><p>テキスト"))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 

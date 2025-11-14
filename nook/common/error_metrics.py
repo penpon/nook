@@ -19,9 +19,7 @@ class ErrorMetrics:
 
             # 古いエラーを削除
             cutoff = now - timedelta(minutes=self.window_minutes)
-            self.errors[error_type] = [
-                (ts, d) for ts, d in self.errors[error_type] if ts > cutoff
-            ]
+            self.errors[error_type] = [(ts, d) for ts, d in self.errors[error_type] if ts > cutoff]
 
     def get_error_stats(self) -> dict[str, dict]:
         """エラー統計を取得"""
@@ -52,9 +50,7 @@ class ErrorMetrics:
 
         report_lines = [f"Error Report (last {self.window_minutes} minutes)", "=" * 50]
 
-        for error_type, stat in sorted(
-            stats.items(), key=lambda x: x[1]["count"], reverse=True
-        ):
+        for error_type, stat in sorted(stats.items(), key=lambda x: x[1]["count"], reverse=True):
             report_lines.extend(
                 [
                     f"\nError Type: {error_type}",

@@ -119,9 +119,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -144,9 +142,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text="<html><body><p>日本語テキスト</p></body></html>"
-                )
+                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -180,9 +176,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -203,9 +197,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text="<html><body><p>日本語テキスト</p></body></html>"
-                )
+                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -361,9 +353,7 @@ async def test_collect_http_client_timeout(mock_env_vars):
             mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
-            service.http_client.get = AsyncMock(
-                side_effect=httpx.TimeoutException("Timeout")
-            )
+            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
             result = await service.collect(days=1)
 
@@ -395,9 +385,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -416,9 +404,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(days=1)
 
@@ -489,9 +475,7 @@ async def test_collect_with_limit_one(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -640,9 +624,7 @@ async def test_retrieve_article_success(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         service.http_client.get = AsyncMock(
-            return_value=Mock(
-                text="<html><body><p>これは日本語の記事です</p></body></html>"
-            )
+            return_value=Mock(text="<html><body><p>これは日本語の記事です</p></body></html>")
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
@@ -874,9 +856,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -945,9 +925,7 @@ async def test_collect_with_multiple_categories(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -990,9 +968,7 @@ async def test_collect_feedparser_attribute_error(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-            mock_parse.side_effect = AttributeError(
-                "'NoneType' object has no attribute 'feed'"
-            )
+            mock_parse.side_effect = AttributeError("'NoneType' object has no attribute 'feed'")
 
             result = await service.collect(days=1)
 
@@ -1024,9 +1000,7 @@ async def test_collect_with_duplicate_article(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
         ):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
@@ -1264,9 +1238,7 @@ async def test_retrieve_article_paragraph_fallback(mock_env_vars):
         </html>
         """
 
-        service.http_client.get = AsyncMock(
-            return_value=Mock(text=html_with_paragraphs)
-        )
+        service.http_client.get = AsyncMock(return_value=Mock(text=html_with_paragraphs))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -1562,9 +1534,7 @@ def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars
 """
         (temp_data_dir / "test.md").write_text(markdown_content)
 
-        with patch.object(
-            service.storage, "load_markdown", return_value=markdown_content
-        ):
+        with patch.object(service.storage, "load_markdown", return_value=markdown_content):
             result = service._load_existing_titles()
 
             assert result is not None
@@ -1604,9 +1574,7 @@ def test_load_existing_titles_with_exception(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
-        with patch.object(
-            service.storage, "load_markdown", side_effect=Exception("Read error")
-        ):
+        with patch.object(service.storage, "load_markdown", side_effect=Exception("Read error")):
             result = service._load_existing_titles()
 
             assert result is not None
@@ -1886,9 +1854,7 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock
-            ) as mock_storage_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # 既存記事データ
@@ -1922,9 +1888,7 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text="<html><body><p>新規記事の本文</p></body></html>"
-                )
+                return_value=Mock(text="<html><body><p>新規記事の本文</p></body></html>")
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -1958,9 +1922,7 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock
-            ) as mock_storage_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
         ):
             # 既存記事データ
             existing_data = json.dumps(

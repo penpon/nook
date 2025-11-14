@@ -168,9 +168,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<feed><entry></entry></feed>")
             )
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -260,9 +258,7 @@ async def test_get_curated_paper_ids_success(mock_env_vars, respx_mock):
             )
 
             # When
-            result = await service._get_curated_paper_ids(
-                limit=5, snapshot_date=date(2024, 1, 1)
-            )
+            result = await service._get_curated_paper_ids(limit=5, snapshot_date=date(2024, 1, 1))
 
             # Then
             assert result is not None
@@ -297,9 +293,7 @@ async def test_get_curated_paper_ids_404_error(mock_env_vars, respx_mock):
             service.http_client.get = AsyncMock(return_value=response_mock)
 
             # When
-            result = await service._get_curated_paper_ids(
-                limit=5, snapshot_date=date(2024, 1, 1)
-            )
+            result = await service._get_curated_paper_ids(limit=5, snapshot_date=date(2024, 1, 1))
 
             # Then
             assert result is None
@@ -329,9 +323,7 @@ async def test_get_curated_paper_ids_redirect(mock_env_vars):
             )
 
             # When
-            result = await service._get_curated_paper_ids(
-                limit=5, snapshot_date=date(2024, 1, 1)
-            )
+            result = await service._get_curated_paper_ids(limit=5, snapshot_date=date(2024, 1, 1))
 
             # Then
             assert result is None
@@ -374,9 +366,7 @@ async def test_get_curated_paper_ids_fallback_to_top_page(mock_env_vars):
             )
 
             # When
-            result = await service._get_curated_paper_ids(
-                limit=5, snapshot_date=date(2024, 1, 1)
-            )
+            result = await service._get_curated_paper_ids(limit=5, snapshot_date=date(2024, 1, 1))
 
             # Then
             assert result is not None
@@ -409,9 +399,7 @@ async def test_get_curated_paper_ids_empty_result(mock_env_vars):
             )
 
             # When
-            result = await service._get_curated_paper_ids(
-                limit=5, snapshot_date=date(2024, 1, 1)
-            )
+            result = await service._get_curated_paper_ids(limit=5, snapshot_date=date(2024, 1, 1))
 
             # Then
             assert isinstance(result, list)
@@ -449,9 +437,7 @@ async def test_download_pdf_success(mock_env_vars):
             mock_client.return_value = mock_client_instance
 
             # When
-            result = await service._download_pdf_without_retry(
-                "https://arxiv.org/pdf/2301.00001"
-            )
+            result = await service._download_pdf_without_retry("https://arxiv.org/pdf/2301.00001")
 
             # Then
             assert result.content == b"%PDF-1.4 test content"
@@ -473,18 +459,14 @@ async def test_download_pdf_timeout(mock_env_vars):
         # モックHTTPクライアント
         with patch("httpx.AsyncClient") as mock_client:
             mock_client_instance = AsyncMock()
-            mock_client_instance.get = AsyncMock(
-                side_effect=httpx.TimeoutException("Timeout")
-            )
+            mock_client_instance.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
             mock_client_instance.__aenter__.return_value = mock_client_instance
             mock_client_instance.__aexit__.return_value = None
             mock_client.return_value = mock_client_instance
 
             # When/Then
             with pytest.raises(httpx.TimeoutException):
-                await service._download_pdf_without_retry(
-                    "https://arxiv.org/pdf/2301.00001"
-                )
+                await service._download_pdf_without_retry("https://arxiv.org/pdf/2301.00001")
 
 
 @pytest.mark.unit
@@ -516,9 +498,7 @@ async def test_download_pdf_404_error(mock_env_vars):
 
             # When/Then
             with pytest.raises(httpx.HTTPStatusError):
-                await service._download_pdf_without_retry(
-                    "https://arxiv.org/pdf/2301.00001"
-                )
+                await service._download_pdf_without_retry("https://arxiv.org/pdf/2301.00001")
 
 
 @pytest.mark.unit
@@ -550,9 +530,7 @@ async def test_download_pdf_500_error(mock_env_vars):
 
             # When/Then
             with pytest.raises(httpx.HTTPStatusError):
-                await service._download_pdf_without_retry(
-                    "https://arxiv.org/pdf/2301.00001"
-                )
+                await service._download_pdf_without_retry("https://arxiv.org/pdf/2301.00001")
 
 
 # =============================================================================
@@ -575,9 +553,7 @@ async def test_extract_from_pdf_success(mock_env_vars):
 
         # モックPDF
         mock_page = Mock()
-        mock_page.extract_text.return_value = (
-            "This is a test paper content. " * 10
-        )  # 十分な長さ
+        mock_page.extract_text.return_value = "This is a test paper content. " * 10  # 十分な長さ
 
         mock_pdf = Mock()
         mock_pdf.pages = [mock_page]
@@ -767,9 +743,7 @@ async def test_translate_to_japanese_success(mock_env_vars):
         service = ArxivSummarizer()
 
         # モックGPTクライアント
-        service.gpt_client.generate_async = AsyncMock(
-            return_value="これはテスト翻訳です。"
-        )
+        service.gpt_client.generate_async = AsyncMock(return_value="これはテスト翻訳です。")
 
         with patch.object(service, "rate_limit", new_callable=AsyncMock):
             # When
@@ -794,9 +768,7 @@ async def test_translate_to_japanese_gpt_error(mock_env_vars):
         service = ArxivSummarizer()
 
         # モックGPTクライアント（エラー）
-        service.gpt_client.generate_async = AsyncMock(
-            side_effect=Exception("API Error")
-        )
+        service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
 
         # When
         result = await service._translate_to_japanese("This is a test.")

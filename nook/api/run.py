@@ -21,12 +21,8 @@ def main():
         default="0.0.0.0",  # nosec B104
         help="ホストアドレス (デフォルト: 0.0.0.0)",
     )
-    parser.add_argument(
-        "--port", type=int, default=8000, help="ポート番号 (デフォルト: 8000)"
-    )
-    parser.add_argument(
-        "--reload", action="store_true", help="コード変更時に自動リロードする"
-    )
+    parser.add_argument("--port", type=int, default=8000, help="ポート番号 (デフォルト: 8000)")
+    parser.add_argument("--reload", action="store_true", help="コード変更時に自動リロードする")
 
     args = parser.parse_args()
 

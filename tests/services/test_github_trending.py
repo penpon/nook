@@ -234,9 +234,7 @@ async def test_collect_network_error(mock_env_vars):
                 return_value=[],
             ),
         ):
-            service.http_client.get = AsyncMock(
-                side_effect=httpx.TimeoutException("Timeout")
-            )
+            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
             # エラーが発生することを期待
             with pytest.raises(Exception):
@@ -304,9 +302,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             ),
         ):
             service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
-            service.gpt_client.generate_async = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -609,9 +605,7 @@ async def test_translate_repositories_with_progress_callback(mock_env_vars):
         def callback(idx, total, name):
             callback_called.append((idx, total, name))
 
-        await service._translate_repositories(
-            [("python", repos)], progress_callback=callback
-        )
+        await service._translate_repositories([("python", repos)], progress_callback=callback)
 
         assert len(callback_called) == 1
 
@@ -1005,9 +999,7 @@ async def test_collect_respects_rate_limit(mock_env_vars):
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
-            patch.object(
-                service, "rate_limit", new_callable=AsyncMock
-            ) as mock_rate_limit,
+            patch.object(service, "rate_limit", new_callable=AsyncMock) as mock_rate_limit,
             patch.object(
                 service,
                 "_load_existing_repositories_by_date",

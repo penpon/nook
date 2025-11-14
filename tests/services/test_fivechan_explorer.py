@@ -122,9 +122,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -261,10 +259,8 @@ async def test_get_subject_txt_data_malformed_format(mock_env_vars):
         service = FiveChanExplorer()
 
         # 正規表現にマッチしないフォーマット
-        subject_data = (
-            "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
-                "shift_jis"
-            )
+        subject_data = "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
+            "shift_jis"
         )
 
         mock_response = Mock()
@@ -437,9 +433,7 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
         service = FiveChanExplorer()
 
         # 日本語を含むdat
-        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode(
-            "shift_jis"
-        )
+        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode("shift_jis")
 
         mock_response = Mock()
         mock_response.status_code = 200
