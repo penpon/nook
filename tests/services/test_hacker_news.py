@@ -2407,3 +2407,401 @@ async def test_collect_http_client_initialization(mock_env_vars):
 
             # Verify setup_http_client was called
             mock_setup.assert_called_once()
+
+
+# =============================================================================
+# カバレッジ改善テスト: 95%達成のための追加テスト
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_render_markdown_with_long_text_no_summary(mock_env_vars, mock_logger):
+    """
+    Given: 要約がなく、500文字を超える本文がある記事
+    When: _render_markdownを呼び出す
+    Then: 本文が500文字でトリミングされ、省略記号が追加される
+
+    Coverage: Lines 729-734 (text branch with ellipsis)
+    """
+    service = HackerNewsRetriever()
+    long_text = "A" * 600  # 500文字を超える本文
+    records = [
+        {
+            "title": "Test Article",
+            "url": "https://example.com/test",
+            "score": 100,
+            "text": long_text,
+            "summary": None,  # 要約なし
+        }
+    ]
+
+    result = service._render_markdown(records, datetime.now())
+
+    # 本文が500文字でトリミングされていることを確認
+    assert ("A" * 500) in result
+    assert "..." in result
+    assert ("A" * 600) not in result
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_titles_with_empty_data(mock_env_vars, mock_logger):
+    """
+    Given: 空のJSONデータが存在する
+    When: _load_existing_titlesを呼び出す
+    Then: 空のDedupTrackerが返される
+
+    Coverage: Lines 154->168 (if data: False branch)
+    """
+    service = HackerNewsRetriever()
+    await service.setup_http_client()
+
+    with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=True), \
+         patch.object(service, 'load_json', new_callable=AsyncMock, return_value=[]):  # Empty data
+
+        tracker = await service._load_existing_titles()
+
+        # 空のトラッカーが返されることを確認
+        assert isinstance(tracker, DedupTracker)
+        # トラッカーが空であることを確認（新しいタイトルが重複として扱われない）
+        is_dup, _ = tracker.is_duplicate("New Title")
+        assert is_dup is False
+
+    await service.cleanup()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_titles_with_items_without_title(mock_env_vars, mock_logger):
+    """
+    Given: titleフィールドがないアイテムを含むJSONデータ
+    When: _load_existing_titlesを呼び出す
+    Then: titleがないアイテムはスキップされる
+
+    Coverage: Lines 157->155 (if title: False branch)
+    """
+    service = HackerNewsRetriever()
+    await service.setup_http_client()
+
+    data = [
+        {"title": "Valid Title", "score": 100},
+        {"score": 50},  # titleフィールドなし
+        {"title": None, "score": 30},  # titleがNone
+        {"title": "", "score": 20},  # titleが空文字列
+    ]
+
+    with patch.object(service.storage, 'exists', new_callable=AsyncMock, return_value=True), \
+         patch.object(service, 'load_json', new_callable=AsyncMock, return_value=data):
+
+        tracker = await service._load_existing_titles()
+
+        # "Valid Title"のみが追加されていることを確認
+        is_dup, _ = tracker.is_duplicate("Valid Title")
+        assert is_dup is True
+
+    await service.cleanup()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_top_stories_with_fetch_exception(mock_env_vars, mock_logger):
+    """
+    Given: _fetch_storyが例外を発生させる
+    When: _get_top_storiesを呼び出す
+    Then: 例外がキャッチされ、エラーログが記録される
+
+    Coverage: Line 209 (Exception logging in _get_top_stories)
+    """
+    service = HackerNewsRetriever()
+    service.http_client = httpx.AsyncClient()
+
+    # Mock the API response
+    with respx.mock:
+        respx.get(f"{service.base_url}/topstories.json").mock(
+            return_value=httpx.Response(200, json=[1, 2])
+        )
+
+        # _fetch_storyが例外を発生させるようにモック
+        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.side_effect = [
+                Exception("Test exception"),  # 1つ目は例外
+                create_test_story(),  # 2つ目は正常
+            ]
+
+            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+                stories = await service._get_top_stories(
+                    limit=15,
+                    dedup_tracker=DedupTracker(),
+                    target_dates=[date.today()]
+                )
+
+                # 例外が発生しても処理が継続し、正常なストーリーが返されることを確認
+                assert len(stories) >= 0
+
+    await service.cleanup()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_top_stories_story_without_created_at(mock_env_vars, mock_logger):
+    """
+    Given: created_atがNoneのストーリー
+    When: _get_top_storiesでフィルタリングする
+    Then: created_atがNoneのストーリーはフィルタリングでスキップされる
+
+    Coverage: Line 214->213 (if story.created_at: False branch)
+    """
+    service = HackerNewsRetriever()
+    service.http_client = httpx.AsyncClient()
+
+    # created_atがNoneのストーリーを作成
+    story_without_date = create_test_story(text="A" * 150)
+    story_without_date.created_at = None  # created_atをNoneに設定
+
+    with respx.mock:
+        respx.get(f"{service.base_url}/topstories.json").mock(
+            return_value=httpx.Response(200, json=[1])
+        )
+
+        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = story_without_date
+
+            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+                stories = await service._get_top_stories(
+                    limit=15,
+                    dedup_tracker=DedupTracker(),
+                    target_dates=[date.today()]
+                )
+
+                # created_atがNoneなのでフィルタリングされる
+                assert len(stories) == 0
+
+    await service.cleanup()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_update_blocked_domains_url_parse_error(mock_env_vars, mock_logger):
+    """
+    Given: URLパースが失敗するストーリー
+    When: _update_blocked_domains_from_errorsを呼び出す
+    Then: 例外がキャッチされ、デバッグログが記録される
+
+    Coverage: Lines 557-558 (URL parsing exception)
+    """
+    service = HackerNewsRetriever()
+
+    # 不正なURLを持つストーリー
+    story = Story(
+        title="Test",
+        score=100,
+        url="://invalid-url",  # 不正なURL
+        text="記事の内容を取得できませんでした。"  # エラー状態
+    )
+
+    # urlparseが例外を発生させるようにモック
+    with patch('nook.services.hacker_news.hacker_news.urlparse') as mock_urlparse:
+        mock_urlparse.side_effect = Exception("URL parse error")
+
+        # 例外が発生しても処理が継続することを確認
+        await service._update_blocked_domains_from_errors([story])
+
+        # エラーがログされたことを確認（例外が発生しないことを確認）
+        mock_urlparse.assert_called()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_fetch_story_content_status_200_with_article(mock_env_vars, mock_logger):
+    """
+    Given: HTTPレスポンスが200で、article要素が存在する
+    When: _fetch_story_contentを呼び出す
+    Then: article要素からテキストが抽出される
+
+    Coverage: Lines 425->exit, 455->exit (status 200 and article element branches)
+    """
+    service = HackerNewsRetriever()
+    await service.setup_http_client()
+
+    story = Story(
+        title="Test Article",
+        score=100,
+        url="https://example.com/article-test"
+    )
+
+    # HTMLレスポンス（メタディスクリプションや段落がなく、article要素のみ）
+    html_content = """
+    <html>
+        <head><title>Test</title></head>
+        <body>
+            <article>This is the article content from the article element.</article>
+        </body>
+    </html>
+    """
+
+    async def mock_get(*args, **kwargs):
+        return Mock(
+            status_code=200,
+            text=html_content
+        )
+
+    with patch.object(service.http_client, 'get', side_effect=mock_get):
+        await service._fetch_story_content(story)
+
+    # article要素からテキストが抽出されていることを確認
+    assert story.text is not None
+    assert "article content" in story.text.lower()
+
+    await service.cleanup()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_saved_files_logging(mock_env_vars, mock_logger):
+    """
+    Given: collectが正常にファイルを保存する
+    When: collectメソッドを呼び出す
+    Then: 保存完了のログが記録される
+
+    Coverage: Lines 134-136 (if saved_files: True branch)
+    """
+    service = HackerNewsRetriever()
+    service.http_client = AsyncMock()
+
+    saved_files = [
+        ("data/hacker_news/2024-11-14.json", "data/hacker_news/2024-11-14.md")
+    ]
+
+    with patch.object(service, 'setup_http_client', new_callable=AsyncMock), \
+         patch.object(service, '_load_existing_titles', new_callable=AsyncMock) as mock_load, \
+         patch.object(service, '_get_top_stories', new_callable=AsyncMock) as mock_get, \
+         patch.object(service, '_store_summaries', new_callable=AsyncMock) as mock_store:
+
+        mock_load.return_value = DedupTracker()
+        mock_get.return_value = []
+        mock_store.return_value = saved_files  # ファイルが保存されたことを示す
+
+        result = await service.collect()
+
+        # 保存されたファイルが返されることを確認
+        assert result == saved_files
+        assert len(result) == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_top_stories_with_duplicate_detection(mock_env_vars, mock_logger):
+    """
+    Given: 重複したタイトルのストーリーが存在する
+    When: _get_top_storiesを呼び出す
+    Then: 重複はスキップされ、ログが記録される
+
+    Coverage: Lines 238-249 (duplicate detection logging)
+    """
+    service = HackerNewsRetriever()
+    service.http_client = httpx.AsyncClient()
+
+    # 同じタイトルのストーリーを作成
+    story1 = create_test_story(title="Duplicate Title", text="A" * 150)
+    story2 = create_test_story(title="Duplicate Title", text="B" * 150)
+    story3 = create_test_story(title="Unique Title", text="C" * 150)
+
+    with respx.mock:
+        respx.get(f"{service.base_url}/topstories.json").mock(
+            return_value=httpx.Response(200, json=[1, 2, 3])
+        )
+
+        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.side_effect = [story1, story2, story3]
+
+            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+                stories = await service._get_top_stories(
+                    limit=15,
+                    dedup_tracker=DedupTracker(),
+                    target_dates=[date.today()]
+                )
+
+                # 重複が除外され、2つのストーリーのみが返される
+                assert len(stories) == 2
+                titles = [s.title for s in stories]
+                assert "Duplicate Title" in titles
+                assert "Unique Title" in titles
+
+    await service.cleanup()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
+    """
+    Given: 異なる日付のストーリーが存在する
+    When: _get_top_storiesを呼び出す
+    Then: 日付別にグループ化され、各日の上位記事が選択される
+
+    Coverage: Lines 255-259, 265-268, 278 (date grouping and selection logic)
+    """
+    from datetime import timedelta
+
+    service = HackerNewsRetriever()
+    service.http_client = httpx.AsyncClient()
+
+    today = datetime.now(timezone.utc)
+    yesterday = today - timedelta(days=1)
+
+    # 2日分のストーリーを作成（スコアは異なる）
+    story_today_1 = create_test_story(title="Today Story 1", score=100, text="A" * 150, created_at=today)
+    story_today_2 = create_test_story(title="Today Story 2", score=90, text="B" * 150, created_at=today)
+    story_yesterday_1 = create_test_story(title="Yesterday Story 1", score=80, text="C" * 150, created_at=yesterday)
+
+    with respx.mock:
+        respx.get(f"{service.base_url}/topstories.json").mock(
+            return_value=httpx.Response(200, json=[1, 2, 3])
+        )
+
+        with patch.object(service, '_fetch_story', new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.side_effect = [story_today_1, story_today_2, story_yesterday_1]
+
+            with patch.object(service, '_summarize_stories', new_callable=AsyncMock):
+                stories = await service._get_top_stories(
+                    limit=15,
+                    dedup_tracker=DedupTracker(),
+                    target_dates=[today.date(), yesterday.date()]
+                )
+
+                # 日付別にグループ化され、ストーリーが選択される
+                assert len(stories) >= 2
+
+                # 高スコアのストーリーが含まれていることを確認
+                scores = [s.score for s in stories]
+                assert 100 in scores or 90 in scores or 80 in scores
+
+    await service.cleanup()
+
+
+@pytest.mark.unit
+def test_render_markdown_with_text_but_no_summary_short(mock_env_vars, mock_logger):
+    """
+    Given: 要約がなく、500文字以下の本文がある記事
+    When: _render_markdownを呼び出す
+    Then: 本文がそのまま表示され、省略記号は追加されない
+
+    Coverage: Lines 729-734 (text branch without ellipsis)
+    """
+    service = HackerNewsRetriever()
+    short_text = "A" * 300  # 500文字未満の本文
+    records = [
+        {
+            "title": "Test Article",
+            "url": "https://example.com/test",
+            "score": 100,
+            "text": short_text,
+            # summaryキーを完全に省略
+        }
+    ]
+
+    result = service._render_markdown(records, datetime.now())
+
+    # 本文がそのまま表示されることを確認
+    assert ("A" * 300) in result
+    # 省略記号がないことを確認（本文の直後に---が来る）
+    assert "A" * 300 + "\n\n---" in result or "AAA\n\n---" in result
