@@ -90,6 +90,140 @@ def sample_thread_data(sample_thread_posts):
     }
 
 
+@pytest.fixture
+def thread_factory():
+    """
+    Threadオブジェクトを柔軟に生成するファクトリーフィクスチャ
+
+    使用例:
+        thread = thread_factory(title="Custom Title", posts=[...])
+    """
+    from nook.services.fourchan_explorer.fourchan_explorer import Thread
+
+    def _create_thread(**kwargs):
+        # デフォルト値
+        defaults = {
+            "thread_id": TEST_THREAD_ID,
+            "title": "Test Thread",
+            "url": f"https://boards.4chan.org/{TEST_BOARD}/thread/{TEST_THREAD_ID}",
+            "board": TEST_BOARD,
+            "posts": [{"no": TEST_THREAD_ID, "time": TEST_TIMESTAMP, "com": "Test post"}],
+            "timestamp": TEST_TIMESTAMP,
+            "popularity_score": 10.0,
+        }
+        # kwargsでオーバーライド
+        defaults.update(kwargs)
+        return Thread(**defaults)
+
+    return _create_thread
+
+
+# =============================================================================
+# テストヘルパー関数
+# =============================================================================
+
+
+def create_mock_catalog_response(
+    thread_id=TEST_THREAD_ID,
+    subject="AI Discussion",
+    comment="Let's talk about AI",
+    time=TEST_TIMESTAMP,
+    replies=50,
+):
+    """4chan catalog.jsonのモックレスポンスを生成"""
+    return [
+        {
+            "page": 0,
+            "threads": [
+                {
+                    "no": thread_id,
+                    "sub": subject,
+                    "com": comment,
+                    "time": time,
+                    "replies": replies,
+                    "images": 10,
+                }
+            ],
+        }
+    ]
+
+
+def create_mock_thread_response(thread_id=TEST_THREAD_ID, posts_count=2):
+    """4chan thread.jsonのモックレスポンスを生成"""
+    posts = [
+        {
+            "no": thread_id,
+            "time": TEST_TIMESTAMP,
+            "com": "First post about AI",
+        }
+    ]
+    for i in range(1, posts_count):
+        posts.append(
+            {
+                "no": thread_id + i,
+                "time": TEST_TIMESTAMP + i * 100,
+                "com": f"Reply {i}",
+            }
+        )
+    return {"posts": posts}
+
+
+# =============================================================================
+# カスタムアサーション関数
+# =============================================================================
+
+
+def assert_thread_summary_generated(thread, expected_summary=None):
+    """
+    スレッドの要約が生成されたことを検証
+
+    Args:
+        thread: 検証対象のThreadオブジェクト
+        expected_summary: 期待される要約内容（Noneの場合は存在のみ確認）
+    """
+    assert hasattr(thread, "summary"), "Thread object should have 'summary' attribute"
+    assert thread.summary is not None, "Summary should not be None"
+    assert len(thread.summary) > 0, "Summary should not be empty"
+
+    if expected_summary is not None:
+        assert (
+            thread.summary == expected_summary
+        ), f"Expected '{expected_summary}', got '{thread.summary}'"
+
+
+def assert_gpt_called_with_thread_content(mock_gpt, thread):
+    """
+    GPTクライアントがスレッドの内容を含むプロンプトで呼び出されたことを検証
+
+    Args:
+        mock_gpt: モック化されたGPTクライアント
+        thread: Threadオブジェクト
+    """
+    assert mock_gpt.called, "GPT client should be called"
+    call_args = mock_gpt.call_args
+
+    # プロンプトにスレッドタイトルが含まれていることを確認
+    prompt = call_args.kwargs["prompt"]
+    assert thread.title in prompt, f"Prompt should contain thread title '{thread.title}'"
+
+
+def assert_valid_thread_sort_key(sort_key):
+    """
+    _thread_sort_keyの戻り値が正しい形式かを検証
+
+    Args:
+        sort_key: _thread_sort_keyの戻り値
+    """
+    assert isinstance(sort_key, tuple), "Sort key should be a tuple"
+    assert len(sort_key) == 2, "Sort key should have 2 elements"
+    assert isinstance(
+        sort_key[0], (int, float)
+    ), "First element should be numeric (popularity)"
+    assert isinstance(
+        sort_key[1], datetime
+    ), "Second element should be datetime (published)"
+
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
@@ -1179,15 +1313,19 @@ def test_thread_sort_key_with_invalid_timestamp(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_summarize_thread_success(fourchan_service, sample_thread_data):
+async def test_summarize_thread_success(fourchan_service, thread_factory):
     """
     Given: 有効なスレッドオブジェクト
     When: _summarize_thread()を呼び出す
     Then: 要約が正常に生成される
     """
-    from nook.services.fourchan_explorer.fourchan_explorer import Thread
-
-    thread = Thread(**sample_thread_data)
+    thread = thread_factory(
+        title="AI Discussion",
+        posts=[
+            {"no": TEST_THREAD_ID, "com": "What do you think about GPT-4?"},
+            {"no": TEST_THREAD_ID + 1, "com": "It's amazing!"},
+        ],
+    )
 
     fourchan_service.gpt_client.generate_content = Mock(
         return_value="これはAIに関する議論です。"
@@ -1195,79 +1333,81 @@ async def test_summarize_thread_success(fourchan_service, sample_thread_data):
 
     await fourchan_service._summarize_thread(thread)
 
-    assert thread.summary == "これはAIに関する議論です。"
-    fourchan_service.gpt_client.generate_content.assert_called_once()
+    # カスタムアサーションを使用
+    assert_thread_summary_generated(thread, "これはAIに関する議論です。")
+    assert_gpt_called_with_thread_content(fourchan_service.gpt_client.generate_content, thread)
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_summarize_thread_with_html_tags(mock_env_vars):
+@pytest.mark.parametrize(
+    "posts,expected_summary,tags_to_check",
+    [
+        # HTMLタグ除去テスト
+        (
+            [{"no": TEST_THREAD_ID, "com": "<b>Bold text</b> and <i>italic</i>"}],
+            "テスト要約",
+            ["<b>", "<i>"],
+        ),
+        # 複数のHTMLタグ
+        (
+            [
+                {
+                    "no": TEST_THREAD_ID,
+                    "com": "<div><span>Nested</span> <a href='#'>link</a></div>",
+                }
+            ],
+            "ネスト要約",
+            ["<div>", "<span>", "<a"],
+        ),
+        # 空のHTMLタグ
+        (
+            [{"no": TEST_THREAD_ID, "com": "<br/><hr/>Text"}],
+            "改行要約",
+            ["<br", "<hr"],
+        ),
+    ],
+)
+async def test_summarize_thread_html_tag_removal(
+    fourchan_service, thread_factory, posts, expected_summary, tags_to_check
+):
     """
-    Given: HTMLタグを含む投稿
+    Given: HTMLタグを含む投稿（パラメータ化）
     When: _summarize_thread()を呼び出す
     Then: HTMLタグが除去されて要約が生成される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import (
-            FourChanExplorer,
-            Thread,
-        )
+    thread = thread_factory(posts=posts)
 
-        service = FourChanExplorer()
+    fourchan_service.gpt_client.generate_content = Mock(return_value=expected_summary)
 
-        thread = Thread(
-            thread_id=123456,
-            title="Test Thread",
-            url="https://boards.4chan.org/g/thread/123456",
-            board="g",
-            posts=[
-                {"no": 123456, "com": "<b>Bold text</b> and <i>italic</i>"},
-            ],
-            timestamp=1699999999,
-        )
+    await fourchan_service._summarize_thread(thread)
 
-        service.gpt_client.generate_content = Mock(return_value="テスト要約")
+    # カスタムアサーションを使用
+    assert_thread_summary_generated(thread, expected_summary)
 
-        await service._summarize_thread(thread)
-
-        # generate_contentが呼び出されたことを確認
-        assert service.gpt_client.generate_content.called
-        call_args = service.gpt_client.generate_content.call_args
-        # promptにHTMLタグが除去されたテキストが含まれていることを確認
-        assert "<b>" not in call_args.kwargs["prompt"]
-        assert "<i>" not in call_args.kwargs["prompt"]
+    # promptにHTMLタグが除去されていることを確認
+    call_args = fourchan_service.gpt_client.generate_content.call_args
+    prompt = call_args.kwargs["prompt"]
+    for tag in tags_to_check:
+        assert tag not in prompt, f"HTML tag '{tag}' should be removed from prompt"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_summarize_thread_empty_posts(mock_env_vars):
+async def test_summarize_thread_empty_posts(fourchan_service, thread_factory):
     """
     Given: 空の投稿リスト
     When: _summarize_thread()を呼び出す
     Then: エラーなく処理される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fourchan_explorer.fourchan_explorer import (
-            FourChanExplorer,
-            Thread,
-        )
+    thread = thread_factory(title="Empty Thread", posts=[])
 
-        service = FourChanExplorer()
+    fourchan_service.gpt_client.generate_content = Mock(return_value="空のスレッドです。")
 
-        thread = Thread(
-            thread_id=123456,
-            title="Empty Thread",
-            url="https://boards.4chan.org/g/thread/123456",
-            board="g",
-            posts=[],
-            timestamp=1699999999,
-        )
+    await fourchan_service._summarize_thread(thread)
 
-        service.gpt_client.generate_content = Mock(return_value="空のスレッドです。")
-
-        await service._summarize_thread(thread)
-
-        assert thread.summary == "空のスレッドです。"
+    # カスタムアサーションを使用
+    assert_thread_summary_generated(thread, "空のスレッドです。")
 
 
 @pytest.mark.unit
