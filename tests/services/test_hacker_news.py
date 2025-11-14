@@ -1,13 +1,62 @@
 """
-nook/services/hacker_news/hacker_news.py のテスト
+nook/services/hacker_news/hacker_news.py のユニットテスト
 
-テスト観点:
-- HackerNewsRetrieverの初期化
-- トップストーリー取得
-- ストーリー詳細取得
-- スコアフィルタリング
-- データ保存
-- エラーハンドリング
+## テスト構成
+
+### セクション1: 初期化テスト
+- HackerNewsRetrieverの基本的な初期化を確認
+
+### セクション2-6: 既存の統合テスト
+- collect()メソッドの統合的な動作を確認
+- Note: これらは統合テストであり、将来的には別ファイルに移行予定
+
+### セクション7: blocked_domainsメソッド
+- _load_blocked_domains
+- _is_blocked_domain
+- _is_http1_required_domain
+
+### セクション8-11: ストーリー取得と内容フェッチ
+- _fetch_story: HN APIからストーリー取得
+- _fetch_story_content: URLからコンテンツ取得
+- HTTPエラーハンドリング（401, 403, 404）
+- タイムアウト、SSLエラー
+
+### セクション12: フィルタリングテスト
+- スコアフィルタリング（≥20）
+- テキスト長フィルタリング（100-10000）
+- ソート機能
+
+### セクション13: ブロックドメイン管理
+- _add_to_blocked_domains
+- _update_blocked_domains_from_errors
+
+### セクション14: ヘルパーメソッド
+- _serialize_stories
+- _render_markdown
+- _parse_markdown
+- _story_sort_key
+
+### セクション15-16: ストレージと要約
+- _load_existing_titles
+- _load_existing_stories
+- _store_summaries
+- _summarize_stories
+
+### セクション17: 追加カバレッジテスト
+- エッジケース
+- 例外処理
+- 統合ロジックの境界テスト
+
+## テストデータ
+
+テスト定数（TEST_STORY_ID等）とヘルパー関数（create_test_story等）を使用して、
+一貫性のあるテストデータを生成しています。
+
+## カバレッジ目標
+
+- 目標: 95%
+- 現在: 91.91%
+- 残り未カバー: 主に統合テスト領域（collect()内の複雑なロジック）
 """
 
 from __future__ import annotations
@@ -30,19 +79,44 @@ from nook.services.hacker_news.hacker_news import (
 )
 
 # =============================================================================
+# テスト定数
+# =============================================================================
+
+# テストデータ用の定数
+TEST_STORY_ID = 12345
+TEST_STORY_SCORE = 100
+TEST_STORY_TIMESTAMP = 1700000000  # 2023-11-14 22:13:20 UTC
+TEST_STORY_URL = "https://example.com/test"
+TEST_STORY_TITLE = "Test Story"
+TEST_MIN_TEXT_FOR_FILTER = "A" * (MIN_TEXT_LENGTH + 10)  # 最小テキスト長+マージン
+
+
+# =============================================================================
 # テストヘルパー関数
 # =============================================================================
 
 
 def create_test_story(
-    title: str = "Test Story",
-    score: int = 100,
-    url: str = "https://example.com/test",
+    title: str = TEST_STORY_TITLE,
+    score: int = TEST_STORY_SCORE,
+    url: str = TEST_STORY_URL,
     text: str | None = "Test text",
     summary: str | None = None,
     created_at: datetime | None = None
 ) -> Story:
-    """テスト用のStoryオブジェクトを作成するヘルパー関数"""
+    """テスト用のStoryオブジェクトを作成するヘルパー関数
+
+    Args:
+        title: ストーリーのタイトル（デフォルト: TEST_STORY_TITLE）
+        score: ストーリーのスコア（デフォルト: TEST_STORY_SCORE）
+        url: ストーリーのURL（デフォルト: TEST_STORY_URL）
+        text: ストーリーの本文
+        summary: ストーリーの要約
+        created_at: 作成日時
+
+    Returns:
+        Story: テスト用のStoryオブジェクト
+    """
     if created_at is None:
         created_at = datetime.now(timezone.utc)
 
@@ -56,13 +130,21 @@ def create_test_story(
     )
 
 
-def mock_hn_story_response(story_id: int, **kwargs) -> dict:
-    """HN APIのストーリーレスポンスをモック化するヘルパー関数"""
+def mock_hn_story_response(story_id: int = TEST_STORY_ID, **kwargs) -> dict:
+    """HN APIのストーリーレスポンスをモック化するヘルパー関数
+
+    Args:
+        story_id: ストーリーID（デフォルト: TEST_STORY_ID）
+        **kwargs: オーバーライドする属性（title, score, time, url, text等）
+
+    Returns:
+        dict: HN API形式のストーリーレスポンス
+    """
     default_response = {
         "id": story_id,
         "title": kwargs.get("title", f"Story {story_id}"),
-        "score": kwargs.get("score", 100),
-        "time": kwargs.get("time", 1700000000)
+        "score": kwargs.get("score", TEST_STORY_SCORE),
+        "time": kwargs.get("time", TEST_STORY_TIMESTAMP)
     }
 
     if "url" in kwargs:
@@ -816,104 +898,42 @@ async def test_fetch_story_content_blocked_domain(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_fetch_story_content_http_401(mock_env_vars, respx_mock):
+@pytest.mark.parametrize("status_code,error_message,expected_text", [
+    (401, "401 Unauthorized", "アクセス制限により"),
+    (403, "403 Forbidden", "アクセス制限により"),
+    (404, "404 Not Found", "記事が見つかりませんでした"),
+])
+async def test_fetch_story_content_http_errors(
+    mock_env_vars, mock_logger, status_code, error_message, expected_text
+):
     """
-    Given: HTTP 401エラー
+    Given: 各種HTTPエラー（401/403/404）
     When: _fetch_story_contentを呼び出す
-    Then: アクセス制限メッセージがstory.textに設定される
+    Then: 適切なエラーメッセージがstory.textに設定される
     """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        await service.setup_http_client()
+    service = HackerNewsRetriever()
+    await service.setup_http_client()
 
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
+    story = Story(
+        title="Test",
+        score=100,
+        url="https://example.com/test"
+    )
+
+    # http_client.getメソッドを直接モックしてHTTPStatusErrorを発生させる
+    async def mock_get_error(*args, **kwargs):
+        raise httpx.HTTPStatusError(
+            error_message,
+            request=httpx.Request("GET", "https://example.com/test"),
+            response=httpx.Response(status_code)
         )
 
-        # HTTPStatusErrorを発生させる
-        respx_mock.get("https://example.com/test").mock(
-            side_effect=httpx.HTTPStatusError(
-                "401 Unauthorized",
-                request=httpx.Request("GET", "https://example.com/test"),
-                response=httpx.Response(401)
-            )
-        )
-
+    with patch.object(service.http_client, 'get', side_effect=mock_get_error):
         await service._fetch_story_content(story)
 
-        assert "アクセス制限により" in story.text
+    assert expected_text in story.text, f"Expected '{expected_text}' in story.text for HTTP {status_code}"
 
-        await service.cleanup()
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_fetch_story_content_http_403(mock_env_vars):
-    """
-    Given: HTTP 403エラー
-    When: _fetch_story_contentを呼び出す
-    Then: アクセス制限メッセージがstory.textに設定される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        await service.setup_http_client()
-
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
-
-        # http_client.getメソッドを直接モックしてHTTPStatusErrorを発生させる
-        async def mock_get_403(*args, **kwargs):
-            raise httpx.HTTPStatusError(
-                "403 Forbidden",
-                request=httpx.Request("GET", "https://example.com/test"),
-                response=httpx.Response(403)
-            )
-
-        with patch.object(service.http_client, 'get', side_effect=mock_get_403):
-            await service._fetch_story_content(story)
-
-        assert "アクセス制限により" in story.text
-
-        await service.cleanup()
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_fetch_story_content_http_404(mock_env_vars, respx_mock):
-    """
-    Given: HTTP 404エラー
-    When: _fetch_story_contentを呼び出す
-    Then: 記事が見つからないメッセージがstory.textに設定される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        await service.setup_http_client()
-
-        story = Story(
-            title="Test",
-            score=100,
-            url="https://example.com/test"
-        )
-
-        # HTTPStatusErrorを発生させる
-        respx_mock.get("https://example.com/test").mock(
-            side_effect=httpx.HTTPStatusError(
-                "404 Not Found",
-                request=httpx.Request("GET", "https://example.com/test"),
-                response=httpx.Response(404)
-            )
-        )
-
-        await service._fetch_story_content(story)
-
-        assert "記事が見つかりませんでした" in story.text
-
-        await service.cleanup()
+    await service.cleanup()
 
 
 @pytest.mark.unit

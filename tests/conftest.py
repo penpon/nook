@@ -48,6 +48,14 @@ def mock_env_vars(monkeypatch):
 
 
 @pytest.fixture
+def mock_logger():
+    """setup_loggerのモック（テスト全体で共通使用）"""
+    from unittest.mock import patch
+    with patch("nook.common.base_service.setup_logger"):
+        yield
+
+
+@pytest.fixture
 def temp_data_dir(tmp_path):
     """テスト用一時データディレクトリ"""
     data_dir = tmp_path / "test_data"
