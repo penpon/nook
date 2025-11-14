@@ -75,7 +75,7 @@
 - [ ] 9. Create API endpoints
   - Design API structure
   - _Leverage: src/api/baseApi.ts, src/utils/apiUtils.ts_
-  - _Requirements: 4.0_
+  - _Requirements: 9.0_
   - _Prompt: Role: API Architect specializing in RESTful design and Express.js | Task: Design comprehensive API structure following requirement 4.0, leveraging existing patterns from src/api/baseApi.ts and utilities from src/utils/apiUtils.ts | Restrictions: Must follow REST conventions, maintain API versioning compatibility, do not expose internal data structures directly | Success: API structure is well-designed and documented, follows existing patterns, supports all required operations with proper HTTP methods and status codes_
 
 - [ ] 9.1 Set up routing and middleware
@@ -97,7 +97,7 @@
 - [ ] 10. Add frontend components
   - Plan component architecture
   - _Leverage: src/components/BaseComponent.tsx, src/styles/theme.ts_
-  - _Requirements: 5.0_
+  - _Requirements: 10.0_
   - _Prompt: Role: Frontend Architect with expertise in React component design and architecture | Task: Plan comprehensive component architecture following requirement 5.0, leveraging base patterns from src/components/BaseComponent.tsx and theme system from src/styles/theme.ts | Restrictions: Must follow existing component patterns, maintain design system consistency, ensure component reusability | Success: Architecture is well-planned and documented, components are properly organized, follows existing patterns and theme system_
 
 - [ ] 10.1 Create base UI components
@@ -119,7 +119,7 @@
 - [ ] 11. Integration and testing
   - Plan integration approach
   - _Leverage: src/utils/integrationUtils.ts, tests/helpers/testUtils.ts_
-  - _Requirements: 6.0_
+  - _Requirements: 11.0_
   - _Prompt: Role: Integration Engineer with expertise in system integration and testing strategies | Task: Plan comprehensive integration approach following requirement 6.0, leveraging integration utilities from src/utils/integrationUtils.ts and test helpers | Restrictions: Must consider all system components, ensure proper test coverage, maintain integration test reliability | Success: Integration plan is comprehensive and feasible, all system components work together correctly, integration points are well-tested_
 
 - [ ] 11.1 Write end-to-end tests
