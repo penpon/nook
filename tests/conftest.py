@@ -851,9 +851,9 @@ def assert_article_list_result(result, expected_count=None, min_count=None):
     assert isinstance(result, list), MSG_RESULT_SHOULD_BE_LIST
 
     if expected_count is not None:
-        assert (
-            len(result) == expected_count
-        ), f"期待される件数は{expected_count}件、実際は{len(result)}件"
+        assert len(result) == expected_count, (
+            f"期待される件数は{expected_count}件、実際は{len(result)}件"
+        )
 
     if min_count is not None:
         assert len(result) >= min_count, f"最小{min_count}件の記事が必要、実際は{len(result)}件"
