@@ -511,7 +511,9 @@ async def test_download_html_timeout(arxiv_service, arxiv_helper):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_paper_info_success(arxiv_service, mock_arxiv_paper_factory, arxiv_helper):
+async def test_retrieve_paper_info_success(
+    arxiv_service, mock_arxiv_paper_factory, arxiv_helper
+):
     """
     Given: 有効な論文ID
     When: _retrieve_paper_infoメソッドを呼び出す
@@ -540,17 +542,24 @@ async def test_retrieve_paper_info_success(arxiv_service, mock_arxiv_paper_facto
             new_callable=AsyncMock,
             return_value="テスト要約",
         ), patch.object(
-            arxiv_service, "_extract_body_text", new_callable=AsyncMock, return_value="Test content"
+            arxiv_service,
+            "_extract_body_text",
+            new_callable=AsyncMock,
+            return_value="Test content",
         ):
             # When
-            result = await arxiv_service._retrieve_paper_info(arxiv_helper.DEFAULT_ARXIV_ID)
+            result = await arxiv_service._retrieve_paper_info(
+                arxiv_helper.DEFAULT_ARXIV_ID
+            )
 
             # Then
             assert result is not None
             assert isinstance(result, PaperInfo)
             assert result.title == "Test Paper Title"
             assert result.abstract == "テスト要約"
-            assert result.url == f"http://arxiv.org/abs/{arxiv_helper.DEFAULT_ARXIV_ID}v1"
+            assert (
+                result.url == f"http://arxiv.org/abs/{arxiv_helper.DEFAULT_ARXIV_ID}v1"
+            )
             assert result.contents == "Test content"
 
 
@@ -618,7 +627,10 @@ async def test_retrieve_paper_info_with_fallback_to_abstract(arxiv_service):
 
         # 翻訳をモック、本文抽出は空文字列を返す
         with patch.object(
-            arxiv_service, "_translate_to_japanese", new_callable=AsyncMock, return_value="テスト要約"
+            arxiv_service,
+            "_translate_to_japanese",
+            new_callable=AsyncMock,
+            return_value="テスト要約",
         ), patch.object(
             arxiv_service, "_extract_body_text", new_callable=AsyncMock, return_value=""
         ):

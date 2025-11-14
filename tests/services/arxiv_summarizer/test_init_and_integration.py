@@ -21,9 +21,6 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 # ArxivSummarizer関連のインポート
-from nook.services.arxiv_summarizer.arxiv_summarizer import (
-    ArxivSummarizer,
-)
 
 # =============================================================================
 # 1. __init__ メソッドのテスト
@@ -89,7 +86,9 @@ async def test_collect_with_multiple_categories(arxiv_service):
     with patch.object(
         arxiv_service, "setup_http_client", new_callable=AsyncMock
     ), patch.object(arxiv_service.storage, "save", new_callable=AsyncMock):
-        arxiv_service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
+        arxiv_service.http_client.get = AsyncMock(
+            return_value=Mock(text="<feed></feed>")
+        )
 
         # When
         result = await arxiv_service.collect(target_dates=[date.today()])
@@ -115,7 +114,9 @@ async def test_collect_network_error(arxiv_service):
     arxiv_service.http_client = AsyncMock()
 
     with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
-        arxiv_service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
+        arxiv_service.http_client.get = AsyncMock(
+            side_effect=Exception("Network error")
+        )
 
         # When
         result = await arxiv_service.collect(target_dates=[date.today()])
@@ -197,7 +198,9 @@ async def test_full_workflow_collect_and_save(arxiv_service):
         new_callable=AsyncMock,
         return_value=Path("/data/test.json"),
     ):
-        arxiv_service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
+        arxiv_service.http_client.get = AsyncMock(
+            return_value=Mock(text="<feed></feed>")
+        )
         arxiv_service.gpt_client.get_response = AsyncMock(return_value="要約")
 
         # When

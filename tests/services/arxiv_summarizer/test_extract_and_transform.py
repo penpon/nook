@@ -14,14 +14,11 @@ ArxivSummarizer - テキスト抽出・変換 のテスト
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 # ArxivSummarizer関連のインポート
-from nook.services.arxiv_summarizer.arxiv_summarizer import (
-    ArxivSummarizer,
-)
 
 # =============================================================================
 # 7. _extract_from_pdf メソッドのテスト
@@ -221,7 +218,10 @@ async def test_extract_from_html_404_error(arxiv_service):
     """
     # Given: 404エラーをモック
     with patch.object(
-        arxiv_service, "_download_html_without_retry", new_callable=AsyncMock, return_value=""
+        arxiv_service,
+        "_download_html_without_retry",
+        new_callable=AsyncMock,
+        return_value="",
     ):
         # When
         result = await arxiv_service._extract_from_html("2301.00001")
@@ -355,18 +355,30 @@ async def test_extract_body_text_both_fail(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "line,expected_result",
+    ("line", "expected_result"),
     [
         # 有効な本文行: 十分な長さ、ピリオドあり
-        ("This is a valid body line with sufficient length and proper sentence structure.", True),
+        (
+            "This is a valid body line with sufficient length and proper sentence structure.",
+            True,
+        ),
         # 短すぎる行
         ("Short line.", False),
         # メールアドレスを含む行
-        ("Contact us at test@example.com for more information about this research paper.", False),
+        (
+            "Contact us at test@example.com for more information about this research paper.",
+            False,
+        ),
         # 'university'を含む行
-        ("Department of Computer Science, Stanford University, California, USA contact information.", False),
+        (
+            "Department of Computer Science, Stanford University, California, USA contact information.",
+            False,
+        ),
         # ピリオドを含まない行
-        ("This is a line without proper punctuation but with sufficient length to pass", False),
+        (
+            "This is a line without proper punctuation but with sufficient length to pass",
+            False,
+        ),
     ],
     ids=["valid_line", "too_short", "with_email", "with_university", "no_period"],
 )

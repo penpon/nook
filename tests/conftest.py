@@ -39,7 +39,7 @@ def mock_env_vars(monkeypatch):
         "REDDIT_CLIENT_ID": "test-client-id",
         "REDDIT_CLIENT_SECRET": "test-client-secret",
         "REDDIT_USER_AGENT": "test-user-agent",
-        "DATA_DIR": "/tmp/nook_test_data",
+        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108
         "LOG_LEVEL": "INFO",
     }
     for key, value in env_vars.items():
@@ -622,7 +622,7 @@ def mock_dedup_tracker():
 @pytest.fixture
 def arxiv_service(mock_env_vars):
     """ArxivSummarizerサービスのフィクスチャ（共通セットアップ）"""
-    with patch("nook.common.base_service.setup_logger"):
+    with patch("nook.common.logging.setup_logger"):
         from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
 
         service = ArxivSummarizer()
@@ -657,7 +657,7 @@ def paper_info_factory():
         arxiv_id="2301.00001",
         contents="Test contents",
         published_at=None,
-        **kwargs
+        **kwargs,
     ):
         from nook.services.arxiv_summarizer.arxiv_summarizer import PaperInfo
 
@@ -695,7 +695,7 @@ def mock_arxiv_paper_factory():
         title="Test Paper Title",
         summary="Test abstract",
         published=None,
-        **kwargs
+        **kwargs,
     ):
         if published is None:
             published = datetime(2023, 1, 1, tzinfo=timezone.utc)

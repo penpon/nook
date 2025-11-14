@@ -23,10 +23,8 @@ pytest tests/services/arxiv_summarizer/test_performance.py --benchmark-compare=b
 from __future__ import annotations
 
 import time
-from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-
 
 # =============================================================================
 # レスポンスタイムテスト
@@ -81,16 +79,12 @@ async def test_performance_serialize_papers(
         elapsed_time < expected_time[paper_count]
     ), f"シリアライズに{elapsed_time:.4f}秒かかりました（期待: {expected_time[paper_count]}秒未満）"
 
-    print(
-        f"\n✓ {paper_count}論文のシリアライズ: {elapsed_time*1000:.2f}ms"
-    )
+    print(f"\n✓ {paper_count}論文のシリアライズ: {elapsed_time*1000:.2f}ms")
 
 
 @pytest.mark.performance
 @pytest.mark.parametrize("text_length", [100, 1000, 10000, 100000])
-def test_performance_is_valid_body_line(
-    arxiv_service, arxiv_helper, text_length
-):
+def test_performance_is_valid_body_line(arxiv_service, arxiv_helper, text_length):
     """
     レスポンスタイムテスト: 本文行検証
 
@@ -128,9 +122,7 @@ def test_performance_is_valid_body_line(
         elapsed_time < expected_time[text_length]
     ), f"検証に{elapsed_time:.4f}秒かかりました（期待: {expected_time[text_length]}秒未満）"
 
-    print(
-        f"\n✓ {text_length}文字の検証: {elapsed_time*1000:.2f}ms"
-    )
+    print(f"\n✓ {text_length}文字の検証: {elapsed_time*1000:.2f}ms")
 
 
 @pytest.mark.performance
@@ -184,9 +176,7 @@ Summary for paper {i}
         elapsed_time < expected_time[markdown_papers]
     ), f"解析に{elapsed_time:.4f}秒かかりました（期待: {expected_time[markdown_papers]}秒未満）"
 
-    print(
-        f"\n✓ {markdown_papers}論文のMarkdown解析: {elapsed_time*1000:.2f}ms"
-    )
+    print(f"\n✓ {markdown_papers}論文のMarkdown解析: {elapsed_time*1000:.2f}ms")
 
 
 # =============================================================================
@@ -196,9 +186,7 @@ Summary for paper {i}
 
 @pytest.mark.performance
 @pytest.mark.asyncio
-async def test_throughput_concurrent_operations(
-    arxiv_service, paper_info_factory
-):
+async def test_throughput_concurrent_operations(arxiv_service, paper_info_factory):
     """
     スループットテスト: 並行操作
 
@@ -210,15 +198,12 @@ async def test_throughput_concurrent_operations(
     """
     # Given
     paper_count = 100
-    papers = [
-        paper_info_factory(arxiv_id=f"2301.{i:05d}")
-        for i in range(paper_count)
-    ]
+    papers = [paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(paper_count)]
 
     # When: シリアライズ操作を繰り返し
     start_time = time.perf_counter()
     for _ in range(10):  # 10回繰り返し
-        result = arxiv_service._serialize_papers(papers)
+        arxiv_service._serialize_papers(papers)
     elapsed_time = time.perf_counter() - start_time
 
     # Then: スループット計算
@@ -241,9 +226,7 @@ async def test_throughput_concurrent_operations(
 
 @pytest.mark.memory
 @pytest.mark.parametrize("paper_count", [100, 1000, 10000])
-def test_memory_serialize_papers(
-    arxiv_service, paper_info_factory, paper_count
-):
+def test_memory_serialize_papers(arxiv_service, paper_info_factory, paper_count):
     """
     メモリテスト: 大量データのシリアライズ
 
@@ -261,17 +244,14 @@ def test_memory_serialize_papers(
     import tracemalloc
 
     # Given
-    papers = [
-        paper_info_factory(arxiv_id=f"2301.{i:05d}")
-        for i in range(paper_count)
-    ]
+    papers = [paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(paper_count)]
 
     # メモリ測定開始
     tracemalloc.start()
     snapshot_before = tracemalloc.take_snapshot()
 
     # When
-    result = arxiv_service._serialize_papers(papers)
+    arxiv_service._serialize_papers(papers)
 
     # メモリ測定終了
     snapshot_after = tracemalloc.take_snapshot()
@@ -289,9 +269,7 @@ def test_memory_serialize_papers(
         10000: 100.0,
     }
 
-    print(
-        f"\n✓ {paper_count}論文のメモリ使用量: {memory_mb:.2f}MB"
-    )
+    print(f"\n✓ {paper_count}論文のメモリ使用量: {memory_mb:.2f}MB")
 
     assert (
         memory_mb < expected_memory[paper_count]
@@ -305,9 +283,7 @@ def test_memory_serialize_papers(
 
 @pytest.mark.stress
 @pytest.mark.asyncio
-async def test_stress_continuous_operations(
-    arxiv_service, paper_info_factory
-):
+async def test_stress_continuous_operations(arxiv_service, paper_info_factory):
     """
     ストレステスト: 連続操作（軽量版）
 
@@ -321,10 +297,7 @@ async def test_stress_continuous_operations(
     """
     # Given
     paper_count = 10
-    papers = [
-        paper_info_factory(arxiv_id=f"2301.{i:05d}")
-        for i in range(paper_count)
-    ]
+    papers = [paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(paper_count)]
 
     # When: 100回連続実行（軽量版）
     iterations = 100
@@ -333,7 +306,7 @@ async def test_stress_continuous_operations(
     for _ in range(iterations):
         op_start = time.perf_counter()
         try:
-            result = arxiv_service._serialize_papers(papers)
+            arxiv_service._serialize_papers(papers)
             op_time = time.perf_counter() - op_start
             response_times.append(op_time)
         except Exception as e:

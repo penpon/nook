@@ -20,9 +20,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 # ArxivSummarizer関連のインポート
-from nook.services.arxiv_summarizer.arxiv_summarizer import (
-    ArxivSummarizer,
-)
 
 # =============================================================================
 # 17. _get_processed_ids メソッドのテスト（パラメータ化）
@@ -32,10 +29,13 @@ from nook.services.arxiv_summarizer.arxiv_summarizer import (
 @pytest.mark.unit
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "storage_return_value,expected_ids",
+    ("storage_return_value", "expected_ids"),
     [
         # ファイルが存在し、IDが含まれている
-        ("2301.00001\n2301.00002\n2301.00003\n", ["2301.00001", "2301.00002", "2301.00003"]),
+        (
+            "2301.00001\n2301.00002\n2301.00003\n",
+            ["2301.00001", "2301.00002", "2301.00003"],
+        ),
         # ファイルが空
         ("", []),
         # ファイルが存在しない
@@ -43,7 +43,9 @@ from nook.services.arxiv_summarizer.arxiv_summarizer import (
     ],
     ids=["success_with_ids", "empty_file", "file_not_found"],
 )
-async def test_get_processed_ids(arxiv_service, test_date, storage_return_value, expected_ids):
+async def test_get_processed_ids(
+    arxiv_service, test_date, storage_return_value, expected_ids
+):
     """
     Given: 様々な状態の処理済みIDファイル
     When: _get_processed_idsメソッドを呼び出す
@@ -228,7 +230,10 @@ Summary 1
     with patch.object(
         arxiv_service, "load_json", new_callable=AsyncMock, return_value=None
     ), patch.object(
-        arxiv_service.storage, "load", new_callable=AsyncMock, return_value=markdown_content
+        arxiv_service.storage,
+        "load",
+        new_callable=AsyncMock,
+        return_value=markdown_content,
     ):
         # When
         result = await arxiv_service._load_existing_papers(test_datetime)
@@ -251,7 +256,9 @@ async def test_load_existing_papers_no_files(arxiv_service, test_datetime):
     # Given: JSONなし、Markdownなし
     with patch.object(
         arxiv_service, "load_json", new_callable=AsyncMock, return_value=None
-    ), patch.object(arxiv_service.storage, "load", new_callable=AsyncMock, return_value=None):
+    ), patch.object(
+        arxiv_service.storage, "load", new_callable=AsyncMock, return_value=None
+    ):
         # When
         result = await arxiv_service._load_existing_papers(test_datetime)
 
@@ -295,7 +302,9 @@ async def test_load_ids_from_file_empty(arxiv_service):
     Then: 空リストが返される
     """
     # Given: 空のファイル
-    with patch.object(arxiv_service.storage, "load", new_callable=AsyncMock, return_value=""):
+    with patch.object(
+        arxiv_service.storage, "load", new_callable=AsyncMock, return_value=""
+    ):
         # When
         result = await arxiv_service._load_ids_from_file("arxiv_ids-2024-01-01.txt")
 

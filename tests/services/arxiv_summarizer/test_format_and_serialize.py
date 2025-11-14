@@ -34,7 +34,7 @@ from nook.services.arxiv_summarizer.arxiv_summarizer import (
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "input_text,expected_output",
+    ("input_text", "expected_output"),
     [
         # TeX形式: バッククォート除去
         ("`$\\ldots$`", "$\\ldots$"),
@@ -51,7 +51,6 @@ def test_remove_tex_backticks(input_text, expected_output):
     When: remove_tex_backticksを呼び出す
     Then: 適切に処理される
     """
-    from nook.services.arxiv_summarizer.arxiv_summarizer import remove_tex_backticks
 
     # When
     result = remove_tex_backticks(input_text)
@@ -62,7 +61,7 @@ def test_remove_tex_backticks(input_text, expected_output):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "input_text,expected_output",
+    ("input_text", "expected_output"),
     [
         # Markdownマーカーあり: 除去
         ("```markdown\ncode\n```", "\ncode\n"),
@@ -77,9 +76,6 @@ def test_remove_outer_markdown_markers(input_text, expected_output):
     When: remove_outer_markdown_markersを呼び出す
     Then: 適切に処理される
     """
-    from nook.services.arxiv_summarizer.arxiv_summarizer import (
-        remove_outer_markdown_markers,
-    )
 
     # When
     result = remove_outer_markdown_markers(input_text)
@@ -90,7 +86,7 @@ def test_remove_outer_markdown_markers(input_text, expected_output):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "input_text,expected_output",
+    ("input_text", "expected_output"),
     [
         # シングルクォートあり: 除去
         ("'''quoted text'''", "quoted text"),
@@ -105,9 +101,6 @@ def test_remove_outer_singlequotes(input_text, expected_output):
     When: remove_outer_singlequotesを呼び出す
     Then: 適切に処理される
     """
-    from nook.services.arxiv_summarizer.arxiv_summarizer import (
-        remove_outer_singlequotes,
-    )
 
     # When
     result = remove_outer_singlequotes(input_text)
@@ -138,7 +131,9 @@ async def test_summarize_paper_info_success(arxiv_service):
     )
 
     # GPTクライアントをモック
-    arxiv_service.gpt_client.generate_async = AsyncMock(return_value="```markdown\nTest summary\n```")
+    arxiv_service.gpt_client.generate_async = AsyncMock(
+        return_value="```markdown\nTest summary\n```"
+    )
 
     with patch.object(arxiv_service, "rate_limit", new_callable=AsyncMock):
         # When
@@ -166,7 +161,9 @@ async def test_summarize_paper_info_gpt_error(arxiv_service):
     )
 
     # GPTクライアントをモック（エラー）
-    arxiv_service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
+    arxiv_service.gpt_client.generate_async = AsyncMock(
+        side_effect=Exception("API Error")
+    )
 
     # When
     await arxiv_service._summarize_paper_info(paper)
@@ -283,7 +280,7 @@ def test_serialize_papers_no_published_date(arxiv_service):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "item,expected_tuple",
+    ("item", "expected_tuple"),
     [
         # 有効な日付
         (
@@ -291,7 +288,10 @@ def test_serialize_papers_no_published_date(arxiv_service):
             (0, datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc)),
         ),
         # 無効な日付
-        ({"published_at": "invalid-date"}, (0, datetime.min.replace(tzinfo=timezone.utc))),
+        (
+            {"published_at": "invalid-date"},
+            (0, datetime.min.replace(tzinfo=timezone.utc)),
+        ),
         # 日付なし
         ({}, (0, datetime.min.replace(tzinfo=timezone.utc))),
     ],
@@ -376,7 +376,7 @@ def test_render_markdown_empty_list(arxiv_service, test_datetime):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "markdown,expected_result",
+    ("markdown", "expected_result"),
     [
         # 有効なMarkdown形式
         (

@@ -11,11 +11,7 @@ ArxivSummarizer - エッジケース・境界値テスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
-from unittest.mock import AsyncMock, Mock, patch
-
 import pytest
-
 
 # =============================================================================
 # 境界値テスト: 文字列長
@@ -24,7 +20,7 @@ import pytest
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "text_length,expected_valid",
+    ("text_length", "expected_valid"),
     [
         (0, False),  # 空文字列
         (1, False),  # 最小値（1文字）
@@ -79,7 +75,7 @@ def test_is_valid_body_line_boundary_length(
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "year,month,day,is_valid",
+    ("year", "month", "day", "is_valid"),
     [
         (1900, 1, 1, True),  # 古い日付
         (2000, 1, 1, True),  # Y2K
@@ -97,9 +93,7 @@ def test_is_valid_body_line_boundary_length(
         "far_future",
     ],
 )
-def test_paper_sort_key_date_boundaries(
-    arxiv_service, year, month, day, is_valid
-):
+def test_paper_sort_key_date_boundaries(arxiv_service, year, month, day, is_valid):
     """
     境界値テスト: 日付の範囲
 
@@ -112,9 +106,7 @@ def test_paper_sort_key_date_boundaries(
         pytest.skip("Invalid date intentionally skipped")
 
     # Given
-    item = {
-        "published_at": f"{year:04d}-{month:02d}-{day:02d}T00:00:00+00:00"
-    }
+    item = {"published_at": f"{year:04d}-{month:02d}-{day:02d}T00:00:00+00:00"}
 
     # When
     result = arxiv_service._paper_sort_key(item)
@@ -132,7 +124,7 @@ def test_paper_sort_key_date_boundaries(
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "input_value,method_name",
+    ("input_value", "method_name"),
     [
         (None, "_is_valid_body_line"),
         ("", "_is_valid_body_line"),
@@ -181,7 +173,7 @@ def test_edge_case_none_and_empty(arxiv_service, input_value, method_name):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "special_text,description",
+    ("special_text", "description"),
     [
         ("日本語のテキストです。" * 10, "japanese"),
         ("中文文本内容。" * 10, "chinese"),
@@ -299,9 +291,7 @@ def test_performance_serialize_large_dataset(
     pytest.skip("pytest-benchmark not installed - example test")
 
     # Given: 大量の論文データ
-    papers = [
-        paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(paper_count)
-    ]
+    [paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(paper_count)]
 
     # When/Then: ベンチマーク実行
     # result = benchmark(arxiv_service._serialize_papers, papers)
