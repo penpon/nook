@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import calendar
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -20,7 +19,6 @@ from nook.common.feed_utils import (
     _parse_iso_datetime,
     parse_entry_datetime,
 )
-
 
 # ================================================================================
 # 1. _get_entry_value 関数のテスト

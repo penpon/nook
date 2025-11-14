@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date, datetime, time
+from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
@@ -19,7 +19,6 @@ from nook.common.dedup import (
     TitleNormalizer,
     load_existing_titles_from_storage,
 )
-
 
 # ================================================================================
 # 1. TitleNormalizer.normalize メソッドのテスト
@@ -1207,7 +1206,7 @@ async def test_load_existing_titles_io_error():
     target_dates = {date(2024, 1, 15)}
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=IOError("Disk error"))
+    storage.load = AsyncMock(side_effect=OSError("Disk error"))
     storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     tracker = await load_existing_titles_from_storage(storage, target_dates)
@@ -1272,7 +1271,7 @@ async def test_load_existing_titles_with_logger_io_error():
     target_dates = {date(2024, 1, 15)}
 
     storage = AsyncMock()
-    storage.load = AsyncMock(side_effect=IOError("Disk error"))
+    storage.load = AsyncMock(side_effect=OSError("Disk error"))
     storage.load_markdown = Mock(side_effect=FileNotFoundError)
 
     logger = Mock()

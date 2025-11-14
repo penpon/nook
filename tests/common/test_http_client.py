@@ -14,22 +14,20 @@ nook/common/http_client.py のテスト
 """
 
 import asyncio
-from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 import tempfile
+from pathlib import Path
+from unittest.mock import Mock, patch
 
 import httpx
 import pytest
-import respx
 
 from nook.common.config import BaseConfig
 from nook.common.exceptions import APIException, RetryException
 from nook.common.http_client import (
     AsyncHTTPClient,
-    get_http_client,
     close_http_client,
+    get_http_client,
 )
-
 
 # =============================================================================
 # 1. 初期化とセッション管理のテスト

@@ -15,7 +15,6 @@ if str(PROJECT_ROOT) not in sys.path:
 from nook.common.exceptions import APIException, ServiceException
 from nook.common.service_errors import ServiceErrorHandler
 
-
 # ================================================================================
 # 1. ServiceErrorHandler.__init__ のテスト
 # ================================================================================

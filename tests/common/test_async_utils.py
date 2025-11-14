@@ -12,7 +12,6 @@ nook/common/async_utils.py のテスト
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -24,7 +23,6 @@ from nook.common.async_utils import (
     run_sync_in_thread,
     run_with_semaphore,
 )
-
 
 # =============================================================================
 # 1. TaskResultのテスト

@@ -7,7 +7,6 @@ import logging
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -16,7 +15,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from nook.common.logging import JSONFormatter, SimpleConsoleFormatter, setup_logger
-
 
 # ================================================================================
 # 1. SimpleConsoleFormatter のテスト

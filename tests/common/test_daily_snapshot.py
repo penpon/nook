@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-import sys
 
 import pytest
 
@@ -149,8 +149,8 @@ async def test_store_daily_snapshots_with_logger(tmp_path):
     When: 処理が実行される
     Then: logger.infoが呼び出される
     """
-    from unittest.mock import Mock
     import logging
+    from unittest.mock import Mock
 
     base = datetime(2024, 10, 28, 9, 0, 0)
     grouped = {

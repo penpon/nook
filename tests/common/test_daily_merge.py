@@ -13,7 +13,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from nook.common.daily_merge import merge_grouped_records, merge_records
 
-
 # ================================================================================
 # 1. merge_records の基本動作テスト
 # ================================================================================

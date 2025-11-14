@@ -1,10 +1,8 @@
 """pytest共通設定・フィクスチャ"""
 
 import asyncio
-import os
 import sys
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -331,7 +329,7 @@ def mock_storage(temp_data_dir, monkeypatch):
     from nook.common.storage import LocalStorage
 
     storage = LocalStorage(service_name="test_service")
-    yield storage
+    return storage
     # クリーンアップ（テスト後に一時ファイル削除）
 
 
@@ -355,6 +353,268 @@ def fixed_datetime(monkeypatch):
 
 
 # =============================================================================
+# GPTクライアント モックフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def mock_gpt_client():
+    """GPTクライアントのモック"""
+    mock_client = AsyncMock()
+    mock_client.get_response = AsyncMock(return_value="テスト要約結果です。")
+    mock_client.generate_async = AsyncMock(return_value="テスト翻訳結果です。")
+    return mock_client
+
+
+# =============================================================================
+# feedparser モックフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def mock_feed_entry():
+    """feedparserエントリのモックデータ"""
+    entry = Mock()
+    entry.title = "テスト記事タイトル"
+    entry.link = "https://example.com/test-article"
+    entry.summary = "これはテスト記事の説明です。"
+    entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+    entry.description = "<p>記事の説明</p>"
+    return entry
+
+
+@pytest.fixture
+def mock_feedparser_result(mock_feed_entry):
+    """feedparser.parseの返り値モック"""
+    mock_feed = Mock()
+    mock_feed.feed = Mock()
+    mock_feed.feed.title = "テストフィード"
+    mock_feed.feed.link = "https://example.com"
+    mock_feed.entries = [mock_feed_entry]
+    mock_feed.bozo = 0  # エラーなし
+    return mock_feed
+
+
+# =============================================================================
+# BeautifulSoup モックHTMLフィクスチャ（人気スコア抽出用）
+# =============================================================================
+
+
+@pytest.fixture
+def mock_html_with_meta_likes():
+    """いいね数メタタグ付きHTML（Zenn/Qiita/Note用）"""
+    return """
+    <html>
+    <head>
+        <meta property="article:reaction_count" content="150">
+        <meta property="zenn:likes_count" content="150">
+        <meta property="qiita:likes_count" content="150">
+        <meta name="twitter:data1" content="150 likes">
+    </head>
+    <body>
+        <button data-like-count="150">♥ 150</button>
+        <span class="js-lgtm-count">150</span>
+        <p>これは日本語の記事本文です。</p>
+    </body>
+    </html>
+    """
+
+
+@pytest.fixture
+def mock_html_japanese_article():
+    """日本語記事HTMLモック"""
+    return """
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>日本語のテスト記事タイトル</title>
+    </head>
+    <body>
+        <article>
+            <h1>日本語記事のタイトル</h1>
+            <p>これは日本語で書かれた記事の本文です。テストに使用します。</p>
+            <p>複数段落があります。</p>
+        </article>
+    </body>
+    </html>
+    """
+
+
+@pytest.fixture
+def mock_html_english_article():
+    """英語記事HTMLモック"""
+    return """
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>English Test Article</title>
+    </head>
+    <body>
+        <article>
+            <h1>English Article Title</h1>
+            <p>This is an English article body for testing purposes.</p>
+            <p>Multiple paragraphs exist.</p>
+        </article>
+    </body>
+    </html>
+    """
+
+
+# =============================================================================
+# 4chan/5chan モックフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def mock_4chan_catalog():
+    """4chanカタログAPIレスポンスモック"""
+    return [
+        {
+            "page": 0,
+            "threads": [
+                {
+                    "no": 123456,
+                    "sub": "AI Discussion Thread",
+                    "com": "Let's talk about artificial intelligence and machine learning",
+                    "replies": 50,
+                    "images": 10,
+                    "bumps": 45,
+                    "time": 1699999999,
+                }
+            ],
+        }
+    ]
+
+
+@pytest.fixture
+def mock_4chan_thread():
+    """4chanスレッド詳細APIレスポンスモック"""
+    return {
+        "posts": [
+            {
+                "no": 123456,
+                "time": 1699999999,
+                "com": "First post about AI",
+                "replies": 50,
+            },
+            {
+                "no": 123457,
+                "time": 1700000000,
+                "com": "Reply about machine learning",
+            },
+        ]
+    }
+
+
+@pytest.fixture
+def mock_5chan_subject_txt():
+    """5chan subject.txtモック（Shift_JIS形式）"""
+    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"
+
+
+@pytest.fixture
+def mock_5chan_dat():
+    """5chan datファイルモック（Shift_JIS形式）"""
+    return """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう<>
+名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い<>
+"""
+
+
+# =============================================================================
+# Article/Record ファクトリーフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def article_factory():
+    """Articleオブジェクトを生成するファクトリー"""
+    from datetime import datetime
+
+    from bs4 import BeautifulSoup
+
+    from nook.services.base_feed_service import Article
+
+    def _create_article(
+        title="テスト記事",
+        url="https://example.com/test",
+        text="記事本文テキスト",
+        popularity_score=10.0,
+        category="tech",
+        feed_name="テストフィード",
+    ):
+        return Article(
+            feed_name=feed_name,
+            title=title,
+            url=url,
+            text=text,
+            soup=BeautifulSoup("<p>test</p>", "html.parser"),
+            category=category,
+            popularity_score=popularity_score,
+            published_at=datetime(2024, 11, 14, 12, 0, 0),
+        )
+
+    return _create_article
+
+
+@pytest.fixture
+def thread_factory():
+    """Threadオブジェクトを生成するファクトリー"""
+
+    def _create_thread(
+        thread_id=123456,
+        title="テストスレッド",
+        url="https://example.com/thread/123456",
+        board="test",
+        posts=None,
+        popularity_score=10.0,
+    ):
+        if posts is None:
+            posts = [{"name": "名無しさん", "mail": "sage", "msg": "テスト投稿"}]
+
+        # 各サービスで定義されているThreadクラスを使用する想定
+        from dataclasses import dataclass, field
+        from typing import Any
+
+        @dataclass
+        class Thread:
+            thread_id: int
+            title: str
+            url: str
+            board: str
+            posts: list[dict[str, Any]]
+            timestamp: int
+            summary: str = field(default="")
+            popularity_score: float = field(default=0.0)
+
+        return Thread(
+            thread_id=thread_id,
+            title=title,
+            url=url,
+            board=board,
+            posts=posts,
+            timestamp=1699999999,
+            summary="",
+            popularity_score=popularity_score,
+        )
+
+    return _create_thread
+
+
+# =============================================================================
+# DedupTracker モックフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def mock_dedup_tracker():
+    """DedupTrackerのモック"""
+    mock_tracker = Mock()
+    mock_tracker.is_duplicate = Mock(return_value=(False, "normalized_title"))
+    mock_tracker.add = Mock()
+    return mock_tracker
+
+
+# =============================================================================
 # クリーンアップフィクスチャ
 # =============================================================================
 
@@ -362,5 +622,5 @@ def fixed_datetime(monkeypatch):
 @pytest.fixture(autouse=True)
 def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
-    yield
+    return
     # テスト後の処理（必要に応じて）

@@ -16,7 +16,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from nook.common.error_metrics import ErrorMetrics, error_metrics
 
-
 # ================================================================================
 # 1. ErrorMetrics.__init__ のテスト
 # ================================================================================

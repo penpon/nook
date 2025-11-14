@@ -10,19 +10,12 @@ nook/common/gpt_client.py のテスト
 - エラーハンドリング・リトライ
 """
 
-import asyncio
-import inspect
-from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
-import httpx
 import pytest
-import tiktoken
 from openai import OpenAI
-from tenacity import RetryError
 
 from nook.common.gpt_client import GPTClient
-
 
 # =============================================================================
 # 1. __init__ メソッドのテスト

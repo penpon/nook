@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -16,7 +15,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from nook.common.decorators import handle_errors, log_execution_time
 from nook.common.exceptions import RetryException
-
 
 # ================================================================================
 # 1. handle_errors デコレータ（非同期）のテスト
