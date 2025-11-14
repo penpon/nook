@@ -1413,7 +1413,7 @@ async def test_retrieve_article_empty_html(mock_env_vars):
 
         service.http_client.get = AsyncMock(return_value=Mock(text="<html></html>"))
 
-        result = await service._retrieve_article(entry, "Test Feed", "tech")
+        await service._retrieve_article(entry, "Test Feed", "tech")
 
         # 空HTMLでも日本語判定で除外される可能性
         # または空のArticleが返される
@@ -1441,7 +1441,7 @@ async def test_retrieve_article_malformed_html(mock_env_vars):
             return_value=Mock(text="<html><body><p>不正なHTML<p><div>閉じタグなし")
         )
 
-        result = await service._retrieve_article(entry, "Test Feed", "tech")
+        await service._retrieve_article(entry, "Test Feed", "tech")
 
         # BeautifulSoupは不正HTMLでも解析を試みる
         # 日本語判定を通過すればArticleが返される
@@ -1467,7 +1467,10 @@ async def test_retrieve_article_japanese_detection_true(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="ja"><body><p>これは日本語の記事です。テスト用コンテンツ。</p></body></html>'
+                text=(
+                    '<html lang="ja"><body><p>これは日本語の記事です。'
+                    "テスト用コンテンツ。</p></body></html>"
+                )
             )
         )
 
@@ -1498,7 +1501,10 @@ async def test_retrieve_article_japanese_detection_false(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="en"><body><p>This is an English only article. No Japanese content here.</p></body></html>'
+                text=(
+                    '<html lang="en"><body><p>This is an English only article. '
+                    "No Japanese content here.</p></body></html>"
+                )
             )
         )
 
@@ -1528,7 +1534,10 @@ async def test_retrieve_article_with_meta_description(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="ja"><head><meta name="description" content="メタディスクリプションのテキスト"></head><body></body></html>'
+                text=(
+                    '<html lang="ja"><head><meta name="description" '
+                    'content="メタディスクリプションのテキスト"></head><body></body></html>'
+                )
             )
         )
 
@@ -1558,7 +1567,10 @@ async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="ja"><head><meta property="article:reaction_count" content="250"></head><body><p>人気の記事</p></body></html>'
+                text=(
+                    '<html lang="ja"><head><meta property="article:reaction_count" '
+                    'content="250"></head><body><p>人気の記事</p></body></html>'
+                )
             )
         )
 
@@ -1806,8 +1818,6 @@ async def test_collect_multiple_categories(mock_env_vars):
             mock_feed.feed.title = "Test"
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
-
-            mock_dedup = Mock()
 
             result = await service.collect(days=1)
 
@@ -2104,8 +2114,6 @@ async def test_collect_date_filtering_out_of_range(mock_env_vars):
             mock_entry.published_parsed = (2020, 1, 1, 0, 0, 0, 0, 0, 0)
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
-
-            mock_dedup = Mock()
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(
