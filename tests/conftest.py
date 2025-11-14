@@ -3,7 +3,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -653,8 +653,6 @@ def test_dates():
 @pytest.fixture
 def reddit_explorer_service(mock_env_vars):
     """RedditExplorerサービスのインスタンスを提供"""
-    from unittest.mock import patch
-
     with patch("nook.common.logging.setup_logger"):
         from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
 

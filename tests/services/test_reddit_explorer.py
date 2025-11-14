@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-# 共通インポート (各テスト内での繰り返しを削減)
+# テスト対象クラスと依存関係のインポート
 from nook.common.dedup import DedupTracker
 from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
 
@@ -1088,10 +1088,10 @@ Summary
 """
 
     with patch.object(
-            reddit_explorer_service, "load_json", new_callable=AsyncMock
-        ) as mock_load_json, patch.object(
-            reddit_explorer_service.storage, "load", new_callable=AsyncMock
-        ) as mock_load_md:
+        reddit_explorer_service, "load_json", new_callable=AsyncMock
+    ) as mock_load_json, patch.object(
+        reddit_explorer_service.storage, "load", new_callable=AsyncMock
+    ) as mock_load_md:
         mock_load_json.return_value = None
         mock_load_md.return_value = markdown
 
@@ -1170,7 +1170,7 @@ def test_extract_post_id_edge_cases(reddit_explorer_service):
     permalink2 = "/r/test/comments/abc123/title/extra/parts"
     assert reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "abc123"
 
-    # None
+    # None - Noneが渡された場合も例外を発生させず、空文字を返すことを検証
     assert reddit_explorer_service._extract_post_id_from_permalink(None) == ""
 
 @pytest.mark.unit
@@ -1283,7 +1283,8 @@ async def test_retrieve_top_comments_without_body(reddit_explorer_service):
     mock_comment_with_body.score = 50
 
     # body属性がないコメント（Moreオブジェクトなど）
-    mock_comment_without_body = Mock(spec=[])  # bodyを持たない
+    # Mock(spec=[])でbody属性を持たないオブジェクトを作成（Moreオブジェクトなどを模擬）
+    mock_comment_without_body = Mock(spec=[])
 
     mock_submission = Mock()
     mock_submission.comments.replace_more = AsyncMock()
