@@ -741,7 +741,7 @@ def zenn_service_with_mocks(mock_env_vars):
             mock_parse = zenn_service_with_mocks["mock_parse"]
             # テストロジック...
     """
-    from unittest.mock import AsyncMock, Mock, patch
+    from unittest.mock import AsyncMock, patch
     from pathlib import Path
 
     # auto_mock_loggerが既に適用されているため、手動パッチ不要
@@ -751,14 +751,24 @@ def zenn_service_with_mocks(mock_env_vars):
     service.http_client = AsyncMock()
 
     # LOAD_TITLES_PATHの定義（test_zenn_explorer.pyと同じ）
-    load_titles_path = "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
+    load_titles_path = (
+        "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
+    )
 
-    with patch("feedparser.parse") as mock_parse, \
-         patch.object(service, "setup_http_client", new_callable=AsyncMock) as mock_setup_http, \
-         patch.object(service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]) as mock_get_dates, \
-         patch(load_titles_path, new_callable=AsyncMock) as mock_load, \
-         patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None) as mock_storage_load, \
-         patch.object(service.storage, "save", new_callable=AsyncMock, return_value=Path("/data/test.json")) as mock_storage_save:
+    with patch("feedparser.parse") as mock_parse, patch.object(
+        service, "setup_http_client", new_callable=AsyncMock
+    ) as mock_setup_http, patch.object(
+        service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+    ) as mock_get_dates, patch(
+        load_titles_path, new_callable=AsyncMock
+    ) as mock_load, patch.object(
+        service.storage, "load", new_callable=AsyncMock, return_value=None
+    ) as mock_storage_load, patch.object(
+        service.storage,
+        "save",
+        new_callable=AsyncMock,
+        return_value=Path("/data/test.json"),
+    ) as mock_storage_save:
 
         yield {
             "service": service,
@@ -815,9 +825,7 @@ def setup_http_client_mock(service, html_content=TEST_HTML_SIMPLE):
     """
     from unittest.mock import AsyncMock, Mock
 
-    service.http_client.get = AsyncMock(
-        return_value=Mock(text=html_content)
-    )
+    service.http_client.get = AsyncMock(return_value=Mock(text=html_content))
 
 
 def setup_gpt_client_mock(service, summary=TEST_SUMMARY):
@@ -843,12 +851,14 @@ def assert_article_list_result(result, expected_count=None, min_count=None):
     assert isinstance(result, list), MSG_RESULT_SHOULD_BE_LIST
 
     if expected_count is not None:
-        assert len(result) == expected_count, \
-            f"期待される件数は{expected_count}件、実際は{len(result)}件"
+        assert (
+            len(result) == expected_count
+        ), f"期待される件数は{expected_count}件、実際は{len(result)}件"
 
     if min_count is not None:
-        assert len(result) >= min_count, \
-            f"最小{min_count}件の記事が必要、実際は{len(result)}件"
+        assert (
+            len(result) >= min_count
+        ), f"最小{min_count}件の記事が必要、実際は{len(result)}件"
 
 
 def assert_article_result(result):
@@ -875,7 +885,8 @@ def create_test_html(content="テキスト", meta_description=None):
     """
     meta_tag = ""
     if meta_description:
-        meta_tag = f'<head><meta name="description" content="{meta_description}"></head>'
+        meta_tag = (
+            f'<head><meta name="description" content="{meta_description}"></head>'
+        )
 
     return f"<html>{meta_tag}<body><p>{content}</p></body></html>"
-

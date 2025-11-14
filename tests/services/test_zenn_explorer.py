@@ -21,7 +21,6 @@ from unittest.mock import AsyncMock, Mock, patch
 
 from tests.conftest import create_mock_dedup, create_mock_entry, create_mock_feed
 
-import httpx
 import pytest
 from bs4 import BeautifulSoup
 
@@ -36,7 +35,9 @@ from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
 FIXED_DATETIME = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
 
 # マジック文字列を定数化
-LOAD_TITLES_PATH = "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
+LOAD_TITLES_PATH = (
+    "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
+)
 
 # =============================================================================
 # 1. __init__ メソッドのテスト
@@ -390,7 +391,9 @@ def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars
         ):
             result = service._load_existing_titles()
 
-            assert result is not None, "Markdownからタイトルが読み込まれ、DedupTrackerが返されるべき"
+            assert (
+                result is not None
+            ), "Markdownからタイトルが読み込まれ、DedupTrackerが返されるべき"
             # タイトルが追加されていることを確認
             is_dup1, _ = result.is_duplicate("既存記事タイトル1")
             is_dup2, _ = result.is_duplicate("既存記事タイトル2")
@@ -411,7 +414,9 @@ def test_load_existing_titles_with_no_markdown(mock_env_vars):
         with patch.object(service.storage, "load_markdown", return_value=None):
             result = service._load_existing_titles()
 
-            assert result is not None, "Markdownがない場合でも空のDedupTrackerが返されるべき"
+            assert (
+                result is not None
+            ), "Markdownがない場合でも空のDedupTrackerが返されるべき"
             # 空のトラッカーであることを確認
             is_dup, _ = result.is_duplicate("新規記事")
             assert is_dup is False
@@ -518,7 +523,9 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
             result = await service.collect(days=1, limit=10)
 
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) > 0, "日付範囲内の新規記事があるため、記事が取得されるべき"
+            assert (
+                len(result) > 0
+            ), "日付範囲内の新規記事があるため、記事が取得されるべき"
 
 
 @pytest.mark.unit
@@ -563,7 +570,9 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
             mock_feed = create_mock_feed(title="Test Feed")  # 新規記事なし
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1, limit=10)
@@ -626,7 +635,9 @@ async def test_collect_feed_without_title_attribute(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -660,7 +671,9 @@ async def test_collect_feed_without_feed_attribute(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -710,7 +723,9 @@ async def test_collect_effective_limit_calculation_with_days_greater_than_one(
             mock_feed.entries = entries
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
@@ -723,7 +738,9 @@ async def test_collect_effective_limit_calculation_with_days_greater_than_one(
             # effective_limit = 5 * 3 = 15なので、最大15件まで処理される
             # 実際の結果数は15件以下であるべき（重複チェックなどで減る可能性がある）
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) <= 15, "effective_limit=15なので、最大15件まで処理されるべき"
+            assert (
+                len(result) <= 15
+            ), "effective_limit=15なので、最大15件まで処理されるべき"
             # 少なくとも一部の記事は処理されるべき
             assert len(result) >= 0, "エントリが処理されるべき"
 
@@ -767,7 +784,9 @@ async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars)
             mock_feed.entries = entries
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
@@ -779,7 +798,9 @@ async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars)
 
             # effective_limit = 5 * max(0, 1) = 5なので、最大5件まで処理される
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) <= 5, "effective_limit=5なので、最大5件まで処理されるべき"
+            assert (
+                len(result) <= 5
+            ), "effective_limit=5なので、最大5件まで処理されるべき"
             assert len(result) >= 0, "エントリが処理されるべき"
 
 
@@ -835,7 +856,9 @@ async def test_collect_filters_out_of_range_articles(mock_env_vars):
 
             # 範囲外の記事は保存されないはず
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) >= 0, "日付範囲外の記事はフィルタされるため、空または一部の記事が返されるべき"
+            assert (
+                len(result) >= 0
+            ), "日付範囲外の記事はフィルタされるため、空または一部の記事が返されるべき"
 
 
 # =============================================================================
@@ -894,7 +917,9 @@ async def test_collect_preserves_existing_files_path(mock_env_vars):
             mock_feed = create_mock_feed(title="Test Feed")  # 新規記事なし
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -934,7 +959,9 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
-            mock_entry = create_mock_entry(title="新規記事", link="https://example.com/new", summary="説明")
+            mock_entry = create_mock_entry(
+                title="新規記事", link="https://example.com/new", summary="説明"
+            )
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -951,7 +978,9 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
 
             # 例外が処理され、処理が継続される
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) > 0, "ストレージエラーでも新規記事があるため記事が取得されるべき"
+            assert (
+                len(result) > 0
+            ), "ストレージエラーでも新規記事があるため記事が取得されるべき"
 
 
 # =============================================================================
@@ -983,7 +1012,9 @@ Some more text here.
         ):
             result = service._load_existing_titles()
 
-            assert result is not None, "同じスコアの記事がある場合でもリストが返されるべき"
+            assert (
+                result is not None
+            ), "同じスコアの記事がある場合でもリストが返されるべき"
             # マッチしないので空のトラッカー
             is_dup, _ = result.is_duplicate("新規記事")
             assert is_dup is False
@@ -1116,7 +1147,9 @@ async def test_collect_finally_block_execution(mock_env_vars):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -1166,7 +1199,9 @@ async def test_collect_initializes_http_client_when_none(mock_env_vars):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -1263,13 +1298,17 @@ async def test_collect_with_extremely_large_days(mock_env_vars):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=10000)
 
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) >= 0, "極端に大きなdaysでもエラーなくリストが返されるべき"
+            assert (
+                len(result) >= 0
+            ), "極端に大きなdaysでもエラーなくリストが返されるべき"
 
 
 @pytest.mark.unit
@@ -1300,7 +1339,9 @@ async def test_collect_with_extremely_large_limit(mock_env_vars):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             # 極端に大きなlimitでも、実際のエントリ数は小さい
-            mock_entry = create_mock_entry(title="テスト記事", link="https://example.com/test", summary="説明")
+            mock_entry = create_mock_entry(
+                title="テスト記事", link="https://example.com/test", summary="説明"
+            )
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -1316,7 +1357,9 @@ async def test_collect_with_extremely_large_limit(mock_env_vars):
             result = await service.collect(days=1, limit=999999)
 
             assert isinstance(result, list), "結果はリスト型であるべき"
-            assert len(result) >= 0, "極端に大きなlimitでもエラーなくリストが返されるべき"
+            assert (
+                len(result) >= 0
+            ), "極端に大きなlimitでもエラーなくリストが返されるべき"
             # 実際のエントリ数以上は取得されない
             assert len(result) <= 1, "実際のエントリ数以上は取得されないべき"
 
@@ -1373,7 +1416,9 @@ async def test_collect_with_days_zero_boundary(mock_env_vars):
             mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
+            mock_dedup = create_mock_dedup(
+                is_duplicate=False, normalized_title="normalized_title"
+            )
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=0)

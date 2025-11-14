@@ -16,12 +16,13 @@ ZennExplorer._extract_popularity() メソッドのテスト
 
 from __future__ import annotations
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from bs4 import BeautifulSoup
 
-from tests.conftest import create_mock_entry
+from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
+
 
 
 @pytest.mark.unit
@@ -45,8 +46,6 @@ def test_extract_popularity_with_meta_tag(mock_env_vars):
         assert result >= 0.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_without_score(mock_env_vars):
     """
@@ -63,8 +62,6 @@ def test_extract_popularity_without_score(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 0.0
-
-
 
 
 @pytest.mark.unit
@@ -93,8 +90,6 @@ def test_extract_popularity_zenn_likes_count_meta(mock_env_vars):
         assert result == 150.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_data_like_count_attribute(mock_env_vars):
     """
@@ -118,8 +113,6 @@ def test_extract_popularity_data_like_count_attribute(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 250.0
-
-
 
 
 @pytest.mark.unit
@@ -147,8 +140,6 @@ def test_extract_popularity_button_text_extraction(mock_env_vars):
         assert result == 320.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_span_text_extraction(mock_env_vars):
     """
@@ -172,8 +163,6 @@ def test_extract_popularity_span_text_extraction(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 180.0
-
-
 
 
 @pytest.mark.unit
@@ -203,8 +192,6 @@ def test_extract_popularity_max_from_multiple_candidates(mock_env_vars):
         assert result == 250.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_from_feed_entry_likes(mock_env_vars):
     """
@@ -222,8 +209,6 @@ def test_extract_popularity_from_feed_entry_likes(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 300.0
-
-
 
 
 @pytest.mark.unit
@@ -245,8 +230,6 @@ def test_extract_popularity_from_feed_entry_zenn_likes_count(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 450.0
-
-
 
 
 @pytest.mark.unit
@@ -272,8 +255,6 @@ def test_extract_popularity_all_methods_fail_returns_zero(mock_env_vars):
         assert result == 0.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_div_text_extraction(mock_env_vars):
     """
@@ -297,8 +278,6 @@ def test_extract_popularity_div_text_extraction(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 280.0
-
-
 
 
 @pytest.mark.unit
@@ -330,8 +309,6 @@ def test_extract_popularity_meta_tag_with_empty_content(mock_env_vars):
         assert result == 100.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_entry_likes_count_attribute(mock_env_vars):
     """
@@ -350,8 +327,6 @@ def test_extract_popularity_entry_likes_count_attribute(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 350.0
-
-
 
 
 @pytest.mark.unit
@@ -375,8 +350,6 @@ def test_extract_popularity_debug_exception_handling(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 0.0
-
-
 
 
 @pytest.mark.unit
@@ -408,8 +381,6 @@ def test_extract_popularity_meta_tag_priority_over_data_attribute(mock_env_vars)
         assert result == 100.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_data_attribute_priority_over_text(mock_env_vars):
     """
@@ -435,8 +406,6 @@ def test_extract_popularity_data_attribute_priority_over_text(mock_env_vars):
 
         # 最大値が選択されるので250.0
         assert result == 250.0
-
-
 
 
 @pytest.mark.unit
@@ -466,8 +435,6 @@ def test_extract_popularity_with_non_numeric_data_attribute(mock_env_vars):
         assert result == 100.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_with_multiple_data_attributes(mock_env_vars):
     """
@@ -495,8 +462,6 @@ def test_extract_popularity_with_multiple_data_attributes(mock_env_vars):
         assert result == 300.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_with_comma_in_text(mock_env_vars):
     """
@@ -520,8 +485,6 @@ def test_extract_popularity_with_comma_in_text(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 1234.0
-
-
 
 
 @pytest.mark.unit
@@ -551,8 +514,6 @@ def test_extract_popularity_empty_text_elements(mock_env_vars):
         assert result == 50.0
 
 
-
-
 @pytest.mark.unit
 def test_extract_popularity_entry_without_any_like_attributes(mock_env_vars):
     """
@@ -570,8 +531,6 @@ def test_extract_popularity_entry_without_any_like_attributes(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 0.0
-
-
 
 
 @pytest.mark.unit
@@ -601,7 +560,3 @@ def test_extract_popularity_meta_tag_with_non_numeric_content(mock_env_vars):
 
         # メタタグが非数値なので、data属性から抽出される
         assert result == 50.0
-
-
-
-

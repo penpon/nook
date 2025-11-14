@@ -17,8 +17,9 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
-from bs4 import BeautifulSoup
 
+from nook.services.base_feed_service import Article
+from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
 from tests.conftest import create_mock_entry
 
 
@@ -34,7 +35,11 @@ async def test_retrieve_article_success(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = create_mock_entry(title="テストZenn記事", link="https://example.com/test", summary="テストの説明")
+        entry = create_mock_entry(
+            title="テストZenn記事",
+            link="https://example.com/test",
+            summary="テストの説明",
+        )
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
@@ -47,8 +52,6 @@ async def test_retrieve_article_success(mock_env_vars):
         assert result is not None, "有効なエントリからArticleオブジェクトが返されるべき"
         assert isinstance(result, Article)
         assert result.title == "テストZenn記事"
-
-
 
 
 @pytest.mark.unit
@@ -69,8 +72,6 @@ async def test_retrieve_article_no_url(mock_env_vars):
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is None
-
-
 
 
 @pytest.mark.unit
@@ -96,8 +97,6 @@ async def test_retrieve_article_http_error(mock_env_vars):
         assert result is None
 
 
-
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_http_404_error(mock_env_vars):
@@ -110,7 +109,9 @@ async def test_retrieve_article_http_404_error(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = create_mock_entry(title="テスト記事", link="https://example.com/not-found")
+        entry = create_mock_entry(
+            title="テスト記事", link="https://example.com/not-found"
+        )
 
         service.http_client.get = AsyncMock(
             side_effect=httpx.HTTPStatusError(
@@ -123,8 +124,6 @@ async def test_retrieve_article_http_404_error(mock_env_vars):
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is None
-
-
 
 
 @pytest.mark.unit
@@ -152,8 +151,6 @@ async def test_retrieve_article_http_500_error(mock_env_vars):
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is None
-
-
 
 
 @pytest.mark.unit
@@ -187,10 +184,10 @@ async def test_retrieve_article_meta_description_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "メタディスクリプションがある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "メタディスクリプションがある場合、Articleオブジェクトが返されるべき"
         assert "これはメタディスクリプションのテキストです。" in result.text
-
-
 
 
 @pytest.mark.unit
@@ -231,8 +228,6 @@ async def test_retrieve_article_paragraph_fallback(mock_env_vars):
         assert "最初の段落テキスト。" in result.text
 
 
-
-
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_entry_summary_priority(mock_env_vars):
@@ -245,7 +240,11 @@ async def test_retrieve_article_entry_summary_priority(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = create_mock_entry(title="テスト記事", link="https://example.com/test", summary="エントリのサマリーテキスト")
+        entry = create_mock_entry(
+            title="テスト記事",
+            link="https://example.com/test",
+            summary="エントリのサマリーテキスト",
+        )
 
         service.http_client.get = AsyncMock(
             return_value=Mock(text="<html><body><p>HTML本文</p></body></html>")
@@ -253,10 +252,10 @@ async def test_retrieve_article_entry_summary_priority(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "entry.summaryがある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "entry.summaryがある場合、Articleオブジェクトが返されるべき"
         assert result.text == "エントリのサマリーテキスト"
-
-
 
 
 @pytest.mark.unit
@@ -279,8 +278,6 @@ async def test_retrieve_article_beautifulsoup_exception(mock_env_vars):
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is None
-
-
 
 
 @pytest.mark.unit
@@ -316,11 +313,11 @@ async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "メタディスクリプションと段落がある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "メタディスクリプションと段落がある場合、Articleオブジェクトが返されるべき"
         assert "段落1のテキスト" in result.text
         assert result.title == "テスト記事"
-
-
 
 
 @pytest.mark.unit
@@ -354,10 +351,10 @@ async def test_retrieve_article_no_summary_with_meta_description(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "メタディスクリプションのみがある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "メタディスクリプションのみがある場合、Articleオブジェクトが返されるべき"
         assert result.text == "メタディスクリプションのテキスト"
-
-
 
 
 @pytest.mark.unit
@@ -389,10 +386,10 @@ async def test_retrieve_article_no_content_anywhere(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "コンテンツがなくてもArticleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "コンテンツがなくてもArticleオブジェクトが返されるべき"
         assert result.text == ""
-
-
 
 
 @pytest.mark.unit
@@ -419,10 +416,10 @@ async def test_retrieve_article_with_title_attribute_missing(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "段落のみがある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "段落のみがある場合、Articleオブジェクトが返されるべき"
         assert result.title == "無題"
-
-
 
 
 @pytest.mark.unit
@@ -461,14 +458,14 @@ async def test_retrieve_article_with_five_or_more_paragraphs(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "5つ以上の段落がある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "5つ以上の段落がある場合、Articleオブジェクトが返されるべき"
         # 最初の5つの段落が含まれている
         assert "段落1" in result.text
         assert "段落5" in result.text
         # 6つ目以降は含まれない
         assert "段落6" not in result.text
-
-
 
 
 @pytest.mark.unit
@@ -504,10 +501,10 @@ async def test_retrieve_article_with_meta_description_empty_content(mock_env_var
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "メタディスクリプションが空でも段落があればArticleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "メタディスクリプションが空でも段落があればArticleオブジェクトが返されるべき"
         assert "段落のテキスト" in result.text
-
-
 
 
 @pytest.mark.unit
@@ -534,14 +531,14 @@ async def test_retrieve_article_published_at_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "published_parsedが正しく解析されArticleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "published_parsedが正しく解析されArticleオブジェクトが返されるべき"
         assert result.published_at is not None
         # 時刻が正しく解析されているか確認
         assert result.published_at.year == 2024
         assert result.published_at.month == 11
         assert result.published_at.day == 14
-
-
 
 
 @pytest.mark.unit
@@ -556,7 +553,9 @@ async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = create_mock_entry(title="テスト記事", link="https://example.com/test", summary="説明")
+        entry = create_mock_entry(
+            title="テスト記事", link="https://example.com/test", summary="説明"
+        )
 
         html = """
         <html>
@@ -571,10 +570,10 @@ async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "メタディスクリプションの優先順位が正しく、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "メタディスクリプションの優先順位が正しく、Articleオブジェクトが返されるべき"
         assert result.popularity_score == 200.0
-
-
 
 
 @pytest.mark.unit
@@ -594,8 +593,6 @@ async def test_retrieve_article_with_link_attribute_hasattr_false(mock_env_vars)
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is None
-
-
 
 
 @pytest.mark.unit
@@ -623,7 +620,3 @@ async def test_retrieve_article_error_logging_with_no_link(mock_env_vars):
             assert result is None
             # エラーログが呼ばれたことを確認
             mock_logger_error.assert_called_once()
-
-
-
-

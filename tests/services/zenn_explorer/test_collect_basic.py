@@ -43,7 +43,7 @@ async def test_collect_success_with_valid_feed(zenn_service_with_mocks):
     mock_entry = create_mock_entry(
         title="テストZenn記事",
         link="https://example.com/article1",
-        summary="テストZenn記事の説明"
+        summary="テストZenn記事の説明",
     )
     mock_feed = create_mock_feed(title="Test Feed", entries=[mock_entry])
     mock_parse.return_value = mock_feed
@@ -82,7 +82,7 @@ async def test_collect_with_multiple_articles(zenn_service_with_mocks):
         create_mock_entry(
             title=f"テストZenn記事{i}",
             link=f"https://example.com/article{i}",
-            summary=f"説明{i}"
+            summary=f"説明{i}",
         )
         for i in range(5)
     ]
@@ -182,10 +182,7 @@ async def test_collect_http_client_timeout(zenn_service_with_mocks):
     mock_load = zenn_service_with_mocks["mock_load"]
 
     # Given: 記事を含むフィードを設定
-    mock_entry = create_mock_entry(
-        title="テスト",
-        link="https://example.com/test"
-    )
+    mock_entry = create_mock_entry(title="テスト", link="https://example.com/test")
     mock_feed = create_mock_feed(title="Test Feed", entries=[mock_entry])
     mock_parse.return_value = mock_feed
 
@@ -193,9 +190,7 @@ async def test_collect_http_client_timeout(zenn_service_with_mocks):
     mock_load.return_value = mock_dedup
 
     # Given: HTTP clientがタイムアウトを発生させる
-    service.http_client.get = AsyncMock(
-        side_effect=httpx.TimeoutException("Timeout")
-    )
+    service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
     # When: collectメソッドを呼び出す
     result = await service.collect(days=1)
@@ -216,9 +211,7 @@ async def test_collect_gpt_api_error(zenn_service_with_mocks):
 
     # Given: 記事を含むフィードを設定
     mock_entry = create_mock_entry(
-        title="テスト",
-        link="https://example.com/test",
-        summary="説明"
+        title="テスト", link="https://example.com/test", summary="説明"
     )
     mock_feed = create_mock_feed(title="Test Feed", entries=[mock_entry])
     mock_parse.return_value = mock_feed
@@ -230,9 +223,7 @@ async def test_collect_gpt_api_error(zenn_service_with_mocks):
     service.http_client.get = AsyncMock(
         return_value=Mock(text="<html><body>日本語</body></html>")
     )
-    service.gpt_client.get_response = AsyncMock(
-        side_effect=Exception("API Error")
-    )
+    service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
     # When: collectメソッドを呼び出す
     result = await service.collect(days=1)
@@ -278,9 +269,7 @@ async def test_collect_with_limit_one(zenn_service_with_mocks):
 
     # Given: 1件の記事を含むフィードを設定
     mock_entry = create_mock_entry(
-        title="テスト",
-        link="https://example.com/test",
-        summary="説明"
+        title="テスト", link="https://example.com/test", summary="説明"
     )
     mock_feed = create_mock_feed(title="Test", entries=[mock_entry])
     mock_parse.return_value = mock_feed
@@ -318,9 +307,7 @@ async def test_full_workflow_collect_and_save(zenn_service_with_mocks):
 
     # Given: 記事を含むフィードを設定
     mock_entry = create_mock_entry(
-        title="テストZenn記事",
-        link="https://example.com/test",
-        summary="テスト説明"
+        title="テストZenn記事", link="https://example.com/test", summary="テスト説明"
     )
     mock_feed = create_mock_feed(title="Test Feed", entries=[mock_entry])
     mock_parse.return_value = mock_feed
@@ -390,9 +377,7 @@ async def test_collect_feedparser_attribute_error(zenn_service_with_mocks):
     mock_parse = zenn_service_with_mocks["mock_parse"]
 
     # Given: feedparser.parseがAttributeErrorを発生させる
-    mock_parse.side_effect = AttributeError(
-        "'NoneType' object has no attribute 'feed'"
-    )
+    mock_parse.side_effect = AttributeError("'NoneType' object has no attribute 'feed'")
 
     # When: collectメソッドを呼び出す
     result = await service.collect(days=1)
@@ -413,15 +398,15 @@ async def test_collect_with_duplicate_article(zenn_service_with_mocks):
 
     # Given: 重複記事を含むフィードを設定
     mock_entry = create_mock_entry(
-        title="重複記事",
-        link="https://example.com/duplicate",
-        summary="説明"
+        title="重複記事", link="https://example.com/duplicate", summary="説明"
     )
     mock_feed = create_mock_feed(title="Test Feed", entries=[mock_entry])
     mock_parse.return_value = mock_feed
 
     # Given: 重複として判定するDedupTrackerをモック
-    mock_dedup = create_mock_dedup(is_duplicate=True, normalized_title="normalized_title")
+    mock_dedup = create_mock_dedup(
+        is_duplicate=True, normalized_title="normalized_title"
+    )
     mock_dedup.get_original_title = Mock(return_value="元のタイトル")
     mock_load.return_value = mock_dedup
 
@@ -480,4 +465,6 @@ async def test_collect_continues_on_individual_feed_error(zenn_service_with_mock
 
     # Then: エラーがあっても処理は継続され空リストが返される
     assert isinstance(result, list), "結果はリスト型であるべき"
-    assert len(result) == 0, "部分的なフィードエラーでもエントリが空なら空リストが返されるべき"
+    assert (
+        len(result) == 0
+    ), "部分的なフィードエラーでもエントリが空なら空リストが返されるべき"
