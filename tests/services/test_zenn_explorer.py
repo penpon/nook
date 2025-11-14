@@ -19,6 +19,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
+from tests.conftest import create_mock_dedup, create_mock_entry, create_mock_feed
+
 import httpx
 import pytest
 from bs4 import BeautifulSoup
@@ -134,11 +136,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
-            mock_entry = Mock()
-            mock_entry.title = "テストZenn記事"
-            mock_entry.link = "https://example.com/article1"
-            mock_entry.summary = "テストZenn記事の説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry = create_mock_entry(title="テストZenn記事", link="https://example.com/article1", summary="テストZenn記事の説明")
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -234,18 +232,10 @@ async def test_collect_with_target_dates_none(mock_env_vars):
             new_callable=AsyncMock,
         ) as mock_load:
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1, limit=10, target_dates=None)
@@ -386,11 +376,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
-            mock_entry = Mock()
-            mock_entry.title = "テスト"
-            mock_entry.link = "https://example.com/test"
-            mock_entry.summary = "説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry = create_mock_entry(title="テスト", link="https://example.com/test", summary="説明")
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -472,11 +458,7 @@ async def test_collect_with_limit_one(mock_env_vars):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test"
-            mock_entry = Mock()
-            mock_entry.title = "テスト"
-            mock_entry.link = "https://example.com/test"
-            mock_entry.summary = "説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry = create_mock_entry(title="テスト", link="https://example.com/test", summary="説明")
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -610,11 +592,7 @@ async def test_retrieve_article_success(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = Mock()
-        entry.title = "テストZenn記事"
-        entry.link = "https://example.com/test"
-        entry.summary = "テストの説明"
-        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+        entry = create_mock_entry(title="テストZenn記事", link="https://example.com/test", summary="テストの説明")
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
@@ -852,11 +830,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
-            mock_entry = Mock()
-            mock_entry.title = "テストZenn記事"
-            mock_entry.link = "https://example.com/test"
-            mock_entry.summary = "テスト説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry = create_mock_entry(title="テストZenn記事", link="https://example.com/test", summary="テスト説明")
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -912,18 +886,10 @@ async def test_collect_with_multiple_categories(mock_env_vars):
             service.storage, "save", new_callable=AsyncMock
         ):
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -989,11 +955,7 @@ async def test_collect_with_duplicate_article(mock_env_vars):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
-            mock_entry = Mock()
-            mock_entry.title = "重複記事"
-            mock_entry.link = "https://example.com/duplicate"
-            mock_entry.summary = "説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry = create_mock_entry(title="重複記事", link="https://example.com/duplicate", summary="説明")
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -1033,9 +995,7 @@ async def test_collect_with_empty_feed_entries(mock_env_vars):
             new_callable=AsyncMock,
         ):
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Empty Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Empty Feed")
             mock_parse.return_value = mock_feed
 
             result = await service.collect(days=1)
@@ -1070,9 +1030,7 @@ async def test_collect_continues_on_individual_feed_error(mock_env_vars):
         ):
 
             # 1つ目のフィードでエラー、2つ目は成功
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
 
             mock_parse.side_effect = [
                 Exception("Feed error"),
@@ -1103,10 +1061,7 @@ async def test_retrieve_article_http_404_error(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = Mock()
-        entry.title = "テスト記事"
-        entry.link = "https://example.com/not-found"
-        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+        entry = create_mock_entry(title="テスト記事", link="https://example.com/not-found")
 
         service.http_client.get = AsyncMock(
             side_effect=httpx.HTTPStatusError(
@@ -1133,10 +1088,7 @@ async def test_retrieve_article_http_500_error(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = Mock()
-        entry.title = "テスト記事"
-        entry.link = "https://example.com/error"
-        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+        entry = create_mock_entry(title="テスト記事", link="https://example.com/error")
 
         service.http_client.get = AsyncMock(
             side_effect=httpx.HTTPStatusError(
@@ -1236,11 +1188,7 @@ async def test_retrieve_article_entry_summary_priority(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = Mock()
-        entry.title = "テスト記事"
-        entry.link = "https://example.com/test"
-        entry.summary = "エントリのサマリーテキスト"
-        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+        entry = create_mock_entry(title="テスト記事", link="https://example.com/test", summary="エントリのサマリーテキスト")
 
         service.http_client.get = AsyncMock(
             return_value=Mock(text="<html><body><p>HTML本文</p></body></html>")
@@ -1264,10 +1212,7 @@ async def test_retrieve_article_beautifulsoup_exception(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = Mock()
-        entry.title = "テスト記事"
-        entry.link = "https://example.com/test"
-        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+        entry = create_mock_entry(title="テスト記事", link="https://example.com/test")
 
         # BeautifulSoupがパース時に例外を発生させるケース
         service.http_client.get = AsyncMock(side_effect=Exception("Parse error"))
@@ -1918,18 +1863,10 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
             )
             mock_storage_load.return_value = existing_data
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []  # 新規記事なし
+            mock_feed = create_mock_feed(title="Test Feed")  # 新規記事なし
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1, limit=10)
@@ -1992,13 +1929,7 @@ async def test_collect_feed_without_title_attribute(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -2032,13 +1963,7 @@ async def test_collect_feed_without_feed_attribute(mock_env_vars):
             mock_feed.entries = []
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -2088,9 +2013,7 @@ async def test_collect_effective_limit_calculation_with_days_greater_than_one(
             mock_feed.entries = entries
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
@@ -2147,9 +2070,7 @@ async def test_collect_effective_limit_calculation_with_days_zero(mock_env_vars)
             mock_feed.entries = entries
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
@@ -2350,11 +2271,7 @@ async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = Mock()
-        entry.title = "テスト記事"
-        entry.link = "https://example.com/test"
-        entry.summary = "説明"
-        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+        entry = create_mock_entry(title="テスト記事", link="https://example.com/test", summary="説明")
 
         html = """
         <html>
@@ -2583,18 +2500,10 @@ async def test_collect_preserves_existing_files_path(mock_env_vars):
             )
             mock_storage_load.return_value = existing_data
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []  # 新規記事なし
+            mock_feed = create_mock_feed(title="Test Feed")  # 新規記事なし
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -2634,11 +2543,7 @@ async def test_collect_storage_load_exception_handling(mock_env_vars):
 
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
-            mock_entry = Mock()
-            mock_entry.title = "新規記事"
-            mock_entry.link = "https://example.com/new"
-            mock_entry.summary = "説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry = create_mock_entry(title="新規記事", link="https://example.com/new", summary="説明")
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -2817,18 +2722,10 @@ async def test_collect_finally_block_execution(mock_env_vars):
             new_callable=AsyncMock,
         ) as mock_load:
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -2969,18 +2866,10 @@ async def test_collect_initializes_http_client_when_none(mock_env_vars):
             new_callable=AsyncMock,
         ) as mock_load:
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-
-
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-
-
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=1)
@@ -3016,9 +2905,7 @@ async def test_collect_with_negative_days(mock_env_vars):
             new_callable=AsyncMock,
         ):
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
             result = await service.collect(days=-1)
@@ -3047,9 +2934,7 @@ async def test_collect_with_negative_limit(mock_env_vars):
             new_callable=AsyncMock,
         ):
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
             result = await service.collect(days=1, limit=-1)
@@ -3078,14 +2963,10 @@ async def test_collect_with_extremely_large_days(mock_env_vars):
             new_callable=AsyncMock,
         ) as mock_load:
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=10000)
@@ -3122,11 +3003,7 @@ async def test_collect_with_extremely_large_limit(mock_env_vars):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             # 極端に大きなlimitでも、実際のエントリ数は小さい
-            mock_entry = Mock()
-            mock_entry.title = "テスト記事"
-            mock_entry.link = "https://example.com/test"
-            mock_entry.summary = "説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry = create_mock_entry(title="テスト記事", link="https://example.com/test", summary="説明")
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
@@ -3167,9 +3044,7 @@ async def test_collect_with_negative_days_and_limit(mock_env_vars):
             new_callable=AsyncMock,
         ):
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
             result = await service.collect(days=-1, limit=-1)
@@ -3198,14 +3073,10 @@ async def test_collect_with_days_zero_boundary(mock_env_vars):
             new_callable=AsyncMock,
         ) as mock_load:
 
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_feed.entries = []
+            mock_feed = create_mock_feed(title="Test Feed")
             mock_parse.return_value = mock_feed
 
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (False, "normalized_title")
-            mock_dedup.add.return_value = None
+            mock_dedup = create_mock_dedup(is_duplicate=False, normalized_title="normalized_title")
             mock_load.return_value = mock_dedup
 
             result = await service.collect(days=0)
