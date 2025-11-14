@@ -3,7 +3,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -624,3 +624,11 @@ def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
     return
     # テスト後の処理（必要に応じて）
+
+
+@pytest.fixture
+def fivechan_service(mock_env_vars):
+    """FiveChanExplorerインスタンスを提供（logger自動モック）"""
+    with patch("nook.common.logging.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+        return FiveChanExplorer()
