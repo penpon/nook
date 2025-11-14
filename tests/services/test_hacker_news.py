@@ -1126,7 +1126,8 @@ async def test_get_top_stories_filtering(
     if filter_type == "score":
         # スコア >= SCORE_THRESHOLD のストーリーのみ
         assert all(story.score >= SCORE_THRESHOLD for story in stories)
-        assert len([s for s in stories if s.score >= SCORE_THRESHOLD]) >= 0
+        # 少なくとも1件はフィルタを通過していることを確認
+        assert len(stories) > 0
 
     elif filter_type == "text_length":
         # テキスト長が範囲内のストーリーのみ
@@ -1688,9 +1689,16 @@ async def test_summarize_stories_empty(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        await service._summarize_stories([])
+        with patch.object(service, '_summarize_story', new_callable=AsyncMock) as mock_summarize, \
+             patch.object(service, '_update_blocked_domains_from_errors', new_callable=AsyncMock) as mock_update:
 
-        # エラーが発生しないことを確認
+            await service._summarize_stories([])
+
+            # 空のリストの場合、要約処理は呼ばれない
+            mock_summarize.assert_not_called()
+            # ブロックドメイン更新も呼ばれないか、空のリストで呼ばれる
+            if mock_update.called:
+                mock_update.assert_called_once_with([])
 
 
 @pytest.mark.unit
@@ -2243,9 +2251,9 @@ async def test_update_blocked_domains_exception_handling(mock_env_vars):
             # Should not raise an error
             await service._update_blocked_domains_from_errors(stories)
 
-        # Empty domain should be added for invalid URL
-        # (urlparse returns empty netloc for invalid URLs)
-        assert len(added_domains) >= 0  # May include empty domain from invalid URL
+        # 空のドメイン名（""）が追加されていないことを検証
+        # （urlparseは不正なURLに対して空のnetlocを返すため、空文字列がキーにならないことを確認）
+        assert "" not in added_domains
 
 
 @pytest.mark.unit

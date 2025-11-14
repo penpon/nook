@@ -80,16 +80,17 @@ async def hacker_news_service(mock_env_vars, mock_logger):
 async def hn_service_with_client(hacker_news_service):
     """HTTPクライアント付きHackerNewsRetrieverインスタンス
 
-    HTTPクライアントのセットアップとクリーンアップを自動化します。
+    hacker_news_service fixtureにHTTPクライアントをセットアップして返します。
+    cleanupは親fixture (hacker_news_service) によって自動的に処理されます。
 
     使用例:
         async def test_something(hn_service_with_client):
             service = hn_service_with_client
             # HTTPクライアントは既に初期化済み
-            # cleanup()も自動的に呼ばれる
+            # cleanup()はhacker_news_serviceによって自動的に呼ばれる
     """
     await hacker_news_service.setup_http_client()
-    yield hacker_news_service
+    return hacker_news_service
 
 
 @pytest.fixture
