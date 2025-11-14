@@ -33,7 +33,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
     error_id = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
 
     # エラーログの記録
-    logger.error(
+    logger.exception(
         "Unhandled exception",
         extra={
             "error_id": error_id,
@@ -44,7 +44,6 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             "error_message": str(exc),
             "traceback": traceback.format_exc(),
         },
-        exc_info=True,
     )
 
     # エラータイプに応じた処理
