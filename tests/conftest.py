@@ -346,7 +346,7 @@ def fixed_datetime(monkeypatch):
     class MockDatetime(datetime.datetime):
         @classmethod
         def now(cls, tz=None):
-            return cls(2024, 11, 14, 12, 0, 0)
+            return cls(2024, 11, 14, 12, 0, 0, tzinfo=tz)
 
     monkeypatch.setattr(datetime, "datetime", MockDatetime)
     return MockDatetime
@@ -840,7 +840,7 @@ Summary 1
         mock_pdf = Mock()
         mock_pdf.pages = [mock_page]
         mock_pdf.__enter__.return_value = mock_pdf
-        mock_pdf.__aexit__.return_value = None
+        mock_pdf.__exit__.return_value = None
 
         return mock_pdf
 

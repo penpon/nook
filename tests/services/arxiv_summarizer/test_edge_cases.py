@@ -285,10 +285,11 @@ def test_performance_serialize_large_dataset(
     When: _serialize_papersメソッドを呼び出す
     Then: 許容時間内に完了する
 
-    Note: このテストはpytest-benchmarkが必要です
-    pip install pytest-benchmark
+    Note: このテストはpytest-benchmarkが必要です（オプション依存）
+    インストール: pip install pytest-benchmark
+    pytest-benchmarkがインストールされていない場合、テストはスキップされます
     """
-    pytest.skip("pytest-benchmark not installed - example test")
+    pytest.importorskip("pytest_benchmark", reason="pytest-benchmark not installed")
 
     # Given: 大量の論文データ
     [paper_info_factory(arxiv_id=f"2301.{i:05d}") for i in range(paper_count)]
@@ -305,6 +306,7 @@ def test_performance_serialize_large_dataset(
 
 @pytest.mark.unit
 @pytest.mark.memory
+@pytest.mark.skipif(True, reason="Memory profiling not configured - example test")
 def test_memory_large_text_extraction(arxiv_service):
     """
     メモリテスト: 大きなテキスト抽出
@@ -315,7 +317,6 @@ def test_memory_large_text_extraction(arxiv_service):
 
     Note: このテストはmemory_profilerまたはtracemalloc使用
     """
-    pytest.skip("Memory profiling not configured - example test")
 
     # Given: 10MBのテキスト
     large_text = "a" * (10 * 1024 * 1024) + "."
