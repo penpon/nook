@@ -97,7 +97,7 @@ jobs:
       run: |
         set -e
         echo "=== 統合テストを順次実行中 ==="
-        uv run pytest tests/services/arxiv_summarizer/ -v -m "integration" --timeout=600 --tb=short -p no:cov || [ $? -eq 5 ]
+        PYTEST_ADDOPTS="" uv run pytest tests/services/arxiv_summarizer/ -v -m "integration" --timeout=600 --tb=short || [ $? -eq 5 ]
 
     - name: テスト結果サマリーの生成
       if: always()
@@ -147,7 +147,7 @@ jobs:
         set -e
         echo "=== 性能テストを実行中 ==="
         echo "注: このテストは手動実行時のみ実行されます"
-        uv run pytest tests/services/arxiv_summarizer/ -v -m "performance or memory or stress" --timeout=900 --tb=short -s -p no:cov || [ $? -eq 5 ]
+        PYTEST_ADDOPTS="" uv run pytest tests/services/arxiv_summarizer/ -v -m "performance or memory or stress" --timeout=900 --tb=short -s || [ $? -eq 5 ]
 
     - name: テスト結果サマリーの生成
       if: always()
