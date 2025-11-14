@@ -61,15 +61,6 @@ def temp_data_dir(tmp_path):
 
 
 @pytest.fixture
-def mock_httpx_client():
-    """モックHTTPXクライアント"""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    return mock_client
-
-
-@pytest.fixture
 def respx_mock():
     """respxモックルーター（外部API呼び出しをモック化）"""
     with respx.mock(assert_all_called=False) as router:
@@ -210,6 +201,7 @@ def mock_hn_api(respx_mock, mock_hn_story):
 @pytest.fixture
 def mock_github_trending_html():
     """GitHub TrendingページのモックHTML"""
+    # fmt: off
     return """
     <html>
     <body>
@@ -231,7 +223,8 @@ def mock_github_trending_html():
         </article>
     </body>
     </html>
-    """
+    """  # noqa: E501
+    # fmt: on
 
 
 @pytest.fixture
@@ -475,7 +468,7 @@ def mock_4chan_catalog():
                 {
                     "no": 123456,
                     "sub": "AI Discussion Thread",
-                    "com": "Let's talk about artificial intelligence and machine learning",
+                    "com": "Let's talk about artificial intelligence and machine learning",  # noqa: E501
                     "replies": 50,
                     "images": 10,
                     "bumps": 45,
@@ -509,15 +502,17 @@ def mock_4chan_thread():
 @pytest.fixture
 def mock_5chan_subject_txt():
     """5chan subject.txtモック（Shift_JIS形式）"""
-    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"
+    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"  # noqa: E501
 
 
 @pytest.fixture
 def mock_5chan_dat():
     """5chan datファイルモック（Shift_JIS形式）"""
+    # fmt: off
     return """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう<>
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い<>
-"""
+"""  # noqa: E501
+    # fmt: on
 
 
 # =============================================================================
@@ -631,6 +626,7 @@ def fivechan_service(mock_env_vars):
     """FiveChanExplorerインスタンスを提供（logger自動モック）"""
     with patch("nook.common.logging.setup_logger"):
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
         return FiveChanExplorer()
 
 
@@ -665,6 +661,7 @@ def mock_cloudscraper():
     mock_scraper = Mock()
     mock_scraper.headers = {}
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
-         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
+        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+    ):
         yield mock_scraper

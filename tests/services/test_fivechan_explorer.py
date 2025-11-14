@@ -37,7 +37,9 @@ VALID_SUBJECT_TWO_LINES = (
     "1234567890.dat<>AI・人工知能について語るスレ (100)\n"
     "9876543210.dat<>機械学習の最新動向 (50)\n"
 )
-MALFORMED_ENCODING_SUBJECT = b"1234567890.dat<>\xff\xfe AI\x83X\x83\x8c\x83b\x83h (50)\n"
+MALFORMED_ENCODING_SUBJECT = (
+    b"1234567890.dat<>\xff\xfe AI\x83X\x83\x8c\x83b\x83h (50)\n"
+)
 INVALID_FORMAT_LINE = "invalid_format_line\n"
 
 # エラーメッセージ
@@ -55,7 +57,9 @@ MALFORMED_DAT_LINE = "invalid<>only_two"
 # =============================================================================
 
 
-def create_http_response(status_code: int = 200, content: bytes = b"", text: str = "") -> Mock:
+def create_http_response(
+    status_code: int = 200, content: bytes = b"", text: str = ""
+) -> Mock:
     """HTTPレスポンスモックを作成するファクトリー関数
 
     Args:
@@ -99,6 +103,7 @@ def huge_response_data():
     10MBのデータを1回のみ生成し、全テストで再利用
     """
     return b"x" * MAX_RESPONSE_SIZE_BYTES
+
 
 # =============================================================================
 # 1. __init__ メソッドのテスト
@@ -166,7 +171,9 @@ async def test_collect_network_error(fivechan_service):
 
     with patch.object(fivechan_service, "setup_http_client", new_callable=AsyncMock):
 
-        fivechan_service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
+        fivechan_service.http_client.get = AsyncMock(
+            side_effect=Exception("Network error")
+        )
 
         result = await fivechan_service.collect(target_dates=[date.today()])
 
@@ -266,7 +273,9 @@ async def test_get_subject_txt_data_success(fivechan_service, mock_httpx_client)
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_malformed_encoding(fivechan_service, mock_httpx_client):
+async def test_get_subject_txt_data_malformed_encoding(
+    fivechan_service, mock_httpx_client
+):
     """
     Given: 文字化けを含むsubject.txt（無効バイト含む）
     When: _get_subject_txt_dataを呼び出す
@@ -286,7 +295,9 @@ async def test_get_subject_txt_data_malformed_encoding(fivechan_service, mock_ht
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_malformed_format(fivechan_service, mock_httpx_client):
+async def test_get_subject_txt_data_malformed_format(
+    fivechan_service, mock_httpx_client
+):
     """
     Given: 不正なフォーマットのsubject.txt（正規表現マッチ失敗）
     When: _get_subject_txt_dataを呼び出す
@@ -311,7 +322,9 @@ async def test_get_subject_txt_data_malformed_format(fivechan_service, mock_http
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_subdomain_retry(fivechan_service, mock_httpx_client):
+async def test_get_subject_txt_data_subdomain_retry(
+    fivechan_service, mock_httpx_client
+):
     """
     Given: 最初のサーバーが失敗、2番目のサーバーが成功
     When: _get_subject_txt_dataを呼び出す
@@ -335,7 +348,9 @@ async def test_get_subject_txt_data_subdomain_retry(fivechan_service, mock_httpx
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_all_servers_fail(fivechan_service, mock_httpx_client):
+async def test_get_subject_txt_data_all_servers_fail(
+    fivechan_service, mock_httpx_client
+):
     """
     Given: すべてのサーバーが失敗
     When: _get_subject_txt_dataを呼び出す
@@ -350,7 +365,9 @@ async def test_get_subject_txt_data_all_servers_fail(fivechan_service, mock_http
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_encoding_fallback(fivechan_service, mock_httpx_client):
+async def test_get_subject_txt_data_encoding_fallback(
+    fivechan_service, mock_httpx_client
+):
     """
     Given: shift_jisで失敗するが、cp932で成功するデータ
     When: _get_subject_txt_dataを呼び出す
@@ -383,11 +400,11 @@ async def test_get_thread_posts_from_dat_success(fivechan_service):
     """
     # dat形式: name<>mail<>date ID<>message<>
     # 注: 実際のdatファイルは末尾に<>がありますが、空要素は無視されます
+    # fmt: off
     dat_data = """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
-""".encode(
-        "shift_jis"
-    )
+""".encode("shift_jis")  # noqa: E501
+    # fmt: on
 
     mock_response = Mock()
     mock_response.status_code = 200
@@ -397,8 +414,9 @@ async def test_get_thread_posts_from_dat_success(fivechan_service):
     mock_scraper.get = Mock(return_value=mock_response)
     mock_scraper.headers = {}
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
-         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
+        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+    ):
         posts, latest = await fivechan_service._get_thread_posts_from_dat(
             "http://test.5ch.net/test/dat/1234567890.dat"
         )
@@ -418,7 +436,9 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(fivechan_service):
     Then: 正しくデコードされる
     """
     # 日本語を含むdat
-    dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode("shift_jis")
+    dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode(
+        "shift_jis"
+    )
 
     mock_response = Mock()
     mock_response.status_code = 200
@@ -428,8 +448,9 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(fivechan_service):
     mock_scraper.get = Mock(return_value=mock_response)
     mock_scraper.headers = {}
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
-         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
+        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+    ):
         posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
     assert len(posts) == 1, f"Expected 1 post but got {len(posts)}"
@@ -460,8 +481,9 @@ async def test_get_thread_posts_from_dat_malformed_line(fivechan_service):
     mock_scraper.get = Mock(return_value=mock_response)
     mock_scraper.headers = {}
 
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), \
-         patch("asyncio.to_thread", side_effect=lambda f, *args: f(*args)):
+    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
+        "asyncio.to_thread", side_effect=lambda f, *args: f(*args)
+    ):
         posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
     # 正しいフォーマットの行のみ解析
@@ -471,7 +493,9 @@ async def test_get_thread_posts_from_dat_malformed_line(fivechan_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_http_error(fivechan_service, mock_cloudscraper):
+async def test_get_thread_posts_from_dat_http_error(
+    fivechan_service, mock_cloudscraper
+):
     """
     Given: HTTPエラー（404など）
     When: _get_thread_posts_from_datを呼び出す
@@ -488,7 +512,9 @@ async def test_get_thread_posts_from_dat_http_error(fivechan_service, mock_cloud
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_empty_content(fivechan_service, mock_cloudscraper):
+async def test_get_thread_posts_from_dat_empty_content(
+    fivechan_service, mock_cloudscraper
+):
     """
     Given: 空のdatファイル
     When: _get_thread_posts_from_datを呼び出す
@@ -504,7 +530,9 @@ async def test_get_thread_posts_from_dat_empty_content(fivechan_service, mock_cl
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_encoding_cascade(fivechan_service, mock_cloudscraper):
+async def test_get_thread_posts_from_dat_encoding_cascade(
+    fivechan_service, mock_cloudscraper
+):
     """
     Given: 文字化けを含むdatファイル
     When: _get_thread_posts_from_datを呼び出す
@@ -629,9 +657,13 @@ async def test_get_with_retry_max_retries_exceeded(fivechan_service):
     """
     fivechan_service.http_client = AsyncMock()
 
-    fivechan_service.http_client.get = AsyncMock(side_effect=Exception("Persistent error"))
+    fivechan_service.http_client.get = AsyncMock(
+        side_effect=ConnectionError("Persistent error")
+    )
 
-    with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(Exception):
+    with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(
+        ConnectionError
+    ):
         await fivechan_service._get_with_retry("http://test.url", max_retries=3)
 
 
@@ -752,7 +784,7 @@ def test_get_board_server(fivechan_service):
 @pytest.mark.unit
 @pytest.mark.security
 @pytest.mark.parametrize(
-    "malicious_input,test_id",
+    ("malicious_input", "test_id"),
     [
         ("'; DROP TABLE threads; --", "sql_injection_1"),
         ("<script>alert('XSS')</script>", "xss_attack"),
@@ -764,7 +796,9 @@ def test_get_board_server(fivechan_service):
     ids=lambda x: x[1] if isinstance(x, tuple) else x,
 )
 @pytest.mark.asyncio
-async def test_malicious_input_in_thread_title(fivechan_service, mock_httpx_client, malicious_input, test_id):
+async def test_malicious_input_in_thread_title(
+    fivechan_service, mock_httpx_client, malicious_input, test_id
+):
     """
     Given: 悪意のある入力がスレッドタイトルに含まれる
     When: 実際の解析ロジックでsubject.txtを解析
@@ -804,7 +838,9 @@ async def test_malicious_input_in_thread_title(fivechan_service, mock_httpx_clie
 @pytest.mark.unit
 @pytest.mark.security
 @pytest.mark.asyncio
-async def test_dos_attack_oversized_response(fivechan_service, mock_httpx_client, huge_response_data):
+async def test_dos_attack_oversized_response(
+    fivechan_service, mock_httpx_client, huge_response_data
+):
     """
     Given: 異常に大きなレスポンス（DoS攻撃シミュレーション）
     When: _get_subject_txt_dataを呼び出す
@@ -834,7 +870,9 @@ async def test_dos_attack_oversized_response(fivechan_service, mock_httpx_client
 @pytest.mark.unit
 @pytest.mark.security
 @pytest.mark.asyncio
-async def test_encoding_bomb_attack(fivechan_service, mock_httpx_client, encoding_bomb_data):
+async def test_encoding_bomb_attack(
+    fivechan_service, mock_httpx_client, encoding_bomb_data
+):
     """
     Given: エンコーディングボム（Billion Laughs攻撃相当）
     When: デコード処理
@@ -861,17 +899,22 @@ async def test_encoding_bomb_attack(fivechan_service, mock_httpx_client, encodin
 @pytest.mark.unit
 @pytest.mark.security
 @pytest.mark.parametrize(
-    "malicious_dat_content,test_id",
+    ("malicious_dat_content", "test_id"),
     [
         ("名無し<>sage<>2024/11/14<>'; DROP TABLE posts; --\n", "dat_sql_injection"),
         ("名無し<>sage<>2024/11/14<><script>alert('XSS')</script>\n", "dat_xss_attack"),
         ("名無し<>sage<>2024/11/14<>../../../../etc/passwd\n", "dat_path_traversal"),
-        ("名無し<><><><><><><><><><><><><><>Too many delimiters\n", "dat_delimiter_overflow"),
+        (
+            "名無し<><><><><><><><><><><><><><>Too many delimiters\n",
+            "dat_delimiter_overflow",
+        ),
     ],
     ids=lambda x: x[1] if isinstance(x, tuple) else x,
 )
 @pytest.mark.asyncio
-async def test_dat_parsing_malicious_input(fivechan_service, mock_cloudscraper, malicious_dat_content, test_id):
+async def test_dat_parsing_malicious_input(
+    fivechan_service, mock_cloudscraper, malicious_dat_content, test_id
+):
     """
     Given: 悪意のある入力データがDAT形式に含まれる
     When: DAT解析を実行
@@ -887,15 +930,15 @@ async def test_dat_parsing_malicious_input(fivechan_service, mock_cloudscraper, 
     mock_response = create_http_response(content=dat_data, text=malicious_dat_content)
     mock_cloudscraper.get = Mock(return_value=mock_response)
 
-    posts, latest = await fivechan_service._get_thread_posts_from_dat(
-        "http://test.dat"
-    )
+    posts, latest = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
     # 悪意のある入力でもクラッシュせず、安全に処理されること
     from datetime import datetime
 
     assert isinstance(posts, list), f"Expected list but got {type(posts).__name__}"
-    assert latest is None or isinstance(latest, datetime), f"Expected datetime or None but got {type(latest).__name__}"
+    assert latest is None or isinstance(
+        latest, datetime
+    ), f"Expected datetime or None but got {type(latest).__name__}"
 
     # データが返される場合、適切にパースされていることを確認
     if posts:
@@ -976,9 +1019,9 @@ async def test_memory_efficiency_large_dataset(fivechan_service, mock_httpx_clie
     tracemalloc.start()
 
     # 100個のスレッドをシミュレート（1000個だと遅すぎるので削減）
-    large_subject_data = (
-        "1234567890.dat<>テストスレッド (100)\n" * 100
-    ).encode("shift_jis")
+    large_subject_data = ("1234567890.dat<>テストスレッド (100)\n" * 100).encode(
+        "shift_jis"
+    )
 
     mock_response = create_http_response(content=large_subject_data)
     mock_httpx_client.get = AsyncMock(return_value=mock_response)
@@ -1010,6 +1053,7 @@ async def test_network_timeout_handling(fivechan_service, mock_httpx_client):
     - 無限待機しない
     - TimeoutErrorが発生する
     """
+
     async def slow_response(*args, **kwargs):
         await asyncio.sleep(100)  # 100秒待機（異常に遅い）
         return create_http_response()
@@ -1103,15 +1147,17 @@ async def test_retry_backoff_performance(fivechan_service, mock_httpx_client):
     assert call_count == 3, f"Expected 3 calls but got {call_count}"
 
     # sleep が適切に呼ばれたことを確認（最低2回: 1回目と2回目の失敗後）
-    assert mock_sleep.call_count >= 2, (
-        f"Expected at least 2 sleep calls but got {mock_sleep.call_count}"
-    )
+    assert (
+        mock_sleep.call_count >= 2
+    ), f"Expected at least 2 sleep calls but got {mock_sleep.call_count}"
 
     # 全体の処理時間が妥当（sleepをモックしているので速い）
-    assert elapsed < MAX_PROCESSING_TIME_SECONDS, (
-        f"リトライ処理が遅すぎる: {elapsed}秒 (閾値: {MAX_PROCESSING_TIME_SECONDS}秒)"
-    )
+    assert (
+        elapsed < MAX_PROCESSING_TIME_SECONDS
+    ), f"リトライ処理が遅すぎる: {elapsed}秒 (閾値: {MAX_PROCESSING_TIME_SECONDS}秒)"
 
     # 最終的に成功する
     assert result is not None, "Expected successful result"
-    assert result.status_code == 200, f"Expected status 200 but got {result.status_code}"
+    assert (
+        result.status_code == 200
+    ), f"Expected status 200 but got {result.status_code}"
