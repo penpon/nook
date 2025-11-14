@@ -142,4 +142,5 @@ ignore = [
     "F841",   # Unused local variables - needs code cleanup
     "PERF402", # Use list() or list.copy() - needs performance review
     "I001",   # Import block unsorted - needs import organization
+    "SIM117", # Nested with statements - needs code refactoring
 ]
