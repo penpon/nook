@@ -61,7 +61,7 @@ nook/services/hacker_news/hacker_news.py のユニットテスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
@@ -130,7 +130,7 @@ def create_test_story(
         Story: テスト用のStoryオブジェクト
     """
     if created_at is None:
-        created_at = datetime.now(timezone.utc)
+        created_at = datetime.now(datetime.UTC)
 
     return Story(
         title=title,
@@ -189,7 +189,7 @@ def create_error_story(
         score=score,
         url=f"https://{domain}/page",
         text=error_text,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(datetime.UTC),
     )
 
 
@@ -1370,7 +1370,7 @@ def test_serialize_stories(mock_env_vars):
                 url="https://example.com/test",
                 text="Test text",
                 summary="Test summary",
-                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc),
+                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC),
             )
         ]
 
@@ -1404,7 +1404,7 @@ def test_render_markdown(mock_env_vars):
             }
         ]
 
-        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC)
         markdown = service._render_markdown(records, today)
 
         assert "# Hacker News トップ記事" in markdown
@@ -1477,7 +1477,7 @@ def test_story_sort_key_with_invalid_date(mock_env_vars):
         score, published = service._story_sort_key(item)
 
         assert score == 100
-        assert published == datetime.min.replace(tzinfo=timezone.utc)
+        assert published == datetime.min.replace(tzinfo=datetime.UTC)
 
 
 @pytest.mark.unit
@@ -1647,7 +1647,7 @@ async def test_load_existing_stories_from_json(mock_env_vars):
             {"title": "Story 2", "score": 200},
         ]
 
-        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC)
 
         with patch.object(
             service, "load_json", new_callable=AsyncMock, return_value=existing_data
@@ -1679,7 +1679,7 @@ async def test_load_existing_stories_from_markdown(mock_env_vars):
 ---
 """
 
-        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC)
 
         with patch.object(
             service, "load_json", new_callable=AsyncMock, return_value=None
@@ -1708,7 +1708,7 @@ async def test_load_existing_stories_no_file(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC)
 
         with patch.object(
             service, "load_json", new_callable=AsyncMock, return_value=None
@@ -1792,7 +1792,7 @@ async def test_store_summaries(mock_env_vars):
                 url="https://example.com",
                 text="Test text",
                 summary="Test summary",
-                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc),
+                created_at=datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC),
             )
         ]
 
@@ -1912,7 +1912,7 @@ def test_render_markdown_with_text_only(mock_env_vars):
             }
         ]
 
-        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC)
         markdown = service._render_markdown(records, today)
 
         assert "Test Story" in markdown
@@ -1933,7 +1933,7 @@ def test_render_markdown_no_url(mock_env_vars):
             {"title": "Test Story Without URL", "score": 100, "summary": "Test summary"}
         ]
 
-        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=timezone.utc)
+        today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=datetime.UTC)
         markdown = service._render_markdown(records, today)
 
         assert "Test Story Without URL" in markdown
@@ -2001,7 +2001,7 @@ def test_story_sort_key_no_published_at(mock_env_vars):
         score, published = service._story_sort_key(item)
 
         assert score == 100
-        assert published == datetime.min.replace(tzinfo=timezone.utc)
+        assert published == datetime.min.replace(tzinfo=datetime.UTC)
 
 
 # Section 17: Additional coverage tests for 95% target
@@ -2040,7 +2040,7 @@ def test_story_date_normalization(mock_env_vars):
     # 統合テストでカバーすべき。ここでは日付正規化の基本動作をテスト
     from nook.common.date_utils import normalize_datetime_to_local
 
-    utc_time = datetime(2024, 11, 14, 23, 0, 0, tzinfo=timezone.utc)
+    utc_time = datetime(2024, 11, 14, 23, 0, 0, tzinfo=datetime.UTC)
     local_date = normalize_datetime_to_local(utc_time).date()
 
     # 日付として正規化されることを確認
@@ -2064,42 +2064,42 @@ async def test_log_fetch_summary(mock_env_vars):
                 score=100,
                 url="https://example.com/1",
                 text="This is successful content",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(datetime.UTC),
             ),
             Story(
                 title="Blocked Story",
                 score=90,
                 url="https://blocked.com/1",
                 text="このサイト（blocked.com）はアクセス制限のためブロックされています。",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(datetime.UTC),
             ),
             Story(
                 title="Error Story",
                 score=80,
                 url="https://example.com/2",
                 text="アクセス制限により記事を取得できませんでした。",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(datetime.UTC),
             ),
             Story(
                 title="Not Found Story",
                 score=70,
                 url="https://example.com/3",
                 text="記事が見つかりませんでした。",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(datetime.UTC),
             ),
             Story(
                 title="Failed Story",
                 score=60,
                 url="https://example.com/4",
                 text="記事の内容を取得できませんでした。",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(datetime.UTC),
             ),
             Story(
                 title="No Text Story",
                 score=TEST_MEDIUM_SCORE,
                 url="https://example.com/5",
                 text=None,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(datetime.UTC),
             ),
         ]
 
@@ -2178,7 +2178,7 @@ async def test_fetch_story_content_www_blocked_domain(mock_env_vars):
             score=TEST_MEDIUM_SCORE,
             url="https://www.nytimes.com/article",
             text=None,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(datetime.UTC),
         )
 
         await service._fetch_story_content(story)
@@ -2233,7 +2233,7 @@ async def test_update_blocked_domains_various_error_reasons(hacker_news_service)
             score=TEST_MEDIUM_SCORE,
             url=None,
             text="No text",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(datetime.UTC),
         )
     )
 
@@ -2244,7 +2244,7 @@ async def test_update_blocked_domains_various_error_reasons(hacker_news_service)
             score=TEST_MEDIUM_SCORE,
             url="https://www.reuters.com/page",
             text="HTTP error 403",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(datetime.UTC),
         )
     )
 
@@ -2292,7 +2292,7 @@ async def test_update_blocked_domains_exception_handling(mock_env_vars):
                 score=50,
                 url="not a valid url",
                 text="記事の内容を取得できませんでした。",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(datetime.UTC),
             ),
         ]
 

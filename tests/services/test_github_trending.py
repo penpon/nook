@@ -13,7 +13,7 @@ nook/services/github_trending/github_trending.py のテスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -893,7 +893,7 @@ def test_repository_sort_key(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = GithubTrending()
 
-        record = {"stars": 100, "published_at": datetime.now(timezone.utc).isoformat()}
+        record = {"stars": 100, "published_at": datetime.now(datetime.UTC).isoformat()}
 
         result = service._repository_sort_key(record)
 

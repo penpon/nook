@@ -21,7 +21,7 @@ from nook.common.date_utils import (
 )
 
 # タイムゾーン定義
-UTC = timezone.utc
+UTC = datetime.UTC
 JST = timezone(timedelta(hours=9))
 
 
