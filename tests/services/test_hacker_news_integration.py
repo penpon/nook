@@ -63,7 +63,7 @@ async def test_collect_success_with_stories(mock_env_vars, mock_hn_api):
                     ),
                 ]
             )
-            service.gpt_client.get_response = AsyncMock(return_value="要約")
+            service.gpt_client.generate_async = AsyncMock(return_value="要約")
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -115,7 +115,7 @@ async def test_collect_with_multiple_stories(mock_env_vars):
                     ),
                 ]
             )
-            service.gpt_client.get_response = AsyncMock(return_value="要約")
+            service.gpt_client.generate_async = AsyncMock(return_value="要約")
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -206,7 +206,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 ]
             )
             # GPTでエラー
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 
