@@ -85,7 +85,10 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -134,7 +137,10 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -180,7 +186,10 @@ async def test_collect_with_target_dates_none(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -215,7 +224,10 @@ async def test_collect_network_error(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -239,7 +251,10 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -266,7 +281,10 @@ async def test_collect_http_client_timeout(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -303,7 +321,10 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -350,7 +371,10 @@ async def test_collect_with_limit_zero(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -377,7 +401,10 @@ async def test_collect_with_limit_one(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -572,7 +599,10 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -597,7 +627,10 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -658,7 +691,10 @@ async def test_collect_with_multiple_categories(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -692,7 +728,10 @@ async def test_collect_feedparser_attribute_error(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -717,7 +756,10 @@ async def test_collect_with_duplicate_article(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -761,7 +803,10 @@ async def test_collect_with_empty_feed_entries(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -794,7 +839,10 @@ async def test_collect_continues_on_individual_feed_error(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -1339,7 +1387,10 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
@@ -1399,7 +1450,10 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",

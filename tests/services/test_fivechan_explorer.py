@@ -407,7 +407,10 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
 
         with (
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
-            patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
         ):
             posts, latest = await service._get_thread_posts_from_dat(
                 "http://test.5ch.net/test/dat/1234567890.dat"
@@ -445,7 +448,10 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
 
         with (
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
-            patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
         ):
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 
@@ -482,7 +488,10 @@ another_invalid<>only_two
 
         with (
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
-            patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
         ):
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 
@@ -514,7 +523,10 @@ async def test_get_thread_posts_from_dat_http_error(mock_env_vars):
 
         with (
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
-            patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
         ):
             posts, latest = await service._get_thread_posts_from_dat("http://test.dat")
 
@@ -545,7 +557,10 @@ async def test_get_thread_posts_from_dat_empty_content(mock_env_vars):
 
         with (
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
-            patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
         ):
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 
@@ -578,7 +593,10 @@ async def test_get_thread_posts_from_dat_encoding_cascade(mock_env_vars):
 
         with (
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
-            patch("asyncio.to_thread", side_effect=lambda f, *args, **kwargs: f(*args, **kwargs)),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
         ):
             posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
 

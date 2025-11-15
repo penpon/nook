@@ -88,7 +88,12 @@ async def test_save_processed_ids_by_date_success(arxiv_service, test_date):
             new_callable=AsyncMock,
             side_effect=[test_date, date(2024, 1, 2)],
         ),
-        patch.object(arxiv_service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]),
+        patch.object(
+            arxiv_service,
+            "_load_ids_from_file",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
         patch.object(arxiv_service, "save_data", new_callable=AsyncMock) as mock_save,
     ):
         # When
@@ -115,7 +120,10 @@ async def test_save_processed_ids_by_date_with_existing_ids(arxiv_service, test_
 
     with (
         patch.object(
-            arxiv_service, "_get_paper_date", new_callable=AsyncMock, return_value=test_date
+            arxiv_service,
+            "_get_paper_date",
+            new_callable=AsyncMock,
+            return_value=test_date,
         ),
         patch.object(
             arxiv_service,
@@ -151,7 +159,12 @@ async def test_save_processed_ids_by_date_unknown_date(arxiv_service, test_date)
     # _get_paper_dateがNoneを返す
     with (
         patch.object(arxiv_service, "_get_paper_date", new_callable=AsyncMock, return_value=None),
-        patch.object(arxiv_service, "_load_ids_from_file", new_callable=AsyncMock, return_value=[]),
+        patch.object(
+            arxiv_service,
+            "_load_ids_from_file",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
         patch.object(arxiv_service, "save_data", new_callable=AsyncMock) as mock_save,
     ):
         # When

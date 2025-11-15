@@ -611,7 +611,10 @@ async def test_retrieve_paper_info_with_fallback_to_abstract(arxiv_service):
                 return_value="テスト要約",
             ),
             patch.object(
-                arxiv_service, "_extract_body_text", new_callable=AsyncMock, return_value=""
+                arxiv_service,
+                "_extract_body_text",
+                new_callable=AsyncMock,
+                return_value="",
             ),
         ):
             # When

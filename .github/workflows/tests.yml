@@ -37,7 +37,7 @@ jobs:
         set -e
         echo "=== ユニットテストを並列実行中（pytest-xdist使用） ==="
         echo "注: 統合テスト・性能テストは別ジョブで実行されます"
-        uv run pytest tests/services/arxiv_summarizer/ -n auto -m "not integration and not performance and not memory and not stress" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --cov-fail-under=85 --timeout=300 --tb=short
+        uv run pytest tests/ -n auto -m "not integration and not performance and not memory and not stress" --cov=nook --cov-report=xml --cov-report=term-missing --cov-fail-under=85 --timeout=300 --tb=short
         echo ""
         echo "=== カバレッジ率を確認中 ==="
         uv run coverage report --format=text
@@ -97,7 +97,7 @@ jobs:
       run: |
         set -e
         echo "=== 統合テストを順次実行中 ==="
-        uv run pytest tests/services/arxiv_summarizer/ -v -m "integration" -o addopts="-v --strict-markers --tb=short" --timeout=600 --tb=short || [ $? -eq 5 ]
+        uv run pytest tests/ -v -m "integration" -o addopts="-v --strict-markers --tb=short" --timeout=600 --tb=short || [ $? -eq 5 ]
 
     - name: テスト結果サマリーの生成
       if: always()
@@ -147,7 +147,7 @@ jobs:
         set -e
         echo "=== 性能テストを実行中 ==="
         echo "注: このテストは手動実行時のみ実行されます"
-        uv run pytest tests/services/arxiv_summarizer/ -v -m "performance or memory or stress" -o addopts="-v --strict-markers --tb=short" --timeout=900 --tb=short -s || [ $? -eq 5 ]
+        uv run pytest tests/ -v -m "performance or memory or stress" -o addopts="-v --strict-markers --tb=short" --timeout=900 --tb=short -s || [ $? -eq 5 ]
 
     - name: テスト結果サマリーの生成
       if: always()
@@ -202,9 +202,6 @@ jobs:
     - name: 静的解析とフォーマットチェック
       run: |
         set -e
-        echo "=== Black (コードフォーマット) ==="
-        uv run black nook/ tests/
-        echo ""
         echo "=== Ruff (リント・インポート順序チェック) ==="
         uv run ruff check nook/ tests/ --fix
         echo ""
@@ -222,7 +219,7 @@ jobs:
         if ! git diff --quiet nook/ tests/; then
           echo "📝 フォーマット変更を検出しました。自動コミットします..."
           git add nook/ tests/
-          git commit -m "style: Blackによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
+          git commit -m "style: Ruffによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
           git push
           echo "✅ フォーマット変更をコミット＆プッシュしました"
         else
@@ -254,7 +251,7 @@ jobs:
       run: |
         echo "=== コード脆弱性をスキャン中 (bandit) ==="
         set +e
-        uv run bandit -r nook/ tests/services/arxiv_summarizer/ tests/conftest.py -ll -f txt
+        uv run bandit -r nook/ tests/ -ll -f txt
         bandit_exit=$?
         set -e
 
