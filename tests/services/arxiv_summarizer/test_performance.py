@@ -73,9 +73,9 @@ async def test_performance_serialize_papers(arxiv_service, paper_info_factory, p
 
     # Then
     assert len(result) == paper_count
-    assert elapsed_time < expected_time[paper_count], (
-        f"シリアライズに{elapsed_time:.4f}秒かかりました（期待: {expected_time[paper_count]}秒未満）"
-    )
+    assert (
+        elapsed_time < expected_time[paper_count]
+    ), f"シリアライズに{elapsed_time:.4f}秒かかりました（期待: {expected_time[paper_count]}秒未満）"
 
     print(f"\n✓ {paper_count}論文のシリアライズ: {elapsed_time * 1000:.2f}ms")
 
@@ -116,9 +116,9 @@ def test_performance_is_valid_body_line(arxiv_service, arxiv_helper, text_length
 
     # Then
     assert isinstance(result, bool)
-    assert elapsed_time < expected_time[text_length], (
-        f"検証に{elapsed_time:.4f}秒かかりました（期待: {expected_time[text_length]}秒未満）"
-    )
+    assert (
+        elapsed_time < expected_time[text_length]
+    ), f"検証に{elapsed_time:.4f}秒かかりました（期待: {expected_time[text_length]}秒未満）"
 
     print(f"\n✓ {text_length}文字の検証: {elapsed_time * 1000:.2f}ms")
 
@@ -170,9 +170,9 @@ Summary for paper {i}
 
     # Then
     assert len(result) == markdown_papers
-    assert elapsed_time < expected_time[markdown_papers], (
-        f"解析に{elapsed_time:.4f}秒かかりました（期待: {expected_time[markdown_papers]}秒未満）"
-    )
+    assert (
+        elapsed_time < expected_time[markdown_papers]
+    ), f"解析に{elapsed_time:.4f}秒かかりました（期待: {expected_time[markdown_papers]}秒未満）"
 
     print(f"\n✓ {markdown_papers}論文のMarkdown解析: {elapsed_time * 1000:.2f}ms")
 
@@ -267,9 +267,9 @@ def test_memory_serialize_papers(arxiv_service, paper_info_factory, paper_count)
 
     print(f"\n✓ {paper_count}論文のメモリ使用量: {memory_mb:.2f}MB")
 
-    assert memory_mb < expected_memory[paper_count], (
-        f"メモリ使用量が多い: {memory_mb:.2f}MB（期待: {expected_memory[paper_count]}MB未満）"
-    )
+    assert (
+        memory_mb < expected_memory[paper_count]
+    ), f"メモリ使用量が多い: {memory_mb:.2f}MB（期待: {expected_memory[paper_count]}MB未満）"
 
 
 # =============================================================================
