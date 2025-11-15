@@ -53,7 +53,13 @@ async def test_collect_success_with_papers(arxiv_service, mock_arxiv_api):
     Then: 論文が正常に取得・保存される
     """
     # Given: モック設定
+    response_mock = Mock()
+    response_mock.raise_for_status = Mock()
+    response_mock.url = "https://huggingface.co/papers/date/2024-01-01"
+    response_mock.text = "<html></html>"
+
     arxiv_service.http_client = AsyncMock()
+    arxiv_service.http_client.get = AsyncMock(return_value=response_mock)
 
     with (
         patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock),
@@ -270,14 +276,19 @@ async def test_collect_empty_target_dates(arxiv_service):
     When: collectメソッドを呼び出す
     Then: 早期リターンで空リストが返される
     """
-    # Given: http_clientを設定
+    # Given: http_clientをモック化（collect内で使用される可能性があるため）
+    response_mock = Mock()
+    response_mock.raise_for_status = Mock()
+
     arxiv_service.http_client = AsyncMock()
+    arxiv_service.http_client.get = AsyncMock(return_value=response_mock)
 
-    # When
-    result = await arxiv_service.collect(target_dates=[])
+    with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
+        # When
+        result = await arxiv_service.collect(target_dates=[])
 
-    # Then
-    assert result == []
+        # Then
+        assert result == []
 
 
 @pytest.mark.unit

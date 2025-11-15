@@ -108,7 +108,7 @@ ignore = [
 ]
 
 [tool.coverage.run]
-source = ["modules"]
+source = ["nook"]
 omit = [
     "*/tests/*",
     "*/__init__.py",

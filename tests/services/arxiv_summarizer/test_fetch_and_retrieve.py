@@ -86,9 +86,11 @@ async def test_get_curated_paper_ids_404_error(arxiv_service, test_date, respx_m
     arxiv_service.http_client = AsyncMock()
 
     with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
-        response_mock = AsyncMock()
-        response_mock.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Not Found", request=Mock(), response=Mock(status_code=404)
+        response_mock = Mock()
+        response_mock.raise_for_status = Mock(
+            side_effect=httpx.HTTPStatusError(
+                "Not Found", request=Mock(), response=Mock(status_code=404)
+            )
         )
         arxiv_service.http_client.get = AsyncMock(return_value=response_mock)
 
