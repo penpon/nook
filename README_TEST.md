@@ -75,6 +75,15 @@ pytest tests/ -m unit
 # 統合テストを除外（CI環境で推奨）
 pytest tests/ -m "not integration"
 
+# 性能テストを除外（CI環境で推奨）
+pytest tests/ -m "not performance and not memory and not stress"
+
+# CI環境相当（統合・性能テストを除外）
+pytest tests/ -m "not integration and not performance and not memory and not stress"
+
+# 性能テストのみ実行（手動実行時）
+pytest tests/ -m "performance or memory or stress" -v -s
+
 # 遅いテストを除外
 pytest tests/ -m "not slow"
 ```
@@ -234,28 +243,67 @@ nook/
 
 プロジェクトでは `.github/workflows/tests.yml` でCI/CDを設定しています。
 
+#### テストジョブ構成
+
+1. **unit-test**: ユニットテスト（統合・性能テストを除外）
+2. **integration-test**: 統合テスト（外部API使用）
+3. **performance-test**: 性能テスト（手動実行時のみ）
+4. **lint**: 静的解析・フォーマットチェック
+5. **security**: セキュリティチェック
+
 ```yaml
-# テストジョブの実行内容
-- name: ユニットテストの実行とカバレッジ確認
+# ユニットテストジョブ（並列実行）
+- name: ユニットテストの並列実行とカバレッジ確認
   run: |
-    uv run pytest tests/ -v -m "not integration" \
-      --cov=nook \
+    uv run pytest tests/services/arxiv_summarizer/ -n auto \
+      -m "not integration and not performance and not memory and not stress" \
+      --cov=nook/services/arxiv_summarizer \
       --cov-report=xml \
       --cov-report=term-missing \
       --timeout=300 \
       --tb=short
+
+# 統合テストジョブ（順次実行）
+- name: 統合テストの実行
+  run: |
+    uv run pytest tests/services/arxiv_summarizer/ -v \
+      -m "integration" \
+      --timeout=600 \
+      --tb=short
+
+# 性能テストジョブ（手動実行時のみ）
+- name: 性能テストの実行
+  if: github.event_name == 'workflow_dispatch'
+  run: |
+    uv run pytest tests/services/arxiv_summarizer/ -v \
+      -m "performance or memory or stress" \
+      --timeout=900 \
+      --tb=short -s
 ```
 
 ### ローカルでCI同等のテスト実行
 
 ```bash
-# CI環境と同じ条件でテスト実行
-pytest tests/ -v -m "not integration" \
-  --cov=nook \
+# ユニットテスト（CI unit-testジョブ相当）
+pytest tests/services/arxiv_summarizer/ -n auto \
+  -m "not integration and not performance and not memory and not stress" \
+  --cov=nook/services/arxiv_summarizer \
   --cov-report=xml \
   --cov-report=term-missing \
   --timeout=300 \
   --tb=short
+
+# 統合テスト（CI integration-testジョブ相当）
+pytest tests/services/arxiv_summarizer/ -v \
+  -m "integration" \
+  --timeout=600 \
+  --tb=short
+
+# 性能テスト（手動実行）
+pytest tests/services/arxiv_summarizer/ -v \
+  -m "performance or memory or stress" \
+  --timeout=900 \
+  --tb=short -s
 ```
 
 ---

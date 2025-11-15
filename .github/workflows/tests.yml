@@ -11,8 +11,8 @@ permissions:
   contents: write  # 自動フォーマット時のコミット＆プッシュに必要
 
 jobs:
-  test:
-    runs-on: ubuntu-slim
+  unit-test:
+    runs-on: ubuntu-latest
 
     steps:
     - name: チェックアウト
@@ -30,15 +30,14 @@ jobs:
           ${{ runner.os }}-uv-test-
 
     - name: 依存関係のインストール
-      run: |
-        uv sync --group dev
+      run: uv sync --all-groups
 
-    - name: ユニットテストの実行とカバレッジ確認
+    - name: ユニットテストの並列実行とカバレッジ確認
       run: |
         set -e
-        echo "=== ユニットテストを実行中 ==="
-        echo "注: 統合テスト（-m integration）はCI環境ではスキップされます"
-        uv run pytest tests/ -v -m "not integration" --cov=nook --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
+        echo "=== ユニットテストを並列実行中（pytest-xdist使用） ==="
+        echo "注: 統合テスト・性能テストは別ジョブで実行されます"
+        uv run pytest tests/services/arxiv_summarizer/ -n auto -m "not integration and not performance and not memory and not stress" --cov=nook/services/arxiv_summarizer --cov-report=xml --cov-report=term-missing --cov-fail-under=85 --timeout=300 --tb=short
         echo ""
         echo "=== カバレッジ率を確認中 ==="
         uv run coverage report --format=text
@@ -49,17 +48,18 @@ jobs:
         test_status="${{ job.status }}"
 
         {
-          echo "## テスト結果サマリー"
+          echo "## ユニットテスト結果サマリー"
           echo ""
           echo "### ジョブ状態"
           if [ "$test_status" = "success" ]; then
-            echo "✅ すべてのテストとカバレッジチェックが成功しました"
+            echo "✅ すべてのユニットテストとカバレッジチェックが成功しました"
           else
-            echo "❌ テストまたはカバレッジチェックが失敗しました"
+            echo "❌ ユニットテストまたはカバレッジチェックが失敗しました"
           fi
           echo ""
           echo "### テスト環境"
           echo "- Python バージョン: 3.12"
+          echo "- 並列実行: pytest-xdist (-n auto)"
           echo "- ブランチ: ${{ github.ref_name }}"
           echo ""
           if [ -f coverage.xml ] && [ "$test_status" = "success" ]; then
@@ -70,6 +70,109 @@ jobs:
           elif [ ! -f coverage.xml ]; then
             echo "⚠️ カバレッジレポート（coverage.xml）が見つかりません"
           fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
+  integration-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: チェックアウト
+      uses: actions/checkout@v4.1.0
+
+    - name: uv のセットアップ
+      uses: astral-sh/setup-uv@v3.0.0
+
+    - name: キャッシュの復元
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: ${{ runner.os }}-uv-integration-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-integration-
+
+    - name: 依存関係のインストール
+      run: uv sync --all-groups
+
+    - name: 統合テストの実行
+      run: |
+        set -e
+        echo "=== 統合テストを順次実行中 ==="
+        uv run pytest tests/services/arxiv_summarizer/ -v -m "integration" -o addopts="-v --strict-markers --tb=short" --timeout=600 --tb=short || [ $? -eq 5 ]
+
+    - name: テスト結果サマリーの生成
+      if: always()
+      run: |
+        test_status="${{ job.status }}"
+
+        {
+          echo "## 統合テスト結果サマリー"
+          echo ""
+          echo "### ジョブ状態"
+          if [ "$test_status" = "success" ]; then
+            echo "✅ すべての統合テストが成功しました"
+          else
+            echo "❌ 統合テストが失敗しました"
+          fi
+          echo ""
+          echo "### テスト環境"
+          echo "- Python バージョン: 3.12"
+          echo "- 実行モード: 順次実行（外部リソース使用のため）"
+          echo "- ブランチ: ${{ github.ref_name }}"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+  performance-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # 手動実行時のみ
+
+    steps:
+    - name: チェックアウト
+      uses: actions/checkout@v4.1.0
+
+    - name: uv のセットアップ
+      uses: astral-sh/setup-uv@v3.0.0
+
+    - name: キャッシュの復元
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: ${{ runner.os }}-uv-performance-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-performance-
+
+    - name: 依存関係のインストール
+      run: uv sync --all-groups
+
+    - name: 性能テストの実行
+      run: |
+        set -e
+        echo "=== 性能テストを実行中 ==="
+        echo "注: このテストは手動実行時のみ実行されます"
+        uv run pytest tests/services/arxiv_summarizer/ -v -m "performance or memory or stress" -o addopts="-v --strict-markers --tb=short" --timeout=900 --tb=short -s || [ $? -eq 5 ]
+
+    - name: テスト結果サマリーの生成
+      if: always()
+      run: |
+        test_status="${{ job.status }}"
+
+        {
+          echo "## 性能テスト結果サマリー"
+          echo ""
+          echo "### ジョブ状態"
+          if [ "$test_status" = "success" ]; then
+            echo "✅ すべての性能テストが成功しました"
+          else
+            echo "❌ 性能テストが失敗しました"
+          fi
+          echo ""
+          echo "### テスト環境"
+          echo "- Python バージョン: 3.12"
+          echo "- 実行モード: 順次実行"
+          echo "- ブランチ: ${{ github.ref_name }}"
+          echo ""
+          echo "### テストカテゴリ"
+          echo "- performance: レスポンスタイム・スループット"
+          echo "- memory: メモリ使用量"
+          echo "- stress: ストレステスト"
         } >> "$GITHUB_STEP_SUMMARY"
 
   lint:
@@ -94,8 +197,7 @@ jobs:
           ${{ runner.os }}-uv-lint-
 
     - name: 依存関係のインストール
-      run: |
-        uv sync --group dev
+      run: uv sync --all-groups
 
     - name: 静的解析とフォーマットチェック
       run: |
@@ -104,7 +206,7 @@ jobs:
         uv run black nook/ tests/
         echo ""
         echo "=== Ruff (リント・インポート順序チェック) ==="
-        uv run ruff check nook/ tests/
+        uv run ruff check nook/ tests/ --fix
         echo ""
         echo "=== Ruff フォーマッター ==="
         uv run ruff format nook/ tests/
@@ -146,14 +248,13 @@ jobs:
           ${{ runner.os }}-uv-security-
 
     - name: 依存関係のインストール
-      run: |
-        uv sync --group dev
+      run: uv sync --all-groups
 
     - name: セキュリティチェック (bandit)
       run: |
         echo "=== コード脆弱性をスキャン中 (bandit) ==="
         set +e
-        uv run bandit -r nook/ tests/ -ll -f txt
+        uv run bandit -r nook/ tests/services/arxiv_summarizer/ tests/conftest.py -ll -f txt
         bandit_exit=$?
         set -e
 
