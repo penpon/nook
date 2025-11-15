@@ -87,9 +87,7 @@ async def test_get_all_existing_dates_with_valid_files(temp_data_dir, mock_env_v
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_all_existing_dates_with_invalid_filenames(
-    temp_data_dir, mock_env_vars
-):
+async def test_get_all_existing_dates_with_invalid_filenames(temp_data_dir, mock_env_vars):
     """
     Given: 無効な日付形式のファイルが混在
     When: _get_all_existing_datesを呼び出す
@@ -115,9 +113,7 @@ async def test_get_all_existing_dates_with_invalid_filenames(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_all_existing_dates_with_empty_directory(
-    temp_data_dir, mock_env_vars
-):
+async def test_get_all_existing_dates_with_empty_directory(temp_data_dir, mock_env_vars):
     """
     Given: ストレージディレクトリが空
     When: _get_all_existing_datesを呼び出す
@@ -137,9 +133,7 @@ async def test_get_all_existing_dates_with_empty_directory(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_all_existing_dates_with_nonexistent_directory(
-    tmp_path, mock_env_vars
-):
+async def test_get_all_existing_dates_with_nonexistent_directory(tmp_path, mock_env_vars):
     """
     Given: ストレージディレクトリが存在しない
     When: _get_all_existing_datesを呼び出す
@@ -973,17 +967,13 @@ def test_select_top_articles_with_multiple_dates(mock_env_vars, article_factory)
     articles = []
     # 日付1の記事
     for i in range(3):
-        article = article_factory(
-            title=f"日付1_記事{i}", popularity_score=float(10 - i)
-        )
+        article = article_factory(title=f"日付1_記事{i}", popularity_score=float(10 - i))
         article.published_at = datetime(2024, 11, 14, 12, 0, 0)
         articles.append(article)
 
     # 日付2の記事
     for i in range(3):
-        article = article_factory(
-            title=f"日付2_記事{i}", popularity_score=float(10 - i)
-        )
+        article = article_factory(title=f"日付2_記事{i}", popularity_score=float(10 - i))
         article.published_at = datetime(2024, 11, 15, 12, 0, 0)
         articles.append(article)
 
@@ -1001,9 +991,7 @@ def test_select_top_articles_with_multiple_dates(mock_env_vars, article_factory)
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_store_summaries_for_date_normal(
-    temp_data_dir, mock_env_vars, article_factory
-):
+async def test_store_summaries_for_date_normal(temp_data_dir, mock_env_vars, article_factory):
     """
     Given: 記事リストと日付文字列
     When: _store_summaries_for_dateを呼び出す
@@ -1032,9 +1020,7 @@ async def test_store_summaries_for_date_normal(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_store_summaries_for_date_with_empty_articles(
-    temp_data_dir, mock_env_vars
-):
+async def test_store_summaries_for_date_with_empty_articles(temp_data_dir, mock_env_vars):
     """
     Given: 空の記事リスト
     When: _store_summaries_for_dateを呼び出す

@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -99,9 +99,7 @@ class GithubTrending(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        effective_target_dates = (
-            target_dates if target_dates is not None else target_dates_set(1)
-        )
+        effective_target_dates = target_dates if target_dates is not None else target_dates_set(1)
 
         # 日付ごとに処理
         saved_files: list[tuple[str, str]] = []
@@ -114,9 +112,7 @@ class GithubTrending(BaseService):
                 existing_repos = await self._load_existing_repositories_by_date(
                     datetime.combine(target_date, time.min)
                 )
-                existing_names_for_date = {
-                    repo.get("name", "") for repo in existing_repos
-                }
+                existing_names_for_date = {repo.get("name", "") for repo in existing_repos}
             except Exception as e:
                 self.logger.debug(
                     f"既存リポジトリファイル {date_str}.json の読み込みに失敗しました: {e}"
@@ -130,31 +126,25 @@ class GithubTrending(BaseService):
             all_repositories = []
 
             # 言語指定なしのリポジトリを取得
-            repositories = await self._retrieve_repositories(
-                "any", limit, dedup_tracker
-            )
+            repositories = await self._retrieve_repositories("any", limit, dedup_tracker)
             all_repositories.append(("all", repositories))
             await self.rate_limit()  # レート制限を遵守
 
             # 一般的な言語のリポジトリを取得
             for language in self.languages_config["general"]:
-                repositories = await self._retrieve_repositories(
-                    language, limit, dedup_tracker
-                )
+                repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
                 all_repositories.append((language, repositories))
                 await self.rate_limit()  # レート制限を遵守
 
             # 特定の言語のリポジトリを取得
             for language in self.languages_config["specific"]:
-                repositories = await self._retrieve_repositories(
-                    language, limit, dedup_tracker
-                )
+                repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
                 all_repositories.append((language, repositories))
                 await self.rate_limit()  # レート制限を遵守
 
             # 全リポジトリをフラット化
             all_repos_flat = []
-            for language, repositories in all_repositories:
+            for _, repositories in all_repositories:
                 for repo in repositories:
                     all_repos_flat.append(repo)
 
@@ -163,9 +153,7 @@ class GithubTrending(BaseService):
 
             # 真に新規のリポジトリを確認
             truly_new_repositories = [
-                repo
-                for repo in all_repos_flat
-                if repo.name not in existing_names_for_date
+                repo for repo in all_repos_flat if repo.name not in existing_names_for_date
             ]
 
             # 日付情報を先頭に表示
@@ -271,22 +259,16 @@ class GithubTrending(BaseService):
 
                 # 説明を取得
                 description_element = repo_element.select_one("p")
-                description = (
-                    description_element.text.strip() if description_element else None
-                )
+                description = description_element.text.strip() if description_element else None
 
                 # スター数を取得
                 stars_element = repo_element.select_one("a.Link--muted")
                 stars_text = stars_element.text.strip() if stars_element else "0"
                 stars = (
-                    int(stars_text.replace(",", ""))
-                    if stars_text.replace(",", "").isdigit()
-                    else 0
+                    int(stars_text.replace(",", "")) if stars_text.replace(",", "").isdigit() else 0
                 )
 
-                repository = Repository(
-                    name=name, description=description, link=link, stars=stars
-                )
+                repository = Repository(name=name, description=description, link=link, stars=stars)
 
                 repositories.append(repository)
                 dedup_tracker.add(name)
@@ -297,9 +279,7 @@ class GithubTrending(BaseService):
             return repositories
 
         except Exception as e:
-            self.logger.error(
-                f"Error retrieving repositories for language {language}: {str(e)}"
-            )
+            self.logger.error(f"Error retrieving repositories for language {language}: {str(e)}")
             raise APIException(f"Failed to retrieve repositories for {language}") from e
 
     def _load_existing_repositories(self) -> DedupTracker:
@@ -341,7 +321,7 @@ class GithubTrending(BaseService):
         current_idx = 0
 
         try:
-            for language, repositories in repositories_by_language:
+            for _language, repositories in repositories_by_language:
                 for repo in repositories:
                     if repo.description:
                         prompt = dedent(
@@ -478,7 +458,7 @@ class GithubTrending(BaseService):
         default_date: date,
     ) -> list[dict[str, Any]]:
         serialized: list[dict[str, Any]] = []
-        base_dt = datetime.combine(default_date, time.min, tzinfo=timezone.utc)
+        base_dt = datetime.combine(default_date, time.min, tzinfo=UTC)
         now_iso = base_dt.isoformat()
         for language, repositories in repositories_by_language:
             for repo in repositories:
@@ -522,9 +502,9 @@ class GithubTrending(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
-            published = datetime.min.replace(tzinfo=timezone.utc)
+            published = datetime.min.replace(tzinfo=UTC)
         return (stars, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:
@@ -571,9 +551,7 @@ class GithubTrending(BaseService):
 
             language_header = match.group(1).strip()
             language_key = (
-                "all"
-                if language_header.lower().startswith("すべて")
-                else language_header.lower()
+                "all" if language_header.lower().startswith("すべて") else language_header.lower()
             )
 
             for repo_match in repo_pattern.finditer(section_content):

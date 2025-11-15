@@ -307,9 +307,7 @@ async def test_run_with_semaphore_progress_callback():
     coros = [lambda x=i: task(x) for i in range(3)]
 
     # When
-    await run_with_semaphore(
-        coros, max_concurrent=2, progress_callback=progress_callback
-    )
+    await run_with_semaphore(coros, max_concurrent=2, progress_callback=progress_callback)
 
     # Then
     assert len(progress_calls) == 3
@@ -383,9 +381,7 @@ async def test_run_with_semaphore_callback_failure():
 
     # When/Then
     with pytest.raises(RuntimeError, match="callback error"):
-        await run_with_semaphore(
-            coros, max_concurrent=2, progress_callback=failing_callback
-        )
+        await run_with_semaphore(coros, max_concurrent=2, progress_callback=failing_callback)
 
 
 @pytest.mark.unit
@@ -456,9 +452,7 @@ async def test_batch_process_multiple_batches():
         return sum(batch)
 
     # When
-    results = await batch_process(
-        items, processor, batch_size=100, max_concurrent_batches=5
-    )
+    results = await batch_process(items, processor, batch_size=100, max_concurrent_batches=5)
 
     # Then
     assert len(results) == 3
@@ -532,9 +526,7 @@ async def test_batch_process_concurrent_limit():
         return len(batch)
 
     # When
-    results = await batch_process(
-        items, processor, batch_size=100, max_concurrent_batches=2
-    )
+    results = await batch_process(items, processor, batch_size=100, max_concurrent_batches=2)
 
     # Then
     assert len(results) == 5
