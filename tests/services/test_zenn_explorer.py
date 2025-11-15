@@ -908,7 +908,7 @@ async def test_retrieve_article_paragraph_fallback(mock_env_vars):
         entry.summary = None
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html_with_paragraphs = """<<html> <body> <p>最初の段落テキスト.</p> <p>2番目の段落テキスト.</p> <p>3番目の段落テキスト.</p> </body> </html>>"""
+        html_with_paragraphs = """<html> <body> <p>最初の段落テキスト.</p> <p>2番目の段落テキスト.</p> <p>3番目の段落テキスト.</p> </body> </html>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html_with_paragraphs))
 
@@ -972,7 +972,7 @@ def test_extract_popularity_zenn_likes_count_meta(mock_env_vars):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """<<html> <head> <meta property="zenn:likes_count" content="150"> </head> <body></body> </html>>"""
+        html = """<html> <head> <meta property="zenn:likes_count" content="150"> </head> <body></body> </html>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -986,7 +986,7 @@ def test_extract_popularity_data_like_count_attribute(mock_env_vars):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """<<html> <body> <button data-like-count="250">いいね</button> </body> </html>>"""
+        html = """<html> <body> <button data-like-count="250">いいね</button> </body> </html>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1000,7 +1000,7 @@ def test_extract_popularity_button_text_extraction(mock_env_vars):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """<<html> <body> <button>HEART いいね 320</button> </body> </html>>"""
+        html = """<html> <body> <button>HEART いいね 320</button> </body> </html>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1014,7 +1014,7 @@ def test_extract_popularity_span_text_extraction(mock_env_vars):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """<<html> <body> <span>いいね 180</span> </body> </html>>"""
+        html = """<html> <body> <span>いいね 180</span> </body> </html>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1028,7 +1028,7 @@ def test_extract_popularity_max_from_multiple_candidates(mock_env_vars):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """<<html> <body> <button data-like-count="100">いいね</button> <span>いいね 250</span> <div>いいね 50</div> </body> </html>>"""
+        html = """<html> <body> <button data-like-count="100">いいね</button> <span>いいね 250</span> <div>いいね 50</div> </body> </html>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1176,7 +1176,7 @@ async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars
         del entry.summary
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html = """<<html> <body> <p>段落1のテキスト</p> <p>段落2のテキスト</p> <p>段落3のテキスト</p> </body> </html>>"""
+        html = """<html> <body> <p>段落1のテキスト</p> <p>段落2のテキスト</p> <p>段落3のテキスト</p> </body> </html>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html))
 
@@ -1200,7 +1200,7 @@ async def test_retrieve_article_no_summary_with_meta_description(mock_env_vars):
         del entry.summary
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html = """<<html> <head> <meta name="description" content="メタディスクリプションのテキスト"> </head> <body></body> </html>>"""
+        html = """<html> <head> <meta name="description" content="メタディスクリプションのテキスト"> </head> <body></body> </html>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html))
 
@@ -1223,7 +1223,7 @@ async def test_retrieve_article_no_content_anywhere(mock_env_vars):
         del entry.summary
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html = """<<html> <head></head> <body></body> </html>>"""
+        html = """<html> <head></head> <body></body> </html>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html))
 
@@ -1267,7 +1267,7 @@ def test_extract_popularity_div_text_extraction(mock_env_vars):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """<<html> <body> <div>いいね 280</div> </body> </html>>"""
+        html = """<html> <body> <div>いいね 280</div> </body> </html>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1281,7 +1281,7 @@ def test_extract_popularity_meta_tag_with_empty_content(mock_env_vars):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """<<html> <head> <meta property="zenn:likes_count" content=""> </head> <body> <button data-like-count="100">いいね</button> </body> </html>>"""
+        html = """<html> <head> <meta property="zenn:likes_count" content=""> </head> <body> <button data-like-count="100">いいね</button> </body> </html>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)

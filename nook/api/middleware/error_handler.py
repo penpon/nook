@@ -1,6 +1,6 @@
 import logging
 import traceback
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Request, status
@@ -30,7 +30,7 @@ async def error_handler_middleware(request: Request, call_next):
 
 def handle_exception(exc: Exception, request: Request) -> JSONResponse:
     """例外を処理してJSONレスポンスを返す"""
-    error_id = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+    error_id = datetime.now(UTC).strftime("%Y%m%d%H%M%S%f")
 
     # エラーログの記録
     logger.error(
@@ -129,7 +129,7 @@ def create_error_response(
             "type": error_type,
             "message": message,
             "error_id": error_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status_code": status_code,
         }
     }

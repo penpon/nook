@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -18,7 +18,7 @@ class ErrorResponse(BaseModel):
     type: str = Field(..., description="エラータイプ")
     message: str = Field(..., description="エラーメッセージ")
     error_id: str = Field(..., description="エラー追跡用ID")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="エラー発生時刻")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC), description="エラー発生時刻")
     status_code: int = Field(..., description="HTTPステータスコード")
     details: dict[str, Any] | list[ErrorDetail] | None = Field(None, description="追加の詳細情報")
 
