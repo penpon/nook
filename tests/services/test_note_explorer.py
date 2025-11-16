@@ -93,7 +93,9 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -116,7 +118,9 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>日本語テキスト</p></body></html>"
+                )
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -145,7 +149,9 @@ async def test_collect_with_multiple_articles(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -166,7 +172,9 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>日本語テキスト</p></body></html>"
+                )
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -302,7 +310,9 @@ async def test_collect_http_client_timeout(mock_env_vars):
             mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
-            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            service.http_client.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Timeout")
+            )
 
             result = await service.collect(days=1)
 
@@ -329,7 +339,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -348,7 +360,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.get_response = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(days=1)
 
@@ -409,7 +423,9 @@ async def test_collect_with_limit_one(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -617,7 +633,9 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -686,7 +704,9 @@ async def test_collect_with_duplicate_detection(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_func,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # DedupTrackerのモックを作成
@@ -784,7 +804,9 @@ async def test_collect_storage_save_failure(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -928,7 +950,9 @@ async def test_retrieve_article_with_empty_html(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         # 空のHTML
-        service.http_client.get = AsyncMock(return_value=Mock(text="<html><body></body></html>"))
+        service.http_client.get = AsyncMock(
+            return_value=Mock(text="<html><body></body></html>")
+        )
 
         result = await service._retrieve_article(entry, "Test Feed", "general")
 
@@ -953,7 +977,9 @@ async def test_retrieve_article_with_malformed_html(mock_env_vars):
 
         # 不正なHTML(タグが閉じていない等)
         service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body><p>テキスト</body>")  # pタグが閉じていない
+            return_value=Mock(
+                text="<html><body><p>テキスト</body>"
+            )  # pタグが閉じていない
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "general")
@@ -1181,3 +1207,300 @@ def test_extract_popularity_from_entry_likes_count_attribute(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 450.0
+
+
+# =============================================================================
+# 未カバー部分の追加テスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_json_parse_error(mock_env_vars):
+    """既存記事JSONのパースエラー処理をテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # 不正なJSONを返す
+            mock_storage_load.return_value = "invalid json {{"
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "新規記事"
+            mock_entry.link = "https://example.com/new"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # JSONパースエラーがあっても処理は継続される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_file_load_exception(mock_env_vars):
+    """既存ファイルロード時の例外処理をテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # ロード時に例外を発生させる
+            mock_storage_load.side_effect = Exception("File read error")
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 例外があっても処理は継続される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+def test_select_top_articles_with_limit_none(mock_env_vars):
+    """limit=Noneの場合にSUMMARY_LIMITが使用されることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+
+        # 20個の記事を作成
+        articles = []
+        for i in range(20):
+            article = Article(
+                feed_name="Test",
+                title=f"記事{i}",
+                url=f"https://example.com/article{i}",
+                text="本文",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=float(i),
+                published_at=datetime.now(),
+            )
+            articles.append(article)
+
+        # limit=None で呼び出し
+        result = service._select_top_articles(articles, limit=None)
+
+        # SUMMARY_LIMIT(15)個が返される
+        assert len(result) == NoteExplorer.SUMMARY_LIMIT
+        # 人気スコアの降順でソートされている
+        assert result[0].popularity_score == 19.0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries_with_articles(mock_env_vars):
+    """_store_summariesメソッドの正常系をテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+
+        from datetime import date
+
+        articles = [
+            Article(
+                feed_name="Test Feed",
+                title="記事1",
+                url="https://example.com/1",
+                text="本文1",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=10.0,
+                published_at=datetime(2024, 11, 14, 10, 0, 0),
+            ),
+            Article(
+                feed_name="Test Feed",
+                title="記事2",
+                url="https://example.com/2",
+                text="本文2",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=20.0,
+                published_at=datetime(2024, 11, 14, 12, 0, 0),
+            ),
+        ]
+
+        target_dates = [date(2024, 11, 14)]
+
+        with (
+            patch.object(
+                service,
+                "_load_existing_articles",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch.object(
+                service,
+                "save_json",
+                new_callable=AsyncMock,
+                return_value=Path("data/note_explorer/2024-11-14.json"),
+            ),
+            patch.object(
+                service,
+                "save_markdown",
+                new_callable=AsyncMock,
+                return_value=Path("data/note_explorer/2024-11-14.md"),
+            ),
+        ):
+            result = await service._store_summaries(articles, target_dates)
+
+            assert isinstance(result, list)
+            assert len(result) > 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries_with_empty_articles(mock_env_vars):
+    """_store_summariesで空の記事リストをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+
+        from datetime import date
+
+        target_dates = [date(2024, 11, 14)]
+        result = await service._store_summaries([], target_dates)
+
+        assert result == []
+
+
+@pytest.mark.unit
+def test_select_top_articles_with_custom_limit(mock_env_vars):
+    """カスタムlimitが正しく適用されることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+
+        # 10個の記事を作成
+        articles = []
+        for i in range(10):
+            article = Article(
+                feed_name="Test",
+                title=f"記事{i}",
+                url=f"https://example.com/{i}",
+                text="本文",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=float(i),
+                published_at=datetime.now(),
+            )
+            articles.append(article)
+
+        # limit=5 で呼び出し
+        result = service._select_top_articles(articles, limit=5)
+
+        # 5個が返される
+        assert len(result) == 5
+        # 人気スコアの降順でソートされている
+        assert result[0].popularity_score == 9.0
+        assert result[4].popularity_score == 5.0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_duplicate_article(mock_env_vars):
+    """重複記事が正しくスキップされることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "重複記事"
+            mock_entry.link = "https://example.com/duplicate"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            # 重複として判定するDedupTrackerをモック
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (True, "normalized_title")
+            mock_dedup.get_original_title.return_value = "元のタイトル"
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+            )
+
+            result = await service.collect(days=1)
+
+            # 重複記事はスキップされる
+            assert result == []
