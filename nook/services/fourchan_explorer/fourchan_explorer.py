@@ -2,12 +2,11 @@
 
 import asyncio
 import re
+import tomllib
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
-
-import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
@@ -138,7 +137,7 @@ class FourChanExplorer(BaseService):
 
         try:
             with open(boards_file, "rb") as f:
-                config = tomli.load(f)
+                config = tomllib.load(f)
                 boards_dict = config.get("boards", {})
                 # ボードIDのリストを返す
                 return list(boards_dict.keys())
@@ -196,9 +195,7 @@ class FourChanExplorer(BaseService):
             # 各ボードからスレッドを取得
             for board in self.target_boards:
                 try:
-                    self.logger.info(
-                        f"ボード /{board}/ からのスレッド取得を開始します..."
-                    )
+                    self.logger.info(f"ボード /{board}/ からのスレッド取得を開始します...")
                     threads = await self._retrieve_ai_threads(
                         board,
                         thread_limit,
@@ -216,9 +213,7 @@ class FourChanExplorer(BaseService):
                 except Exception as e:
                     self.logger.error(f"Error processing board /{board}/: {str(e)}")
 
-            self.logger.info(
-                f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました"
-            )
+            self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
 
             # 日付ごとにグループ化して各日独立で上位15件を選択
             threads_by_date = {}
@@ -241,9 +236,7 @@ class FourChanExplorer(BaseService):
                             created = datetime.fromtimestamp(thread.timestamp)
                             return (thread.popularity_score, created)
 
-                        sorted_threads = sorted(
-                            date_threads, key=sort_key, reverse=True
-                        )
+                        sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
                         selected_threads.extend(sorted_threads[:total_limit])
 
             # 既存/新規スレッド数をカウント
@@ -254,9 +247,7 @@ class FourChanExplorer(BaseService):
             log_article_counts(self.logger, existing_count, new_count)
 
             if selected_threads:
-                log_summary_candidates(
-                    self.logger, selected_threads, "popularity_score"
-                )
+                log_summary_candidates(self.logger, selected_threads, "popularity_score")
 
                 # 要約生成
                 log_summarization_start(self.logger)
@@ -269,9 +260,7 @@ class FourChanExplorer(BaseService):
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
             if selected_threads:
-                saved_files = await self._store_summaries(
-                    selected_threads, effective_target_dates
-                )
+                saved_files = await self._store_summaries(selected_threads, effective_target_dates)
 
                 # 処理完了メッセージ
                 if saved_files:
@@ -332,15 +321,14 @@ class FourChanExplorer(BaseService):
 
                 # AIキーワードが含まれているかチェック
                 is_ai_related = any(
-                    keyword in subject or keyword in comment
-                    for keyword in self.ai_keywords
+                    keyword in subject or keyword in comment for keyword in self.ai_keywords
                 )
 
                 if is_ai_related:
                     thread_id = thread.get("no")
                     timestamp_raw = thread.get("time")
                     thread_created = (
-                        datetime.fromtimestamp(int(timestamp_raw), tz=timezone.utc)
+                        datetime.fromtimestamp(int(timestamp_raw), tz=UTC)
                         if timestamp_raw
                         else None
                     )
@@ -359,7 +347,7 @@ class FourChanExplorer(BaseService):
 
                     last_modified_raw = thread.get("last_modified")
                     last_modified_dt = (
-                        datetime.fromtimestamp(int(last_modified_raw), tz=timezone.utc)
+                        datetime.fromtimestamp(int(last_modified_raw), tz=UTC)
                         if last_modified_raw
                         else thread_created
                     )
@@ -396,15 +384,13 @@ class FourChanExplorer(BaseService):
                     )
 
                     latest_post_at = (
-                        datetime.fromtimestamp(latest_post_ts, tz=timezone.utc)
+                        datetime.fromtimestamp(latest_post_ts, tz=UTC)
                         if latest_post_ts is not None
                         else None
                     )
 
                     effective_dt = latest_post_at or thread_created
-                    if not effective_dt or not is_within_target_dates(
-                        effective_dt, target_dates
-                    ):
+                    if not effective_dt or not is_within_target_dates(effective_dt, target_dates):
                         self.logger.debug(
                             "最新投稿日時が対象外のためスキップ: /%s/ %s (%s)",
                             board,
@@ -415,8 +401,8 @@ class FourChanExplorer(BaseService):
 
                     if effective_dt is not None:
                         if effective_dt.tzinfo is None:
-                            effective_dt = effective_dt.replace(tzinfo=timezone.utc)
-                        effective_utc = effective_dt.astimezone(timezone.utc)
+                            effective_dt = effective_dt.replace(tzinfo=UTC)
+                        effective_utc = effective_dt.astimezone(UTC)
                         timestamp_value = int(effective_utc.timestamp())
                     else:
                         # これは355行目の検証により理論的には発生しないが、防御的に処理
@@ -457,9 +443,7 @@ class FourChanExplorer(BaseService):
 
         return ai_threads
 
-    async def _retrieve_thread_posts(
-        self, board: str, thread_id: int
-    ) -> list[dict[str, Any]]:
+    async def _retrieve_thread_posts(self, board: str, thread_id: int) -> list[dict[str, Any]]:
         """
         スレッドの投稿を取得します。
 
@@ -509,9 +493,7 @@ class FourChanExplorer(BaseService):
 
         recency_bonus = 0.0
         try:
-            last_modified = thread_metadata.get("last_modified") or thread_metadata.get(
-                "time", 0
-            )
+            last_modified = thread_metadata.get("last_modified") or thread_metadata.get("time", 0)
             if last_modified:
                 now = datetime.now()
                 modified = datetime.fromtimestamp(last_modified)
@@ -567,19 +549,19 @@ class FourChanExplorer(BaseService):
             if reply_text:
                 # HTMLタグを除去
                 reply_text = re.sub(r"<[^>]*>", " ", reply_text)
-                thread_content += f"返信 {i+1}: {reply_text}\n\n"
+                thread_content += f"返信 {i + 1}: {reply_text}\n\n"
 
         prompt = f"""
         以下の4chanスレッドを要約してください。
 
         ボード: /{thread.board}/
         {thread_content}
-        
+
         要約は以下の形式で行い、日本語で回答してください:
         1. スレッドの主な内容（1-2文）
         2. 議論の主要ポイント（箇条書き3-5点）
         3. スレッドの全体的な論調
-        
+
         注意：攻撃的な内容やヘイトスピーチは緩和し、主要な技術的議論に焦点を当ててください。
         """
 
@@ -630,7 +612,7 @@ class FourChanExplorer(BaseService):
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
         records: list[dict] = []
         for thread in threads:
-            published = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
+            published = datetime.fromtimestamp(thread.timestamp, tz=UTC)
             records.append(
                 {
                     "thread_id": thread.thread_id,
@@ -671,16 +653,16 @@ class FourChanExplorer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
             timestamp = item.get("timestamp")
             if timestamp:
                 try:
-                    published = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                    published = datetime.fromtimestamp(int(timestamp), tz=UTC)
                 except Exception:
-                    published = datetime.min.replace(tzinfo=timezone.utc)
+                    published = datetime.min.replace(tzinfo=UTC)
             else:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         return (popularity, published)
 
     def _extract_thread_id_from_url(self, url: str) -> int:
@@ -709,9 +691,7 @@ class FourChanExplorer(BaseService):
         for board, threads in grouped.items():
             content += f"## /{board}/\n\n"
             for thread in threads:
-                title = (
-                    thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
-                )
+                title = thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
                 content += f"### [{title}]({thread.get('url')})\n\n"
                 published_raw = thread.get("published_at")
                 if published_raw:
@@ -740,9 +720,7 @@ class FourChanExplorer(BaseService):
         sections = list(board_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = (
-                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
-            )
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
             block = markdown[start:end]
             board = match.group(1).strip()
 
@@ -763,9 +741,7 @@ class FourChanExplorer(BaseService):
                 }
 
                 if timestamp:
-                    record["published_at"] = datetime.fromtimestamp(
-                        timestamp, tz=timezone.utc
-                    ).isoformat()
+                    record["published_at"] = datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
 
                 records.append(record)
 

@@ -135,20 +135,22 @@ async def test_collect_success(fivechan_service):
     """
     fivechan_service.http_client = AsyncMock()
 
-    with (
-        patch.object(fivechan_service, "setup_http_client", new_callable=AsyncMock),
-        patch.object(
-            fivechan_service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ),
-    ):
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
 
-        fivechan_service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body>Test thread</body></html>")
-        )
-        fivechan_service.gpt_client.get_response = AsyncMock(return_value="要約")
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+        ):
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body>Test thread</body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
 
         result = await fivechan_service.collect(target_dates=[date.today()])
 
@@ -172,11 +174,8 @@ async def test_collect_network_error(fivechan_service):
 
     with patch.object(fivechan_service, "setup_http_client", new_callable=AsyncMock):
 
-        fivechan_service.http_client.get = AsyncMock(
-            side_effect=Exception("Network error")
-        )
-
-        result = await fivechan_service.collect(target_dates=[date.today()])
+        with patch.object(service, "setup_http_client", new_callable=AsyncMock):
+            service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
         assert isinstance(result, list)
 
@@ -196,14 +195,14 @@ async def test_collect_gpt_api_error(fivechan_service):
         patch.object(fivechan_service.storage, "save", new_callable=AsyncMock),
     ):
 
-        fivechan_service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body>Test</body></html>")
-        )
-        fivechan_service.gpt_client.get_response = AsyncMock(
-            side_effect=Exception("API Error")
-        )
-
-        result = await fivechan_service.collect(target_dates=[date.today()])
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body>Test</body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
         assert isinstance(result, list)
 
@@ -223,20 +222,22 @@ async def test_full_workflow_collect_and_save(fivechan_service):
     """
     fivechan_service.http_client = AsyncMock()
 
-    with (
-        patch.object(fivechan_service, "setup_http_client", new_callable=AsyncMock),
-        patch.object(
-            fivechan_service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ),
-    ):
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
 
-        fivechan_service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body>Test thread</body></html>")
-        )
-        fivechan_service.gpt_client.get_response = AsyncMock(return_value="要約")
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+        ):
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body>Test thread</body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
 
         result = await fivechan_service.collect(target_dates=[date.today()])
 
@@ -306,9 +307,13 @@ async def test_get_subject_txt_data_malformed_format(
     When: _get_subject_txt_dataを呼び出す
     Then: マッチしない行はスキップされる
     """
-    # 正規表現にマッチしないフォーマット（定数を使用）
-    subject_data = (
-        f"{INVALID_FORMAT_LINE}1234567890.dat<>正しいスレッド (100)\n".encode(
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 正規表現にマッチしないフォーマット
+        subject_data = "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
             "shift_jis"
         )
     )
@@ -410,8 +415,7 @@ async def test_get_thread_posts_from_dat_success(fivechan_service, mock_cloudscr
     # fmt: off
     dat_data = """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
-""".encode("shift_jis")  # noqa: E501
-    # fmt: on
+""".encode("shift_jis")
 
     mock_response = create_http_response(content=dat_data)
     mock_cloudscraper.get = Mock(return_value=mock_response)
@@ -420,10 +424,21 @@ async def test_get_thread_posts_from_dat_success(fivechan_service, mock_cloudscr
         "http://test.5ch.net/test/dat/1234567890.dat"
     )
 
-    assert len(posts) == 2, f"Expected 2 posts but got {len(posts)}"
-    assert posts[0]["name"] == "名無しさん"
-    assert posts[0]["mail"] == "sage"
-    assert "AI" in posts[0]["com"]
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, latest = await service._get_thread_posts_from_dat(
+                "http://test.5ch.net/test/dat/1234567890.dat"
+            )
+
+            assert len(posts) == 2
+            assert posts[0]["name"] == "名無しさん"
+            assert posts[0]["mail"] == "sage"
+            assert "AI" in posts[0]["com"]
 
 
 @pytest.mark.unit
@@ -447,10 +462,28 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(
     mock_response = create_http_response(content=dat_data)
     mock_cloudscraper.get = Mock(return_value=mock_response)
 
-    posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
+        # 日本語を含むdat
+        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode("shift_jis")
 
-    assert len(posts) == 1, f"Expected 1 post but got {len(posts)}"
-    assert "深層学習" in posts[0]["com"]
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = dat_data
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
+
+            assert len(posts) == 1
+            assert "深層学習" in posts[0]["com"]
 
 
 @pytest.mark.unit
@@ -469,19 +502,26 @@ async def test_get_thread_posts_from_dat_malformed_line(
     # 不正な行（<>が3つ未満）- 定数を使用
     dat_data = f"""invalid_line
 名無し<>sage<>2024/11/14 12:00:00<>正しい投稿
-{MALFORMED_DAT_LINE}
-""".encode(
-        "shift_jis"
-    )
+another_invalid<>only_two
+""".encode("shift_jis")
 
     mock_response = create_http_response(content=dat_data)
     mock_cloudscraper.get = Mock(return_value=mock_response)
 
     posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-    # 正しいフォーマットの行のみ解析
-    assert len(posts) == 1, f"Expected 1 post but got {len(posts)}"
-    assert "正しい投稿" in posts[0]["com"]
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
+
+            # 正しいフォーマットの行のみ解析
+            assert len(posts) == 1
+            assert "正しい投稿" in posts[0]["com"]
 
 
 @pytest.mark.unit
@@ -499,8 +539,25 @@ async def test_get_thread_posts_from_dat_http_error(
 
     posts, latest = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-    assert posts == [], f"Expected empty list but got {posts}"
-    assert latest is None, f"Expected None but got {latest}"
+        mock_response = Mock()
+        mock_response.status_code = 404
+        mock_response.text = "Not Found"
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, latest = await service._get_thread_posts_from_dat("http://test.dat")
+
+            assert posts == []
+            assert latest is None
 
 
 @pytest.mark.unit
@@ -518,7 +575,24 @@ async def test_get_thread_posts_from_dat_empty_content(
 
     posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-    assert posts == [], f"Expected empty list but got {posts}"
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = b""
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
+
+            assert posts == []
 
 
 @pytest.mark.unit
@@ -539,8 +613,25 @@ async def test_get_thread_posts_from_dat_encoding_cascade(
 
     posts, _ = await fivechan_service._get_thread_posts_from_dat("http://test.dat")
 
-    # errors='ignore'で処理されるため、エラーなく処理される
-    assert isinstance(posts, list), f"Expected list but got {type(posts).__name__}"
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = dat_data
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, _ = await service._get_thread_posts_from_dat("http://test.dat")
+
+            # errors='ignore'で処理されるため、エラーなく処理される
+            assert isinstance(posts, list)
 
 
 # =============================================================================

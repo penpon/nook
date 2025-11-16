@@ -18,15 +18,11 @@ def main():
     parser.add_argument(
         "--host",
         type=str,
-        default="0.0.0.0",  # nosec B104
+        default="0.0.0.0",  # nosec B104 - API server intentionally binds to all interfaces
         help="ホストアドレス (デフォルト: 0.0.0.0)",
     )
-    parser.add_argument(
-        "--port", type=int, default=8000, help="ポート番号 (デフォルト: 8000)"
-    )
-    parser.add_argument(
-        "--reload", action="store_true", help="コード変更時に自動リロードする"
-    )
+    parser.add_argument("--port", type=int, default=8000, help="ポート番号 (デフォルト: 8000)")
+    parser.add_argument("--reload", action="store_true", help="コード変更時に自動リロードする")
 
     args = parser.parse_args()
 

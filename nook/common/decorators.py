@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import time
 from collections.abc import Callable
 from datetime import datetime
 from typing import TypeVar, cast
@@ -23,9 +24,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                 try:
                     result = await func(*args, **kwargs)
                     if attempt > 0:
-                        logger.info(
-                            f"Function {func.__name__} succeeded after {attempt} retries"
-                        )
+                        logger.info(f"Function {func.__name__} succeeded after {attempt} retries")
                     return result
 
                 except Exception as e:
@@ -46,12 +45,8 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     if attempt < retries - 1:
                         await asyncio.sleep(wait_time)
                     else:
-                        logger.error(
-                            f"Function {func.__name__} failed after {retries} attempts"
-                        )
-                        raise RetryException(
-                            f"Failed after {retries} attempts: {e}"
-                        ) from e
+                        logger.error(f"Function {func.__name__} failed after {retries} attempts")
+                        raise RetryException(f"Failed after {retries} attempts: {e}") from e
 
             raise last_exception
 
@@ -64,9 +59,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                 try:
                     result = func(*args, **kwargs)
                     if attempt > 0:
-                        logger.info(
-                            f"Function {func.__name__} succeeded after {attempt} retries"
-                        )
+                        logger.info(f"Function {func.__name__} succeeded after {attempt} retries")
                     return result
 
                 except Exception as e:
@@ -78,14 +71,10 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     )
 
                     if attempt < retries - 1:
-                        asyncio.sleep(wait_time)
+                        time.sleep(wait_time)
                     else:
-                        logger.error(
-                            f"Function {func.__name__} failed after {retries} attempts"
-                        )
-                        raise RetryException(
-                            f"Failed after {retries} attempts: {e}"
-                        ) from e
+                        logger.error(f"Function {func.__name__} failed after {retries} attempts")
+                        raise RetryException(f"Failed after {retries} attempts: {e}") from e
 
             raise last_exception
 
@@ -98,7 +87,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
     return decorator
 
 
-def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
+def log_execution_time[T](func: Callable[..., T]) -> Callable[..., T]:
     """実行時間をログに記録するデコレータ"""
 
     @functools.wraps(func)

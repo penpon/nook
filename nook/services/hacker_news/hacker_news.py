@@ -5,7 +5,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -60,9 +60,7 @@ class Story:
 SCORE_THRESHOLD = 20  # 最小スコア
 MIN_TEXT_LENGTH = 100  # 最小テキスト長
 MAX_TEXT_LENGTH = 10000  # 最大テキスト長
-FETCH_LIMIT: int | None = (
-    None  # フィルタリング前に取得する記事数（Noneの場合は制限なし）
-)
+FETCH_LIMIT: int | None = None  # フィルタリング前に取得する記事数（Noneの場合は制限なし）
 MAX_STORY_LIMIT = 15  # 保存する記事数の上限
 
 
@@ -124,9 +122,7 @@ class HackerNewsRetriever(BaseService):
 
         dedup_tracker = await self._load_existing_titles()
 
-        stories = await self._get_top_stories(
-            limit, dedup_tracker, effective_target_dates
-        )
+        stories = await self._get_top_stories(limit, dedup_tracker, effective_target_dates)
         saved_files = await self._store_summaries(stories, effective_target_dates)
 
         # 処理完了メッセージ
@@ -354,9 +350,7 @@ class HackerNewsRetriever(BaseService):
             if domain.startswith("www."):
                 domain = domain[4:]
 
-            http1_required_domains = self.blocked_domains.get(
-                "http1_required_domains", []
-            )
+            http1_required_domains = self.blocked_domains.get("http1_required_domains", [])
             return domain in [d.lower() for d in http1_required_domains]
         except Exception:
             return False
@@ -364,9 +358,7 @@ class HackerNewsRetriever(BaseService):
     async def _fetch_story(self, story_id: int) -> Story | None:
         """個別のストーリーを取得"""
         try:
-            response = await self.http_client.get(
-                f"{self.base_url}/item/{story_id}.json"
-            )
+            response = await self.http_client.get(f"{self.base_url}/item/{story_id}.json")
             item = response.json()
 
             if "title" not in item:
@@ -382,13 +374,11 @@ class HackerNewsRetriever(BaseService):
             timestamp = item.get("time")
             if timestamp is not None:
                 try:
-                    story.created_at = datetime.fromtimestamp(
-                        int(timestamp), tz=timezone.utc
-                    )
+                    story.created_at = datetime.fromtimestamp(int(timestamp), tz=UTC)
                 except Exception:
                     story.created_at = None
             if story.created_at is None:
-                story.created_at = datetime.now(timezone.utc)
+                story.created_at = datetime.now(UTC)
 
             # URLがある場合は記事の内容を取得
             if story.url and not story.text:
@@ -409,9 +399,7 @@ class HackerNewsRetriever(BaseService):
 
             reason = self.blocked_domains.get("reasons", {}).get(domain, "アクセス制限")
             story.text = f"このサイト（{domain}）は{reason}のためブロックされています。"
-            self.logger.debug(
-                f"ブロックされたドメインをスキップ: {story.url} - {reason}"
-            )
+            self.logger.debug(f"ブロックされたドメインをスキップ: {story.url} - {reason}")
             return
 
         # HTTP/1.1が必要なドメインをチェック
@@ -528,8 +516,7 @@ class HackerNewsRetriever(BaseService):
 
                     # 既存のブロックドメインは除外
                     if domain in [
-                        d.lower()
-                        for d in self.blocked_domains.get("blocked_domains", [])
+                        d.lower() for d in self.blocked_domains.get("blocked_domains", [])
                     ]:
                         continue
 
@@ -577,9 +564,7 @@ class HackerNewsRetriever(BaseService):
             # 新しいドメインを追加
             added_count = 0
             for domain, reason in new_domains.items():
-                if domain not in [
-                    d.lower() for d in blocked_data.get("blocked_domains", [])
-                ]:
+                if domain not in [d.lower() for d in blocked_data.get("blocked_domains", [])]:
                     blocked_data.setdefault("blocked_domains", []).append(domain)
                     blocked_data.setdefault("reasons", {})[domain] = reason
                     added_count += 1
@@ -672,7 +657,7 @@ class HackerNewsRetriever(BaseService):
     def _serialize_stories(self, stories: list[Story]) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
         for story in stories:
-            created = story.created_at or datetime.now(timezone.utc)
+            created = story.created_at or datetime.now(UTC)
             records.append(
                 {
                     "title": story.title,
@@ -685,9 +670,7 @@ class HackerNewsRetriever(BaseService):
             )
         return records
 
-    async def _load_existing_stories(
-        self, target_date: datetime
-    ) -> list[dict[str, Any]]:
+    async def _load_existing_stories(self, target_date: datetime) -> list[dict[str, Any]]:
         date_str = target_date.strftime("%Y-%m-%d")
         filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
@@ -707,9 +690,9 @@ class HackerNewsRetriever(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
-            published = datetime.min.replace(tzinfo=timezone.utc)
+            published = datetime.min.replace(tzinfo=UTC)
         return (score, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:

@@ -13,9 +13,7 @@ T = TypeVar("T")
 class TaskResult:
     """タスク実行結果"""
 
-    def __init__(
-        self, name: str, success: bool, result: Any = None, error: Exception = None
-    ):
+    def __init__(self, name: str, success: bool, result: Any = None, error: Exception = None):
         self.name = name
         self.success = success
         self.result = result
@@ -36,7 +34,7 @@ async def gather_with_errors(
     results = await asyncio.gather(*coros, return_exceptions=return_exceptions)
 
     task_results = []
-    for i, (name, result) in enumerate(zip(task_names, results, strict=False)):
+    for name, result in zip(task_names, results, strict=False):
         if isinstance(result, Exception):
             logger.error(f"Task {name} failed: {result}")
             task_results.append(TaskResult(name, False, error=result))
@@ -90,9 +88,7 @@ async def batch_process(
     )
 
 
-def run_sync_in_thread(
-    sync_func: Callable[..., T], *args, **kwargs
-) -> asyncio.Future[T]:
+def run_sync_in_thread[T](sync_func: Callable[..., T], *args, **kwargs) -> asyncio.Future[T]:
     """同期関数を別スレッドで実行"""
     loop = asyncio.get_event_loop()
     executor = ThreadPoolExecutor(max_workers=1)
@@ -150,7 +146,7 @@ class AsyncTaskManager:
 
         try:
             await asyncio.wait_for(task, timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"Task {name} timed out")
             raise
 

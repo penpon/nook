@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -21,7 +21,6 @@ from nook.common.date_utils import (
 )
 
 # タイムゾーン定義
-UTC = timezone.utc
 JST = timezone(timedelta(hours=9))
 
 

@@ -30,16 +30,16 @@ def event_loop_policy():
 # =============================================================================
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
-    """環境変数のモック設定"""
+    """環境変数のモック設定（全テストで自動適用）"""
     env_vars = {
         "OPENAI_API_KEY": "test-api-key-12345",
         "OPENAI_BASE_URL": "https://api.openai.com/v1",
         "REDDIT_CLIENT_ID": "test-client-id",
         "REDDIT_CLIENT_SECRET": "test-client-secret",
         "REDDIT_USER_AGENT": "test-user-agent",
-        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108
+        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108 - テスト環境でのみ使用
         "LOG_LEVEL": "INFO",
     }
     for key, value in env_vars.items():
@@ -186,9 +186,9 @@ def mock_hn_api(respx_mock, mock_hn_story):
     )
 
     # 個別ストーリー取得
-    respx_mock.get(
-        url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json"
-    ).mock(return_value=httpx.Response(200, json=mock_hn_story))
+    respx_mock.get(url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json").mock(
+        return_value=httpx.Response(200, json=mock_hn_story)
+    )
 
     return respx_mock
 
@@ -339,7 +339,7 @@ def fixed_datetime(monkeypatch):
     class MockDatetime(datetime.datetime):
         @classmethod
         def now(cls, tz=None):
-            return cls(2024, 11, 14, 12, 0, 0)
+            return cls(2024, 11, 14, 12, 0, 0, tzinfo=tz)
 
     monkeypatch.setattr(datetime, "datetime", MockDatetime)
     return MockDatetime
@@ -610,6 +610,237 @@ def mock_dedup_tracker():
 
 
 # =============================================================================
+# arXiv 専用フィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def arxiv_service():
+    """ArxivSummarizerサービスのフィクスチャ（共通セットアップ）"""
+    with patch("nook.common.logging.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+        yield service
+
+
+@pytest.fixture
+def test_date():
+    """テスト用固定日付"""
+    from datetime import date
+
+    return date(2024, 1, 1)
+
+
+@pytest.fixture
+def test_datetime():
+    """テスト用固定日時"""
+    from datetime import UTC, datetime
+
+    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
+
+
+@pytest.fixture
+def paper_info_factory():
+    """PaperInfoオブジェクトを生成するファクトリー"""
+    from datetime import UTC, datetime
+
+    def _create(
+        title="Test Paper",
+        abstract="Test Abstract",
+        url=None,
+        arxiv_id="2301.00001",
+        contents="Test contents",
+        published_at=None,
+        **kwargs,
+    ):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import PaperInfo
+
+        if url is None:
+            url = f"http://arxiv.org/abs/{arxiv_id}"
+
+        if published_at is None:
+            published_at = datetime(2023, 1, 1, tzinfo=UTC)
+
+        paper = PaperInfo(
+            title=title,
+            abstract=abstract,
+            url=url,
+            contents=contents,
+            published_at=published_at,
+        )
+
+        # summaryが指定されていれば設定
+        if "summary" in kwargs:
+            paper.summary = kwargs["summary"]
+
+        return paper
+
+    return _create
+
+
+@pytest.fixture
+def mock_arxiv_paper_factory():
+    """arxiv.Resultオブジェクトのモックを生成するファクトリー"""
+    from datetime import UTC, datetime
+    from unittest.mock import Mock
+
+    def _create(
+        arxiv_id="2301.00001",
+        title="Test Paper Title",
+        summary="Test abstract",
+        published=None,
+        **kwargs,
+    ):
+        if published is None:
+            published = datetime(2023, 1, 1, tzinfo=UTC)
+
+        mock_paper = Mock()
+        mock_paper.entry_id = f"http://arxiv.org/abs/{arxiv_id}"
+        mock_paper.title = title
+        mock_paper.summary = summary
+        mock_paper.published = published
+
+        # 追加属性
+        for key, value in kwargs.items():
+            setattr(mock_paper, key, value)
+
+        return mock_paper
+
+    return _create
+
+
+# =============================================================================
+# arXiv テストヘルパー
+# =============================================================================
+
+
+class ArxivTestHelper:
+    """
+    arXivテスト用のヘルパークラス
+
+    テスト定数とモック作成メソッドを提供し、テストコードの重複を削減します。
+
+    使用例:
+        def test_example(arxiv_helper):
+            # 定数を使用
+            arxiv_id = arxiv_helper.DEFAULT_ARXIV_ID
+
+            # モック作成
+            mock_client = arxiv_helper.create_mock_http_client()
+    """
+
+    # ============================================================================
+    # テスト定数
+    # ============================================================================
+    DEFAULT_ARXIV_ID = "2301.00001"
+    DEFAULT_MIN_LINE_LENGTH = 80
+    SAMPLE_PAPER_IDS = ["2301.00001", "2301.00002", "2301.00003"]
+
+    # テストデータ定数
+    SAMPLE_PAPER_TITLE = "Test Paper Title"
+    SAMPLE_ABSTRACT = "Test abstract"
+    SAMPLE_CONTENTS = "Test contents"
+    SAMPLE_SUMMARY = "Test summary"
+
+    # HTML/Markdown テストデータ
+    SAMPLE_MARKDOWN_VALID = """# arXiv 論文要約 (2024-01-01)
+
+## [Test Paper 1](http://arxiv.org/abs/2301.00001)
+
+**abstract**:
+Abstract 1
+
+**summary**:
+Summary 1
+
+---
+"""
+
+    # ============================================================================
+    # モック作成メソッド
+    # ============================================================================
+
+    @staticmethod
+    def create_mock_http_client():
+        """HTTPクライアントのモックを作成
+
+        Returns:
+            AsyncMock: コンテキストマネージャーとして使用可能なモック
+        """
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf_response(content=b"%PDF-1.4 test content"):
+        """PDFレスポンスのモックを作成
+
+        Args:
+            content: PDFバイナリコンテンツ
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.content = content
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_html_response(text="<html><body>Test</body></html>"):
+        """HTMLレスポンスのモックを作成
+
+        Args:
+            text: HTMLテキスト
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.text = text
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_arxiv_client(results=None):
+        """arxiv.Clientのモックを作成
+
+        Args:
+            results: resultsメソッドが返すリスト（デフォルトは空リスト）
+
+        Returns:
+            Mock: arxiv.Clientモック
+        """
+        if results is None:
+            results = []
+        mock_client = Mock()
+        mock_client.results.return_value = results
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf(text="Test PDF content"):
+        from unittest.mock import MagicMock
+
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = text
+
+        mock_pdf = MagicMock()
+        mock_pdf.pages = [mock_page]
+        mock_pdf.__enter__.return_value = mock_pdf
+        mock_pdf.__exit__.return_value = None
+
+        return mock_pdf
+
+
+@pytest.fixture
+def arxiv_helper():
+    """ArxivTestHelperインスタンスを提供"""
+    return ArxivTestHelper()
+
+
+# =============================================================================
 # クリーンアップフィクスチャ
 # =============================================================================
 
@@ -621,51 +852,28 @@ def cleanup_after_test():
     # テスト後の処理（必要に応じて）
 
 
-@pytest.fixture
-def fivechan_service(mock_env_vars):
-    """FiveChanExplorerインスタンスを提供（logger自動モック）"""
-    with patch("nook.common.logging.setup_logger"):
-        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
-
-        return FiveChanExplorer()
+# =============================================================================
+# Hacker News モックフィクスチャ
+# =============================================================================
 
 
 @pytest.fixture
-def mock_httpx_client():
-    """httpx.AsyncClientのモックを提供
-
-    使用例:
-        async def test_something(fivechan_service, mock_httpx_client):
-            mock_response = Mock(status_code=200, content=b"data")
-            mock_httpx_client.get = AsyncMock(return_value=mock_response)
-            result = await fivechan_service._get_subject_txt_data("ai")
-    """
-    with patch("httpx.AsyncClient") as mock_client:
-        client_instance = AsyncMock()
-        client_instance.__aenter__.return_value = client_instance
-        client_instance.__aexit__.return_value = AsyncMock()
-        mock_client.return_value = client_instance
-        yield client_instance
+def mock_logger():
+    """モックロガー"""
+    logger = Mock()
+    logger.info = Mock()
+    logger.error = Mock()
+    logger.warning = Mock()
+    logger.debug = Mock()
+    return logger
 
 
 @pytest.fixture
-def mock_cloudscraper():
-    """cloudscraperのモックを提供
+def hacker_news_service(mock_logger):
+    """HackerNewsRetrieverのフィクスチャ"""
+    with patch("nook.common.base_service.setup_logger", return_value=mock_logger):
+        from nook.services.hacker_news.hacker_news import HackerNewsRetriever
 
-    使用例:
-        async def test_dat_parsing(fivechan_service, mock_cloudscraper):
-            mock_response = Mock(status_code=200, content=b"data")
-            mock_cloudscraper.get = Mock(return_value=mock_response)
-            posts, latest = await fivechan_service._get_thread_posts_from_dat("url")
-    """
-    mock_scraper = Mock()
-    mock_scraper.headers = {}
-
-    async def _fake_to_thread(fn, *args, **kwargs):
-        """asyncio.to_threadの代替（同期的に実行）"""
-        return fn(*args, **kwargs)
-
-    with patch("cloudscraper.create_scraper", return_value=mock_scraper), patch(
-        "asyncio.to_thread", new=_fake_to_thread
-    ):
-        yield mock_scraper
+        service = HackerNewsRetriever()
+        service.logger = mock_logger
+        return service
