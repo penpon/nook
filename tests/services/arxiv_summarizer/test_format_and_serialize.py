@@ -161,9 +161,7 @@ async def test_summarize_paper_info_gpt_error(arxiv_service):
     )
 
     # GPTクライアントをモック（エラー）
-    arxiv_service.gpt_client.generate_async = AsyncMock(
-        side_effect=Exception("API Error")
-    )
+    arxiv_service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
 
     # When
     await arxiv_service._summarize_paper_info(paper)

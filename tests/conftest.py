@@ -186,9 +186,9 @@ def mock_hn_api(respx_mock, mock_hn_story):
     )
 
     # 個別ストーリー取得
-    respx_mock.get(
-        url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json"
-    ).mock(return_value=httpx.Response(200, json=mock_hn_story))
+    respx_mock.get(url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json").mock(
+        return_value=httpx.Response(200, json=mock_hn_story)
+    )
 
     return respx_mock
 

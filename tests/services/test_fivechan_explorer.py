@@ -151,9 +151,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -290,10 +288,8 @@ async def test_get_subject_txt_data_malformed_format(mock_env_vars):
         service = FiveChanExplorer()
 
         # 正規表現にマッチしないフォーマット
-        subject_data = (
-            "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
-                "shift_jis"
-            )
+        subject_data = "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
+            "shift_jis"
         )
 
         mock_response = Mock()
@@ -428,9 +424,7 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
         # 注: 実際のdatファイルは末尾に<>がありますが、空要素は無視されます
         dat_data = """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
-""".encode(
-            "shift_jis"
-        )
+""".encode("shift_jis")
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -471,9 +465,7 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
         service = FiveChanExplorer()
 
         # 日本語を含むdat
-        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode(
-            "shift_jis"
-        )
+        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode("shift_jis")
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -513,9 +505,7 @@ async def test_get_thread_posts_from_dat_malformed_line(mock_env_vars):
         dat_data = """invalid_line
 名無し<>sage<>2024/11/14 12:00:00<>正しい投稿
 another_invalid<>only_two
-""".encode(
-            "shift_jis"
-        )
+""".encode("shift_jis")
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -1026,9 +1016,9 @@ async def test_dos_attack_oversized_response(mock_env_vars, huge_response_data):
                 assert processing_time < 5.0, f"処理時間が長すぎる: {processing_time}秒"
 
                 # メモリ使用量が許容範囲内
-                assert (
-                    peak < MAX_MEMORY_USAGE_BYTES * 2
-                ), f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+                assert peak < MAX_MEMORY_USAGE_BYTES * 2, (
+                    f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+                )
             finally:
                 tracemalloc.stop()
 
@@ -1076,14 +1066,14 @@ async def test_encoding_bomb_attack(mock_env_vars, encoding_bomb_data):
                 assert isinstance(result, list)
 
                 # 処理時間が許容範囲内
-                assert (
-                    processing_time < MAX_PROCESSING_TIME_SECONDS * 2
-                ), f"処理時間が長すぎる: {processing_time}秒"
+                assert processing_time < MAX_PROCESSING_TIME_SECONDS * 2, (
+                    f"処理時間が長すぎる: {processing_time}秒"
+                )
 
                 # メモリ使用量が許容範囲内
-                assert (
-                    peak < MAX_MEMORY_USAGE_BYTES
-                ), f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+                assert peak < MAX_MEMORY_USAGE_BYTES, (
+                    f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+                )
             finally:
                 tracemalloc.stop()
 
@@ -1103,9 +1093,7 @@ async def test_encoding_bomb_attack(mock_env_vars, encoding_bomb_data):
     ],
     ids=["xss", "sql_injection", "oversized_name"],
 )
-async def test_dat_parsing_malicious_input(
-    mock_env_vars, malicious_dat_content, test_id
-):
+async def test_dat_parsing_malicious_input(mock_env_vars, malicious_dat_content, test_id):
     """
     Given: 悪意のある入力データがDAT形式に含まれる
     When: DAT解析を実行
@@ -1223,9 +1211,9 @@ async def test_concurrent_thread_fetching_performance(mock_env_vars):
             assert len(results) == 10
 
             # asyncio.to_threadが10回呼び出されたことを確認（並行実行の検証）
-            assert (
-                mock_to_thread.call_count == 10
-            ), f"asyncio.to_threadの呼び出し回数が想定外: {mock_to_thread.call_count}回"
+            assert mock_to_thread.call_count == 10, (
+                f"asyncio.to_threadの呼び出し回数が想定外: {mock_to_thread.call_count}回"
+            )
 
             # 処理時間が許容範囲内（並行処理により高速化）
             # 並行実行なら約0.05秒、逐次実行なら約0.5秒（10 * 0.05）
@@ -1252,9 +1240,7 @@ async def test_memory_efficiency_large_dataset(mock_env_vars):
         service = FiveChanExplorer()
 
         # 100個のスレッド情報を生成
-        subject_lines = [
-            f"{1000000000 + i}.dat<>テストスレッド{i} (100)\n" for i in range(100)
-        ]
+        subject_lines = [f"{1000000000 + i}.dat<>テストスレッド{i} (100)\n" for i in range(100)]
         subject_data = "".join(subject_lines).encode("shift_jis")
 
         mock_response = Mock()
@@ -1279,9 +1265,9 @@ async def test_memory_efficiency_large_dataset(mock_env_vars):
                 assert len(result) == 100
 
                 # メモリ使用量が許容範囲内
-                assert (
-                    peak < MAX_MEMORY_USAGE_BYTES
-                ), f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+                assert peak < MAX_MEMORY_USAGE_BYTES, (
+                    f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+                )
             finally:
                 tracemalloc.stop()
 
@@ -1365,9 +1351,7 @@ def test_board_server_cache_efficiency(mock_env_vars):
 
         # キャッシュアクセスは十分高速
         avg_cache_time = sum(cache_access_times) / len(cache_access_times)
-        assert (
-            avg_cache_time < 0.05
-        ), f"キャッシュアクセスが遅い: {avg_cache_time * 1000}ms"
+        assert avg_cache_time < 0.05, f"キャッシュアクセスが遅い: {avg_cache_time * 1000}ms"
 
 
 @pytest.mark.unit
