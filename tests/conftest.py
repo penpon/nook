@@ -851,6 +851,14 @@ def arxiv_helper():
 
 
 @pytest.fixture(autouse=True)
+def auto_set_env_vars(monkeypatch):
+    """全テストで自動的に環境変数を設定"""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-12345")
+    monkeypatch.setenv("REDDIT_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("REDDIT_CLIENT_SECRET", "test-client-secret")
+
+
+@pytest.fixture(autouse=True)
 def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
     return
