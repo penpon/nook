@@ -130,6 +130,15 @@ select = [
 ignore = [
     "E501", # line too long (handled by ruff format)
     "G004", # logging statement uses f-string (project style choice)
+    "G003", # logging statement uses + (acceptable for formatting)
+    "G201", # logging .exception() vs .error(exc_info=True) (both are acceptable)
+    "PERF203", # try-except within a loop (intentional for error handling)
+    "PERF401", # list comprehension vs append (readability preference)
+    "PERF402", # list vs list.copy (minor performance difference)
+    "PERF403", # dict comprehension (readability preference)
+    "SIM102", # nested if statements (sometimes clearer)
+    "SIM108", # ternary operator (readability preference)
+    "SIM118", # key in dict vs key in dict.keys() (explicit is sometimes clearer)
 ]
 
 [tool.ruff.lint.per-file-ignores]

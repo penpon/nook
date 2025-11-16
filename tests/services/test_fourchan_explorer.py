@@ -2236,7 +2236,8 @@ async def test_retrieve_ai_threads_within_date_range(mock_env_vars, respx_mock):
     When: _retrieve_ai_threads()を呼び出す
     Then: スレッドが正常に取得される
     """
-    current_timestamp = int(datetime.now(timezone.utc).timestamp())
+    now_utc = datetime.now(timezone.utc)
+    current_timestamp = int(now_utc.timestamp())
 
     respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
         return_value=httpx.Response(
@@ -2272,7 +2273,7 @@ async def test_retrieve_ai_threads_within_date_range(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
-        target_dates = [date.today()]
+        target_dates = [get_jst_date_from_utc(now_utc)]
 
         threads = await service._retrieve_ai_threads(
             "g", limit=None, dedup_tracker=dedup_tracker, target_dates=target_dates
@@ -2545,7 +2546,8 @@ async def test_retrieve_ai_threads_no_valid_timestamps(mock_env_vars, respx_mock
     When: _retrieve_ai_threads()を呼び出す
     Then: スレッドが適切に処理される
     """
-    current_timestamp = int(datetime.now(timezone.utc).timestamp())
+    now_utc = datetime.now(timezone.utc)
+    current_timestamp = int(now_utc.timestamp())
 
     respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
         return_value=httpx.Response(
@@ -2580,7 +2582,7 @@ async def test_retrieve_ai_threads_no_valid_timestamps(mock_env_vars, respx_mock
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
-        target_dates = [date.today()]
+        target_dates = [get_jst_date_from_utc(now_utc)]
 
         threads = await service._retrieve_ai_threads(
             "g", limit=None, dedup_tracker=dedup_tracker, target_dates=target_dates
