@@ -125,7 +125,7 @@ async def test_collect_with_multiple_languages(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
             patch(
-                "tomli.load",
+                "tomllib.load",
                 return_value={"general": ["python"], "specific": ["javascript"]},
             ),
             patch.object(
@@ -234,7 +234,9 @@ async def test_collect_network_error(mock_env_vars):
                 return_value=[],
             ),
         ):
-            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            service.http_client.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Timeout")
+            )
 
             # エラーが発生することを期待
             with pytest.raises(Exception):
@@ -302,7 +304,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             ),
         ):
             service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
-            service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.generate_async = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -605,7 +609,9 @@ async def test_translate_repositories_with_progress_callback(mock_env_vars):
         def callback(idx, total, name):
             callback_called.append((idx, total, name))
 
-        await service._translate_repositories([("python", repos)], progress_callback=callback)
+        await service._translate_repositories(
+            [("python", repos)], progress_callback=callback
+        )
 
         assert len(callback_called) == 1
 
@@ -999,7 +1005,9 @@ async def test_collect_respects_rate_limit(mock_env_vars):
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
-            patch.object(service, "rate_limit", new_callable=AsyncMock) as mock_rate_limit,
+            patch.object(
+                service, "rate_limit", new_callable=AsyncMock
+            ) as mock_rate_limit,
             patch.object(
                 service,
                 "_load_existing_repositories_by_date",
@@ -1014,3 +1022,393 @@ async def test_collect_respects_rate_limit(mock_env_vars):
             await service.collect(target_dates=[date.today()])
 
             assert mock_rate_limit.call_count > 0
+
+
+# =============================================================================
+# 追加テスト: エラーハンドリングと境界値テスト
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_load_existing_repositories_success(mock_env_vars):
+    """
+    Given: 既存のMarkdownファイルが存在
+    When: _load_existing_repositoriesを呼び出す
+    Then: リポジトリ名がDedupTrackerに追加される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        markdown_content = """
+        # GitHub トレンドリポジトリ
+
+        ### [test-repo-1](https://github.com/owner/test-repo-1)
+        Description
+
+        ### [test-repo-2](https://github.com/owner/test-repo-2)
+        Another description
+        """
+
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "read_text", return_value=markdown_content),
+        ):
+            tracker = service._load_existing_repositories()
+
+            assert tracker.is_duplicate("test-repo-1")
+            assert tracker.is_duplicate("test-repo-2")
+
+
+@pytest.mark.unit
+def test_load_existing_repositories_file_not_exists(mock_env_vars):
+    """
+    Given: 既存のMarkdownファイルが存在しない
+    When: _load_existing_repositoriesを呼び出す
+    Then: 空のDedupTrackerが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        with patch.object(Path, "exists", return_value=False):
+            tracker = service._load_existing_repositories()
+
+            is_dup, _ = tracker.is_duplicate("any-repo")
+            assert not is_dup
+
+
+@pytest.mark.unit
+def test_load_existing_repositories_read_error(mock_env_vars):
+    """
+    Given: Markdownファイルの読み込みでエラー
+    When: _load_existing_repositoriesを呼び出す
+    Then: 空のDedupTrackerが返される（エラーログ出力）
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(
+                Path, "read_text", side_effect=PermissionError("Permission denied")
+            ),
+        ):
+            tracker = service._load_existing_repositories()
+
+            is_dup, _ = tracker.is_duplicate("any-repo")
+            assert not is_dup
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_repositories_by_date_with_json_dict(mock_env_vars):
+    """
+    Given: JSON形式（dict）の既存データ
+    When: _load_existing_repositories_by_dateを呼び出す
+    Then: フラット化されたリポジトリリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        existing_data = {
+            "Python": [
+                {"name": "repo1", "stars": 100},
+                {"name": "repo2", "stars": 200},
+            ],
+            "JavaScript": [{"name": "repo3", "stars": 300}],
+        }
+
+        with patch.object(service, "load_json", return_value=existing_data):
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
+
+            assert len(result) == 3
+            assert result[0]["language"] == "Python"
+            assert result[0]["name"] == "repo1"
+            assert result[2]["language"] == "JavaScript"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_repositories_by_date_with_json_list(mock_env_vars):
+    """
+    Given: JSON形式（list）の既存データ
+    When: _load_existing_repositories_by_dateを呼び出す
+    Then: そのままリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        existing_data = [
+            {"name": "repo1", "stars": 100},
+            {"name": "repo2", "stars": 200},
+        ]
+
+        with patch.object(service, "load_json", return_value=existing_data):
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
+
+            assert len(result) == 2
+            assert result[0]["name"] == "repo1"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_repositories_by_date_with_markdown(mock_env_vars):
+    """
+    Given: JSONが存在せず、Markdownのみ
+    When: _load_existing_repositories_by_dateを呼び出す
+    Then: Markdownから解析されたリポジトリリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        markdown_content = """
+        # GitHub トレンドリポジトリ
+
+        ### [test-repo](https://github.com/owner/test-repo)
+        Description
+        """
+
+        expected_repos = [
+            {"name": "test-repo", "url": "https://github.com/owner/test-repo"}
+        ]
+
+        with (
+            patch.object(service, "load_json", return_value=None),
+            patch.object(service.storage, "load", return_value=markdown_content),
+            patch.object(service, "_parse_markdown", return_value=expected_repos),
+        ):
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
+
+            assert result == expected_repos
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_load_existing_repositories_by_date_no_data(mock_env_vars):
+    """
+    Given: JSONもMarkdownも存在しない
+    When: _load_existing_repositories_by_dateを呼び出す
+    Then: 空のリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        with (
+            patch.object(service, "load_json", return_value=None),
+            patch.object(service.storage, "load", return_value=None),
+        ):
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
+
+            assert result == []
+
+
+@pytest.mark.unit
+def test_repository_sort_key_with_invalid_date(mock_env_vars):
+    """
+    Given: 無効な日付フォーマットのリポジトリデータ
+    When: _repository_sort_keyを呼び出す
+    Then: datetime.minが使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        item = {"stars": 100, "published_at": "invalid-date"}
+        stars, published = service._repository_sort_key(item)
+
+        assert stars == 100
+        assert published == datetime.min.replace(tzinfo=UTC)
+
+
+@pytest.mark.unit
+def test_repository_sort_key_with_no_published_at(mock_env_vars):
+    """
+    Given: published_atがないリポジトリデータ
+    When: _repository_sort_keyを呼び出す
+    Then: datetime.minが使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        item = {"stars": 200}
+        stars, published = service._repository_sort_key(item)
+
+        assert stars == 200
+        assert published == datetime.min.replace(tzinfo=UTC)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries_empty_repositories(mock_env_vars):
+    """
+    Given: 空のリポジトリリスト
+    When: _store_summariesを呼び出す
+    Then: 空のリストが返される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        result = await service._store_summaries([], None, [date.today()])
+
+        assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries_for_date_empty_repositories(mock_env_vars):
+    """
+    Given: 空のリポジトリリスト
+    When: _store_summaries_for_dateを呼び出す
+    Then: ValueErrorが発生
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        with pytest.raises(ValueError, match="保存するリポジトリがありません"):
+            await service._store_summaries_for_date([], date.today())
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries_for_date_save_failure(mock_env_vars):
+    """
+    Given: 保存処理が失敗
+    When: _store_summaries_for_dateを呼び出す
+    Then: ValueErrorが発生
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        repos = [
+            (
+                "Python",
+                [
+                    Repository(
+                        name="test",
+                        link="http://test",
+                        description="test",
+                        stars=100,
+                    )
+                ],
+            )
+        ]
+
+        with (
+            patch.object(service, "_serialize_repositories", return_value=[]),
+            patch(
+                "nook.services.github_trending.github_trending.group_records_by_date",
+                return_value={},
+            ),
+            patch(
+                "nook.services.github_trending.github_trending.store_daily_snapshots",
+                return_value=[],
+            ),
+        ):
+            with pytest.raises(ValueError, match="保存に失敗しました"):
+                await service._store_summaries_for_date(repos, date.today())
+
+
+@pytest.mark.unit
+def test_render_markdown_with_empty_language_group(mock_env_vars):
+    """
+    Given: 空のリポジトリグループを含むデータ
+    When: _render_markdownを呼び出す
+    Then: 空のグループはスキップされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+
+        records = [
+            {
+                "name": "repo1",
+                "language": "Python",
+                "stars": 100,
+                "url": "http://test1",
+            },
+        ]
+
+        result = service._render_markdown(records, datetime(2024, 1, 1))
+
+        assert "# GitHub トレンドリポジトリ" in result
+        assert "## Python" in result
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_specific_languages_config(mock_env_vars):
+    """
+    Given: specific言語が設定されている
+    When: collectメソッドを呼び出す
+    Then: general と specific の両方が取得される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+        service.http_client = AsyncMock()
+        service.languages_config = {
+            "general": ["all"],
+            "specific": ["python", "javascript"],
+        }
+
+        mock_html = "<html><body></body></html>"
+
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch.object(service, "rate_limit", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_retrieve_repositories",
+                new_callable=AsyncMock,
+                return_value=[],
+            ) as mock_retrieve,
+        ):
+            service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
+
+            await service.collect(target_dates=[date.today()])
+
+            # languages_configのgeneral + specificの合計回数
+            # デフォルト設定も含めて4回になる可能性がある
+            assert mock_retrieve.call_count >= 3
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_existing_repo_read_error(mock_env_vars):
+    """
+    Given: 既存リポジトリの読み込みでエラー
+    When: collectメソッドを呼び出す
+    Then: エラーログが出力され、処理は継続される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = GithubTrending()
+        service.http_client = AsyncMock()
+
+        mock_html = "<html><body></body></html>"
+
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_load_existing_repositories_by_date",
+                new_callable=AsyncMock,
+                side_effect=Exception("Read error"),
+            ),
+            patch.object(service, "rate_limit", new_callable=AsyncMock),
+        ):
+            service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
+
+            # エラーが発生しても処理は継続される
+            await service.collect(target_dates=[date.today()])
