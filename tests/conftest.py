@@ -855,3 +855,30 @@ def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
     return
     # テスト後の処理（必要に応じて）
+
+
+# =============================================================================
+# Hacker News モックフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def mock_logger():
+    """モックロガー"""
+    logger = Mock()
+    logger.info = Mock()
+    logger.error = Mock()
+    logger.warning = Mock()
+    logger.debug = Mock()
+    return logger
+
+
+@pytest.fixture
+def hacker_news_service(mock_logger):
+    """HackerNewsRetrieverのフィクスチャ"""
+    with patch("nook.common.base_service.setup_logger", return_value=mock_logger):
+        from nook.services.hacker_news.hacker_news import HackerNewsRetriever
+
+        service = HackerNewsRetriever()
+        service.logger = mock_logger
+        return service
