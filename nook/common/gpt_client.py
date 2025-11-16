@@ -75,9 +75,7 @@ class GPTClient:
     def _calculate_message_cost(self, messages: list[dict[str, str]], output_text: str) -> float:
         """メッセージリストと出力テキストから料金を計算します。"""
         input_text = " ".join(msg["content"] for msg in messages)
-        return self._calculate_cost(
-            self._count_tokens(input_text), self._count_tokens(output_text)
-        )
+        return self._calculate_cost(self._count_tokens(input_text), self._count_tokens(output_text))
 
     def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
         """
