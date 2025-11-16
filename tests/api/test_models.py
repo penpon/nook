@@ -75,9 +75,7 @@ class TestContentItem:
             "qiita",
         ]
         for source in sources:
-            item = ContentItem(
-                title="Title", content="Content", url=None, source=source
-            )
+            item = ContentItem(title="Title", content="Content", url=None, source=source)
             assert item.source == source
 
 

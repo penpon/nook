@@ -12,9 +12,7 @@ class BaseConfig(BaseSettings):
 
     # ログ関連
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
-    LOG_FORMAT: str = Field(
-        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    LOG_FORMAT: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # リクエスト関連
     REQUEST_TIMEOUT: int = Field(default=30, ge=1, le=300)

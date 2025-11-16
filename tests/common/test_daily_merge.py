@@ -115,9 +115,7 @@ def test_merge_records_with_sort_key_descending():
     existing = [{"id": 2, "score": 20}, {"id": 1, "score": 10}]
     incoming = [{"id": 3, "score": 30}]
 
-    result = merge_records(
-        existing, incoming, key=lambda x: x["id"], sort_key=lambda x: x["score"]
-    )
+    result = merge_records(existing, incoming, key=lambda x: x["id"], sort_key=lambda x: x["score"])
 
     # score降順: 30, 20, 10
     assert [r["score"] for r in result] == [30, 20, 10]
@@ -573,9 +571,7 @@ def test_merge_grouped_records_limit_per_group_zero():
     existing = {}
     incoming = {"group1": [{"id": 1}, {"id": 2}]}
 
-    result = merge_grouped_records(
-        existing, incoming, key=lambda x: x["id"], limit_per_group=0
-    )
+    result = merge_grouped_records(existing, incoming, key=lambda x: x["id"], limit_per_group=0)
 
     assert result["group1"] == []
 
