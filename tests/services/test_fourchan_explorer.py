@@ -42,6 +42,7 @@ def get_jst_date_from_utc(utc_dt: datetime) -> date:
     jst = timezone(timedelta(hours=9))
     return utc_dt.astimezone(jst).date()
 
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
@@ -1132,17 +1133,13 @@ async def test_summarize_thread_success(fourchan_service, thread_factory):
         ],
     )
 
-    fourchan_service.gpt_client.generate_content = Mock(
-        return_value="これはAIに関する議論です。"
-    )
+    fourchan_service.gpt_client.generate_content = Mock(return_value="これはAIに関する議論です。")
 
     await fourchan_service._summarize_thread(thread)
 
     # カスタムアサーションを使用
     assert_thread_summary_generated(thread, "これはAIに関する議論です。")
-    assert_gpt_called_with_thread_content(
-        fourchan_service.gpt_client.generate_content, thread
-    )
+    assert_gpt_called_with_thread_content(fourchan_service.gpt_client.generate_content, thread)
 
 
 @pytest.mark.unit
@@ -1209,9 +1206,7 @@ async def test_summarize_thread_empty_posts(fourchan_service, thread_factory):
     """
     thread = thread_factory(title="Empty Thread", posts=[])
 
-    fourchan_service.gpt_client.generate_content = Mock(
-        return_value="空のスレッドです。"
-    )
+    fourchan_service.gpt_client.generate_content = Mock(return_value="空のスレッドです。")
 
     await fourchan_service._summarize_thread(thread)
 
@@ -1244,9 +1239,7 @@ async def test_summarize_thread_gpt_error(mock_env_vars):
             timestamp=1699999999,
         )
 
-        service.gpt_client.generate_content = Mock(
-            side_effect=Exception("API rate limit exceeded")
-        )
+        service.gpt_client.generate_content = Mock(side_effect=Exception("API rate limit exceeded"))
 
         await service._summarize_thread(thread)
 
@@ -1470,9 +1463,7 @@ Test summary 2
 ---
 """
 
-        with patch.object(
-            service.storage, "load_markdown", return_value=markdown_content
-        ):
+        with patch.object(service.storage, "load_markdown", return_value=markdown_content):
             tracker = service._load_existing_titles()
 
             # タイトルが追加されたか確認
@@ -1595,9 +1586,7 @@ Test summary
         with patch.object(service, "load_json", new_callable=AsyncMock) as mock_load:
             mock_load.return_value = None
 
-            with patch.object(
-                service.storage, "load", new_callable=AsyncMock
-            ) as mock_storage_load:
+            with patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load:
                 mock_storage_load.return_value = markdown_content
 
                 target_date = datetime(2024, 11, 14)
@@ -1623,9 +1612,7 @@ async def test_load_existing_threads_no_data(mock_env_vars):
         with patch.object(service, "load_json", new_callable=AsyncMock) as mock_load:
             mock_load.return_value = None
 
-            with patch.object(
-                service.storage, "load", new_callable=AsyncMock
-            ) as mock_storage_load:
+            with patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load:
                 mock_storage_load.return_value = None
 
                 target_date = datetime(2024, 11, 14)
@@ -1782,9 +1769,7 @@ async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
                             "no": 123456,
                             "com": "AI and machine learning discussion",
                             "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
                         }
                     ],
                 }
@@ -1795,11 +1780,7 @@ async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
     respx_mock.get("https://a.4cdn.org/g/thread/123456.json").mock(
         return_value=httpx.Response(
             200,
-            json={
-                "posts": [
-                    {"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}
-                ]
-            },
+            json={"posts": [{"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}]},
         )
     )
 
@@ -1841,9 +1822,7 @@ async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
                             "sub": "Test Thread",
                             "com": "<b>GPT-4</b> and <i>machine learning</i>",
                             "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
                         }
                     ],
                 }
@@ -1854,11 +1833,7 @@ async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
     respx_mock.get("https://a.4cdn.org/g/thread/123456.json").mock(
         return_value=httpx.Response(
             200,
-            json={
-                "posts": [
-                    {"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}
-                ]
-            },
+            json={"posts": [{"no": 123456, "time": int(datetime.now(timezone.utc).timestamp())}]},
         )
     )
 
@@ -2204,9 +2179,7 @@ async def test_retrieve_ai_threads_date_filtering(mock_env_vars, respx_mock):
     )
 
     respx_mock.get("https://a.4cdn.org/g/thread/123456.json").mock(
-        return_value=httpx.Response(
-            200, json={"posts": [{"no": 123456, "time": old_timestamp}]}
-        )
+        return_value=httpx.Response(200, json={"posts": [{"no": 123456, "time": old_timestamp}]})
     )
 
     with patch("nook.common.base_service.setup_logger"):
