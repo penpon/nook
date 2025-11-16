@@ -75,11 +75,15 @@ class ServiceRunner:
 
         logger.info("\n" + "━" * 60)
         if len(sorted_dates) <= 1:
-            logger.info(f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}")
+            logger.info(
+                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}"
+            )
         else:
             start_date = sorted_dates[0]
             end_date = sorted_dates[-1]
-            logger.info(f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間)")
+            logger.info(
+                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間)"
+            )
         logger.info(f"🚀 サービス開始: {service_name}")
         logger.info("━" * 60)
 
@@ -88,7 +92,9 @@ class ServiceRunner:
             # サービスごとに異なるlimitパラメータを設定
             if service_name == "hacker_news":
                 # Hacker Newsは15記事に制限し、sorted_target_dates を渡す
-                result = await service.collect(limit=15, target_dates=sorted_target_dates)
+                result = await service.collect(
+                    limit=15, target_dates=sorted_target_dates
+                )
                 saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
                 # Tech News/Business Newsは15記事に制限し、sorted_target_dates を渡す
@@ -104,7 +110,9 @@ class ServiceRunner:
                 saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは15記事に制限
-                result = await service.collect(limit=15, target_dates=sorted_target_dates)
+                result = await service.collect(
+                    limit=15, target_dates=sorted_target_dates
+                )
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
@@ -120,7 +128,9 @@ class ServiceRunner:
                     logger.info(f"   • {md_path}")
                 logger.info("━" * 60)
                 total_articles = len(saved_files)
-                logger.info(f"✨ 完了: 合計{total_articles}日分のデータを処理しました\n")
+                logger.info(
+                    f"✨ 完了: 合計{total_articles}日分のデータを処理しました\n"
+                )
 
         except Exception as e:
             logger.error(f"\n❌ Service {service_name} failed: {e}", exc_info=True)
@@ -212,7 +222,9 @@ class ServiceRunner:
 
     async def run_continuous(self, interval_seconds: int = 3600, days: int = 1) -> None:
         """定期的にサービスを実行"""
-        logger.info(f"Starting continuous run with interval: {interval_seconds}s, days={days}")
+        logger.info(
+            f"Starting continuous run with interval: {interval_seconds}s, days={days}"
+        )
 
         while self.running:
             try:
@@ -268,8 +280,12 @@ async def main():
         default="all",
         help="実行するサービスを指定します",
     )
-    parser.add_argument("--continuous", action="store_true", help="サービスを定期的に実行します")
-    parser.add_argument("--interval", type=int, default=3600, help="連続実行時の間隔（秒）")
+    parser.add_argument(
+        "--continuous", action="store_true", help="サービスを定期的に実行します"
+    )
+    parser.add_argument(
+        "--interval", type=int, default=3600, help="連続実行時の間隔（秒）"
+    )
     parser.add_argument(
         "--days",
         type=int,
