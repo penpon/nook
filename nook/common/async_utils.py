@@ -13,7 +13,9 @@ T = TypeVar("T")
 class TaskResult:
     """タスク実行結果"""
 
-    def __init__(self, name: str, success: bool, result: Any = None, error: Exception = None):
+    def __init__(
+        self, name: str, success: bool, result: Any = None, error: Exception = None
+    ):
         self.name = name
         self.success = success
         self.result = result
@@ -88,7 +90,9 @@ async def batch_process(
     )
 
 
-def run_sync_in_thread[T](sync_func: Callable[..., T], *args, **kwargs) -> asyncio.Future[T]:
+def run_sync_in_thread[T](
+    sync_func: Callable[..., T], *args, **kwargs
+) -> asyncio.Future[T]:
     """同期関数を別スレッドで実行"""
     loop = asyncio.get_event_loop()
     executor = ThreadPoolExecutor(max_workers=1)
