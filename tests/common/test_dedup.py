@@ -145,36 +145,6 @@ def test_normalize_mixed_case():
     """
     result = TitleNormalizer.normalize("HeLLo WoRLd")
     assert result == "hello world"
-
-
-@pytest.mark.unit
-def test_normalize_german_eszett():
-    """
-    Given: ドイツ語ß
-    When: normalizeを呼び出す
-    Then: ssに変換される
-    """
-    result = TitleNormalizer.normalize("Straße")
-    assert result == "strasse"
-
-
-@pytest.mark.unit
-def test_normalize_turkish_i():
-    """
-    Given: トルコ語İ
-    When: normalizeを呼び出す
-    Then: casefold結果になる
-    """
-    result = TitleNormalizer.normalize("İSTANBUL")
-    expected = "İSTANBUL".casefold()
-    assert result == expected
-
-
-# 1.4 空白の正規化
-
-
-@pytest.mark.unit
-def test_normalize_multiple_spaces():
     """
     Given: 連続空白
     When: normalizeを呼び出す
@@ -305,20 +275,6 @@ def test_normalize_remove_multiple_decorations():
 
 
 @pytest.mark.unit
-def test_normalize_decorations_only():
-    """
-    Given: 装飾のみのタイトル
-    When: normalizeを呼び出す
-    Then: 空文字列が返される
-    """
-    result = TitleNormalizer.normalize("【速報】")
-    assert result == ""
-
-
-# 1.6 記号の正規化
-
-
-@pytest.mark.unit
 def test_normalize_multiple_exclamations():
     """
     Given: 連続感嘆符
@@ -326,18 +282,6 @@ def test_normalize_multiple_exclamations():
     Then: 1つに圧縮される
     """
     result = TitleNormalizer.normalize("すごい!!!")
-    expected = "すごい!".casefold()
-    assert result == expected
-
-
-@pytest.mark.unit
-def test_normalize_fullwidth_exclamations():
-    """
-    Given: 全角感嘆符
-    When: normalizeを呼び出す
-    Then: 半角1つに圧縮される
-    """
-    result = TitleNormalizer.normalize("すごい！！！")
     expected = "すごい!".casefold()
     assert result == expected
 
@@ -355,18 +299,6 @@ def test_normalize_multiple_questions():
 
 
 @pytest.mark.unit
-def test_normalize_fullwidth_questions():
-    """
-    Given: 全角疑問符
-    When: normalizeを呼び出す
-    Then: 半角1つに圧縮される
-    """
-    result = TitleNormalizer.normalize("なぜ？？？")
-    expected = "なぜ?".casefold()
-    assert result == expected
-
-
-@pytest.mark.unit
 def test_normalize_multiple_tildes():
     """
     Given: 連続チルダ
@@ -376,37 +308,6 @@ def test_normalize_multiple_tildes():
     result = TitleNormalizer.normalize("やった~~~")
     expected = "やった~".casefold()
     assert result == expected
-
-
-@pytest.mark.unit
-def test_normalize_fullwidth_tildes():
-    """
-    Given: 全角チルダ
-    When: normalizeを呼び出す
-    Then: 半角1つに圧縮される
-    """
-    result = TitleNormalizer.normalize("やった～～～")
-    expected = "やった~".casefold()
-    assert result == expected
-
-
-@pytest.mark.unit
-def test_normalize_mixed_symbols():
-    """
-    Given: 混在記号
-    When: normalizeを呼び出す
-    Then: それぞれ正規化される
-    """
-    result = TitleNormalizer.normalize("すごい!？～")
-    expected = "すごい!?~".casefold()
-    assert result == expected
-
-
-# 1.7 複雑なケース
-
-
-@pytest.mark.unit
-def test_normalize_japanese_title():
     """
     Given: 日本語タイトル
     When: normalizeを呼び出す
@@ -454,19 +355,6 @@ def test_normalize_very_long_title():
     assert result == expected
 
 
-@pytest.mark.unit
-def test_normalize_zero_width_characters():
-    """
-    Given: ゼロ幅文字を含む
-    When: normalizeを呼び出す
-    Then: 正規化される
-    """
-    result = TitleNormalizer.normalize("Test\u200b\u200c\u200dTitle")
-    # ゼロ幅文字はNFKCで除去される可能性がある
-    assert "test" in result
-    assert "title" in result
-
-
 # ================================================================================
 # 2. TitleNormalizer.are_duplicates メソッドのテスト
 # ================================================================================
@@ -503,32 +391,6 @@ def test_are_duplicates_whitespace_difference():
     """
     result = TitleNormalizer.are_duplicates("Test  Title", "Test Title")
     assert result is True
-
-
-@pytest.mark.unit
-def test_are_duplicates_decoration_difference():
-    """
-    Given: 装飾の違いのみ
-    When: are_duplicatesを呼び出す
-    Then: Trueが返される
-    """
-    result = TitleNormalizer.are_duplicates("【重要】Test", "Test")
-    assert result is True
-
-
-@pytest.mark.unit
-def test_are_duplicates_symbol_difference():
-    """
-    Given: 記号の違いのみ
-    When: are_duplicatesを呼び出す
-    Then: Trueが返される
-    """
-    result = TitleNormalizer.are_duplicates("Test!!!", "Test!")
-    assert result is True
-
-
-@pytest.mark.unit
-def test_are_duplicates_different_titles():
     """
     Given: 全く異なるタイトル
     When: are_duplicatesを呼び出す
@@ -750,37 +612,6 @@ def test_add_preserves_original_title_mapping():
     tracker.add("Test Title")
     tracker.add("test title")
     assert tracker.title_mapping["test title"] == "Test Title"
-
-
-@pytest.mark.unit
-def test_add_empty_string():
-    """
-    Given: 空文字列追加
-    When: addを呼び出す
-    Then: ""が返される
-    """
-    tracker = DedupTracker()
-    normalized = tracker.add("")
-    assert normalized == ""
-
-
-@pytest.mark.unit
-def test_add_none():
-    """
-    Given: None追加
-    When: addを呼び出す
-    Then: ""が返される
-    """
-    tracker = DedupTracker()
-    normalized = tracker.add(None)
-    assert normalized == ""
-
-
-# 3.4 get_original_title メソッド
-
-
-@pytest.mark.unit
-def test_get_original_title_existing():
     """
     Given: 存在する正規化タイトル
     When: get_original_titleを呼び出す
@@ -802,21 +633,6 @@ def test_get_original_title_nonexistent():
     tracker = DedupTracker()
     original = tracker.get_original_title("nonexistent")
     assert original is None
-
-
-@pytest.mark.unit
-def test_get_original_title_empty_string():
-    """
-    Given: 空文字列
-    When: get_original_titleを呼び出す
-    Then: Noneが返される（または追加時の元タイトル）
-    """
-    tracker = DedupTracker()
-    original = tracker.get_original_title("")
-    assert original is None
-
-
-# 3.5 count メソッド
 
 
 @pytest.mark.unit

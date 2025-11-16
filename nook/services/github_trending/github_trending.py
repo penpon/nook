@@ -1,13 +1,13 @@
 """GitHubのトレンドリポジトリを収集するサービス。"""
 
 import re
+import tomllib
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
 
-import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
@@ -74,7 +74,7 @@ class GithubTrending(BaseService):
         # 言語の設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "languages.toml", "rb") as f:
-            self.languages_config = tomli.load(f)
+            self.languages_config = tomllib.load(f)
 
     async def collect(
         self,
@@ -144,7 +144,7 @@ class GithubTrending(BaseService):
 
             # 全リポジトリをフラット化
             all_repos_flat = []
-            for language, repositories in all_repositories:
+            for _, repositories in all_repositories:
                 for repo in repositories:
                     all_repos_flat.append(repo)
 
@@ -458,7 +458,7 @@ class GithubTrending(BaseService):
         default_date: date,
     ) -> list[dict[str, Any]]:
         serialized: list[dict[str, Any]] = []
-        base_dt = datetime.combine(default_date, time.min, tzinfo=timezone.utc)
+        base_dt = datetime.combine(default_date, time.min, tzinfo=UTC)
         now_iso = base_dt.isoformat()
         for language, repositories in repositories_by_language:
             for repo in repositories:
@@ -502,9 +502,9 @@ class GithubTrending(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
-            published = datetime.min.replace(tzinfo=timezone.utc)
+            published = datetime.min.replace(tzinfo=UTC)
         return (stars, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:

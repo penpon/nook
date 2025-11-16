@@ -153,8 +153,10 @@ async def test_collect_network_error(mock_env_vars):
     """
     Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
-    Then: エラーがログされるが、例外は発生しない
+    Then: RetryExceptionが発生する
     """
+    from nook.common.exceptions import RetryException
+
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
         service.http_client = AsyncMock()
@@ -162,9 +164,8 @@ async def test_collect_network_error(mock_env_vars):
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
             service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
+            with pytest.raises(RetryException):
+                await service.collect(target_dates=[date.today()])
 
 
 @pytest.mark.unit

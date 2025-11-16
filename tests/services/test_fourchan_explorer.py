@@ -11,7 +11,7 @@ nook/services/fourchan_explorer/fourchan_explorer.py のテスト
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -595,8 +595,8 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
                             "replies": 50,
                             "images": 10,
                             "bumps": 45,
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         }
                     ],
                 }
@@ -612,7 +612,7 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
                 "posts": [
                     {
                         "no": 123456,
-                        "time": int(datetime.now(timezone.utc).timestamp()),
+                        "time": int(datetime.now(UTC).timestamp()),
                         "com": "AI post",
                     }
                 ]
@@ -657,8 +657,8 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
                             "no": i,
                             "sub": f"AI Thread {i}",
                             "com": "machine learning discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         }
                         for i in range(10)
                     ],
@@ -672,7 +672,7 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
         respx_mock.get(f"https://a.4cdn.org/g/thread/{i}.json").mock(
             return_value=httpx.Response(
                 200,
-                json={"posts": [{"no": i, "time": int(datetime.now(timezone.utc).timestamp())}]},
+                json={"posts": [{"no": i, "time": int(datetime.now(UTC).timestamp())}]},
             )
         )
 
@@ -711,15 +711,15 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
                             "no": 1,
                             "sub": "AI Discussion",
                             "com": "GPT-4 is amazing",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                         {
                             "no": 2,
                             "sub": "Random Thread",
                             "com": "Just a regular discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                     ],
                 }
@@ -730,7 +730,7 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
     respx_mock.get("https://a.4cdn.org/g/thread/1.json").mock(
         return_value=httpx.Response(
             200,
-            json={"posts": [{"no": 1, "time": int(datetime.now(timezone.utc).timestamp())}]},
+            json={"posts": [{"no": 1, "time": int(datetime.now(UTC).timestamp())}]},
         )
     )
 
@@ -799,15 +799,15 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
                             "no": 1,
                             "sub": "AI Discussion",
                             "com": "GPT discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                         {
                             "no": 2,
                             "sub": "AI Discussion",  # 同じタイトル
                             "com": "Another GPT discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(datetime.now(timezone.utc).timestamp()),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                     ],
                 }
@@ -818,7 +818,7 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
     respx_mock.get("https://a.4cdn.org/g/thread/1.json").mock(
         return_value=httpx.Response(
             200,
-            json={"posts": [{"no": 1, "time": int(datetime.now(timezone.utc).timestamp())}]},
+            json={"posts": [{"no": 1, "time": int(datetime.now(UTC).timestamp())}]},
         )
     )
 

@@ -79,12 +79,12 @@ def test_init_model_default_value(monkeypatch):
     """
     Given: モデル名未指定・環境変数もなし
     When: GPTClientを初期化
-    Then: デフォルト値"gpt-4.1-nano"が設定される
+    Then: デフォルト値"gpt-5-nano"が設定される
     """
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_MODEL", raising=False)
     client = GPTClient()
-    assert client.model == "gpt-4.1-nano"
+    assert client.model == "gpt-5-nano"
 
 
 @pytest.mark.unit
@@ -116,13 +116,13 @@ def test_init_empty_model_uses_default(monkeypatch):
     """
     Given: 空文字列のモデル名を指定（環境変数もなし）
     When: GPTClientを初期化
-    Then: デフォルト値"gpt-4.1-nano"が設定される
+    Then: デフォルト値"gpt-5-nano"が設定される
     """
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_MODEL", raising=False)
     # 空文字列はFalsyなので、デフォルト値が使用される
     client = GPTClient(model="")
-    assert client.model == "gpt-4.1-nano"
+    assert client.model == "gpt-5-nano"
 
 
 @pytest.mark.unit
@@ -1027,12 +1027,12 @@ def test_init_none_model_with_no_env(monkeypatch):
     """
     Given: modelにNoneを指定、環境変数もなし
     When: GPTClientを初期化
-    Then: デフォルト値"gpt-4.1-nano"が設定される
+    Then: デフォルト値"gpt-5-nano"が設定される
     """
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_MODEL", raising=False)
     client = GPTClient(model=None)
-    assert client.model == "gpt-4.1-nano"
+    assert client.model == "gpt-5-nano"
 
 
 @pytest.mark.unit

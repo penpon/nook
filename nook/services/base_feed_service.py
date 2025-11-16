@@ -262,7 +262,7 @@ class BaseFeedService(BaseService):
         """
         if value is None:
             return None
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return int(value)
         if isinstance(value, str):
             match = re.search(r"(-?\d+)", value.replace(",", ""))
@@ -346,7 +346,7 @@ class BaseFeedService(BaseService):
 
         # 各日独立で上位記事を選択
         selected_articles = []
-        for date_key, date_articles in articles_by_date.items():
+        for date_articles in articles_by_date.values():
             if len(date_articles) <= self.TOTAL_LIMIT:
                 selected_articles.extend(date_articles)
             else:

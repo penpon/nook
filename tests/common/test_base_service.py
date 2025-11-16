@@ -460,14 +460,15 @@ async def test_fetch_with_retry_not_implemented():
     """
     Given: fetch_with_retry("http://example.com")
     When: メソッドを呼び出す
-    Then: Noneが返される（passのため）
+    Then: RetryExceptionが発生する（NotImplementedErrorがリトライされた後）
     """
+    from nook.common.exceptions import RetryException
+
     with patch("nook.common.base_service.setup_logger"):
         service = ConcreteService(service_name="test")
 
-        result = await service.fetch_with_retry("http://example.com")
-
-        assert result is None
+        with pytest.raises(RetryException, match="Failed after 3 attempts"):
+            await service.fetch_with_retry("http://example.com")
 
 
 @pytest.mark.unit

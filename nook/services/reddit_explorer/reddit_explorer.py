@@ -3,13 +3,13 @@
 import asyncio
 import os
 import re
+import tomllib
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
 import asyncpraw
-import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
@@ -123,7 +123,7 @@ class RedditExplorer(BaseService):
         # サブレディットの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "subreddits.toml", "rb") as f:
-            self.subreddits_config = tomli.load(f)
+            self.subreddits_config = tomllib.load(f)
 
     def run(self, limit: int | None = None) -> None:
         """
@@ -212,6 +212,8 @@ class RedditExplorer(BaseService):
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
                         # JSTタイムゾーンに変換して日付を取得
+                        from datetime import timezone
+
                         jst_time = post.created_at.astimezone(timezone(timedelta(hours=9)))
                         post_date = jst_time.date()
                         if post_date not in posts_by_date:
@@ -259,7 +261,7 @@ class RedditExplorer(BaseService):
 
                     # 要約生成
                     log_summarization_start(self.logger)
-                    for idx, (category, subreddit_name, post) in enumerate(selected_posts, 1):
+                    for idx, (_, _, post) in enumerate(selected_posts, 1):
                         post.comments = await self._retrieve_top_comments_of_post(post, limit=5)
                         await self._summarize_reddit_post(post)
                         log_summarization_progress(
@@ -351,7 +353,7 @@ class RedditExplorer(BaseService):
             )
 
             created_at = (
-                datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
+                datetime.fromtimestamp(submission.created_utc, tz=UTC)
                 if hasattr(submission, "created_utc")
                 else None
             )
@@ -519,7 +521,7 @@ class RedditExplorer(BaseService):
     def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:
         records: list[dict] = []
         for category, subreddit, post in posts:
-            created_at = post.created_at or datetime.now(timezone.utc)
+            created_at = post.created_at or datetime.now(UTC)
             records.append(
                 {
                     "id": post.id,
@@ -567,9 +569,9 @@ class RedditExplorer(BaseService):
             try:
                 created = datetime.fromisoformat(created_raw)
             except ValueError:
-                created = datetime.min.replace(tzinfo=timezone.utc)
+                created = datetime.min.replace(tzinfo=UTC)
         else:
-            created = datetime.min.replace(tzinfo=timezone.utc)
+            created = datetime.min.replace(tzinfo=UTC)
         return (popularity, created)
 
     def _extract_post_id_from_permalink(self, permalink: str) -> str:

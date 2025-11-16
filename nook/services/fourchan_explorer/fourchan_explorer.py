@@ -2,12 +2,11 @@
 
 import asyncio
 import re
+import tomllib
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
-
-import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
@@ -138,7 +137,7 @@ class FourChanExplorer(BaseService):
 
         try:
             with open(boards_file, "rb") as f:
-                config = tomli.load(f)
+                config = tomllib.load(f)
                 boards_dict = config.get("boards", {})
                 # ボードIDのリストを返す
                 return list(boards_dict.keys())
@@ -329,7 +328,7 @@ class FourChanExplorer(BaseService):
                     thread_id = thread.get("no")
                     timestamp_raw = thread.get("time")
                     thread_created = (
-                        datetime.fromtimestamp(int(timestamp_raw), tz=timezone.utc)
+                        datetime.fromtimestamp(int(timestamp_raw), tz=UTC)
                         if timestamp_raw
                         else None
                     )
@@ -348,7 +347,7 @@ class FourChanExplorer(BaseService):
 
                     last_modified_raw = thread.get("last_modified")
                     last_modified_dt = (
-                        datetime.fromtimestamp(int(last_modified_raw), tz=timezone.utc)
+                        datetime.fromtimestamp(int(last_modified_raw), tz=UTC)
                         if last_modified_raw
                         else thread_created
                     )
@@ -385,7 +384,7 @@ class FourChanExplorer(BaseService):
                     )
 
                     latest_post_at = (
-                        datetime.fromtimestamp(latest_post_ts, tz=timezone.utc)
+                        datetime.fromtimestamp(latest_post_ts, tz=UTC)
                         if latest_post_ts is not None
                         else None
                     )
@@ -402,8 +401,8 @@ class FourChanExplorer(BaseService):
 
                     if effective_dt is not None:
                         if effective_dt.tzinfo is None:
-                            effective_dt = effective_dt.replace(tzinfo=timezone.utc)
-                        effective_utc = effective_dt.astimezone(timezone.utc)
+                            effective_dt = effective_dt.replace(tzinfo=UTC)
+                        effective_utc = effective_dt.astimezone(UTC)
                         timestamp_value = int(effective_utc.timestamp())
                     else:
                         # これは355行目の検証により理論的には発生しないが、防御的に処理
@@ -613,7 +612,7 @@ class FourChanExplorer(BaseService):
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
         records: list[dict] = []
         for thread in threads:
-            published = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
+            published = datetime.fromtimestamp(thread.timestamp, tz=UTC)
             records.append(
                 {
                     "thread_id": thread.thread_id,
@@ -654,16 +653,16 @@ class FourChanExplorer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         else:
             timestamp = item.get("timestamp")
             if timestamp:
                 try:
-                    published = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                    published = datetime.fromtimestamp(int(timestamp), tz=UTC)
                 except Exception:
-                    published = datetime.min.replace(tzinfo=timezone.utc)
+                    published = datetime.min.replace(tzinfo=UTC)
             else:
-                published = datetime.min.replace(tzinfo=timezone.utc)
+                published = datetime.min.replace(tzinfo=UTC)
         return (popularity, published)
 
     def _extract_thread_id_from_url(self, url: str) -> int:
@@ -742,9 +741,7 @@ class FourChanExplorer(BaseService):
                 }
 
                 if timestamp:
-                    record["published_at"] = datetime.fromtimestamp(
-                        timestamp, tz=timezone.utc
-                    ).isoformat()
+                    record["published_at"] = datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
 
                 records.append(record)
 

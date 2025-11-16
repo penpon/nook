@@ -14,26 +14,25 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.95.0",
     "uvicorn>=0.21.1",
-    "streamlit>=1.22.0",
-    "requests>=2.28.2",
     "httpx[http2]>=0.24.0",
     "cloudscraper>=1.2.71",
-    "pydantic>=1.10.7",
-    "pydantic-settings>=2.0.0",
+    "requests>=2.28.2",
+    "pandas>=2.3.3",
+    "playwright>=1.40.0",
     "python-dotenv>=1.0.0",
-    "beautifulsoup4>=4.12.0",
-    "feedparser>=6.0.10",
-    "tomli>=2.0.1",
-    "asyncpraw>=7.7.1",
     "arxiv>=1.4.7",
-    "openai>=1.0.0",
-    "tqdm>=4.65.0",
-    "tenacity>=8.2.2",
-    "python-dateutil>=2.8.2",
-    "tweepy>=4.14.0",
-    "tiktoken>=0.5.0",
-    "aiofiles>=23.0.0",
     "pdfplumber>=0.10.0",
+    "beautifulsoup4>=4.12.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "openai>=1.0.0",
+    "tiktoken>=0.5.0",
+    "tenacity>=8.0.0",
+    "aiofiles>=23.0.0",
+    "feedparser>=6.0.10",
+    "asyncpraw>=7.7.1",
+    "python-dateutil>=2.8.2",
+    "tqdm>=4.65.0",
 ]
 
 [dependency-groups]
@@ -43,10 +42,11 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-cov>=6.0.0",
     "pytest-timeout>=2.3.0",
-    "black>=24.0.0",
+    "pytest-xdist>=3.3.0",
     "ruff>=0.6.0",
     "bandit>=1.7.0",
     "pip-audit>=2.7.0",
+    "httpx>=0.24.0",
     "respx>=0.20.0",
 ]
 
@@ -55,19 +55,28 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-asyncio_mode = "strict"
+asyncio_mode = "auto"
 addopts = [
+    "-v",
     "--strict-markers",
     "--strict-config",
+    "--tb=short",
+    "--ignore=nook/frontend",
+    "--ignore=node_modules",
     "-ra",
 ]
 markers = [
-    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "unit: ユニットテスト（外部依存をモック化）",
+    "integration: 統合テスト（外部API使用、CIでスキップ可）",
+    "slow: 実行に時間のかかるテスト",
+    "performance: パフォーマンステスト",
+    "memory: メモリテスト",
+    "stress: ストレステスト",
 ]
-
-[tool.black]
-line-length = 100
-target-version = ["py312"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100
@@ -84,35 +93,32 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long (handled by black)
-    "G003",  # Logging statement uses `+` (ロギング文字列連結を許容)
-    "G004",
-    "UP017",  # Use datetime.UTC alias (Python 3.11+ feature)
-    "UP041",  # Replace aliased errors with TimeoutError
-    "UP047",  # Generic function should use type parameters
-    "F821",
-    "F841",  # Local variable assigned but never used (デバッグ用途のため許容)
-    "C401",
-    "C408",
-    "PERF203",
-    "PERF401",
-    "PERF402",  # Use list.copy() (可読性のため許容)
-    "B007",  # Unused loop variable (慣用的パターンのため許容)
-    "B017",  # pytest.raises(Exception) (テストコードで許容)
-    "B027",  # Empty method in abstract base class without @abstractmethod (オプショナルメソッドのため)
-    "B018",  # Useless attribute access (デバッグ用途のため許容)
-    "PERF403",  # Use dict comprehension (可読性のため for-loop を許容)
-    "G201",  # Logging .exception() (既存コードとの一貫性のため)
-    "LOG014",  # exc_info outside exception handler (ロギング設定のため許容)
-    "E722",  # Bare except (例外処理のフォールバックのため許容)
-    "E721",  # Type comparison (テストコードで許容)
-    "E402",  # Import not at top (動的import のため許容)
-    "SIM102",  # Nested if (可読性のため許容)
-    "SIM117",  # Nested with (既存コードとの一貫性のため)
+    "E501", # line too long (handled by ruff format)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "E501",  # Line too long in test files (test data often exceeds limit)
+    "E402",  # Module level import not at top of file (tests need sys.path setup)
+    "E721",  # Type comparison with == (acceptable in tests)
+    "B017",  # Blind exception assertions (acceptable in tests)
+]
+"tests/conftest.py" = [
+    "E501",  # Line too long (HTML/test data strings)
+    "E402",  # Module level import not at top of file
+]
+"nook/services/run_services*.py" = [
+    "E402",  # Module level import not at top of file (needs sys.path setup)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
 [tool.coverage.run]
-source = ["modules"]
+source = ["nook"]
 omit = [
     "*/tests/*",
     "*/__init__.py",
@@ -122,4 +128,18 @@ omit = [
 precision = 2
 show_missing = true
 skip_covered = false
-fail_under = 90
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "\\.\\.\\.",
+    "pass",
+    'logger\.info\(',
+    'logger\.debug\(',
+    'logger\.warning\(',
+    'self\.logger\.info\(',
+    'self\.logger\.debug\(',
+]

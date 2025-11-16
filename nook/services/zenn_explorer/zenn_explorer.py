@@ -3,14 +3,14 @@
 import asyncio
 import json
 import re
+import tomllib
 from datetime import date, datetime
 from pathlib import Path
 
 import feedparser
-import tomli
 from bs4 import BeautifulSoup
 
-from nook.common.daily_snapshot import group_records_by_date
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import is_within_target_dates, target_dates_set
 from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
 from nook.common.feed_utils import parse_entry_datetime
@@ -54,7 +54,7 @@ class ZennExplorer(BaseFeedService):
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "feed.toml", "rb") as f:
-            self.feed_config = tomli.load(f)
+            self.feed_config = tomllib.load(f)
 
     def run(self, days: int = 1, limit: int | None = None) -> None:
         """

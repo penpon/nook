@@ -2,11 +2,11 @@
 
 import asyncio
 import json
+import tomllib
 from datetime import date, datetime
 from pathlib import Path
 
 import feedparser
-import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.daily_snapshot import group_records_by_date
@@ -53,7 +53,7 @@ class BusinessFeed(BaseFeedService):
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "feed.toml", "rb") as f:
-            self.feed_config = tomli.load(f)
+            self.feed_config = tomllib.load(f)
 
     def run(self, days: int = 1, limit: int | None = None) -> None:
         """

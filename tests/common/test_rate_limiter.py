@@ -103,6 +103,8 @@ async def test_rate_limiter_acquire_sufficient_tokens():
     with patch("nook.common.rate_limiter.datetime") as mock_dt:
         now = datetime(2025, 1, 1, 0, 0, 0)
         mock_dt.utcnow.return_value = now
+        # last_checkを明示的に設定してモックと整合させる
+        limiter.last_check = now
 
         await limiter.acquire(tokens=1)
 
@@ -130,6 +132,8 @@ async def test_rate_limiter_acquire_insufficient_tokens():
             now,  # last_check更新
             now + timedelta(seconds=0.5),  # sleep後
         ]
+        # last_checkを明示的に設定してモックと整合させる
+        limiter.last_check = now
 
         await limiter.acquire(tokens=10)
 
@@ -154,6 +158,8 @@ async def test_rate_limiter_acquire_exact_allowance():
     with patch("nook.common.rate_limiter.datetime") as mock_dt:
         now = datetime(2025, 1, 1, 0, 0, 0)
         mock_dt.utcnow.return_value = now
+        # last_checkを明示的に設定してモックと整合させる
+        limiter.last_check = now
 
         await limiter.acquire(tokens=10)
 
@@ -181,6 +187,8 @@ async def test_rate_limiter_acquire_allowance_plus_one():
             now,  # last_check更新
             now + timedelta(seconds=0.1),  # sleep後
         ]
+        # last_checkを明示的に設定してモックと整合させる
+        limiter.last_check = now
 
         await limiter.acquire(tokens=11)
 
@@ -201,6 +209,8 @@ async def test_rate_limiter_acquire_zero_tokens():
     with patch("nook.common.rate_limiter.datetime") as mock_dt:
         now = datetime(2025, 1, 1, 0, 0, 0)
         mock_dt.utcnow.return_value = now
+        # last_checkを明示的に設定してモックと整合させる
+        limiter.last_check = now
 
         await limiter.acquire(tokens=0)
 

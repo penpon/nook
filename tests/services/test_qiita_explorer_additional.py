@@ -273,6 +273,8 @@ async def test_collect_feed_parse_exception_continues(mock_env_vars):
             mock_feed.entries = []
             mock_parse.side_effect = [Exception("Parse error"), mock_feed]
 
+            Mock()
+
             result = await service.collect(days=1)
 
             # エラーがあっても処理は継続

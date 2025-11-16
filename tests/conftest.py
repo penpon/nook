@@ -3,7 +3,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -30,16 +30,16 @@ def event_loop_policy():
 # =============================================================================
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
-    """環境変数のモック設定"""
+    """環境変数のモック設定（全テストで自動適用）"""
     env_vars = {
         "OPENAI_API_KEY": "test-api-key-12345",
         "OPENAI_BASE_URL": "https://api.openai.com/v1",
         "REDDIT_CLIENT_ID": "test-client-id",
         "REDDIT_CLIENT_SECRET": "test-client-secret",
         "REDDIT_USER_AGENT": "test-user-agent",
-        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108
+        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108 - テスト環境でのみ使用
         "LOG_LEVEL": "INFO",
     }
     for key, value in env_vars.items():
@@ -346,7 +346,7 @@ def fixed_datetime(monkeypatch):
     class MockDatetime(datetime.datetime):
         @classmethod
         def now(cls, tz=None):
-            return cls(2024, 11, 14, 12, 0, 0)
+            return cls(2024, 11, 14, 12, 0, 0, tzinfo=tz)
 
     monkeypatch.setattr(datetime, "datetime", MockDatetime)
     return MockDatetime
@@ -615,22 +615,234 @@ def mock_dedup_tracker():
 
 
 # =============================================================================
-# ロガーモックフィクスチャ（全テスト自動適用）
+# arXiv 専用フィクスチャ
 # =============================================================================
 
 
-@pytest.fixture(autouse=True)
-def auto_mock_logger():
-    """全テストで自動的にsetup_loggerをモック
+@pytest.fixture
+def arxiv_service():
+    """ArxivSummarizerサービスのフィクスチャ（共通セットアップ）"""
+    with patch("nook.common.logging.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
 
-    このフィクスチャにより、各テストで個別に
-    patch("nook.common.base_service.setup_logger")を
-    書く必要がなくなります。
+        service = ArxivSummarizer()
+        yield service
+
+
+@pytest.fixture
+def test_date():
+    """テスト用固定日付"""
+    from datetime import date
+
+    return date(2024, 1, 1)
+
+
+@pytest.fixture
+def test_datetime():
+    """テスト用固定日時"""
+    from datetime import UTC, datetime
+
+    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
+
+
+@pytest.fixture
+def paper_info_factory():
+    """PaperInfoオブジェクトを生成するファクトリー"""
+    from datetime import UTC, datetime
+
+    def _create(
+        title="Test Paper",
+        abstract="Test Abstract",
+        url=None,
+        arxiv_id="2301.00001",
+        contents="Test contents",
+        published_at=None,
+        **kwargs,
+    ):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import PaperInfo
+
+        if url is None:
+            url = f"http://arxiv.org/abs/{arxiv_id}"
+
+        if published_at is None:
+            published_at = datetime(2023, 1, 1, tzinfo=UTC)
+
+        paper = PaperInfo(
+            title=title,
+            abstract=abstract,
+            url=url,
+            contents=contents,
+            published_at=published_at,
+        )
+
+        # summaryが指定されていれば設定
+        if "summary" in kwargs:
+            paper.summary = kwargs["summary"]
+
+        return paper
+
+    return _create
+
+
+@pytest.fixture
+def mock_arxiv_paper_factory():
+    """arxiv.Resultオブジェクトのモックを生成するファクトリー"""
+    from datetime import UTC, datetime
+    from unittest.mock import Mock
+
+    def _create(
+        arxiv_id="2301.00001",
+        title="Test Paper Title",
+        summary="Test abstract",
+        published=None,
+        **kwargs,
+    ):
+        if published is None:
+            published = datetime(2023, 1, 1, tzinfo=UTC)
+
+        mock_paper = Mock()
+        mock_paper.entry_id = f"http://arxiv.org/abs/{arxiv_id}"
+        mock_paper.title = title
+        mock_paper.summary = summary
+        mock_paper.published = published
+
+        # 追加属性
+        for key, value in kwargs.items():
+            setattr(mock_paper, key, value)
+
+        return mock_paper
+
+    return _create
+
+
+# =============================================================================
+# arXiv テストヘルパー
+# =============================================================================
+
+
+class ArxivTestHelper:
     """
-    from unittest.mock import patch
+    arXivテスト用のヘルパークラス
 
-    with patch("nook.common.base_service.setup_logger"):
-        yield
+    テスト定数とモック作成メソッドを提供し、テストコードの重複を削減します。
+
+    使用例:
+        def test_example(arxiv_helper):
+            # 定数を使用
+            arxiv_id = arxiv_helper.DEFAULT_ARXIV_ID
+
+            # モック作成
+            mock_client = arxiv_helper.create_mock_http_client()
+    """
+
+    # ============================================================================
+    # テスト定数
+    # ============================================================================
+    DEFAULT_ARXIV_ID = "2301.00001"
+    DEFAULT_MIN_LINE_LENGTH = 80
+    SAMPLE_PAPER_IDS = ["2301.00001", "2301.00002", "2301.00003"]
+
+    # テストデータ定数
+    SAMPLE_PAPER_TITLE = "Test Paper Title"
+    SAMPLE_ABSTRACT = "Test abstract"
+    SAMPLE_CONTENTS = "Test contents"
+    SAMPLE_SUMMARY = "Test summary"
+
+    # HTML/Markdown テストデータ
+    SAMPLE_MARKDOWN_VALID = """# arXiv 論文要約 (2024-01-01)
+
+## [Test Paper 1](http://arxiv.org/abs/2301.00001)
+
+**abstract**:
+Abstract 1
+
+**summary**:
+Summary 1
+
+---
+"""
+
+    # ============================================================================
+    # モック作成メソッド
+    # ============================================================================
+
+    @staticmethod
+    def create_mock_http_client():
+        """HTTPクライアントのモックを作成
+
+        Returns:
+            AsyncMock: コンテキストマネージャーとして使用可能なモック
+        """
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf_response(content=b"%PDF-1.4 test content"):
+        """PDFレスポンスのモックを作成
+
+        Args:
+            content: PDFバイナリコンテンツ
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.content = content
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_html_response(text="<html><body>Test</body></html>"):
+        """HTMLレスポンスのモックを作成
+
+        Args:
+            text: HTMLテキスト
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.text = text
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_arxiv_client(results=None):
+        """arxiv.Clientのモックを作成
+
+        Args:
+            results: resultsメソッドが返すリスト（デフォルトは空リスト）
+
+        Returns:
+            Mock: arxiv.Clientモック
+        """
+        if results is None:
+            results = []
+        mock_client = Mock()
+        mock_client.results.return_value = results
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf(text="Test PDF content"):
+        from unittest.mock import MagicMock
+
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = text
+
+        mock_pdf = MagicMock()
+        mock_pdf.pages = [mock_page]
+        mock_pdf.__enter__.return_value = mock_pdf
+        mock_pdf.__exit__.return_value = None
+
+        return mock_pdf
+
+
+@pytest.fixture
+def arxiv_helper():
+    """ArxivTestHelperインスタンスを提供"""
+    return ArxivTestHelper()
 
 
 # =============================================================================
@@ -643,246 +855,3 @@ def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
     return
     # テスト後の処理（必要に応じて）
-
-
-# =============================================================================
-# Zenn Explorer テスト用ヘルパー関数
-# =============================================================================
-
-
-def create_mock_entry(
-    title="テスト記事",
-    link="https://example.com/test",
-    summary="テスト説明",
-    published_parsed=(2024, 11, 14, 0, 0, 0, 0, 0, 0),
-):
-    """標準的なモックエントリを作成
-
-    Args:
-        title: 記事タイトル
-        link: 記事URL
-        summary: 記事サマリー
-        published_parsed: 公開日時タプル
-
-    Returns:
-        Mock: 設定済みのモックエントリ
-    """
-    from unittest.mock import Mock
-
-    entry = Mock()
-    entry.title = title
-    entry.link = link
-    entry.summary = summary
-    entry.published_parsed = published_parsed
-    return entry
-
-
-def create_mock_feed(title="Test Feed", entries=None):
-    """標準的なモックフィードを作成
-
-    Args:
-        title: フィードタイトル
-        entries: エントリのリスト（Noneの場合は空リスト）
-
-    Returns:
-        Mock: 設定済みのモックフィード
-    """
-    from unittest.mock import Mock
-
-    feed = Mock()
-    feed.feed.title = title
-    feed.entries = entries if entries is not None else []
-    return feed
-
-
-def create_mock_dedup(is_duplicate=False, normalized_title="normalized_title"):
-    """標準的なモックDedupTrackerを作成
-
-    Args:
-        is_duplicate: 重複判定の返り値
-        normalized_title: 正規化されたタイトル
-
-    Returns:
-        Mock: 設定済みのモックDedupTracker
-    """
-    from unittest.mock import Mock
-
-    dedup = Mock()
-    dedup.is_duplicate.return_value = (is_duplicate, normalized_title)
-    dedup.add.return_value = None
-    return dedup
-
-
-# =============================================================================
-# Zenn Explorer テスト用統合フィクスチャ（Phase 2.1）
-# =============================================================================
-
-
-@pytest.fixture
-def zenn_service_with_mocks(mock_env_vars):
-    """ZennExplorerサービスと共通モックの統合セットアップ
-
-    深いネストを解消し、テストコードを簡潔にするための統合フィクスチャ。
-    collect()メソッドのテストで頻繁に使用される全モックをセットアップ。
-
-    Returns:
-        dict: 以下のキーを含む辞書
-            - service: ZennExplorerインスタンス
-            - mock_parse: feedparser.parseのモック
-            - mock_load: load_existing_titles_from_storageのモック
-            - mock_setup_http: setup_http_clientのモック
-            - mock_get_dates: _get_all_existing_datesのモック
-            - mock_storage_load: storage.loadのモック
-            - mock_storage_save: storage.saveのモック
-
-    使用例:
-        def test_something(zenn_service_with_mocks):
-            svc = zenn_service_with_mocks["service"]
-            mock_parse = zenn_service_with_mocks["mock_parse"]
-            # テストロジック...
-    """
-    from pathlib import Path
-    from unittest.mock import AsyncMock, patch
-
-    # auto_mock_loggerが既に適用されているため、手動パッチ不要
-    from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
-
-    service = ZennExplorer()
-    service.http_client = AsyncMock()
-
-    # LOAD_TITLES_PATHの定義（test_zenn_explorer.pyと同じ）
-    load_titles_path = "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage"
-
-    with (
-        patch("feedparser.parse") as mock_parse,
-        patch.object(service, "setup_http_client", new_callable=AsyncMock) as mock_setup_http,
-        patch.object(
-            service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
-        ) as mock_get_dates,
-        patch(load_titles_path, new_callable=AsyncMock) as mock_load,
-        patch.object(
-            service.storage, "load", new_callable=AsyncMock, return_value=None
-        ) as mock_storage_load,
-        patch.object(
-            service.storage,
-            "save",
-            new_callable=AsyncMock,
-            return_value=Path("/data/test.json"),
-        ) as mock_storage_save,
-    ):
-        yield {
-            "service": service,
-            "mock_parse": mock_parse,
-            "mock_load": mock_load,
-            "mock_setup_http": mock_setup_http,
-            "mock_get_dates": mock_get_dates,
-            "mock_storage_load": mock_storage_load,
-            "mock_storage_save": mock_storage_save,
-        }
-
-
-# =============================================================================
-# テストデータ定数（Phase 2.4 - レビュー対応）
-# =============================================================================
-
-# HTML templates
-TEST_HTML_SIMPLE = "<html><body><p>テキスト</p></body></html>"
-TEST_HTML_JAPANESE = "<html><body><p>日本語テキスト</p></body></html>"
-TEST_HTML_WITH_META = """<html>
-<head><meta name="description" content="テスト説明"></head>
-<body><p>コンテンツ</p></body>
-</html>"""
-
-# URLs
-TEST_URL = "https://example.com/test"
-TEST_FEED_URL = "https://example.com/feed.xml"
-TEST_ARTICLE_BASE_URL = "https://example.com/article"
-
-# Common values
-TEST_FEED_NAME = "Test Feed"
-TEST_CATEGORY_TECH = "tech"
-TEST_CATEGORY_BUSINESS = "business"
-TEST_SUMMARY = "要約"
-TEST_TITLE = "テスト記事"
-
-# Error messages（共通アサーションメッセージ）
-MSG_RESULT_SHOULD_BE_LIST = "結果はリスト型であるべき"
-MSG_RESULT_SHOULD_BE_ARTICLE = "結果はArticle型であるべき"
-MSG_RESULT_SHOULD_NOT_BE_NONE = "結果はNoneであってはならない"
-
-
-# =============================================================================
-# テストヘルパー関数（Phase 2.4 - レビュー対応）
-# =============================================================================
-
-
-def setup_http_client_mock(service, html_content=TEST_HTML_SIMPLE):
-    """HTTP clientのモックをセットアップ
-
-    Args:
-        service: ZennExplorerインスタンス
-        html_content: 返すHTMLコンテンツ（デフォルト: TEST_HTML_SIMPLE）
-    """
-    from unittest.mock import AsyncMock, Mock
-
-    service.http_client.get = AsyncMock(return_value=Mock(text=html_content))
-
-
-def setup_gpt_client_mock(service, summary=TEST_SUMMARY):
-    """GPT clientのモックをセットアップ
-
-    Args:
-        service: ZennExplorerインスタンス
-        summary: 返す要約テキスト（デフォルト: TEST_SUMMARY）
-    """
-    from unittest.mock import AsyncMock
-
-    service.gpt_client.get_response = AsyncMock(return_value=summary)
-
-
-def assert_article_list_result(result, expected_count=None, min_count=None):
-    """記事リストの共通アサーション
-
-    Args:
-        result: テスト結果
-        expected_count: 期待される件数（Noneの場合はチェックしない）
-        min_count: 最小件数（Noneの場合はチェックしない）
-    """
-    assert isinstance(result, list), MSG_RESULT_SHOULD_BE_LIST
-
-    if expected_count is not None:
-        assert (
-            len(result) == expected_count
-        ), f"期待される件数は{expected_count}件、実際は{len(result)}件"
-
-    if min_count is not None:
-        assert len(result) >= min_count, f"最小{min_count}件の記事が必要、実際は{len(result)}件"
-
-
-def assert_article_result(result):
-    """単一Article結果の共通アサーション
-
-    Args:
-        result: テスト結果
-    """
-    from nook.services.base_feed_service import Article
-
-    assert result is not None, MSG_RESULT_SHOULD_NOT_BE_NONE
-    assert isinstance(result, Article), MSG_RESULT_SHOULD_BE_ARTICLE
-
-
-def create_test_html(content="テキスト", meta_description=None):
-    """テスト用HTMLを生成
-
-    Args:
-        content: body内のコンテンツ
-        meta_description: メタディスクリプション（Noneの場合は追加しない）
-
-    Returns:
-        str: 生成されたHTML
-    """
-    meta_tag = ""
-    if meta_description:
-        meta_tag = f'<head><meta name="description" content="{meta_description}"></head>'
-
-    return f"<html>{meta_tag}<body><p>{content}</p></body></html>"

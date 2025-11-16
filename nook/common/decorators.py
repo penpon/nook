@@ -87,7 +87,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
     return decorator
 
 
-def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
+def log_execution_time[T](func: Callable[..., T]) -> Callable[..., T]:
     """実行時間をログに記録するデコレータ"""
 
     @functools.wraps(func)

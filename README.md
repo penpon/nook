@@ -237,7 +237,7 @@ pip audit
 npm audit
 
 # 定期的なアップデート
-uv pip install --upgrade -r requirements.txt
+uv sync --upgrade
 npm update
 ```
 
@@ -315,7 +315,7 @@ docker-compose up -d
 # Python環境（uvを使用）
 uv venv
 source .venv/bin/activate
-uv pip install -r requirements.txt
+uv sync --all-groups
 
 # フロントエンド
 cd nook/frontend
