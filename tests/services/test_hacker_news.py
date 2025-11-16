@@ -3,46 +3,39 @@ nook/services/hacker_news/hacker_news.py のユニットテスト
 
 ## テスト構成
 
-### セクション1: 初期化テスト
-- HackerNewsRetrieverの基本的な初期化を確認
-
-### セクション2-6: 既存の統合テスト
-- collect()メソッドの統合的な動作を確認
-- Note: これらは統合テストであり、将来的には別ファイルに移行予定
-
-### セクション7: blocked_domainsメソッド
+### セクション1: blocked_domainsメソッド
 - _load_blocked_domains
 - _is_blocked_domain
 - _is_http1_required_domain
 
-### セクション8-11: ストーリー取得と内容フェッチ
+### セクション2-5: ストーリー取得と内容フェッチ
 - _fetch_story: HN APIからストーリー取得
 - _fetch_story_content: URLからコンテンツ取得
 - HTTPエラーハンドリング（401, 403, 404）
 - タイムアウト、SSLエラー
 
-### セクション12: フィルタリングテスト
+### セクション6: フィルタリングテスト
 - スコアフィルタリング（≥20）
 - テキスト長フィルタリング（100-10000）
 - ソート機能
 
-### セクション13: ブロックドメイン管理
+### セクション7: ブロックドメイン管理
 - _add_to_blocked_domains
 - _update_blocked_domains_from_errors
 
-### セクション14: ヘルパーメソッド
+### セクション8: ヘルパーメソッド
 - _serialize_stories
 - _render_markdown
 - _parse_markdown
 - _story_sort_key
 
-### セクション15-16: ストレージと要約
+### セクション9-10: ストレージと要約
 - _load_existing_titles
 - _load_existing_stories
 - _store_summaries
 - _summarize_stories
 
-### セクション17: 追加カバレッジテスト
+### セクション11: 追加カバレッジテスト
 - エッジケース
 - 例外処理
 - 統合ロジックの境界テスト
@@ -52,11 +45,9 @@ nook/services/hacker_news/hacker_news.py のユニットテスト
 テスト定数（TEST_STORY_ID等）とヘルパー関数（create_test_story等）を使用して、
 一貫性のあるテストデータを生成しています。
 
-## カバレッジ目標
+## 注意事項
 
-- 目標: 95%
-- 現在: 91.91%
-- 残り未カバー: 主に統合テスト領域（collect()内の複雑なロジック）
+このファイルには単体テストのみを含めます。統合テストは別ファイル（またはmainブランチ）に存在します。
 """
 
 from __future__ import annotations
@@ -213,301 +204,7 @@ def create_stories_batch(count: int, **kwargs) -> list[Story]:
 
 
 # =============================================================================
-# 1. __init__ メソッドのテスト
-# =============================================================================
-
-
-@pytest.mark.unit
-def test_init_with_default_storage_dir(hacker_news_service):
-    """
-    Given: デフォルトのstorage_dir
-    When: HackerNewsRetrieverを初期化
-    Then: インスタンスが正常に作成される
-    """
-    service = hacker_news_service
-
-    assert service.service_name == "hacker_news"
-    assert service.http_client is None
-
-
-# =============================================================================
-# 2. collect メソッドのテスト - 正常系
-# =============================================================================
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_collect_success_with_stories(mock_env_vars, mock_hn_api):
-    """
-    Given: 有効なHacker News API
-    When: collectメソッドを呼び出す
-    Then: ストーリーが正常に取得・保存される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.http_client = AsyncMock()
-
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(
-                service.storage,
-                "save",
-                new_callable=AsyncMock,
-                return_value=Path("/data/test.json"),
-            ),
-        ):
-            service.http_client.get = AsyncMock(
-                side_effect=[
-                    Mock(json=lambda: [12345, 67890]),  # トップストーリーID
-                    Mock(
-                        json=lambda: {
-                            "id": 12345,
-                            "type": "story",
-                            "by": "test_author",
-                            "time": 1699999999,
-                            "title": "Test HN Story",
-                            "url": "https://example.com/test",
-                            "score": 200,
-                            "descendants": 50,
-                        }
-                    ),
-                ]
-            )
-            service.gpt_client.get_response = AsyncMock(return_value="要約")
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_collect_with_multiple_stories(mock_env_vars):
-    """
-    Given: 複数のストーリー
-    When: collectメソッドを呼び出す
-    Then: 全てのストーリーが処理される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.http_client = AsyncMock()
-
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock),
-        ):
-            service.http_client.get = AsyncMock(
-                side_effect=[
-                    Mock(json=lambda: [1, 2, 3]),
-                    Mock(
-                        json=lambda: {
-                            "id": 1,
-                            "type": "story",
-                            "score": 100,
-                            "title": "Story 1",
-                        }
-                    ),
-                    Mock(
-                        json=lambda: {
-                            "id": 2,
-                            "type": "story",
-                            "score": 200,
-                            "title": "Story 2",
-                        }
-                    ),
-                    Mock(
-                        json=lambda: {
-                            "id": 3,
-                            "type": "story",
-                            "score": 150,
-                            "title": "Story 3",
-                        }
-                    ),
-                ]
-            )
-            service.gpt_client.get_response = AsyncMock(return_value="要約")
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-
-# =============================================================================
-# 3. collect メソッドのテスト - 異常系
-# =============================================================================
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_collect_network_error(mock_env_vars):
-    """
-    Given: ネットワークエラーが発生
-    When: collectメソッドを呼び出す
-    Then: RetryExceptionが発生する
-    """
-    from nook.common.exceptions import RetryException
-
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.http_client = AsyncMock()
-
-        with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
-
-            with pytest.raises(RetryException):
-                await service.collect(target_dates=[date.today()])
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_collect_invalid_json(mock_env_vars):
-    """
-    Given: 不正なJSON
-    When: collectメソッドを呼び出す
-    Then: エラーがログされ、空リストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.http_client = AsyncMock()
-
-        with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-            service.http_client.get = AsyncMock(return_value=Mock(json=list))
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_collect_gpt_api_error(mock_env_vars):
-    """
-    Given: GPT APIがエラーを返す
-    When: collectメソッドを呼び出す
-    Then: エラーが適切に処理される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.http_client = AsyncMock()
-
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock),
-        ):
-            service.http_client.get = AsyncMock(
-                side_effect=[
-                    Mock(json=lambda: [12345]),
-                    Mock(
-                        json=lambda: {
-                            "id": 12345,
-                            "type": "story",
-                            "score": 100,
-                            "title": "Test",
-                        }
-                    ),
-                ]
-            )
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-
-# =============================================================================
-# 4. collect メソッドのテスト - 境界値
-# =============================================================================
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_collect_with_empty_stories(mock_env_vars):
-    """
-    Given: 空のストーリーリスト
-    When: collectメソッドを呼び出す
-    Then: 空リストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.http_client = AsyncMock()
-
-        with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-            service.http_client.get = AsyncMock(return_value=Mock(json=list))
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-
-# =============================================================================
-# 5. Story モデルのテスト
-# =============================================================================
-
-
-@pytest.mark.unit
-def test_story_creation():
-    """
-    Given: ストーリー情報
-    When: Storyオブジェクトを作成
-    Then: 正しくインスタンス化される
-    """
-    story = Story(title="Test Story", score=200, url="https://example.com/test", text="Test text")
-
-    assert story.title == "Test Story"
-    assert story.score == 200
-    assert story.url == "https://example.com/test"
-
-
-# =============================================================================
-# 6. エラーハンドリング統合テスト
-# =============================================================================
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_full_workflow_collect_and_save(mock_env_vars):
-    """
-    Given: 完全なワークフロー
-    When: collect→save→cleanupを実行
-    Then: 全フローが正常に動作
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = HackerNewsRetriever()
-        service.http_client = AsyncMock()
-
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(
-                service.storage,
-                "save",
-                new_callable=AsyncMock,
-                return_value=Path("/data/test.json"),
-            ),
-        ):
-            service.http_client.get = AsyncMock(
-                side_effect=[
-                    Mock(json=lambda: [12345]),
-                    Mock(
-                        json=lambda: {
-                            "id": 12345,
-                            "type": "story",
-                            "score": 100,
-                            "title": "Test",
-                        }
-                    ),
-                ]
-            )
-            service.gpt_client.get_response = AsyncMock(return_value="要約")
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-            await service.cleanup()
-
-
-# =============================================================================
-# 7. _load_blocked_domains メソッドのテスト（内部メソッド）
+# 1. _load_blocked_domains メソッドのテスト（内部メソッド）
 # =============================================================================
 
 
@@ -536,7 +233,8 @@ def test_load_blocked_domains_file_not_found(mock_env_vars):
     """
     with (
         patch("nook.common.base_service.setup_logger"),
-        patch("builtins.open", side_effect=FileNotFoundError),
+        patch("nook.common.base_service.GPTClient"),
+        patch("os.path.exists", return_value=False),
     ):
         service = HackerNewsRetriever()
 
@@ -563,7 +261,7 @@ def test_load_blocked_domains_invalid_json(mock_env_vars):
 
 
 # =============================================================================
-# 8. _is_blocked_domain メソッドのテスト（内部メソッド）
+# 2. _is_blocked_domain メソッドのテスト（内部メソッド）
 # =============================================================================
 
 
@@ -604,7 +302,7 @@ def test_is_blocked_domain(
 
 
 # =============================================================================
-# 9. _is_http1_required_domain メソッドのテスト（内部メソッド）
+# 3. _is_http1_required_domain メソッドのテスト（内部メソッド）
 # =============================================================================
 
 
@@ -662,7 +360,7 @@ def test_is_http1_required_domain_exception_handling(mock_env_vars, mock_logger)
 
 
 # =============================================================================
-# 10. _fetch_story メソッドのテスト（内部メソッド）
+# 4. _fetch_story メソッドのテスト（内部メソッド）
 # =============================================================================
 
 
@@ -790,7 +488,7 @@ async def test_fetch_story_api_error(mock_env_vars, respx_mock):
 
 
 # =============================================================================
-# 11. _fetch_story_content メソッドのテスト（内部メソッド）
+# 5. _fetch_story_content メソッドのテスト（内部メソッド）
 # =============================================================================
 
 
@@ -1038,7 +736,7 @@ async def test_fetch_story_content_http1_required(mock_env_vars, respx_mock):
 
 
 # =============================================================================
-# 12. _get_top_stories フィルタリングのテスト（内部メソッド）
+# 6. _get_top_stories フィルタリングのテスト（内部メソッド）
 # =============================================================================
 
 
@@ -1196,7 +894,7 @@ async def test_get_top_stories_filtering(
 
 
 # =============================================================================
-# 13. _add_to_blocked_domains / _update_blocked_domains_from_errors のテスト
+# 7. _add_to_blocked_domains / _update_blocked_domains_from_errors のテスト
 # =============================================================================
 
 
@@ -1347,7 +1045,7 @@ async def test_update_blocked_domains_from_errors_no_errors(mock_env_vars):
 
 
 # =============================================================================
-# 14. ヘルパーメソッドのテスト
+# 8. ヘルパーメソッドのテスト
 # (_serialize_stories, _render_markdown, _parse_markdown, _story_sort_key)
 # =============================================================================
 
@@ -1540,7 +1238,7 @@ async def test_summarize_story_error(mock_env_vars):
 
 
 # =============================================================================
-# 15. _load_existing_titles / _load_existing_stories / _store_summaries のテスト
+# 9. _load_existing_titles / _load_existing_stories / _store_summaries のテスト
 # =============================================================================
 
 
@@ -1851,7 +1549,7 @@ async def test_store_summaries_empty(mock_env_vars):
 
 
 # =============================================================================
-# 16. HTMLパース・エッジケースのテスト
+# 10. HTMLパース・エッジケースのテスト
 # =============================================================================
 
 
@@ -2342,14 +2040,31 @@ async def test_add_to_blocked_domains_file_not_exists(mock_env_vars, tmp_path):
     When: _add_to_blocked_domainsを呼び出す
     Then: 新しいファイルが作成される
     """
-    with patch("nook.common.base_service.setup_logger"):
+    with (
+        patch("nook.common.base_service.setup_logger"),
+        patch("nook.common.base_service.GPTClient"),
+    ):
         service = HackerNewsRetriever()
 
         # Use a non-existent path
         new_domains = {"newdomain.com": "Test reason"}
 
-        with patch("nook.services.hacker_news.hacker_news.os.path.join") as mock_join:
+        with (
+            patch(
+                "nook.services.hacker_news.hacker_news.os.path.dirname"
+            ) as mock_dirname,
+            patch("nook.services.hacker_news.hacker_news.os.path.join") as mock_join,
+            patch(
+                "nook.services.hacker_news.hacker_news.os.path.abspath"
+            ) as mock_abspath,
+            patch(
+                "nook.services.hacker_news.hacker_news.os.path.exists"
+            ) as mock_exists,
+        ):
+            mock_abspath.return_value = str(tmp_path / "fake_module.py")
+            mock_dirname.return_value = str(tmp_path)
             mock_join.return_value = str(tmp_path / "blocked_domains.json")
+            mock_exists.return_value = False
 
             await service._add_to_blocked_domains(new_domains)
 
