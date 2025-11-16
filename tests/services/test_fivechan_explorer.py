@@ -1088,11 +1088,7 @@ async def test_encoding_bomb_attack(mock_env_vars, encoding_bomb_data):
         ("'; DROP TABLE posts; --<>sage<>2024/11/14<>SQL注入", "sql_injection"),
         ("A" * 100000 + "<>sage<>2024/11/14<>長すぎる名前", "oversized_name"),
     ],
-    ids=lambda x: (
-        x
-        if isinstance(x, str) and x in ["xss", "sql_injection", "oversized_name"]
-        else ""
-    ),
+    ids=["xss", "sql_injection", "oversized_name"],
 )
 async def test_dat_parsing_malicious_input(
     mock_env_vars, malicious_dat_content, test_id
@@ -1151,8 +1147,9 @@ async def test_concurrent_thread_fetching_performance(mock_env_vars):
 
     検証項目:
     - 10個のリクエストが並行実行される
-    - 処理時間0.5秒以下（逐次なら1秒以上）
+    - 処理時間0.1秒以下（逐次なら0.5秒以上）
     - 全リクエストが完了
+    - asyncio.to_threadが10回呼び出される
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
@@ -1169,12 +1166,17 @@ async def test_concurrent_thread_fetching_performance(mock_env_vars):
         mock_scraper.get = Mock(return_value=mock_response)
         mock_scraper.headers = {}
 
+        # 非同期遅延を含むモック（実際の並行実行をシミュレート）
+        async def mock_to_thread_with_delay(f, *args, **kwargs):
+            await asyncio.sleep(0.05)  # I/O遅延をシミュレート
+            return f(*args, **kwargs)
+
         with (
             patch("cloudscraper.create_scraper", return_value=mock_scraper),
             patch(
                 "asyncio.to_thread",
-                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
-            ),
+                side_effect=mock_to_thread_with_delay,
+            ) as mock_to_thread,
         ):
             start_time = time.time()
 
@@ -1190,8 +1192,14 @@ async def test_concurrent_thread_fetching_performance(mock_env_vars):
             # 全リクエストが完了
             assert len(results) == 10
 
+            # asyncio.to_threadが10回呼び出されたことを確認（並行実行の検証）
+            assert (
+                mock_to_thread.call_count == 10
+            ), f"asyncio.to_threadの呼び出し回数が想定外: {mock_to_thread.call_count}回"
+
             # 処理時間が許容範囲内（並行処理により高速化）
-            assert processing_time < 0.5, f"並行処理時間が長すぎる: {processing_time}秒"
+            # 並行実行なら約0.05秒、逐次実行なら約0.5秒（10 * 0.05）
+            assert processing_time < 0.1, f"並行処理時間が長すぎる: {processing_time}秒"
 
 
 @pytest.mark.unit
@@ -1258,41 +1266,39 @@ async def test_network_timeout_handling(mock_env_vars):
     Then: 適切なタイムアウトエラーハンドリング（無限待機しない）
 
     検証項目:
-    - 5秒でタイムアウトする
-    - asyncio.TimeoutErrorが発生
+    - httpx内部のタイムアウト（10秒）が機能する
+    - タイムアウト時は空リストを返す
+    - 処理が適切な時間で完了する
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+        import httpx
 
         service = FiveChanExplorer()
 
-        # 遅延を発生させるモック
-        async def slow_get(*args, **kwargs):
-            await asyncio.sleep(10)  # 10秒待機（タイムアウトより長い）
-            return Mock(status_code=200, content=b"")
+        # httpx.TimeoutErrorを発生させるモック
+        async def timeout_get(*args, **kwargs):
+            await asyncio.sleep(0.1)  # 短い遅延
+            raise httpx.TimeoutException("Request timeout")
 
         with patch("httpx.AsyncClient") as mock_client:
             client_instance = AsyncMock()
             client_instance.__aenter__.return_value = client_instance
             client_instance.__aexit__.return_value = AsyncMock()
-            client_instance.get = AsyncMock(side_effect=slow_get)
+            client_instance.get = AsyncMock(side_effect=timeout_get)
             mock_client.return_value = client_instance
 
             start_time = time.time()
 
-            try:
-                # 5秒でタイムアウトを設定
-                result = await asyncio.wait_for(
-                    service._get_subject_txt_data("test"), timeout=5.0
-                )
-            except asyncio.TimeoutError:
-                # タイムアウトが発生することを確認
-                pass
+            # httpx内部でタイムアウトが発生し、空リストが返される
+            result = await service._get_subject_txt_data("test")
 
             elapsed = time.time() - start_time
 
-            # 5秒前後でタイムアウトすることを確認
-            assert 4.5 < elapsed < 6.0, f"タイムアウト時間が想定外: {elapsed}秒"
+            # 空リストが返されることを確認（全サーバーでタイムアウト）
+            assert result == [], f"タイムアウト時は空リストを返すべき: {result}"
+            # タイムアウト処理が適切に完了することを確認（全サーバー試行に約0.1秒）
+            assert elapsed < 1.0, f"タイムアウト処理時間が長すぎる: {elapsed}秒"
 
 
 @pytest.mark.unit
