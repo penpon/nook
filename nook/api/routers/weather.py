@@ -38,9 +38,7 @@ async def get_weather_data() -> WeatherResponse:
 
         # 神奈川の天気を取得
         city = "Kanagawa"
-        url = (
-            f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
-        )
+        url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
 
         response = requests.get(url, timeout=10)
         if response.status_code != 200:
@@ -56,9 +54,7 @@ async def get_weather_data() -> WeatherResponse:
     except HTTPException:
         raise
     except requests.exceptions.Timeout:
-        raise HTTPException(
-            status_code=504, detail="Weather service request timed out"
-        )
+        raise HTTPException(status_code=504, detail="Weather service request timed out")
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=502, detail=f"Weather service connection error: {str(e)}"
@@ -68,4 +64,6 @@ async def get_weather_data() -> WeatherResponse:
             status_code=500, detail=f"Error parsing weather data: {str(e)}"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching weather data: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching weather data: {str(e)}"
+        ) from e

@@ -140,7 +140,8 @@ async def test_session_duration_logging():
         await client.close()
         # ログが呼ばれたことを確認
         assert any(
-            "session closed" in str(call).lower() for call in mock_logger.info.call_args_list
+            "session closed" in str(call).lower()
+            for call in mock_logger.info.call_args_list
         )
 
 
@@ -336,7 +337,9 @@ async def test_get_request_follows_redirect(respx_mock):
     Then: 自動的にリダイレクト先に移動する
     """
     respx_mock.get("https://example.com/old").mock(
-        return_value=httpx.Response(301, headers={"Location": "https://example.com/new"})
+        return_value=httpx.Response(
+            301, headers={"Location": "https://example.com/new"}
+        )
     )
     respx_mock.get("https://example.com/new").mock(
         return_value=httpx.Response(200, json={"status": "redirected"})
@@ -520,7 +523,9 @@ async def test_get_request_timeout_error(respx_mock):
     When: GETリクエストを送信
     Then: リトライ後、RetryException発生
     """
-    respx_mock.get("https://example.com/slow").mock(side_effect=httpx.TimeoutException("Timeout"))
+    respx_mock.get("https://example.com/slow").mock(
+        side_effect=httpx.TimeoutException("Timeout")
+    )
 
     async with AsyncHTTPClient() as client:
         with pytest.raises(RetryException):
@@ -577,7 +582,9 @@ async def test_get_request_stream_error_http1_fallback_failure(respx_mock):
     When: GETリクエストを送信
     Then: RetryException発生
     """
-    respx_mock.get("https://example.com/api").mock(side_effect=httpx.StreamError("Stream reset"))
+    respx_mock.get("https://example.com/api").mock(
+        side_effect=httpx.StreamError("Stream reset")
+    )
 
     async with AsyncHTTPClient() as client:
         with pytest.raises(RetryException):
@@ -592,7 +599,9 @@ async def test_get_request_stream_error_no_fallback_when_forced_http1(respx_mock
     When: GETリクエストを送信
     Then: RetryException発生（フォールバックなし）
     """
-    respx_mock.get("https://example.com/api").mock(side_effect=httpx.StreamError("Stream error"))
+    respx_mock.get("https://example.com/api").mock(
+        side_effect=httpx.StreamError("Stream error")
+    )
 
     async with AsyncHTTPClient() as client:
         with pytest.raises(RetryException):
@@ -607,7 +616,9 @@ async def test_get_request_general_request_error(respx_mock):
     When: GETリクエストを送信
     Then: RetryException発生
     """
-    respx_mock.get("https://example.com/api").mock(side_effect=httpx.RequestError("Request failed"))
+    respx_mock.get("https://example.com/api").mock(
+        side_effect=httpx.RequestError("Request failed")
+    )
 
     async with AsyncHTTPClient() as client:
         with pytest.raises(RetryException):
@@ -734,7 +745,9 @@ async def test_post_request_timeout_error(respx_mock):
     When: POSTリクエストを送信
     Then: リトライ後、RetryException発生
     """
-    respx_mock.post("https://example.com/slow").mock(side_effect=httpx.TimeoutException("Timeout"))
+    respx_mock.post("https://example.com/slow").mock(
+        side_effect=httpx.TimeoutException("Timeout")
+    )
 
     async with AsyncHTTPClient() as client:
         with pytest.raises(RetryException):
@@ -823,7 +836,9 @@ async def test_download_file_success(respx_mock):
     Then: ファイルがダウンロードされる
     """
     respx_mock.get("https://example.com/file.zip").mock(
-        return_value=httpx.Response(200, content=b"file content", headers={"content-length": "12"})
+        return_value=httpx.Response(
+            200, content=b"file content", headers={"content-length": "12"}
+        )
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -843,7 +858,9 @@ async def test_download_with_progress_callback(respx_mock):
     Then: コールバックが呼ばれる
     """
     respx_mock.get("https://example.com/file.zip").mock(
-        return_value=httpx.Response(200, content=b"file content", headers={"content-length": "12"})
+        return_value=httpx.Response(
+            200, content=b"file content", headers={"content-length": "12"}
+        )
     )
 
     progress_called = False
@@ -879,7 +896,9 @@ async def test_download_404_error(respx_mock):
         output_path = Path(tmpdir) / "downloaded.zip"
         async with AsyncHTTPClient() as client:
             with pytest.raises(httpx.HTTPStatusError):
-                await client.download("https://example.com/notfound.zip", str(output_path))
+                await client.download(
+                    "https://example.com/notfound.zip", str(output_path)
+                )
 
 
 # =============================================================================
@@ -905,7 +924,9 @@ async def test_cloudscraper_fallback_success():
     async with AsyncHTTPClient() as client:
         with patch("cloudscraper.create_scraper") as mock_scraper:
             mock_scraper.return_value.get.return_value = mock_response
-            response = await client._cloudscraper_fallback("https://example.com/protected")
+            response = await client._cloudscraper_fallback(
+                "https://example.com/protected"
+            )
             assert response.status_code == 200
             assert response.text == "Success"
 

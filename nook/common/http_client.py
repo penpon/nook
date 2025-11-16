@@ -151,8 +151,12 @@ class AsyncHTTPClient:
 
         except httpx.StreamError as e:
             # StreamResetエラーの場合、HTTP/1.1でリトライ
-            if not force_http1 and ("stream" in str(e).lower() or "reset" in str(e).lower()):
-                logger.info(f"StreamReset error for {url}, falling back to HTTP/1.1: {e}")
+            if not force_http1 and (
+                "stream" in str(e).lower() or "reset" in str(e).lower()
+            ):
+                logger.info(
+                    f"StreamReset error for {url}, falling back to HTTP/1.1: {e}"
+                )
                 return await self.get(
                     url, headers=headers, params=params, force_http1=True, **kwargs
                 )
@@ -206,10 +210,14 @@ class AsyncHTTPClient:
         logger.debug(f"POST {url}")
 
         try:
-            response = await self._client.post(url, json=json, data=data, headers=headers, **kwargs)
+            response = await self._client.post(
+                url, json=json, data=data, headers=headers, **kwargs
+            )
             response.raise_for_status()
 
-            logger.debug(f"POST {url} completed", extra={"status_code": response.status_code})
+            logger.debug(
+                f"POST {url} completed", extra={"status_code": response.status_code}
+            )
 
             return response
 
@@ -265,7 +273,9 @@ class AsyncHTTPClient:
 
             logger.warning(f"Cloudscraper failed for {url}: {error_summary}")
             # 元の403エラーを再発生
-            raise APIException("HTTP 403 error (cloudscraper also failed)", status_code=403) from e
+            raise APIException(
+                "HTTP 403 error (cloudscraper also failed)", status_code=403
+            ) from e
 
     def _convert_to_httpx_response(self, response):
         """requests.Responseをhttpx互換のレスポンスアダプターに変換"""
