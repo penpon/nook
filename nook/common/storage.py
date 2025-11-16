@@ -30,9 +30,7 @@ class LocalStorage:
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_markdown(
-        self, content: str, service_name: str, date: datetime | None = None
-    ) -> Path:
+    def save_markdown(self, content: str, service_name: str, date: datetime | None = None) -> Path:
         """
         Markdownコンテンツを保存します。
 
@@ -64,9 +62,7 @@ class LocalStorage:
 
         return file_path
 
-    def load_markdown(
-        self, service_name: str, date: datetime | None = None
-    ) -> str | None:
+    def load_markdown(self, service_name: str, date: datetime | None = None) -> str | None:
         """
         Markdownコンテンツを読み込みます。
 
@@ -175,9 +171,7 @@ class LocalStorage:
         if old_path.exists():
             old_path.rename(new_path)
 
-    def load_json(
-        self, service_name: str, date: datetime | None = None
-    ) -> list[Any] | None:
+    def load_json(self, service_name: str, date: datetime | None = None) -> list[Any] | None:
         """
         JSONコンテンツを読み込みます。
 

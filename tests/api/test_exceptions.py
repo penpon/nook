@@ -19,9 +19,7 @@ class TestNookHTTPException:
 
     def test_basic_creation(self):
         """基本的なNookHTTPExceptionの作成"""
-        exc = NookHTTPException(
-            status_code=400, detail="Test error", error_type="test_error"
-        )
+        exc = NookHTTPException(status_code=400, detail="Test error", error_type="test_error")
         assert exc.status_code == 400
         assert exc.detail == "Test error"
         assert exc.error_type == "test_error"

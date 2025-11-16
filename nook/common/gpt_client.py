@@ -44,15 +44,11 @@ class GPTClient:
         """
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError(
-                "OPENAI_API_KEY must be provided or set as an environment variable"
-            )
+            raise ValueError("OPENAI_API_KEY must be provided or set as an environment variable")
 
         self.model = model or os.environ.get("OPENAI_MODEL", "gpt-5-nano")
         if not self.model:
-            raise ValueError(
-                "OPENAI_MODEL must be provided or set as an environment variable"
-            )
+            raise ValueError("OPENAI_MODEL must be provided or set as an environment variable")
 
         # OpenAI APIの設定
         self.client = openai.OpenAI(api_key=self.api_key)
@@ -76,9 +72,7 @@ class GPTClient:
         output_cost = (output_tokens / 1_000_000) * PRICING["output"]
         return input_cost + output_cost
 
-    def _messages_to_responses_input(
-        self, messages: list[dict[str, str]]
-    ) -> list[dict[str, Any]]:
+    def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
         """
         Chat CompletionsのmessagesをResponses APIのinput形式へ変換します。
         """
@@ -137,9 +131,7 @@ class GPTClient:
         pieces = [p for p in collect(data) if isinstance(p, str) and p.strip()]
         return "\n".join(pieces)
 
-    def _call_gpt5(
-        self, prompt: str, system_instruction: str | None, max_tokens: int
-    ) -> str:
+    def _call_gpt5(self, prompt: str, system_instruction: str | None, max_tokens: int) -> str:
         """
         GPT-5系モデル用のResponses API呼び出し。
         必要に応じてprevious_response_idで継続生成を試みます。
@@ -168,9 +160,7 @@ class GPTClient:
                     params["instructions"] = system_instruction
 
             resp = self.client.responses.create(**params)
-            output_text = getattr(
-                resp, "output_text", ""
-            ) or self._extract_text_from_response(resp)
+            output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
             # Set prev_id from response for continuation
@@ -207,9 +197,7 @@ class GPTClient:
                     params["instructions"] = system_instruction
 
             resp = self.client.responses.create(**params)
-            output_text = getattr(
-                resp, "output_text", ""
-            ) or self._extract_text_from_response(resp)
+            output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
             # Set prev_id from response for continuation
@@ -247,9 +235,7 @@ class GPTClient:
                             ]:
                                 continue
                             # __pycache__や.pyファイルを除外
-                            if service_name.startswith("__") or service_name.endswith(
-                                ".py"
-                            ):
+                            if service_name.startswith("__") or service_name.endswith(".py"):
                                 continue
                             return service_name
             # services/ディレクトリ内でない場合はunknownを返す
@@ -257,9 +243,7 @@ class GPTClient:
         except Exception:
             return "unknown"
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
-    )
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def generate_content(
         self,
         prompt: str,
@@ -358,9 +342,7 @@ class GPTClient:
             service_name,
         )
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
-    )
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def create_chat(self, system_instruction: str | None = None) -> dict[str, Any]:
         """
         チャットセッションを作成します。
@@ -382,9 +364,7 @@ class GPTClient:
 
         return {"messages": messages}
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
-    )
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def send_message(
         self,
         chat_session: dict[str, Any],
@@ -428,23 +408,17 @@ class GPTClient:
         input_tokens = self._count_tokens(input_text.strip())
 
         # GPT-5 Responses API を使用
-        assistant_message = self._call_gpt5_chat(
-            chat_session["messages"], None, max_tokens
-        )
+        assistant_message = self._call_gpt5_chat(chat_session["messages"], None, max_tokens)
         output_tokens = self._count_tokens(assistant_message)
 
         # 料金計算（将来の統計用に計算のみ実行）
         _ = self._calculate_cost(input_tokens, output_tokens)
 
-        chat_session["messages"].append(
-            {"role": "assistant", "content": assistant_message}
-        )
+        chat_session["messages"].append({"role": "assistant", "content": assistant_message})
 
         return assistant_message
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
-    )
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def chat_with_search(
         self,
         message: str,
@@ -492,9 +466,7 @@ class GPTClient:
         if chat_history:
             messages.extend(chat_history)
 
-        messages.append(
-            {"role": "user", "content": f"コンテキスト: {context}\n\n質問: {message}"}
-        )
+        messages.append({"role": "user", "content": f"コンテキスト: {context}\n\n質問: {message}"})
 
         # トークン数の計算
         input_text = ""
@@ -503,9 +475,7 @@ class GPTClient:
         input_tokens = self._count_tokens(input_text.strip())
 
         # GPT-5 Responses API を使用
-        output_text = self._call_gpt5_chat(
-            messages, system_instruction=None, max_tokens=max_tokens
-        )
+        output_text = self._call_gpt5_chat(messages, system_instruction=None, max_tokens=max_tokens)
         output_tokens = self._count_tokens(output_text)
 
         # 料金計算（将来の統計用に計算のみ実行）

@@ -63,9 +63,8 @@ class TestContentRouter:
         for date in valid_dates:
             response = client.get(f"/api/content/reddit?date={date}")
             # 日付フォーマットエラー（400）ではないことを確認
-            assert (
-                response.status_code != 400
-                or "Invalid date format" not in response.json().get("detail", "")
+            assert response.status_code != 400 or "Invalid date format" not in response.json().get(
+                "detail", ""
             )
 
         # 無効な日付
