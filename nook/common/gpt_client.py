@@ -279,7 +279,7 @@ class GPTClient:
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
-                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",  # noqa: E501
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
                 stacklevel=3,
             )
@@ -390,7 +390,7 @@ class GPTClient:
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
-                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",  # noqa: E501
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
                 stacklevel=3,
             )
@@ -440,7 +440,7 @@ class GPTClient:
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
-                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",  # noqa: E501
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
                 stacklevel=3,
             )
@@ -494,7 +494,7 @@ class GPTClient:
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper
             warnings.warn(
-                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",  # noqa: E501
+                "temperature parameter is ignored for GPT-5 models and will be removed in a future release",
                 DeprecationWarning,
                 stacklevel=3,
             )

@@ -139,7 +139,7 @@ class NoteExplorer(BaseFeedService):
                                     original = dedup_tracker.get_original_title(normalized_title)
                                     self.logger.info(
                                         f"重複記事をスキップ: '{article.title}' "
-                                        f"(正規化後: '{normalized_title}', 初出: '{original}')"  # noqa: E501
+                                        f"(正規化後: '{normalized_title}', 初出: '{original}')"
                                     )
                                     continue
 
@@ -154,7 +154,7 @@ class NoteExplorer(BaseFeedService):
 
                     except Exception as e:
                         self.logger.error(
-                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"  # noqa: E501
+                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
                         )
 
             # 日付ごとにグループ化
@@ -176,7 +176,7 @@ class NoteExplorer(BaseFeedService):
                         }
                 except Exception as e:
                     self.logger.debug(
-                        f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}"  # noqa: E501
+                        f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}"
                     )
 
                 # 既存/新規記事数をカウント
@@ -328,7 +328,7 @@ class NoteExplorer(BaseFeedService):
 
         except Exception as e:
             self.logger.error(
-                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"  # noqa: E501
+                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
             )
             return None
 

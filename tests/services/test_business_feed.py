@@ -472,7 +472,7 @@ def test_extract_popularity_with_meta_tag(mock_env_vars):
 
         entry = Mock()
         soup = BeautifulSoup(
-            '<html><head><meta property="article:reaction_count" content="100"></head></html>',  # noqa: E501
+            '<html><head><meta property="article:reaction_count" content="100"></head></html>',
             "html.parser",
         )
 
@@ -652,7 +652,7 @@ async def test_collect_filters_non_japanese_articles(mock_env_vars):
             # 英語記事のHTMLを返す
             service.http_client.get = AsyncMock(
                 return_value=Mock(
-                    text='<html lang="en"><body><p>This is an English article.</p></body></html>'  # noqa: E501
+                    text='<html lang="en"><body><p>This is an English article.</p></body></html>'
                 )
             )
 
@@ -805,7 +805,7 @@ async def test_retrieve_article_filters_non_japanese(mock_env_vars):
         # 英語のHTML
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="en"><body><p>This is an English article.</p></body></html>'  # noqa: E501
+                text='<html lang="en"><body><p>This is an English article.</p></body></html>'
             )
         )
 

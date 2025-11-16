@@ -75,13 +75,13 @@ class ServiceRunnerTest:
         logger.info("\n" + "━" * 60)
         if len(sorted_dates) <= 1:
             logger.info(
-                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()} (テスト用：1件制限)"  # noqa: E501
+                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()} (テスト用：1件制限)"
             )
         else:
             start_date = sorted_dates[0]
             end_date = sorted_dates[-1]
             logger.info(
-                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間) (テスト用：1件制限)"  # noqa: E501
+                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間) (テスト用：1件制限)"
             )
         logger.info(f"🚀 サービス開始: {service_name}")
         logger.info("━" * 60)
@@ -124,7 +124,7 @@ class ServiceRunnerTest:
                 logger.info("━" * 60)
                 total_articles = len(saved_files)
                 logger.info(
-                    f"✨ 完了: 合計{total_articles}日分のデータを処理しました（テスト用：1件制限）\n"  # noqa: E501
+                    f"✨ 完了: 合計{total_articles}日分のデータを処理しました（テスト用：1件制限）\n"
                 )
 
         except Exception as e:

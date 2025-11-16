@@ -29,8 +29,7 @@ def merge_records(
     key : Callable[[T], Hashable]
         レコードを一意に識別するためのキー関数。
     sort_key : Callable[[T], Any] | None, default=None
-        ソートキー。None の場合は挿入順を維持する
-        （既存アイテムが先、新規アイテムが後。重複キーは新規で上書き）。
+        ソートキー。None の場合は挿入順を維持する（既存アイテムが先、新規アイテムが後。重複キーは新規で上書き）。
     limit : int | None, default=None
         返す最大件数。None の場合は制限なし。
     reverse : bool, default=True

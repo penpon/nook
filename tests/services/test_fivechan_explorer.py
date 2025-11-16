@@ -188,7 +188,7 @@ async def test_get_subject_txt_data_success(mock_env_vars):
         service = FiveChanExplorer()
 
         # Shift_JISエンコードのsubject.txtデータ
-        subject_data = "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n".encode(  # noqa: E501
+        subject_data = "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n".encode(
             "shift_jis"
         )
 

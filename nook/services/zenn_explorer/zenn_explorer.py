@@ -141,7 +141,7 @@ class ZennExplorer(BaseFeedService):
                                     original = dedup_tracker.get_original_title(normalized_title)
                                     self.logger.info(
                                         f"重複記事をスキップ: '{article.title}' "
-                                        f"(正規化後: '{normalized_title}', 初出: '{original}')"  # noqa: E501
+                                        f"(正規化後: '{normalized_title}', 初出: '{original}')"
                                     )
                                     continue
 
@@ -156,7 +156,7 @@ class ZennExplorer(BaseFeedService):
 
                     except Exception as e:
                         self.logger.error(
-                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"  # noqa: E501
+                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
                         )
 
             # 日付ごとにグループ化
@@ -180,7 +180,7 @@ class ZennExplorer(BaseFeedService):
                 except Exception as e:
                     # ファイルが存在しない場合は空のセット
                     self.logger.debug(
-                        f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}"  # noqa: E501
+                        f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}"
                     )
 
                 # 既存/新規記事数をカウント
@@ -218,7 +218,7 @@ class ZennExplorer(BaseFeedService):
                     # 新規記事がない場合でも既存ファイルがあれば処理完了として記録
                     if existing_count > 0:
                         self.logger.info(
-                            f"   📊 既存の{existing_count}件の記事を保持（新規記事なし）"  # noqa: E501
+                            f"   📊 既存の{existing_count}件の記事を保持（新規記事なし）"
                         )
                         # 既存ファイルのパスを保存ファイルリストに追加
                         try:
@@ -348,7 +348,7 @@ class ZennExplorer(BaseFeedService):
 
         except Exception as e:
             self.logger.error(
-                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"  # noqa: E501
+                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
             )
             return None
 

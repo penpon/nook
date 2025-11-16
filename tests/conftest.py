@@ -48,61 +48,6 @@ def mock_env_vars(monkeypatch):
 
 
 @pytest.fixture
-def mock_logger():
-    """setup_loggerのモック（テスト全体で共通使用）"""
-    from unittest.mock import patch
-
-    with patch("nook.common.base_service.setup_logger"):
-        yield
-
-
-@pytest.fixture
-async def hacker_news_service(mock_env_vars, mock_logger):
-    """HackerNewsRetrieverのインスタンスを提供し、自動的にcleanupを実行
-
-    使用例:
-        async def test_something(hacker_news_service):
-            service = hacker_news_service
-            await service.setup_http_client()
-            # ... テストコード ...
-            # cleanup()は自動的に呼ばれる
-    """
-    from nook.services.hacker_news.hacker_news import HackerNewsRetriever
-
-    service = HackerNewsRetriever()
-    yield service
-
-    # テスト後に自動的にcleanup
-    if service.http_client is not None:
-        await service.cleanup()
-
-
-@pytest.fixture
-async def hn_service_with_client(hacker_news_service):
-    """HTTPクライアント付きHackerNewsRetrieverインスタンス
-
-    hacker_news_service fixtureにHTTPクライアントをセットアップして返します。
-    cleanupは親fixture (hacker_news_service) によって自動的に処理されます。
-
-    使用例:
-        async def test_something(hn_service_with_client):
-            service = hn_service_with_client
-            # HTTPクライアントは既に初期化済み
-            # cleanup()はhacker_news_serviceによって自動的に呼ばれる
-    """
-    await hacker_news_service.setup_http_client()
-    return hacker_news_service
-
-
-@pytest.fixture
-def empty_dedup_tracker():
-    """空のDedupTrackerインスタンス"""
-    from nook.common.dedup import DedupTracker
-
-    return DedupTracker()
-
-
-@pytest.fixture
 def temp_data_dir(tmp_path):
     """テスト用一時データディレクトリ"""
     data_dir = tmp_path / "test_data"
@@ -275,10 +220,7 @@ def mock_github_trending_html():
             <p class="col-9 color-fg-muted my-1 pr-4">Test repository description</p>
             <div class="f6 color-fg-muted mt-2">
                 <span class="d-inline-block mr-3">
-                    <span
-                        class="repo-language-color"
-                        style="background-color:#3572A5;"
-                    ></span>
+                    <span class="repo-language-color" style="background-color:#3572A5;"></span>
                     <span>Python</span>
                 </span>
                 <span class="d-inline-block mr-3">
@@ -533,10 +475,7 @@ def mock_4chan_catalog():
                 {
                     "no": 123456,
                     "sub": "AI Discussion Thread",
-                    "com": (
-                        "Let's talk about artificial intelligence "
-                        "and machine learning"
-                    ),
+                    "com": "Let's talk about artificial intelligence and machine learning",
                     "replies": 50,
                     "images": 10,
                     "bumps": 45,
@@ -570,18 +509,15 @@ def mock_4chan_thread():
 @pytest.fixture
 def mock_5chan_subject_txt():
     """5chan subject.txtモック（Shift_JIS形式）"""
-    return (
-        "1234567890.dat<>AI・人工知能について語るスレ (100)\n"
-        "9876543210.dat<>機械学習の最新動向 (50)\n"
-    )
+    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"
 
 
 @pytest.fixture
 def mock_5chan_dat():
     """5chan datファイルモック（Shift_JIS形式）"""
-    line1 = "名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234"
-    line2 = "名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678"
-    return f"{line1}<>AIについて語りましょう<>\n{line2}<>機械学習は面白い<>\n"
+    return """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう<>
+名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い<>
+"""
 
 
 # =============================================================================

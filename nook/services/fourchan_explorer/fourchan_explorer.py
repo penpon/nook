@@ -131,7 +131,7 @@ class FourChanExplorer(BaseService):
         # boards.tomlが存在しない場合はデフォルト値を使用
         if not boards_file.exists():
             self.logger.warning(
-                f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。"  # noqa: E501
+                f"警告: {boards_file} が見つかりません。デフォルトのボードを使用します。"
             )
             return ["g", "sci", "biz", "pol"]
 
@@ -203,7 +203,7 @@ class FourChanExplorer(BaseService):
                         effective_target_dates,
                     )
                     self.logger.info(
-                        f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました"  # noqa: E501
+                        f"ボード /{board}/ から {len(threads)} 件のスレッドを取得しました"
                     )
                     candidate_threads.extend(threads)
 
@@ -407,7 +407,7 @@ class FourChanExplorer(BaseService):
                     else:
                         # これは355行目の検証により理論的には発生しないが、防御的に処理
                         self.logger.warning(
-                            "スレッド %s の有効日時とタイムスタンプが両方とも取得できませんでした",  # noqa: E501
+                            "スレッド %s の有効日時とタイムスタンプが両方とも取得できませんでした",
                             thread_id,
                         )
                         continue

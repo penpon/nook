@@ -1378,7 +1378,7 @@ def test_detect_japanese_content_with_meta_lang(mock_env_vars):
     """
     # Arrange
     service = TestFeedService()
-    html = '<html><head><meta http-equiv="content-language" content="ja"></head><body><p>Test</p></body></html>'  # noqa: E501
+    html = '<html><head><meta http-equiv="content-language" content="ja"></head><body><p>Test</p></body></html>'
     soup = BeautifulSoup(html, "html.parser")
     entry = Mock()
     entry.link = "https://example.com"

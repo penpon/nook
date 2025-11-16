@@ -211,6 +211,8 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_feed.entries = entries
             mock_parse.return_value = mock_feed
 
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
@@ -391,6 +393,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
@@ -491,6 +496,9 @@ async def test_collect_with_limit_one(mock_env_vars):
             mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
@@ -651,7 +659,7 @@ def test_extract_popularity_with_meta_tag(mock_env_vars):
 
         entry = Mock()
         soup = BeautifulSoup(
-            '<html><head><meta property="article:reaction_count" content="100"></head></html>',  # noqa: E501
+            '<html><head><meta property="article:reaction_count" content="100"></head></html>',
             "html.parser",
         )
 
@@ -832,6 +840,9 @@ async def test_collect_handles_storage_error(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
@@ -886,6 +897,9 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body><p>日本語のテスト記事</p></body></html>")
@@ -980,10 +994,13 @@ async def test_collect_japanese_check_filters_english_articles(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+
             # 英語HTMLを返す
             service.http_client.get = AsyncMock(
                 return_value=Mock(
-                    text='<html lang="en"><body><p>This is an English article.</p></body></html>'  # noqa: E501
+                    text='<html lang="en"><body><p>This is an English article.</p></body></html>'
                 )
             )
 
@@ -1022,6 +1039,9 @@ async def test_collect_http_404_error_skips_article(mock_env_vars):
             mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             # 404エラーを発生させる
             service.http_client.get = AsyncMock(
@@ -1065,6 +1085,9 @@ async def test_collect_http_500_error_skips_article(mock_env_vars):
             mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             # 500エラーを発生させる
             service.http_client.get = AsyncMock(
@@ -1170,7 +1193,7 @@ async def test_retrieve_article_japanese_detection_false(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="en"><body><p>This is an English only article. No Japanese content here.</p></body></html>'  # noqa: E501
+                text='<html lang="en"><body><p>This is an English only article. No Japanese content here.</p></body></html>'
             )
         )
 
@@ -1195,7 +1218,7 @@ async def test_retrieve_article_with_meta_description(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="ja"><head><meta name="description" content="メタディスクリプションのテキスト"></head><body></body></html>'  # noqa: E501
+                text='<html lang="ja"><head><meta name="description" content="メタディスクリプションのテキスト"></head><body></body></html>'
             )
         )
 
@@ -1220,7 +1243,7 @@ async def test_retrieve_article_popularity_score_extraction(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text='<html lang="ja"><head><meta property="article:reaction_count" content="250"></head><body><p>人気の記事</p></body></html>'  # noqa: E501
+                text='<html lang="ja"><head><meta property="article:reaction_count" content="250"></head><body><p>人気の記事</p></body></html>'
             )
         )
 
@@ -1394,6 +1417,8 @@ async def test_collect_date_filtering_within_range(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
@@ -1482,11 +1507,7 @@ async def test_retrieve_article_with_paragraphs(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text=(
-                    '<html lang="ja"><body>'
-                    "<p>第一段落</p><p>第二段落</p>"
-                    "</body></html>"
-                )
+                text='<html lang="ja"><body><p>第一段落</p><p>第二段落</p></body></html>'
             )
         )
 
@@ -1587,6 +1608,9 @@ async def test_collect_storage_save_successful(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+
             service.http_client.get = AsyncMock(
                 return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
             )
@@ -1652,6 +1676,8 @@ async def test_collect_existing_article_titles_loaded(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
@@ -1737,11 +1763,7 @@ async def test_retrieve_article_no_entry_summary_with_meta(mock_env_vars):
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text=(
-                    '<html lang="ja"><head>'
-                    '<meta name="description" content="メタの説明文">'
-                    "</head><body></body></html>"
-                )
+                text='<html lang="ja"><head><meta name="description" content="メタの説明文"></head><body></body></html>'
             )
         )
 
@@ -1766,11 +1788,7 @@ async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars
 
         service.http_client.get = AsyncMock(
             return_value=Mock(
-                text=(
-                    '<html lang="ja"><body>'
-                    "<p>段落1</p><p>段落2</p><p>段落3</p>"
-                    "</body></html>"
-                )
+                text='<html lang="ja"><body><p>段落1</p><p>段落2</p><p>段落3</p></body></html>'
             )
         )
 

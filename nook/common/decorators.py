@@ -32,7 +32,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     wait_time = delay * (backoff**attempt)
 
                     logger.warning(
-                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {type(e).__name__}: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}",  # noqa: E501
+                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {type(e).__name__}: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}",
                         extra={
                             "function": func.__name__,
                             "attempt": attempt + 1,
@@ -67,7 +67,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     wait_time = delay * (backoff**attempt)
 
                     logger.warning(
-                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {type(e).__name__}: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}"  # noqa: E501
+                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retries}): {type(e).__name__}: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}"
                     )
 
                     if attempt < retries - 1:

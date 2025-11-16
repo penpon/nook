@@ -287,9 +287,8 @@ class HackerNewsRetriever(BaseService):
             with open(blocked_domains_path, encoding="utf-8") as f:
                 blocked_data = json.load(f)
 
-            blocked_count = len(blocked_data.get("blocked_domains", []))
             self.logger.info(
-                f"ブロックドメインリストを読み込みました: {blocked_count}件"
+                f"ブロックドメインリストを読み込みました: {len(blocked_data.get('blocked_domains', []))}件"
             )
             return blocked_data
         except Exception as e:
@@ -335,8 +334,7 @@ class HackerNewsRetriever(BaseService):
                 success_count += 1
 
         self.logger.info(
-            f"Content fetch summary: {success_count} succeeded, "
-            f"{blocked_count} blocked, {error_count} failed"
+            f"Content fetch summary: {success_count} succeeded, {blocked_count} blocked, {error_count} failed"
         )
 
     def _is_http1_required_domain(self, url: str) -> bool:

@@ -274,7 +274,7 @@ class ArxivSummarizer(BaseService):
             response = await self.http_client.get(page_url)
             response.raise_for_status()
 
-            # リダイレクトを検出（実際のURLとリクエストしたURLが異なる場合はリダイレクト）  # noqa: E501
+            # リダイレクトを検出（実際のURLとリクエストしたURLが異なる場合はリダイレクト）
             if str(response.url) != page_url:
                 self.logger.info(
                     "Hugging Face日付ページが見つかりませんでした: %s",
@@ -565,7 +565,7 @@ class ArxivSummarizer(BaseService):
             翻訳されたテキスト。
         """
         try:
-            prompt = f"以下の英語の学術論文のテキストを自然な日本語に翻訳してください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。\n\n{text}"  # noqa: E501
+            prompt = f"以下の英語の学術論文のテキストを自然な日本語に翻訳してください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。\n\n{text}"
 
             translated_text = await self.gpt_client.generate_async(
                 prompt=prompt,
@@ -776,7 +776,7 @@ class ArxivSummarizer(BaseService):
 
                     except Exception as page_error:
                         self.logger.debug(
-                            f"ページ抽出失敗: {arxiv_id} page {_page_num} - {page_error}"  # noqa: E501
+                            f"ページ抽出失敗: {arxiv_id} page {_page_num} - {page_error}"
                         )
                         continue
 
@@ -806,11 +806,9 @@ class ArxivSummarizer(BaseService):
         1. 既存研究では何ができなかったのか
         2. どのようなアプローチでそれを解決しようとしたか
         3. 結果、何が達成できたのか
-        4. 制限や問題点は何ですか。
-           本文で言及されているやあなたが考えるものも含めて教えてください
+        4. 制限や問題点は何ですか。本文で言及されているやあなたが考えるものも含めて教えてください
         5. 技術的な詳細について。技術者が読むことを想定したトーンで教えてください
-        6. コストや物理的な詳細について教えてください。
-           例えばトレーニングに使用したGPUの数や時間、データセット、モデルのサイズなど
+        6. コストや物理的な詳細について教えてください。例えばトレーニングに使用したGPUの数や時間、データセット、モデルのサイズなど
         7. 参考文献のうち、特に参照すべきものを教えてください
         8. この論文を140字以内で要約するとどうなりますか？
 

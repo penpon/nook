@@ -110,7 +110,7 @@ class RedditExplorer(BaseService):
 
         if not all([self.client_id, self.client_secret, self.user_agent]):
             raise ValueError(
-                "Reddit API credentials must be provided or set as environment variables"  # noqa: E501
+                "Reddit API credentials must be provided or set as environment variables"
             )
 
         # asyncprawインスタンスは使用時に作成
@@ -192,7 +192,7 @@ class RedditExplorer(BaseService):
                             # 本来の件数と実際の取得件数を表示
                             if total_found > 0:
                                 self.logger.info(
-                                    f"   • r/{subreddit_name}: {len(posts)}件取得 (本来{total_found}件)"  # noqa: E501
+                                    f"   • r/{subreddit_name}: {len(posts)}件取得 (本来{total_found}件)"
                                 )
                             else:
                                 self.logger.info(f"   • r/{subreddit_name}: 0件取得")
@@ -202,7 +202,7 @@ class RedditExplorer(BaseService):
 
                         except Exception as e:
                             self.logger.error(
-                                f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"  # noqa: E501
+                                f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"
                             )
 
                 self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
@@ -397,7 +397,7 @@ class RedditExplorer(BaseService):
             return ""
 
         try:
-            prompt = f"以下の英語のテキストを自然な日本語に翻訳してください。専門用語や固有名詞は適切に翻訳し、必要に応じて英語の原語を括弧内に残してください。\n\n{text}"  # noqa: E501
+            prompt = f"以下の英語のテキストを自然な日本語に翻訳してください。専門用語や固有名詞は適切に翻訳し、必要に応じて英語の原語を括弧内に残してください。\n\n{text}"
 
             translated_text = self.gpt_client.generate_content(
                 prompt=prompt, temperature=0.3, max_tokens=1000

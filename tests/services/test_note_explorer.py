@@ -485,7 +485,7 @@ def test_extract_popularity_with_meta_tag(mock_env_vars):
 
         entry = Mock()
         soup = BeautifulSoup(
-            '<html><head><meta property="article:reaction_count" content="100"></head></html>',  # noqa: E501
+            '<html><head><meta property="article:reaction_count" content="100"></head></html>',
             "html.parser",
         )
 
