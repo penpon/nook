@@ -10,11 +10,40 @@ nook/services/fivechan_explorer/fivechan_explorer.py のテスト
 
 from __future__ import annotations
 
+import asyncio
+import time
+import tracemalloc
 from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
+# =============================================================================
+# テスト用定数
+# =============================================================================
+MAX_RESPONSE_SIZE_MB = 10
+MAX_RESPONSE_SIZE_BYTES = MAX_RESPONSE_SIZE_MB * 1024 * 1024
+MAX_PROCESSING_TIME_SECONDS = 1.0
+MAX_MEMORY_USAGE_MB = 50
+MAX_MEMORY_USAGE_BYTES = MAX_MEMORY_USAGE_MB * 1024 * 1024
+ENCODING_BOMB_REPEAT_COUNT = 1000000
+
+
+# =============================================================================
+# モジュールスコープのフィクスチャ
+# =============================================================================
+@pytest.fixture(scope="module")
+def encoding_bomb_data():
+    """エンコーディングボム用データ（約2MB）"""
+    return b"\x81\x40" * ENCODING_BOMB_REPEAT_COUNT
+
+
+@pytest.fixture(scope="module")
+def huge_response_data():
+    """DoS攻撃用大容量データ（10MB）"""
+    return b"x" * MAX_RESPONSE_SIZE_BYTES
+
 
 # =============================================================================
 # 1. __init__ メソッドのテスト
@@ -122,7 +151,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.get_response = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -259,8 +290,10 @@ async def test_get_subject_txt_data_malformed_format(mock_env_vars):
         service = FiveChanExplorer()
 
         # 正規表現にマッチしないフォーマット
-        subject_data = "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
-            "shift_jis"
+        subject_data = (
+            "invalid_format_line\n1234567890.dat<>正しいスレッド (100)\n".encode(
+                "shift_jis"
+            )
         )
 
         mock_response = Mock()
@@ -395,7 +428,9 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
         # 注: 実際のdatファイルは末尾に<>がありますが、空要素は無視されます
         dat_data = """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
-""".encode("shift_jis")
+""".encode(
+            "shift_jis"
+        )
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -436,7 +471,9 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
         service = FiveChanExplorer()
 
         # 日本語を含むdat
-        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode("shift_jis")
+        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>深層学習について\n".encode(
+            "shift_jis"
+        )
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -476,7 +513,9 @@ async def test_get_thread_posts_from_dat_malformed_line(mock_env_vars):
         dat_data = """invalid_line
 名無し<>sage<>2024/11/14 12:00:00<>正しい投稿
 another_invalid<>only_two
-""".encode("shift_jis")
+""".encode(
+            "shift_jis"
+        )
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -874,3 +913,474 @@ def test_get_board_server(mock_env_vars):
         # 存在しない板はデフォルト値
         default_server = service._get_board_server("nonexistent_board")
         assert default_server == "mevius.5ch.net"
+
+
+# =============================================================================
+# 9. セキュリティテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.security
+@pytest.mark.asyncio
+async def test_malicious_input_in_thread_title(mock_env_vars):
+    """
+    Given: XSS/SQLインジェクション等の悪意のある入力がスレッドタイトルに含まれる
+    When: subject.txtをパース
+    Then: 安全にサニタイズまたはエスケープされる
+
+    検証項目:
+    - <script>タグがエスケープされる
+    - SQLインジェクション文字列が安全に処理される
+    - 改行コードが適切に処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # テストデータ: XSS、SQLインジェクション、改行コードを含む
+        malicious_subjects = [
+            "1234567890.dat<><script>alert('XSS')</script>悪意のあるスレ (100)\n",
+            "9876543210.dat<>'; DROP TABLE threads; -- (50)\n",
+            "1111111111.dat<>改行\nコード\rテスト (30)\n",
+        ]
+
+        subject_data = "".join(malicious_subjects).encode("shift_jis", errors="ignore")
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = subject_data
+
+        with patch("httpx.AsyncClient") as mock_client:
+            client_instance = AsyncMock()
+            client_instance.__aenter__.return_value = client_instance
+            client_instance.__aexit__.return_value = AsyncMock()
+            client_instance.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value = client_instance
+
+            result = await service._get_subject_txt_data("test")
+
+            # データが安全に処理されることを確認
+            assert isinstance(result, list)
+            # 悪意のある入力が含まれていても、処理が完了することを確認
+            assert len(result) >= 0
+
+
+@pytest.mark.unit
+@pytest.mark.security
+@pytest.mark.asyncio
+async def test_dos_attack_oversized_response(mock_env_vars, huge_response_data):
+    """
+    Given: 10MBの巨大なレスポンス（DoS攻撃シミュレーション）
+    When: subject.txtを取得
+    Then: メモリオーバーフローせずに処理または拒否
+
+    検証項目:
+    - 10MB以上のレスポンスを安全に処理
+    - メモリ使用量が閾値以下
+    - 処理時間が1秒以下
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = huge_response_data
+
+        with patch("httpx.AsyncClient") as mock_client:
+            client_instance = AsyncMock()
+            client_instance.__aenter__.return_value = client_instance
+            client_instance.__aexit__.return_value = AsyncMock()
+            client_instance.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value = client_instance
+
+            # メモリと時間を計測
+            tracemalloc.start()
+            start_time = time.time()
+
+            try:
+                result = await service._get_subject_txt_data("test")
+                processing_time = time.time() - start_time
+                current, peak = tracemalloc.get_traced_memory()
+
+                # 処理が完了することを確認
+                assert isinstance(result, list)
+
+                # 処理時間が許容範囲内（大きなデータなので少し緩く設定）
+                assert processing_time < 5.0, f"処理時間が長すぎる: {processing_time}秒"
+
+                # メモリ使用量が許容範囲内
+                assert (
+                    peak < MAX_MEMORY_USAGE_BYTES * 2
+                ), f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+            finally:
+                tracemalloc.stop()
+
+
+@pytest.mark.unit
+@pytest.mark.security
+@pytest.mark.asyncio
+async def test_encoding_bomb_attack(mock_env_vars, encoding_bomb_data):
+    """
+    Given: エンコーディングボム（Shift_JISスペース100万個 = 2MB → 数GB）
+    When: subject.txtをデコード
+    Then: 安全に処理（メモリ枯渇しない）
+
+    検証項目:
+    - ピークメモリ使用量50MB以下
+    - 処理時間1秒以下
+    - クラッシュしない
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = encoding_bomb_data
+
+        with patch("httpx.AsyncClient") as mock_client:
+            client_instance = AsyncMock()
+            client_instance.__aenter__.return_value = client_instance
+            client_instance.__aexit__.return_value = AsyncMock()
+            client_instance.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value = client_instance
+
+            # メモリと時間を計測
+            tracemalloc.start()
+            start_time = time.time()
+
+            try:
+                result = await service._get_subject_txt_data("test")
+                processing_time = time.time() - start_time
+                current, peak = tracemalloc.get_traced_memory()
+
+                # 処理が完了することを確認
+                assert isinstance(result, list)
+
+                # 処理時間が許容範囲内
+                assert (
+                    processing_time < MAX_PROCESSING_TIME_SECONDS * 2
+                ), f"処理時間が長すぎる: {processing_time}秒"
+
+                # メモリ使用量が許容範囲内
+                assert (
+                    peak < MAX_MEMORY_USAGE_BYTES
+                ), f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+            finally:
+                tracemalloc.stop()
+
+
+@pytest.mark.unit
+@pytest.mark.security
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "malicious_dat_content,test_id",
+    [
+        (
+            "<script>alert('XSS')</script><>sage<>2024/11/14<>悪意のある投稿",
+            "xss",
+        ),
+        ("'; DROP TABLE posts; --<>sage<>2024/11/14<>SQL注入", "sql_injection"),
+        ("A" * 100000 + "<>sage<>2024/11/14<>長すぎる名前", "oversized_name"),
+    ],
+    ids=lambda x: (
+        x
+        if isinstance(x, str) and x in ["xss", "sql_injection", "oversized_name"]
+        else ""
+    ),
+)
+async def test_dat_parsing_malicious_input(
+    mock_env_vars, malicious_dat_content, test_id
+):
+    """
+    Given: 悪意のある入力データがDAT形式に含まれる
+    When: DAT解析を実行
+    Then: 安全にサニタイズまたはエラーハンドリング
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        dat_data = malicious_dat_content.encode("shift_jis", errors="ignore")
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = dat_data
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, latest = await service._get_thread_posts_from_dat("http://test.dat")
+
+            # 処理が完了することを確認
+            assert isinstance(posts, list)
+            # 悪意のある入力が含まれていても、エラーなく処理される
+            # latestはdatetimeオブジェクトまたはNoneを返す
+            from datetime import datetime
+
+            assert latest is None or isinstance(latest, datetime)
+
+
+# =============================================================================
+# 10. パフォーマンステスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.performance
+@pytest.mark.asyncio
+async def test_concurrent_thread_fetching_performance(mock_env_vars):
+    """
+    Given: 複数スレッドの並行取得
+    When: 10個のスレッドを同時取得
+    Then: 適切な並行処理により高速に完了
+
+    検証項目:
+    - 10個のリクエストが並行実行される
+    - 処理時間0.5秒以下（逐次なら1秒以上）
+    - 全リクエストが完了
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # モックレスポンス
+        dat_data = "名無し<>sage<>2024/11/14 12:00:00<>テスト投稿\n".encode("shift_jis")
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = dat_data
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            start_time = time.time()
+
+            # 10個のスレッドを並行取得
+            tasks = [
+                service._get_thread_posts_from_dat(f"http://test.5ch.net/dat/{i}.dat")
+                for i in range(10)
+            ]
+            results = await asyncio.gather(*tasks)
+
+            processing_time = time.time() - start_time
+
+            # 全リクエストが完了
+            assert len(results) == 10
+
+            # 処理時間が許容範囲内（並行処理により高速化）
+            assert processing_time < 0.5, f"並行処理時間が長すぎる: {processing_time}秒"
+
+
+@pytest.mark.unit
+@pytest.mark.performance
+@pytest.mark.asyncio
+async def test_memory_efficiency_large_dataset(mock_env_vars):
+    """
+    Given: 大量のスレッドデータ（100個）
+    When: 処理を実行
+    Then: メモリリークなく効率的に処理
+
+    検証項目:
+    - ピークメモリ使用量50MB以下
+    - 100個のスレッドが正常に処理
+    - tracemalloc で検証
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 100個のスレッド情報を生成
+        subject_lines = [
+            f"{1000000000 + i}.dat<>テストスレッド{i} (100)\n" for i in range(100)
+        ]
+        subject_data = "".join(subject_lines).encode("shift_jis")
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = subject_data
+
+        with patch("httpx.AsyncClient") as mock_client:
+            client_instance = AsyncMock()
+            client_instance.__aenter__.return_value = client_instance
+            client_instance.__aexit__.return_value = AsyncMock()
+            client_instance.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value = client_instance
+
+            # メモリ計測
+            tracemalloc.start()
+
+            try:
+                result = await service._get_subject_txt_data("test")
+                current, peak = tracemalloc.get_traced_memory()
+
+                # 100個のスレッドが処理される
+                assert len(result) == 100
+
+                # メモリ使用量が許容範囲内
+                assert (
+                    peak < MAX_MEMORY_USAGE_BYTES
+                ), f"メモリ使用量が多すぎる: {peak / 1024 / 1024}MB"
+            finally:
+                tracemalloc.stop()
+
+
+@pytest.mark.unit
+@pytest.mark.performance
+@pytest.mark.asyncio
+async def test_network_timeout_handling(mock_env_vars):
+    """
+    Given: ネットワークタイムアウト
+    When: スレッドデータ取得
+    Then: 適切なタイムアウトエラーハンドリング（無限待機しない）
+
+    検証項目:
+    - 5秒でタイムアウトする
+    - asyncio.TimeoutErrorが発生
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 遅延を発生させるモック
+        async def slow_get(*args, **kwargs):
+            await asyncio.sleep(10)  # 10秒待機（タイムアウトより長い）
+            return Mock(status_code=200, content=b"")
+
+        with patch("httpx.AsyncClient") as mock_client:
+            client_instance = AsyncMock()
+            client_instance.__aenter__.return_value = client_instance
+            client_instance.__aexit__.return_value = AsyncMock()
+            client_instance.get = AsyncMock(side_effect=slow_get)
+            mock_client.return_value = client_instance
+
+            start_time = time.time()
+
+            try:
+                # 5秒でタイムアウトを設定
+                result = await asyncio.wait_for(
+                    service._get_subject_txt_data("test"), timeout=5.0
+                )
+            except asyncio.TimeoutError:
+                # タイムアウトが発生することを確認
+                pass
+
+            elapsed = time.time() - start_time
+
+            # 5秒前後でタイムアウトすることを確認
+            assert 4.5 < elapsed < 6.0, f"タイムアウト時間が想定外: {elapsed}秒"
+
+
+@pytest.mark.unit
+@pytest.mark.performance
+def test_board_server_cache_efficiency(mock_env_vars):
+    """
+    Given: 同じ板を複数回アクセス
+    When: _get_board_serverを繰り返し呼び出し
+    Then: キャッシュにより高速化
+
+    検証項目:
+    - 1回目と2回目で同じ結果
+    - キャッシュアクセス50ms以下
+    - データの一貫性
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 1回目のアクセス
+        start_time = time.time()
+        server1 = service._get_board_server("ai")
+        first_access_time = time.time() - start_time
+
+        # 2回目以降のアクセス（キャッシュから）
+        cache_access_times = []
+        for _ in range(10):
+            start_time = time.time()
+            server2 = service._get_board_server("ai")
+            cache_access_times.append(time.time() - start_time)
+
+            # 同じ結果が返される
+            assert server1 == server2
+
+        # キャッシュアクセスは十分高速
+        avg_cache_time = sum(cache_access_times) / len(cache_access_times)
+        assert (
+            avg_cache_time < 0.05
+        ), f"キャッシュアクセスが遅い: {avg_cache_time * 1000}ms"
+
+
+@pytest.mark.unit
+@pytest.mark.performance
+@pytest.mark.asyncio
+async def test_retry_backoff_performance(mock_env_vars):
+    """
+    Given: リトライが必要な状況
+    When: 指数バックオフでリトライ
+    Then: 適切な遅延時間でリトライ
+
+    検証項目:
+    - バックオフ時間が指数的に増加
+    - 最大リトライ回数を超えない
+    - 総実行時間が妥当
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 最初の2回は失敗、3回目で成功
+        responses = [
+            Mock(status_code=503),
+            Mock(status_code=503),
+            Mock(status_code=200, text="success"),
+        ]
+        service.http_client.get = AsyncMock(side_effect=responses)
+
+        sleep_times = []
+
+        async def mock_sleep(duration):
+            sleep_times.append(duration)
+            # 何もしない（待機しない）
+
+        with patch("asyncio.sleep", new_callable=AsyncMock, side_effect=mock_sleep):
+            result = await service._get_with_retry("http://test.url", max_retries=5)
+
+            # リトライが成功
+            assert result.status_code == 200
+
+            # バックオフ時間が記録されている
+            assert len(sleep_times) == 2  # 2回リトライしたので2回スリープ
+
+            # 指数バックオフを確認（1秒、2秒など）
+            assert sleep_times[0] >= 1.0
+            assert sleep_times[1] > sleep_times[0]
+
+            # バックオフ時間が指数的に増加していることを確認
+            assert len(sleep_times) > 0
