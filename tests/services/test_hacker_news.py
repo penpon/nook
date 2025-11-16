@@ -52,7 +52,7 @@ nook/services/hacker_news/hacker_news.py のユニットテスト
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
 import httpx

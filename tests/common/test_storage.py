@@ -100,9 +100,11 @@ def test_init_permission_error():
     When: LocalStorageを初期化
     Then: OSError/PermissionError発生
     """
-    with patch("pathlib.Path.mkdir", side_effect=PermissionError("Permission denied")):
-        with pytest.raises(PermissionError):
-            LocalStorage(base_dir="/root/restricted")
+    with (
+        patch("pathlib.Path.mkdir", side_effect=PermissionError("Permission denied")),
+        pytest.raises(PermissionError),
+    ):
+        LocalStorage(base_dir="/root/restricted")
 
 
 # =============================================================================
@@ -251,9 +253,11 @@ def test_save_markdown_permission_error(tmp_path):
     """
     storage = LocalStorage(base_dir=str(tmp_path))
 
-    with patch("builtins.open", side_effect=PermissionError("Permission denied")):
-        with pytest.raises(PermissionError):
-            storage.save_markdown("Test", "test")
+    with (
+        patch("builtins.open", side_effect=PermissionError("Permission denied")),
+        pytest.raises(PermissionError),
+    ):
+        storage.save_markdown("Test", "test")
 
 
 @pytest.mark.unit
@@ -265,9 +269,11 @@ def test_save_markdown_disk_full_error(tmp_path):
     """
     storage = LocalStorage(base_dir=str(tmp_path))
 
-    with patch("builtins.open", side_effect=OSError("No space left on device")):
-        with pytest.raises(OSError):
-            storage.save_markdown("Test", "test")
+    with (
+        patch("builtins.open", side_effect=OSError("No space left on device")),
+        pytest.raises(OSError),
+    ):
+        storage.save_markdown("Test", "test")
 
 
 # =============================================================================
@@ -384,9 +390,11 @@ def test_load_markdown_permission_error(tmp_path):
     storage.save_markdown("Test", service_name)
 
     # 読み込み時にエラー
-    with patch("builtins.open", side_effect=PermissionError("Permission denied")):
-        with pytest.raises(PermissionError):
-            storage.load_markdown(service_name)
+    with (
+        patch("builtins.open", side_effect=PermissionError("Permission denied")),
+        pytest.raises(PermissionError),
+    ):
+        storage.load_markdown(service_name)
 
 
 # =============================================================================
