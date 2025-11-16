@@ -927,12 +927,15 @@ async def test_malicious_input_in_thread_title(mock_env_vars):
     """
     Given: XSS/SQLインジェクション等の悪意のある入力がスレッドタイトルに含まれる
     When: subject.txtをパース
-    Then: 安全にサニタイズまたはエスケープされる
+    Then: エラーなく処理され、データが保存される（サニタイゼーションは表示層で行う設計）
 
     検証項目:
-    - <script>タグがエスケープされる
-    - SQLインジェクション文字列が安全に処理される
-    - 改行コードが適切に処理される
+    - 悪意のある入力を含むデータでもパースエラーにならない
+    - データ構造が正しく保たれる
+    - 改行コードがフィールド区切りを壊さない
+
+    注: XSS/SQLインジェクション対策は表示層・クエリ層で行う設計のため、
+        ここでは元データをそのまま保存できることを検証
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
@@ -961,10 +964,20 @@ async def test_malicious_input_in_thread_title(mock_env_vars):
 
             result = await service._get_subject_txt_data("test")
 
-            # データが安全に処理されることを確認
+            # データが正しく処理されることを確認
             assert isinstance(result, list)
-            # 悪意のある入力が含まれていても、処理が完了することを確認
-            assert len(result) >= 0
+            # 改行を含むデータは複数行に分割されるため、2つのスレッドがパースされる
+            assert len(result) >= 2, "少なくとも2つのスレッドがパースされるべき"
+
+            # データ構造の整合性を確認
+            for thread in result:
+                assert "title" in thread
+                assert "timestamp" in thread
+                assert "post_count" in thread
+                # 改行コードを含むタイトルは、各行が個別のスレッドとしてパースされる
+                # （改行コードは正規表現マッチングを妨げる可能性がある）
+                # タイトル内の改行は strip() で除去される
+                # （XSS/SQLインジェクション対策は表示層で行う）
 
 
 @pytest.mark.unit
@@ -1096,7 +1109,10 @@ async def test_dat_parsing_malicious_input(
     """
     Given: 悪意のある入力データがDAT形式に含まれる
     When: DAT解析を実行
-    Then: 安全にサニタイズまたはエラーハンドリング
+    Then: エラーなく処理される（サニタイゼーションは表示層の責任）
+
+    注: データ収集層では元データを保持し、XSS/SQLインジェクション対策は
+        表示層・クエリ層で行う設計のため、ここではパースが正常に完了することを検証
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
@@ -1122,13 +1138,27 @@ async def test_dat_parsing_malicious_input(
         ):
             posts, latest = await service._get_thread_posts_from_dat("http://test.dat")
 
-            # 処理が完了することを確認
+            # 処理が完了することを確認（エラーにならないことが重要）
             assert isinstance(posts, list)
-            # 悪意のある入力が含まれていても、エラーなく処理される
-            # latestはdatetimeオブジェクトまたはNoneを返す
             from datetime import datetime
 
             assert latest is None or isinstance(latest, datetime)
+
+            # ケース別の検証: パースが正常に完了し、データ構造が保たれることを確認
+            if len(posts) > 0:
+                post = posts[0]
+                assert "name" in post
+                assert "mail" in post  # emailではなくmail
+                assert "date" in post
+                assert "com" in post  # bodyではなくcom
+                assert isinstance(post["name"], str)
+                assert isinstance(post["com"], str)
+
+                # oversized_nameケース: 巨大なデータでもメモリエラーにならないことを確認
+                if test_id == "oversized_name":
+                    # 10万文字のデータが読み込まれても処理が完了すること
+                    # （メモリ制限やバッファオーバーフローが発生しないこと）
+                    assert len(post["name"]) > 0, "データが正しく読み込まれていない"
 
 
 # =============================================================================
