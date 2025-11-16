@@ -88,7 +88,7 @@ async def batch_process(
     )
 
 
-def run_sync_in_thread[T](sync_func: Callable[..., T], *args, **kwargs) -> asyncio.Future[T]:
+def run_sync_in_thread(sync_func: Callable[..., Any], *args, **kwargs) -> asyncio.Future[Any]:
     """同期関数を別スレッドで実行"""
     loop = asyncio.get_event_loop()
     executor = ThreadPoolExecutor(max_workers=1)
