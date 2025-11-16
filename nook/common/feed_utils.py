@@ -65,7 +65,9 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         except (TypeError, ValueError):
             continue
 
-        return datetime.fromtimestamp(timestamp, tz=UTC).replace(tzinfo=None) + timedelta(hours=9)
+        return datetime.fromtimestamp(timestamp, tz=UTC).replace(
+            tzinfo=None
+        ) + timedelta(hours=9)
 
     for field in _STRING_FIELDS:
         value = _get_entry_value(entry, field)

@@ -23,7 +23,9 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                 try:
                     result = await func(*args, **kwargs)
                     if attempt > 0:
-                        logger.info(f"Function {func.__name__} succeeded after {attempt} retries")
+                        logger.info(
+                            f"Function {func.__name__} succeeded after {attempt} retries"
+                        )
                     return result
 
                 except Exception as e:
@@ -44,8 +46,12 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     if attempt < retries - 1:
                         await asyncio.sleep(wait_time)
                     else:
-                        logger.error(f"Function {func.__name__} failed after {retries} attempts")
-                        raise RetryException(f"Failed after {retries} attempts: {e}") from e
+                        logger.error(
+                            f"Function {func.__name__} failed after {retries} attempts"
+                        )
+                        raise RetryException(
+                            f"Failed after {retries} attempts: {e}"
+                        ) from e
 
             raise last_exception
 
@@ -58,7 +64,9 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                 try:
                     result = func(*args, **kwargs)
                     if attempt > 0:
-                        logger.info(f"Function {func.__name__} succeeded after {attempt} retries")
+                        logger.info(
+                            f"Function {func.__name__} succeeded after {attempt} retries"
+                        )
                     return result
 
                 except Exception as e:
@@ -72,8 +80,12 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     if attempt < retries - 1:
                         asyncio.sleep(wait_time)
                     else:
-                        logger.error(f"Function {func.__name__} failed after {retries} attempts")
-                        raise RetryException(f"Failed after {retries} attempts: {e}") from e
+                        logger.error(
+                            f"Function {func.__name__} failed after {retries} attempts"
+                        )
+                        raise RetryException(
+                            f"Failed after {retries} attempts: {e}"
+                        ) from e
 
             raise last_exception
 

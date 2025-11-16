@@ -217,7 +217,9 @@ async def load_existing_titles_from_storage(
                     if title:
                         tracker.add(title)
                 if logger:
-                    logger.debug(f"📂 既存記事読み込み: {date_str}.json ({len(articles)}件)")
+                    logger.debug(
+                        f"📂 既存記事読み込み: {date_str}.json ({len(articles)}件)"
+                    )
         except FileNotFoundError:
             # ファイルが存在しない場合はスキップ
             if logger:
@@ -231,12 +233,16 @@ async def load_existing_titles_from_storage(
 
         # Markdownファイルからも読み込み（フォールバック）
         try:
-            markdown_content = storage.load_markdown("", datetime.combine(target_date, time.min))
+            markdown_content = storage.load_markdown(
+                "", datetime.combine(target_date, time.min)
+            )
             if markdown_content:
                 # Markdownから記事タイトルを抽出（### [タイトル](URL) 形式）
                 import re
 
-                for match in re.finditer(r"^### \[(.+?)\]", markdown_content, re.MULTILINE):
+                for match in re.finditer(
+                    r"^### \[(.+?)\]", markdown_content, re.MULTILINE
+                ):
                     title = match.group(1)
                     tracker.add(title)
                 if logger:
