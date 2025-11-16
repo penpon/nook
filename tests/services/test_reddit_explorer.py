@@ -105,7 +105,9 @@ async def test_collect_with_multiple_subreddits(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
             patch("asyncpraw.Reddit") as mock_reddit,
-            patch("tomllib.load", return_value={"subreddits": ["python", "programming"]}),
+            patch(
+                "tomllib.load", return_value={"subreddits": ["python", "programming"]}
+            ),
         ):
             mock_subreddit = Mock()
             mock_subreddit.hot = AsyncMock(return_value=[])
@@ -175,7 +177,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
             mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
 
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.get_response = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(target_dates=[date.today()])
 

@@ -20,7 +20,18 @@ import pytest
 
 from nook.services.base_feed_service import Article
 from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
-from tests.conftest import create_mock_entry
+
+
+def create_mock_entry(
+    title="Test", link="https://example.com", summary="Summary", published_parsed=None
+):
+    """Create a mock RSS entry for testing."""
+    entry = Mock()
+    entry.title = title
+    entry.link = link
+    entry.summary = summary
+    entry.published_parsed = published_parsed or (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+    return entry
 
 
 @pytest.mark.unit
@@ -42,7 +53,9 @@ async def test_retrieve_article_success(mock_env_vars):
         )
 
         service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body><p>これは日本語の記事です</p></body></html>")
+            return_value=Mock(
+                text="<html><body><p>これは日本語の記事です</p></body></html>"
+            )
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
@@ -107,7 +120,9 @@ async def test_retrieve_article_http_404_error(mock_env_vars):
         service = ZennExplorer()
         service.http_client = AsyncMock()
 
-        entry = create_mock_entry(title="テスト記事", link="https://example.com/not-found")
+        entry = create_mock_entry(
+            title="テスト記事", link="https://example.com/not-found"
+        )
 
         service.http_client.get = AsyncMock(
             side_effect=httpx.HTTPStatusError(
@@ -214,7 +229,9 @@ async def test_retrieve_article_paragraph_fallback(mock_env_vars):
         </html>
         """
 
-        service.http_client.get = AsyncMock(return_value=Mock(text=html_with_paragraphs))
+        service.http_client.get = AsyncMock(
+            return_value=Mock(text=html_with_paragraphs)
+        )
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -246,7 +263,9 @@ async def test_retrieve_article_entry_summary_priority(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "entry.summaryがある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "entry.summaryがある場合、Articleオブジェクトが返されるべき"
         assert result.text == "エントリのサマリーテキスト"
 
 
@@ -378,7 +397,9 @@ async def test_retrieve_article_no_content_anywhere(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "コンテンツがなくてもArticleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "コンテンツがなくてもArticleオブジェクトが返されるべき"
         assert result.text == ""
 
 
@@ -406,7 +427,9 @@ async def test_retrieve_article_with_title_attribute_missing(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "段落のみがある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "段落のみがある場合、Articleオブジェクトが返されるべき"
         assert result.title == "無題"
 
 
@@ -446,7 +469,9 @@ async def test_retrieve_article_with_five_or_more_paragraphs(mock_env_vars):
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        assert result is not None, "5つ以上の段落がある場合、Articleオブジェクトが返されるべき"
+        assert (
+            result is not None
+        ), "5つ以上の段落がある場合、Articleオブジェクトが返されるべき"
         # 最初の5つの段落が含まれている
         assert "段落1" in result.text
         assert "段落5" in result.text
@@ -509,7 +534,17 @@ async def test_retrieve_article_published_at_extraction(mock_env_vars):
         entry.title = "テスト記事"
         entry.link = "https://example.com/test"
         entry.summary = "説明"
-        entry.published_parsed = (2024, 11, 14, 0, 30, 45, 0, 0, 0)  # 0時なので+9時間でも14日のまま
+        entry.published_parsed = (
+            2024,
+            11,
+            14,
+            0,
+            30,
+            45,
+            0,
+            0,
+            0,
+        )  # 0時なので+9時間でも14日のまま
 
         service.http_client.get = AsyncMock(
             return_value=Mock(text="<html><body><p>テキスト</p></body></html>")

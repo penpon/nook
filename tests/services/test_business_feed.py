@@ -80,7 +80,9 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
                 "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -103,7 +105,9 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>日本語テキスト</p></body></html>"
+                )
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -132,7 +136,9 @@ async def test_collect_with_multiple_articles(mock_env_vars):
                 "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -153,7 +159,9 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>日本語テキスト</p></body></html>"
+                )
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -289,7 +297,9 @@ async def test_collect_http_client_timeout(mock_env_vars):
             mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
-            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            service.http_client.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Timeout")
+            )
 
             result = await service.collect(days=1)
 
@@ -316,7 +326,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -335,7 +347,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.get_response = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(days=1)
 
@@ -396,7 +410,9 @@ async def test_collect_with_limit_one(mock_env_vars):
                 "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -688,7 +704,9 @@ async def test_collect_processes_multiple_categories(mock_env_vars):
                 "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -941,9 +959,7 @@ def test_extract_popularity_with_reaction_name_meta_tag(mock_env_vars):
         service = BusinessFeed()
 
         entry = Mock()
-        html = (
-            "<html><head> <meta name='reaction-count' content='175'> </head> <body></body></html>"
-        )
+        html = "<html><head> <meta name='reaction-count' content='175'> </head> <body></body></html>"
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1003,7 +1019,9 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -1025,7 +1043,9 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>日本語のビジネス記事</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>日本語のビジネス記事</p></body></html>"
+                )
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約テキスト")
 
@@ -1054,7 +1074,9 @@ async def test_retrieve_article_http_timeout(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         # タイムアウト例外をシミュレート
-        service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Request timeout"))
+        service.http_client.get = AsyncMock(
+            side_effect=httpx.TimeoutException("Request timeout")
+        )
 
         result = await service._retrieve_article(entry, "Test Feed", "business")
 
@@ -1142,11 +1164,15 @@ async def test_collect_complete_workflow_with_article_save(mock_env_vars):
             )
 
             # GPT要約成功
-            service.gpt_client.get_response = AsyncMock(return_value="要約されたビジネス記事")
+            service.gpt_client.get_response = AsyncMock(
+                return_value="要約されたビジネス記事"
+            )
 
             # ストレージモック(save成功)
             service.storage.load = AsyncMock(return_value=None)  # 既存記事なし
-            service.storage.save = AsyncMock(return_value="/data/business_feed/2024-11-14.json")
+            service.storage.save = AsyncMock(
+                return_value="/data/business_feed/2024-11-14.json"
+            )
 
             # collect実行
             result = await service.collect(days=1, target_dates=[date(2024, 11, 14)])
@@ -1202,7 +1228,9 @@ async def test_collect_detects_duplicate_after_article_creation(mock_env_vars):
 
             # HTTP取得は成功(記事は作成される)
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>これは日本語記事です.</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>これは日本語記事です.</p></body></html>"
+                )
             )
 
             result = await service.collect(days=1, target_dates=[date(2024, 11, 14)])
@@ -1274,7 +1302,9 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
                 ]
             )
             service.storage.load = AsyncMock(return_value=existing_json)
-            service.storage.save = AsyncMock(return_value="/data/business_feed/2024-11-14.json")
+            service.storage.save = AsyncMock(
+                return_value="/data/business_feed/2024-11-14.json"
+            )
 
             result = await service.collect(days=1, target_dates=[date(2024, 11, 14)])
 

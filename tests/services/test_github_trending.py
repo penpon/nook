@@ -234,7 +234,9 @@ async def test_collect_network_error(mock_env_vars):
                 return_value=[],
             ),
         ):
-            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            service.http_client.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Timeout")
+            )
 
             # エラーが発生することを期待
             with pytest.raises(Exception):
@@ -302,7 +304,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             ),
         ):
             service.http_client.get = AsyncMock(return_value=Mock(text=mock_html))
-            service.gpt_client.generate_async = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.generate_async = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -605,7 +609,9 @@ async def test_translate_repositories_with_progress_callback(mock_env_vars):
         def callback(idx, total, name):
             callback_called.append((idx, total, name))
 
-        await service._translate_repositories([("python", repos)], progress_callback=callback)
+        await service._translate_repositories(
+            [("python", repos)], progress_callback=callback
+        )
 
         assert len(callback_called) == 1
 
@@ -999,7 +1005,9 @@ async def test_collect_respects_rate_limit(mock_env_vars):
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
-            patch.object(service, "rate_limit", new_callable=AsyncMock) as mock_rate_limit,
+            patch.object(
+                service, "rate_limit", new_callable=AsyncMock
+            ) as mock_rate_limit,
             patch.object(
                 service,
                 "_load_existing_repositories_by_date",
@@ -1091,7 +1099,9 @@ def test_load_existing_repositories_read_error(mock_env_vars):
 
         with (
             patch.object(Path, "exists", return_value=True),
-            patch.object(Path, "read_text", side_effect=PermissionError("Permission denied")),
+            patch.object(
+                Path, "read_text", side_effect=PermissionError("Permission denied")
+            ),
         ):
             tracker = service._load_existing_repositories()
 
@@ -1119,7 +1129,9 @@ async def test_load_existing_repositories_by_date_with_json_dict(mock_env_vars):
         }
 
         with patch.object(service, "load_json", return_value=existing_data):
-            result = await service._load_existing_repositories_by_date(datetime(2024, 1, 1))
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
 
             assert len(result) == 3
             assert result[0]["language"] == "Python"
@@ -1144,7 +1156,9 @@ async def test_load_existing_repositories_by_date_with_json_list(mock_env_vars):
         ]
 
         with patch.object(service, "load_json", return_value=existing_data):
-            result = await service._load_existing_repositories_by_date(datetime(2024, 1, 1))
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
 
             assert len(result) == 2
             assert result[0]["name"] == "repo1"
@@ -1168,14 +1182,18 @@ async def test_load_existing_repositories_by_date_with_markdown(mock_env_vars):
         Description
         """
 
-        expected_repos = [{"name": "test-repo", "url": "https://github.com/owner/test-repo"}]
+        expected_repos = [
+            {"name": "test-repo", "url": "https://github.com/owner/test-repo"}
+        ]
 
         with (
             patch.object(service, "load_json", return_value=None),
             patch.object(service.storage, "load", return_value=markdown_content),
             patch.object(service, "_parse_markdown", return_value=expected_repos),
         ):
-            result = await service._load_existing_repositories_by_date(datetime(2024, 1, 1))
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
 
             assert result == expected_repos
 
@@ -1195,7 +1213,9 @@ async def test_load_existing_repositories_by_date_no_data(mock_env_vars):
             patch.object(service, "load_json", return_value=None),
             patch.object(service.storage, "load", return_value=None),
         ):
-            result = await service._load_existing_repositories_by_date(datetime(2024, 1, 1))
+            result = await service._load_existing_repositories_by_date(
+                datetime(2024, 1, 1)
+            )
 
             assert result == []
 

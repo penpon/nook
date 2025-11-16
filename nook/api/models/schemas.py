@@ -38,7 +38,9 @@ class ContentItem(BaseModel):
     title: str = Field(..., description="タイトル")
     content: str = Field(..., description="コンテンツ本文")
     url: str | None = Field(None, description="関連URL")
-    source: str = Field(..., description="ソース（reddit, hackernews, github, techfeed, paper）")
+    source: str = Field(
+        ..., description="ソース（reddit, hackernews, github, techfeed, paper）"
+    )
 
 
 class ContentResponse(BaseModel):

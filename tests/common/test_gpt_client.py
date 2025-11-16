@@ -258,7 +258,9 @@ def test_count_tokens_encoding_error_returns_zero(monkeypatch):
     """
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     client = GPTClient()
-    with patch.object(client.encoding, "encode", side_effect=Exception("Encoding error")):
+    with patch.object(
+        client.encoding, "encode", side_effect=Exception("Encoding error")
+    ):
         count = client._count_tokens("test")
         assert count == 0
 
@@ -799,7 +801,9 @@ def test_chat_with_search_gpt5_basic(monkeypatch):
     mock_response.id = "resp-search-123"
 
     with patch.object(client.client.responses, "create", return_value=mock_response):
-        result = client.chat_with_search(message="What is this?", context="This is context.")
+        result = client.chat_with_search(
+            message="What is this?", context="This is context."
+        )
         assert result == "GPT-5 search response"
 
 
@@ -1009,7 +1013,9 @@ def test_call_gpt5_all_attempts_fail(monkeypatch):
     mock_response.output_text = ""
     mock_response.id = "resp-fail"
 
-    with patch.object(client.client.responses, "create", return_value=mock_response) as mock_create:
+    with patch.object(
+        client.client.responses, "create", return_value=mock_response
+    ) as mock_create:
         result = client._call_gpt5("Test prompt", None, 1000)
         # 3回試行されることを確認
         assert mock_create.call_count == 3
@@ -1130,7 +1136,9 @@ def test_call_gpt5_with_system_instruction(monkeypatch):
     mock_response.output_text = "Response with system"
     mock_response.id = "resp-sys"
 
-    with patch.object(client.client.responses, "create", return_value=mock_response) as mock_create:
+    with patch.object(
+        client.client.responses, "create", return_value=mock_response
+    ) as mock_create:
         result = client._call_gpt5("Test", "You are helpful", 1000)
         assert result == "Response with system"
         call_kwargs = mock_create.call_args[1]
@@ -1154,7 +1162,9 @@ def test_call_gpt5_chat_with_system_instruction(monkeypatch):
 
     messages = [{"role": "user", "content": "Hello"}]
 
-    with patch.object(client.client.responses, "create", return_value=mock_response) as mock_create:
+    with patch.object(
+        client.client.responses, "create", return_value=mock_response
+    ) as mock_create:
         result = client._call_gpt5_chat(messages, "You are helpful", 1000)
         assert result == "Chat with system"
         call_kwargs = mock_create.call_args[1]
@@ -1174,7 +1184,9 @@ def test_get_calling_service_from_services_directory(monkeypatch):
 
     # モックフレームチェーンを作成
     mock_frame2 = Mock()
-    mock_frame2.f_code.co_filename = "/path/to/nook/services/reddit_explorer/reddit_explorer.py"
+    mock_frame2.f_code.co_filename = (
+        "/path/to/nook/services/reddit_explorer/reddit_explorer.py"
+    )
     mock_frame2.f_back = None
 
     mock_frame1 = Mock()
@@ -1198,7 +1210,9 @@ def test_get_calling_service_special_cases(monkeypatch):
 
     # run_services.pyをスキップするケース
     mock_frame3 = Mock()
-    mock_frame3.f_code.co_filename = "/path/to/nook/services/reddit_explorer/reddit_explorer.py"
+    mock_frame3.f_code.co_filename = (
+        "/path/to/nook/services/reddit_explorer/reddit_explorer.py"
+    )
     mock_frame3.f_back = None
 
     mock_frame2 = Mock()
@@ -1255,7 +1269,9 @@ def test_get_calling_service_py_file_skip(monkeypatch):
 
     # 有効なサービスフレーム
     mock_frame3 = Mock()
-    mock_frame3.f_code.co_filename = "/path/to/nook/services/github_trending/github_trending.py"
+    mock_frame3.f_code.co_filename = (
+        "/path/to/nook/services/github_trending/github_trending.py"
+    )
     mock_frame3.f_back = None
 
     # .pyファイルをスキップ
