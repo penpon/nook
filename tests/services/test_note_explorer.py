@@ -93,7 +93,9 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -116,7 +118,9 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>日本語テキスト</p></body></html>"
+                )
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -145,7 +149,9 @@ async def test_collect_with_multiple_articles(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -166,7 +172,9 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
+                return_value=Mock(
+                    text="<html><body><p>日本語テキスト</p></body></html>"
+                )
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -302,7 +310,9 @@ async def test_collect_http_client_timeout(mock_env_vars):
             mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
-            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            service.http_client.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Timeout")
+            )
 
             result = await service.collect(days=1)
 
@@ -329,7 +339,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -348,7 +360,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.get_response = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(days=1)
 
@@ -409,7 +423,9 @@ async def test_collect_with_limit_one(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -617,7 +633,9 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -686,7 +704,9 @@ async def test_collect_with_duplicate_detection(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_func,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # DedupTrackerのモックを作成
@@ -784,7 +804,9 @@ async def test_collect_storage_save_failure(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "save",
@@ -928,7 +950,9 @@ async def test_retrieve_article_with_empty_html(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         # 空のHTML
-        service.http_client.get = AsyncMock(return_value=Mock(text="<html><body></body></html>"))
+        service.http_client.get = AsyncMock(
+            return_value=Mock(text="<html><body></body></html>")
+        )
 
         result = await service._retrieve_article(entry, "Test Feed", "general")
 
@@ -953,7 +977,9 @@ async def test_retrieve_article_with_malformed_html(mock_env_vars):
 
         # 不正なHTML(タグが閉じていない等)
         service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body><p>テキスト</body>")  # pタグが閉じていない
+            return_value=Mock(
+                text="<html><body><p>テキスト</body>"
+            )  # pタグが閉じていない
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "general")
@@ -1209,7 +1235,9 @@ async def test_collect_existing_json_parse_error(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # 不正なJSONを返す
@@ -1261,7 +1289,9 @@ async def test_collect_existing_file_load_exception(mock_env_vars):
                 "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock
+            ) as mock_storage_load,
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # ロード時に例外を発生させる
