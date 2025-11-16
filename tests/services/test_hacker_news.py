@@ -2518,8 +2518,9 @@ async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
                     target_dates=[today.date(), yesterday.date()],
                 )
 
-                # 日付別にグループ化され、ストーリーが選択される
-                assert len(stories) >= 1
+                # 日付別にグループ化され、各日から少なくとも1件のストーリーが選択される
+                story_dates = {s.created_at.date() for s in stories if s.created_at}
+                assert len(story_dates) >= 2, "複数の日付からストーリーが含まれるべき"
 
                 # 高スコアのストーリーが含まれていることを確認
                 scores = [s.score for s in stories]

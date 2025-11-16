@@ -880,11 +880,15 @@ def hacker_news_service(mock_logger):
 
 
 @pytest.fixture
-def fourchan_service(mock_logger, mock_env_vars):
+async def fourchan_service(mock_logger, mock_env_vars):
     """FourChanExplorerのフィクスチャ"""
     with patch("nook.common.base_service.setup_logger", return_value=mock_logger):
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 
         service = FourChanExplorer()
         service.logger = mock_logger
-        return service
+        try:
+            yield service
+        finally:
+            if hasattr(service, "http_client") and service.http_client is not None:
+                await service.cleanup()

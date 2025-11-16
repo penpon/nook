@@ -12,7 +12,8 @@ nook/services/fourchan_explorer/fourchan_explorer.py のテスト
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, date, datetime, timezone
+import json
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
@@ -2123,15 +2124,14 @@ async def test_store_summaries_with_threads(mock_env_vars):
             new_callable=AsyncMock,
         ) as mock_store:
             mock_store.return_value = [
-                ("data/fourchan_explorer/2024-11-14.json", "json"),
-                ("data/fourchan_explorer/2024-11-14.md", "markdown"),
+                ("data/fourchan_explorer/2024-11-14.json", "data/fourchan_explorer/2024-11-14.md"),
             ]
 
             result = await service._store_summaries(threads, target_dates)
 
-            assert len(result) == 2
+            assert len(result) == 1
             assert result[0][0].endswith(".json")
-            assert result[1][0].endswith(".md")
+            assert result[0][1].endswith(".md")
             mock_store.assert_called_once()
 
 
