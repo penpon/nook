@@ -226,13 +226,13 @@ async def test_handle_api_error_logging():
     with pytest.raises(APIException):
         await test_func()
 
-    # errorログが呼ばれたことを確認
-    assert handler.logger.error.called
-    log_message = handler.logger.error.call_args[0][0]
+    # exceptionログが呼ばれたことを確認
+    assert handler.logger.exception.called
+    log_message = handler.logger.exception.call_args[0][0]
     assert "API call failed" in log_message
 
     # extraパラメータの確認
-    call_kwargs = handler.logger.error.call_args[1]
+    call_kwargs = handler.logger.exception.call_args[1]
     assert "extra" in call_kwargs
     assert call_kwargs["extra"]["service"] == "test_service"
     assert call_kwargs["extra"]["api"] == "test_api"
@@ -364,13 +364,13 @@ async def test_handle_data_processing_logging():
     with pytest.raises(ServiceException):
         await test_func()
 
-    # errorログが呼ばれたことを確認
-    assert handler.logger.error.called
-    log_message = handler.logger.error.call_args[0][0]
+    # exceptionログが呼ばれたことを確認
+    assert handler.logger.exception.called
+    log_message = handler.logger.exception.call_args[0][0]
     assert "Data processing failed" in log_message
 
     # extraパラメータの確認
-    call_kwargs = handler.logger.error.call_args[1]
+    call_kwargs = handler.logger.exception.call_args[1]
     assert "extra" in call_kwargs
     assert call_kwargs["extra"]["service"] == "test_service"
     assert call_kwargs["extra"]["operation"] == "parse data"
@@ -430,7 +430,7 @@ async def test_api_error_logging_exc_info():
     """
     Given: APIエラーが発生
     When: handle_api_errorでデコレート
-    Then: exc_info=Trueでログ出力される
+    Then: logger.exception()が呼ばれる（自動的にexc_info=Trueを含む）
     """
     handler = ServiceErrorHandler("test_service")
     handler.logger = MagicMock()
@@ -442,9 +442,8 @@ async def test_api_error_logging_exc_info():
     with pytest.raises(APIException):
         await test_func()
 
-    # exc_infoパラメータの確認
-    call_kwargs = handler.logger.error.call_args[1]
-    assert call_kwargs.get("exc_info") is True
+    # logger.exception()は自動的にexc_info=Trueを含むため、呼び出しを確認
+    assert handler.logger.exception.called
 
 
 @pytest.mark.unit
@@ -453,7 +452,7 @@ async def test_data_processing_logging_exc_info():
     """
     Given: データ処理エラーが発生
     When: handle_data_processingでデコレート
-    Then: exc_info=Trueでログ出力される
+    Then: logger.exception()が呼ばれる（自動的にexc_info=Trueを含む）
     """
     handler = ServiceErrorHandler("test_service")
     handler.logger = MagicMock()
@@ -465,6 +464,5 @@ async def test_data_processing_logging_exc_info():
     with pytest.raises(ServiceException):
         await test_func()
 
-    # exc_infoパラメータの確認
-    call_kwargs = handler.logger.error.call_args[1]
-    assert call_kwargs.get("exc_info") is True
+    # logger.exception()は自動的にexc_info=Trueを含むため、呼び出しを確認
+    assert handler.logger.exception.called
