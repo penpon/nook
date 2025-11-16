@@ -11,12 +11,29 @@ nook/services/fourchan_explorer/fourchan_explorer.py のテスト
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+import asyncio
+from datetime import UTC, date, datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
 import httpx
 import pytest
+
+# Test constants
+TEST_THREAD_ID = 123456
+TEST_BOARD = "g"
+TEST_TIMESTAMP_ALT = 1699999999
+
+
+# Helper functions for assertions
+def assert_thread_summary_generated(thread, expected_summary):
+    """アサート: スレッドの要約が生成されたことを確認"""
+    assert thread.summary == expected_summary
+
+
+def assert_gpt_called_with_thread_content(mock_generate, thread):
+    """アサート: GPTクライアントが適切に呼ばれたことを確認"""
+    assert mock_generate.called
 
 # =============================================================================
 # 1. __init__ メソッドのテスト

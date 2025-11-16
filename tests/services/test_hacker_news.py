@@ -858,19 +858,17 @@ async def test_get_top_stories_filtering(
         return None
 
     # respxの代わりに_fetch_storyを直接モックする
-    with patch.object(service, "_fetch_story", side_effect=mock_fetch_story):
-        with patch.object(
-            service.http_client, "get", new_callable=AsyncMock
-        ) as mock_http_get:
-            # トップストーリーIDのモック
-            story_ids = [config["id"] for config in story_configs]
-            mock_http_get.return_value = Mock(json=lambda: story_ids)
+    with (
+        patch.object(service, "_fetch_story", side_effect=mock_fetch_story),
+        patch.object(service.http_client, "get", new_callable=AsyncMock) as mock_http_get,
+        patch.object(service, "_summarize_stories", new_callable=AsyncMock),
+    ):
+        # トップストーリーIDのモック
+        story_ids = [config["id"] for config in story_configs]
+        mock_http_get.return_value = Mock(json=lambda: story_ids)
 
-            # GPTクライアントのモック（要約が実行されるため）
-            with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
-                stories = await service._get_top_stories(
-                    15, dedup_tracker, [date.today()]
-                )
+        # GPTクライアントのモック（要約が実行されるため）
+        stories = await service._get_top_stories(15, dedup_tracker, [date.today()])
 
     await service.cleanup()
 

@@ -42,7 +42,6 @@ class BaseService(ABC):
         return file_path
 
     @handle_errors(retries=3)
-    @abstractmethod
     async def fetch_with_retry(self, url: str) -> str:
         """リトライ機能付きのHTTP取得"""
         # AsyncHTTPClientを使用（後で実装）
@@ -92,7 +91,6 @@ class BaseService(ABC):
             self.http_client = await get_http_client()
             self.logger.debug("HTTP client setup completed")
 
-    @abstractmethod
     async def cleanup(self):
         """クリーンアップ処理（オーバーライド可能）"""
         # グローバルクライアントの場合はクローズ不要

@@ -947,13 +947,13 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_feed_toml_load_failure_handling(mock_env_vars):
-    with patch("nook.common.base_service.setup_logger"):
+    with (
+        patch("nook.common.base_service.setup_logger"),
+        patch("builtins.open", side_effect=FileNotFoundError("feed.toml not found")),
+        pytest.raises(FileNotFoundError),
+    ):
         # feed.tomlが読めない場合, 初期化時に失敗するはず
-        with patch(
-            "builtins.open", side_effect=FileNotFoundError("feed.toml not found")
-        ):
-            with pytest.raises(FileNotFoundError):
-                TechFeed()
+        TechFeed()
 
 
 # 重複検出テストは複雑なため, シンプルなテストに置き換え
