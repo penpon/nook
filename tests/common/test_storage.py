@@ -751,7 +751,10 @@ async def test_save_async_io_error(tmp_path):
     filename = "test.json"
 
     # aiofiles.openをモック
-    with patch("aiofiles.open", side_effect=OSError("IO error")), pytest.raises(OSError):
+    with (
+        patch("aiofiles.open", side_effect=OSError("IO error")),
+        pytest.raises(OSError),
+    ):
         await storage.save(data, filename)
 
 
@@ -874,7 +877,10 @@ async def test_load_async_io_error(tmp_path):
     await storage.save("content", filename)
 
     # 読み込み時にエラー
-    with patch("aiofiles.open", side_effect=OSError("IO error")), pytest.raises(OSError):
+    with (
+        patch("aiofiles.open", side_effect=OSError("IO error")),
+        pytest.raises(OSError),
+    ):
         await storage.load(filename)
 
 

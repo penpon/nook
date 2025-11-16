@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ErrorDetail(BaseModel):
@@ -22,8 +22,8 @@ class ErrorResponse(BaseModel):
     status_code: int = Field(..., description="HTTPステータスコード")
     details: dict[str, Any] | list[ErrorDetail] | None = Field(None, description="追加の詳細情報")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "type": "validation_error",
                 "message": "Request validation failed",
@@ -39,3 +39,4 @@ class ErrorResponse(BaseModel):
                 ],
             }
         }
+    )
