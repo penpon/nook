@@ -54,7 +54,7 @@ class CustomCleanupService(BaseService):
 
 
 @pytest.mark.unit
-def test_init_with_service_name_only(mock_env_vars):
+def test_init_with_service_name_only():
     """
     Given: 有効なservice_name
     When: BaseServiceを初期化
@@ -87,7 +87,7 @@ def test_init_with_explicit_config():
 
 
 @pytest.mark.unit
-def test_init_with_none_config(mock_env_vars):
+def test_init_with_none_config():
     """
     Given: config=None
     When: BaseServiceを初期化
@@ -100,7 +100,7 @@ def test_init_with_none_config(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_init_storage_created(mock_env_vars):
+def test_init_storage_created():
     """
     Given: service_name="test"
     When: BaseServiceを初期化
