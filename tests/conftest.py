@@ -3,7 +3,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -30,16 +30,16 @@ def event_loop_policy():
 # =============================================================================
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
-    """環境変数のモック設定"""
+    """環境変数のモック設定（全テストで自動適用）"""
     env_vars = {
         "OPENAI_API_KEY": "test-api-key-12345",
         "OPENAI_BASE_URL": "https://api.openai.com/v1",
         "REDDIT_CLIENT_ID": "test-client-id",
         "REDDIT_CLIENT_SECRET": "test-client-secret",
         "REDDIT_USER_AGENT": "test-user-agent",
-        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108 - Safe for test context
+        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108 - テスト環境でのみ使用
         "LOG_LEVEL": "INFO",
     }
     for key, value in env_vars.items():
@@ -58,15 +58,6 @@ def temp_data_dir(tmp_path):
 # =============================================================================
 # HTTPクライアント・API モックフィクスチャ
 # =============================================================================
-
-
-@pytest.fixture
-def mock_httpx_client():
-    """モックHTTPXクライアント"""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    return mock_client
 
 
 @pytest.fixture
@@ -195,9 +186,9 @@ def mock_hn_api(respx_mock, mock_hn_story):
     )
 
     # 個別ストーリー取得
-    respx_mock.get(
-        url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json"
-    ).mock(return_value=httpx.Response(200, json=mock_hn_story))
+    respx_mock.get(url__regex=r"https://hacker-news\.firebaseio\.com/v0/item/\d+\.json").mock(
+        return_value=httpx.Response(200, json=mock_hn_story)
+    )
 
     return respx_mock
 
@@ -210,6 +201,7 @@ def mock_hn_api(respx_mock, mock_hn_story):
 @pytest.fixture
 def mock_github_trending_html():
     """GitHub TrendingページのモックHTML"""
+    # fmt: off
     return """
     <html>
     <body>
@@ -231,7 +223,8 @@ def mock_github_trending_html():
         </article>
     </body>
     </html>
-    """
+    """  # noqa: E501
+    # fmt: on
 
 
 @pytest.fixture
@@ -346,7 +339,7 @@ def fixed_datetime(monkeypatch):
     class MockDatetime(datetime.datetime):
         @classmethod
         def now(cls, tz=None):
-            return cls(2024, 11, 14, 12, 0, 0)
+            return cls(2024, 11, 14, 12, 0, 0, tzinfo=tz)
 
     monkeypatch.setattr(datetime, "datetime", MockDatetime)
     return MockDatetime
@@ -475,7 +468,7 @@ def mock_4chan_catalog():
                 {
                     "no": 123456,
                     "sub": "AI Discussion Thread",
-                    "com": "Let's talk about artificial intelligence and machine learning",
+                    "com": "Let's talk about artificial intelligence and machine learning",  # noqa: E501
                     "replies": 50,
                     "images": 10,
                     "bumps": 45,
@@ -509,15 +502,17 @@ def mock_4chan_thread():
 @pytest.fixture
 def mock_5chan_subject_txt():
     """5chan subject.txtモック（Shift_JIS形式）"""
-    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"
+    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"  # noqa: E501
 
 
 @pytest.fixture
 def mock_5chan_dat():
     """5chan datファイルモック（Shift_JIS形式）"""
+    # fmt: off
     return """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう<>
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い<>
-"""
+"""  # noqa: E501
+    # fmt: on
 
 
 # =============================================================================
@@ -615,6 +610,237 @@ def mock_dedup_tracker():
 
 
 # =============================================================================
+# arXiv 専用フィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def arxiv_service():
+    """ArxivSummarizerサービスのフィクスチャ（共通セットアップ）"""
+    with patch("nook.common.logging.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+        yield service
+
+
+@pytest.fixture
+def test_date():
+    """テスト用固定日付"""
+    from datetime import date
+
+    return date(2024, 1, 1)
+
+
+@pytest.fixture
+def test_datetime():
+    """テスト用固定日時"""
+    from datetime import UTC, datetime
+
+    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
+
+
+@pytest.fixture
+def paper_info_factory():
+    """PaperInfoオブジェクトを生成するファクトリー"""
+    from datetime import UTC, datetime
+
+    def _create(
+        title="Test Paper",
+        abstract="Test Abstract",
+        url=None,
+        arxiv_id="2301.00001",
+        contents="Test contents",
+        published_at=None,
+        **kwargs,
+    ):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import PaperInfo
+
+        if url is None:
+            url = f"http://arxiv.org/abs/{arxiv_id}"
+
+        if published_at is None:
+            published_at = datetime(2023, 1, 1, tzinfo=UTC)
+
+        paper = PaperInfo(
+            title=title,
+            abstract=abstract,
+            url=url,
+            contents=contents,
+            published_at=published_at,
+        )
+
+        # summaryが指定されていれば設定
+        if "summary" in kwargs:
+            paper.summary = kwargs["summary"]
+
+        return paper
+
+    return _create
+
+
+@pytest.fixture
+def mock_arxiv_paper_factory():
+    """arxiv.Resultオブジェクトのモックを生成するファクトリー"""
+    from datetime import UTC, datetime
+    from unittest.mock import Mock
+
+    def _create(
+        arxiv_id="2301.00001",
+        title="Test Paper Title",
+        summary="Test abstract",
+        published=None,
+        **kwargs,
+    ):
+        if published is None:
+            published = datetime(2023, 1, 1, tzinfo=UTC)
+
+        mock_paper = Mock()
+        mock_paper.entry_id = f"http://arxiv.org/abs/{arxiv_id}"
+        mock_paper.title = title
+        mock_paper.summary = summary
+        mock_paper.published = published
+
+        # 追加属性
+        for key, value in kwargs.items():
+            setattr(mock_paper, key, value)
+
+        return mock_paper
+
+    return _create
+
+
+# =============================================================================
+# arXiv テストヘルパー
+# =============================================================================
+
+
+class ArxivTestHelper:
+    """
+    arXivテスト用のヘルパークラス
+
+    テスト定数とモック作成メソッドを提供し、テストコードの重複を削減します。
+
+    使用例:
+        def test_example(arxiv_helper):
+            # 定数を使用
+            arxiv_id = arxiv_helper.DEFAULT_ARXIV_ID
+
+            # モック作成
+            mock_client = arxiv_helper.create_mock_http_client()
+    """
+
+    # ============================================================================
+    # テスト定数
+    # ============================================================================
+    DEFAULT_ARXIV_ID = "2301.00001"
+    DEFAULT_MIN_LINE_LENGTH = 80
+    SAMPLE_PAPER_IDS = ["2301.00001", "2301.00002", "2301.00003"]
+
+    # テストデータ定数
+    SAMPLE_PAPER_TITLE = "Test Paper Title"
+    SAMPLE_ABSTRACT = "Test abstract"
+    SAMPLE_CONTENTS = "Test contents"
+    SAMPLE_SUMMARY = "Test summary"
+
+    # HTML/Markdown テストデータ
+    SAMPLE_MARKDOWN_VALID = """# arXiv 論文要約 (2024-01-01)
+
+## [Test Paper 1](http://arxiv.org/abs/2301.00001)
+
+**abstract**:
+Abstract 1
+
+**summary**:
+Summary 1
+
+---
+"""
+
+    # ============================================================================
+    # モック作成メソッド
+    # ============================================================================
+
+    @staticmethod
+    def create_mock_http_client():
+        """HTTPクライアントのモックを作成
+
+        Returns:
+            AsyncMock: コンテキストマネージャーとして使用可能なモック
+        """
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf_response(content=b"%PDF-1.4 test content"):
+        """PDFレスポンスのモックを作成
+
+        Args:
+            content: PDFバイナリコンテンツ
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.content = content
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_html_response(text="<html><body>Test</body></html>"):
+        """HTMLレスポンスのモックを作成
+
+        Args:
+            text: HTMLテキスト
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.text = text
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_arxiv_client(results=None):
+        """arxiv.Clientのモックを作成
+
+        Args:
+            results: resultsメソッドが返すリスト（デフォルトは空リスト）
+
+        Returns:
+            Mock: arxiv.Clientモック
+        """
+        if results is None:
+            results = []
+        mock_client = Mock()
+        mock_client.results.return_value = results
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf(text="Test PDF content"):
+        from unittest.mock import MagicMock
+
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = text
+
+        mock_pdf = MagicMock()
+        mock_pdf.pages = [mock_page]
+        mock_pdf.__enter__.return_value = mock_pdf
+        mock_pdf.__exit__.return_value = None
+
+        return mock_pdf
+
+
+@pytest.fixture
+def arxiv_helper():
+    """ArxivTestHelperインスタンスを提供"""
+    return ArxivTestHelper()
+
+
+# =============================================================================
 # クリーンアップフィクスチャ
 # =============================================================================
 
@@ -624,3 +850,30 @@ def cleanup_after_test():
     """各テスト後の自動クリーンアップ"""
     return
     # テスト後の処理（必要に応じて）
+
+
+# =============================================================================
+# Hacker News モックフィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def mock_logger():
+    """モックロガー"""
+    logger = Mock()
+    logger.info = Mock()
+    logger.error = Mock()
+    logger.warning = Mock()
+    logger.debug = Mock()
+    return logger
+
+
+@pytest.fixture
+def hacker_news_service(mock_logger):
+    """HackerNewsRetrieverのフィクスチャ"""
+    with patch("nook.common.base_service.setup_logger", return_value=mock_logger):
+        from nook.services.hacker_news.hacker_news import HackerNewsRetriever
+
+        service = HackerNewsRetriever()
+        service.logger = mock_logger
+        return service

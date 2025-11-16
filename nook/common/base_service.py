@@ -46,7 +46,7 @@ class BaseService(ABC):
     async def fetch_with_retry(self, url: str) -> str:
         """リトライ機能付きのHTTP取得"""
         # AsyncHTTPClientを使用（後で実装）
-        pass
+        raise NotImplementedError("fetch_with_retry must be implemented by subclass")
 
     async def rate_limit(self) -> None:
         """レート制限のための待機"""
@@ -97,7 +97,7 @@ class BaseService(ABC):
         """クリーンアップ処理（オーバーライド可能）"""
         # グローバルクライアントの場合はクローズ不要
         # サブクラスで追加のクリーンアップが必要な場合はオーバーライドする
-        pass
+        return
 
     async def initialize(self):
         """非同期初期化処理（オーバーライド可能）"""
