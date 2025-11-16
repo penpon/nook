@@ -1,5 +1,6 @@
 """nook/api/middleware/error_handler.py のテスト"""
 
+import json
 from unittest.mock import Mock
 
 import pytest
@@ -63,8 +64,6 @@ class TestCreateErrorResponse:
             message="Server error",
             error_id="error123",
         )
-
-        import json
 
         content = json.loads(response.body)
         assert "error" in content
@@ -169,8 +168,6 @@ class TestHandleException:
         exc = Exception("Test error")
 
         response = handle_exception(exc, request)
-
-        import json
 
         content = json.loads(response.body)
         assert "error_id" in content["error"]

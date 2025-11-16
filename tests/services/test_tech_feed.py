@@ -1765,8 +1765,6 @@ async def test_collect_date_filtering_out_of_range(mock_env_vars):
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
 
-            Mock()
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(
                     text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'

@@ -80,10 +80,10 @@ def test_root_has_required_fields(client):
 @pytest.mark.unit
 def test_health_has_status_field(client):
     """/health エンドポイントがstatusフィールドを持つことを確認"""
-    response = client.get("/")
+    response = client.get("/health")
     data = response.json()
 
-    assert "status" in data or "name" in data  # healthまたはroot
+    assert "status" in data
 
 
 @pytest.mark.unit

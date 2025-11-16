@@ -125,7 +125,7 @@ async def test_collect_with_multiple_languages(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
             patch(
-                "tomllib.load",
+                "nook.services.github_trending.github_trending.tomllib.load",
                 return_value={"general": ["python"], "specific": ["javascript"]},
             ),
             patch.object(
