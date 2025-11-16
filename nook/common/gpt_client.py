@@ -72,6 +72,13 @@ class GPTClient:
         output_cost = (output_tokens / 1_000_000) * PRICING["output"]
         return input_cost + output_cost
 
+    def _calculate_message_cost(self, messages: list[dict[str, str]], output_text: str) -> float:
+        """メッセージリストと出力テキストから料金を計算します。"""
+        input_text = " ".join(msg["content"] for msg in messages)
+        return self._calculate_cost(
+            self._count_tokens(input_text), self._count_tokens(output_text)
+        )
+
     def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
         """
         Chat CompletionsのmessagesをResponses APIのinput形式へ変換します。
@@ -290,12 +297,7 @@ class GPTClient:
         output_text = self._call_gpt5(prompt, system_instruction, max_tokens)
 
         # 料金計算（将来の統計用に計算のみ実行）
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        _ = self._calculate_cost(
-            self._count_tokens(input_text.strip()), self._count_tokens(output_text)
-        )
+        _ = self._calculate_message_cost(messages, output_text)
 
         return output_text
 
@@ -401,13 +403,7 @@ class GPTClient:
         assistant_message = self._call_gpt5_chat(chat_session["messages"], None, max_tokens)
 
         # 料金計算（将来の統計用に計算のみ実行）
-        input_text = ""
-        for msg in chat_session["messages"]:
-            input_text += msg["content"] + " "
-        _ = self._calculate_cost(
-            self._count_tokens(input_text.strip()),
-            self._count_tokens(assistant_message),
-        )
+        _ = self._calculate_message_cost(chat_session["messages"], assistant_message)
 
         chat_session["messages"].append({"role": "assistant", "content": assistant_message})
 
@@ -467,12 +463,7 @@ class GPTClient:
         output_text = self._call_gpt5_chat(messages, system_instruction=None, max_tokens=max_tokens)
 
         # 料金計算（将来の統計用に計算のみ実行）
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        _ = self._calculate_cost(
-            self._count_tokens(input_text.strip()), self._count_tokens(output_text)
-        )
+        _ = self._calculate_message_cost(messages, output_text)
 
         return output_text
 
@@ -523,11 +514,6 @@ class GPTClient:
         )
 
         # 料金計算（将来の統計用に計算のみ実行）
-        input_text = ""
-        for msg in all_messages:
-            input_text += msg["content"] + " "
-        _ = self._calculate_cost(
-            self._count_tokens(input_text.strip()), self._count_tokens(output_text)
-        )
+        _ = self._calculate_message_cost(all_messages, output_text)
 
         return output_text

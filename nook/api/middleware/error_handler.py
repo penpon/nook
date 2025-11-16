@@ -32,6 +32,12 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
     """例外を処理してJSONレスポンスを返す"""
     error_id = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
 
+    # 機密情報を含むヘッダーをマスク
+    safe_headers = {
+        k: ("***REDACTED***" if k.lower() in {"authorization", "cookie", "set-cookie"} else v)
+        for k, v in request.headers.items()
+    }
+
     # エラーログの記録
     logger.exception(
         "Unhandled exception",
@@ -39,7 +45,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             "error_id": error_id,
             "method": request.method,
             "url": str(request.url),
-            "headers": dict(request.headers),
+            "headers": safe_headers,
             "error_type": type(exc).__name__,
             "error_message": str(exc),
             "traceback": traceback.format_exc(),
