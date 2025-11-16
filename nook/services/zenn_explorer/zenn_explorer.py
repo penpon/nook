@@ -3,7 +3,12 @@
 import asyncio
 import json
 import re
-import tomllib
+
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli as tomllib  # Python 3.10
+
 from datetime import date, datetime
 from pathlib import Path
 

@@ -1,7 +1,12 @@
 """GitHubのトレンドリポジトリを収集するサービス。"""
 
 import re
-import tomllib
+
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli as tomllib  # Python 3.10
+
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from pathlib import Path

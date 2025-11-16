@@ -11,14 +11,12 @@ dependencies = [
     "cloudscraper>=1.2.71",
     "requests>=2.28.2",
     "pandas>=2.3.3",
-    "pydantic>=1.10.7",
+    "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
     "arxiv>=1.4.7",
     "pdfplumber>=0.10.0",
     "beautifulsoup4>=4.12.0",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
     "openai>=1.0.0",
     "tiktoken>=0.5.0",
     "tenacity>=8.0.0",
@@ -27,6 +25,7 @@ dependencies = [
     "asyncpraw>=7.7.1",
     "python-dateutil>=2.8.2",
     "tqdm>=4.65.0",
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 [dependency-groups]
@@ -75,7 +74,7 @@ filterwarnings = [
 ]
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 indent-width = 4
 target-version = "py310"
 
@@ -91,7 +90,6 @@ select = [
     "I",  # isort
     "UP",  # pyupgrade
     "EXE",
-    "F",
     "SIM1",
     # Not included in flake8
     "LOG",
