@@ -3,13 +3,13 @@
 import asyncio
 import os
 import re
+import tomllib
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
 import asyncpraw
-import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
@@ -123,7 +123,7 @@ class RedditExplorer(BaseService):
         # サブレディットの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "subreddits.toml", "rb") as f:
-            self.subreddits_config = tomli.load(f)
+            self.subreddits_config = tomllib.load(f)
 
     def run(self, limit: int | None = None) -> None:
         """

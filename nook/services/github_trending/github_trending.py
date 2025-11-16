@@ -1,13 +1,13 @@
 """GitHubのトレンドリポジトリを収集するサービス。"""
 
 import re
+import tomllib
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
 
-import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.base_service import BaseService
@@ -74,7 +74,7 @@ class GithubTrending(BaseService):
         # 言語の設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "languages.toml", "rb") as f:
-            self.languages_config = tomli.load(f)
+            self.languages_config = tomllib.load(f)
 
     async def collect(
         self,

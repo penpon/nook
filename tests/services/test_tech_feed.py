@@ -130,7 +130,10 @@ async def test_collect_success_with_valid_feed(mock_env_vars, respx_mock):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -182,7 +185,10 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -230,7 +236,10 @@ async def test_collect_with_target_dates_none(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -265,7 +274,10 @@ async def test_collect_network_error(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -289,7 +301,10 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -316,7 +331,10 @@ async def test_collect_http_client_timeout(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -353,7 +371,10 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -399,7 +420,10 @@ async def test_collect_with_target_dates_empty_list(mock_env_vars):
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -421,7 +445,10 @@ async def test_collect_with_limit_zero(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -448,7 +475,10 @@ async def test_collect_with_limit_one(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -490,7 +520,10 @@ async def test_collect_with_days_zero(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -516,7 +549,10 @@ async def test_collect_with_days_thirty(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -749,7 +785,10 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -774,7 +813,10 @@ async def test_collect_handles_storage_error(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -829,7 +871,10 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -898,7 +943,10 @@ async def test_collect_no_saved_files(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -927,7 +975,10 @@ async def test_collect_japanese_check_filters_english_articles(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -970,7 +1021,10 @@ async def test_collect_http_404_error_skips_article(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -1013,7 +1067,10 @@ async def test_collect_http_500_error_skips_article(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -1324,7 +1381,10 @@ async def test_collect_date_filtering_within_range(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -1387,7 +1447,10 @@ async def test_collect_multiple_categories(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -1518,7 +1581,10 @@ async def test_collect_storage_save_successful(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -1584,7 +1650,10 @@ async def test_collect_existing_article_titles_loaded(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -1631,7 +1700,10 @@ async def test_collect_date_filtering_out_of_range(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
@@ -1652,8 +1724,6 @@ async def test_collect_date_filtering_out_of_range(mock_env_vars):
             mock_entry.published_parsed = (2020, 1, 1, 0, 0, 0, 0, 0, 0)
             mock_feed.entries = [mock_entry]
             mock_parse.return_value = mock_feed
-
-            Mock()
 
             service.http_client.get = AsyncMock(
                 return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
@@ -1739,7 +1809,10 @@ async def test_collect_dedup_tracker_detects_duplicate(mock_env_vars):
             patch("feedparser.parse") as mock_parse,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
-                service, "_get_all_existing_dates", new_callable=AsyncMock, return_value=[]
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
             ),
             patch(
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",

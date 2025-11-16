@@ -30,9 +30,9 @@ def event_loop_policy():
 # =============================================================================
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
-    """環境変数のモック設定"""
+    """環境変数のモック設定（全テストで自動適用）"""
     env_vars = {
         "OPENAI_API_KEY": "test-api-key-12345",
         "OPENAI_BASE_URL": "https://api.openai.com/v1",
@@ -620,7 +620,7 @@ def mock_dedup_tracker():
 
 
 @pytest.fixture
-def arxiv_service(mock_env_vars):
+def arxiv_service():
     """ArxivSummarizerサービスのフィクスチャ（共通セットアップ）"""
     with patch("nook.common.logging.setup_logger"):
         from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer

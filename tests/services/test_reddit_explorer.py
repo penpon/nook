@@ -105,7 +105,7 @@ async def test_collect_with_multiple_subreddits(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
             patch("asyncpraw.Reddit") as mock_reddit,
-            patch("tomli.load", return_value={"subreddits": ["python", "programming"]}),
+            patch("tomllib.load", return_value={"subreddits": ["python", "programming"]}),
         ):
             mock_subreddit = Mock()
             mock_subreddit.hot = AsyncMock(return_value=[])

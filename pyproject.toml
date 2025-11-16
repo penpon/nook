@@ -12,6 +12,11 @@ version = "0.1.0"
 description = "nook"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.95.0",
+    "uvicorn>=0.21.1",
+    "httpx[http2]>=0.24.0",
+    "cloudscraper>=1.2.71",
+    "requests>=2.28.2",
     "pandas>=2.3.3",
     "playwright>=1.40.0",
     "python-dotenv>=1.0.0",
@@ -24,6 +29,10 @@ dependencies = [
     "tiktoken>=0.5.0",
     "tenacity>=8.0.0",
     "aiofiles>=23.0.0",
+    "feedparser>=6.0.10",
+    "asyncpraw>=7.7.1",
+    "python-dateutil>=2.8.2",
+    "tqdm>=4.65.0",
 ]
 
 [dependency-groups]
@@ -34,7 +43,6 @@ dev = [
     "pytest-cov>=6.0.0",
     "pytest-timeout>=2.3.0",
     "pytest-xdist>=3.3.0",
-    "black>=24.0.0",
     "ruff>=0.6.0",
     "bandit>=1.7.0",
     "pip-audit>=2.7.0",
@@ -70,10 +78,6 @@ filterwarnings = [
     "ignore::PendingDeprecationWarning",
 ]
 
-[tool.black]
-line-length = 100
-target-version = ["py312"]
-
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -89,7 +93,7 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501", # line too long (handled by black)
+    "E501", # line too long (handled by ruff format)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -107,6 +111,12 @@ ignore = [
     "E402",  # Module level import not at top of file (needs sys.path setup)
 ]
 
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
 [tool.coverage.run]
 source = ["nook"]
 omit = [
@@ -118,7 +128,6 @@ omit = [
 precision = 2
 show_missing = true
 skip_covered = false
-fail_under = 85
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",

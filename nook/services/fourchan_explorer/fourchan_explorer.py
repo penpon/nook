@@ -2,12 +2,11 @@
 
 import asyncio
 import re
+import tomllib
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
-
-import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
@@ -138,7 +137,7 @@ class FourChanExplorer(BaseService):
 
         try:
             with open(boards_file, "rb") as f:
-                config = tomli.load(f)
+                config = tomllib.load(f)
                 boards_dict = config.get("boards", {})
                 # ボードIDのリストを返す
                 return list(boards_dict.keys())

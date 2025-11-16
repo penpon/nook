@@ -180,9 +180,9 @@ class FiveChanExplorer(BaseService):
         """
         script_dir = Path(__file__).parent
         with open(script_dir / "boards.toml", "rb") as f:
-            import tomli
+            import tomllib
 
-            config = tomli.load(f)
+            config = tomllib.load(f)
             boards_config = config.get("boards", {})
 
             # 新しい形式対応: {board_id: {name: "名前", server: "サーバー"}}
