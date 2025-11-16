@@ -36,6 +36,12 @@ def assert_gpt_called_with_thread_content(mock_generate, thread):
     """アサート: GPTクライアントが適切に呼ばれたことを確認"""
     assert mock_generate.called
 
+
+def get_jst_date_from_utc(utc_dt: datetime) -> date:
+    """UTC datetimeをJST dateに変換"""
+    jst = timezone(timedelta(hours=9))
+    return utc_dt.astimezone(jst).date()
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
@@ -84,7 +90,9 @@ async def test_collect_success(mock_env_vars):
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
-            result = await service.collect(target_dates=[date.today()])
+            # UTCの現在時刻をJST日付に変換して使用
+            jst_today = get_jst_date_from_utc(datetime.now(UTC))
+            result = await service.collect(target_dates=[jst_today])
 
             assert isinstance(result, list)
 
@@ -111,7 +119,9 @@ async def test_collect_network_error(mock_env_vars):
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
             service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
-            result = await service.collect(target_dates=[date.today()])
+            # UTCの現在時刻をJST日付に変換して使用
+            jst_today = get_jst_date_from_utc(datetime.now(UTC))
+            result = await service.collect(target_dates=[jst_today])
 
             assert isinstance(result, list)
 
@@ -139,7 +149,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
             )
             service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
-            result = await service.collect(target_dates=[date.today()])
+            # UTCの現在時刻をJST日付に変換して使用
+            jst_today = get_jst_date_from_utc(datetime.now(UTC))
+            result = await service.collect(target_dates=[jst_today])
 
             assert isinstance(result, list)
 
@@ -177,7 +189,9 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
-            result = await service.collect(target_dates=[date.today()])
+            # UTCの現在時刻をJST日付に変換して使用
+            jst_today = get_jst_date_from_utc(datetime.now(UTC))
+            result = await service.collect(target_dates=[jst_today])
 
             assert isinstance(result, list)
 
@@ -641,8 +655,10 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         threads = await service._retrieve_ai_threads(
-            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[jst_today]
         )
 
         assert isinstance(threads, list)
@@ -697,8 +713,10 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         threads = await service._retrieve_ai_threads(
-            "g", limit=3, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            "g", limit=3, dedup_tracker=dedup_tracker, target_dates=[jst_today]
         )
 
         assert isinstance(threads, list)
@@ -755,8 +773,10 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         threads = await service._retrieve_ai_threads(
-            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[jst_today]
         )
 
         assert isinstance(threads, list)
@@ -784,12 +804,14 @@ async def test_retrieve_ai_threads_http_error(mock_env_vars, respx_mock):
 
         dedup_tracker = DedupTracker()
 
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         with pytest.raises(RetryException):
             await service._retrieve_ai_threads(
                 "g",
                 limit=None,
                 dedup_tracker=dedup_tracker,
-                target_dates=[date.today()],
+                target_dates=[jst_today],
             )
 
 
@@ -843,8 +865,10 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         threads = await service._retrieve_ai_threads(
-            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[jst_today]
         )
 
         assert isinstance(threads, list)
@@ -1698,12 +1722,14 @@ async def test_retrieve_ai_threads_catalog_timeout(mock_env_vars, respx_mock):
 
         dedup_tracker = DedupTracker()
 
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         with pytest.raises(RetryException):
             await service._retrieve_ai_threads(
                 "g",
                 limit=None,
                 dedup_tracker=dedup_tracker,
-                target_dates=[date.today()],
+                target_dates=[jst_today],
             )
 
 
@@ -1727,8 +1753,10 @@ async def test_retrieve_ai_threads_empty_catalog(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         threads = await service._retrieve_ai_threads(
-            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[jst_today]
         )
 
         assert isinstance(threads, list)
@@ -1783,8 +1811,10 @@ async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         threads = await service._retrieve_ai_threads(
-            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[jst_today]
         )
 
         assert len(threads) == 1
@@ -1840,8 +1870,10 @@ async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
         await service.setup_http_client()
 
         dedup_tracker = DedupTracker()
+        # UTCの現在時刻をJST日付に変換して使用
+        jst_today = get_jst_date_from_utc(datetime.now(UTC))
         threads = await service._retrieve_ai_threads(
-            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            "g", limit=None, dedup_tracker=dedup_tracker, target_dates=[jst_today]
         )
 
         assert len(threads) == 1
