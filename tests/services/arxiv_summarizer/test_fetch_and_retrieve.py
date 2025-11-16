@@ -58,11 +58,15 @@ async def test_get_curated_paper_ids_success(arxiv_service, test_date, respx_moc
 
     with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
         arxiv_service.http_client.get = AsyncMock(
-            return_value=Mock(text=mock_html, url="https://huggingface.co/papers/date/2024-01-01")
+            return_value=Mock(
+                text=mock_html, url="https://huggingface.co/papers/date/2024-01-01"
+            )
         )
 
         # When
-        result = await arxiv_service._get_curated_paper_ids(limit=5, snapshot_date=test_date)
+        result = await arxiv_service._get_curated_paper_ids(
+            limit=5, snapshot_date=test_date
+        )
 
         # Then
         assert result is not None
@@ -95,7 +99,9 @@ async def test_get_curated_paper_ids_404_error(arxiv_service, test_date, respx_m
         arxiv_service.http_client.get = AsyncMock(return_value=response_mock)
 
         # When
-        result = await arxiv_service._get_curated_paper_ids(limit=5, snapshot_date=test_date)
+        result = await arxiv_service._get_curated_paper_ids(
+            limit=5, snapshot_date=test_date
+        )
 
         # Then
         assert result is None
@@ -122,7 +128,9 @@ async def test_get_curated_paper_ids_redirect(arxiv_service, test_date):
         )
 
         # When
-        result = await arxiv_service._get_curated_paper_ids(limit=5, snapshot_date=test_date)
+        result = await arxiv_service._get_curated_paper_ids(
+            limit=5, snapshot_date=test_date
+        )
 
         # Then
         assert result is None
@@ -161,7 +169,9 @@ async def test_get_curated_paper_ids_fallback_to_top_page(arxiv_service, test_da
         )
 
         # When
-        result = await arxiv_service._get_curated_paper_ids(limit=5, snapshot_date=test_date)
+        result = await arxiv_service._get_curated_paper_ids(
+            limit=5, snapshot_date=test_date
+        )
 
         # Then
         assert result is not None
@@ -190,7 +200,9 @@ async def test_get_curated_paper_ids_empty_result(arxiv_service, test_date):
         )
 
         # When
-        result = await arxiv_service._get_curated_paper_ids(limit=5, snapshot_date=test_date)
+        result = await arxiv_service._get_curated_paper_ids(
+            limit=5, snapshot_date=test_date
+        )
 
         # Then
         assert isinstance(result, list)
@@ -229,7 +241,9 @@ async def test_get_curated_paper_ids_with_duplicates(arxiv_service, test_date):
 
     with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
         arxiv_service.http_client.get = AsyncMock(
-            return_value=Mock(text=mock_html, url="https://huggingface.co/papers/date/2024-01-01")
+            return_value=Mock(
+                text=mock_html, url="https://huggingface.co/papers/date/2024-01-01"
+            )
         )
 
         # _get_processed_idsをモック（空）
@@ -237,7 +251,9 @@ async def test_get_curated_paper_ids_with_duplicates(arxiv_service, test_date):
             arxiv_service, "_get_processed_ids", new_callable=AsyncMock, return_value=[]
         ):
             # When
-            result = await arxiv_service._get_curated_paper_ids(limit=5, snapshot_date=test_date)
+            result = await arxiv_service._get_curated_paper_ids(
+                limit=5, snapshot_date=test_date
+            )
 
             # Then
             assert result is not None
@@ -275,7 +291,9 @@ async def test_get_curated_paper_ids_filters_processed_ids(arxiv_service, test_d
 
     with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
         arxiv_service.http_client.get = AsyncMock(
-            return_value=Mock(text=mock_html, url="https://huggingface.co/papers/date/2024-01-01")
+            return_value=Mock(
+                text=mock_html, url="https://huggingface.co/papers/date/2024-01-01"
+            )
         )
 
         # 2301.00001 と 2301.00002 は既に処理済み
@@ -286,7 +304,9 @@ async def test_get_curated_paper_ids_filters_processed_ids(arxiv_service, test_d
             return_value=["2301.00001", "2301.00002"],
         ):
             # When
-            result = await arxiv_service._get_curated_paper_ids(limit=5, snapshot_date=test_date)
+            result = await arxiv_service._get_curated_paper_ids(
+                limit=5, snapshot_date=test_date
+            )
 
             # Then
             assert result is not None
@@ -338,7 +358,9 @@ async def test_download_pdf_timeout(arxiv_service, arxiv_helper):
     # Given: タイムアウトするHTTPクライアントをモック
     with patch("httpx.AsyncClient") as mock_client:
         mock_client_instance = arxiv_helper.create_mock_http_client()
-        mock_client_instance.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+        mock_client_instance.get = AsyncMock(
+            side_effect=httpx.TimeoutException("Timeout")
+        )
         mock_client.return_value = mock_client_instance
 
         # When/Then
@@ -491,7 +513,9 @@ async def test_download_html_timeout(arxiv_service, arxiv_helper):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_paper_info_success(arxiv_service, mock_arxiv_paper_factory, arxiv_helper):
+async def test_retrieve_paper_info_success(
+    arxiv_service, mock_arxiv_paper_factory, arxiv_helper
+):
     """
     Given: 有効な論文ID
     When: _retrieve_paper_infoメソッドを呼び出す
@@ -529,14 +553,18 @@ async def test_retrieve_paper_info_success(arxiv_service, mock_arxiv_paper_facto
             ),
         ):
             # When
-            result = await arxiv_service._retrieve_paper_info(arxiv_helper.DEFAULT_ARXIV_ID)
+            result = await arxiv_service._retrieve_paper_info(
+                arxiv_helper.DEFAULT_ARXIV_ID
+            )
 
             # Then
             assert result is not None
             assert isinstance(result, PaperInfo)
             assert result.title == "Test Paper Title"
             assert result.abstract == "テスト要約"
-            assert result.url == f"http://arxiv.org/abs/{arxiv_helper.DEFAULT_ARXIV_ID}v1"
+            assert (
+                result.url == f"http://arxiv.org/abs/{arxiv_helper.DEFAULT_ARXIV_ID}v1"
+            )
             assert result.contents == "Test content"
 
 

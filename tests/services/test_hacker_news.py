@@ -162,7 +162,9 @@ async def test_collect_network_error(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            service.http_client.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Timeout")
+            )
 
             with pytest.raises(RetryException):
                 await service.collect(target_dates=[date.today()])
@@ -217,7 +219,9 @@ async def test_collect_gpt_api_error(mock_env_vars):
                     ),
                 ]
             )
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+            service.gpt_client.get_response = AsyncMock(
+                side_effect=Exception("API Error")
+            )
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -261,7 +265,9 @@ def test_story_creation():
     When: Storyオブジェクトを作成
     Then: 正しくインスタンス化される
     """
-    story = Story(title="Test Story", score=200, url="https://example.com/test", text="Test text")
+    story = Story(
+        title="Test Story", score=200, url="https://example.com/test", text="Test text"
+    )
 
     assert story.title == "Test Story"
     assert story.score == 200
