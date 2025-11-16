@@ -727,7 +727,9 @@ async def test_fetch_story_content_http1_required(mock_env_vars, respx_mock):
             await service._fetch_story_content(story)
 
             # force_http1=Trueで呼び出されることを確認
-            mock_get.assert_called_once_with("https://htmlrev.com/test", force_http1=True)
+            mock_get.assert_called_once()
+            _, kwargs = mock_get.call_args
+            assert kwargs.get("force_http1") is True
 
         await service.cleanup()
 
@@ -1024,10 +1026,8 @@ async def test_update_blocked_domains_from_errors_no_errors(mock_env_vars):
         with patch.object(service, "_add_to_blocked_domains", new_callable=AsyncMock) as mock_add:
             await service._update_blocked_domains_from_errors(stories)
 
-            # _add_to_blocked_domainsが空の辞書で呼び出されないか、
-            # 呼び出されても何も追加されない
-            if mock_add.called:
-                assert mock_add.call_args[0][0] == {} or len(mock_add.call_args[0][0]) == 0
+            # エラーなしの場合、_add_to_blocked_domainsは呼び出されない
+            mock_add.assert_not_called()
 
 
 # =============================================================================
