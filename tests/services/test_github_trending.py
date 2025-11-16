@@ -1039,24 +1039,35 @@ def test_load_existing_repositories_success(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = GithubTrending()
 
-        markdown_content = """
-        # GitHub トレンドリポジトリ
+        markdown_content = """# GitHub トレンドリポジトリ
 
-        ### [test-repo-1](https://github.com/owner/test-repo-1)
-        Description
+### [test-repo-1](https://github.com/owner/test-repo-1)
+Description
 
-        ### [test-repo-2](https://github.com/owner/test-repo-2)
-        Another description
-        """
+### [test-repo-2](https://github.com/owner/test-repo-2)
+Another description
+"""
 
-        with (
-            patch.object(Path, "exists", return_value=True),
-            patch.object(Path, "read_text", return_value=markdown_content),
-        ):
+        from datetime import datetime
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        file_path = Path(service.storage.base_dir) / f"{today}.md"
+
+        # ファイルを実際に作成
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(markdown_content, encoding="utf-8")
+
+        try:
             tracker = service._load_existing_repositories()
 
-            assert tracker.is_duplicate("test-repo-1")
-            assert tracker.is_duplicate("test-repo-2")
+            is_dup_1, _ = tracker.is_duplicate("test-repo-1")
+            assert is_dup_1
+            is_dup_2, _ = tracker.is_duplicate("test-repo-2")
+            assert is_dup_2
+        finally:
+            # クリーンアップ
+            if file_path.exists():
+                file_path.unlink()
 
 
 @pytest.mark.unit
