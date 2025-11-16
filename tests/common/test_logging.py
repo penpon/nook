@@ -427,7 +427,7 @@ def test_setup_logger_file_handler_rotation():
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = setup_logger("test_logger", log_dir=tmpdir)
 
-        file_handler = [h for h in logger.handlers if hasattr(h, "maxBytes")][0]
+        file_handler = next(h for h in logger.handlers if hasattr(h, "maxBytes"))
         assert file_handler.maxBytes == 10 * 1024 * 1024
         assert file_handler.backupCount == 5
 
@@ -442,7 +442,7 @@ def test_setup_logger_file_handler_encoding():
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = setup_logger("test_logger", log_dir=tmpdir)
 
-        file_handler = [h for h in logger.handlers if hasattr(h, "encoding")][0]
+        file_handler = next(h for h in logger.handlers if hasattr(h, "encoding"))
         assert file_handler.encoding == "utf-8"
 
 

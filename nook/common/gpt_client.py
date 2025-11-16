@@ -72,6 +72,11 @@ class GPTClient:
         output_cost = (output_tokens / 1_000_000) * PRICING["output"]
         return input_cost + output_cost
 
+    def _calculate_message_cost(self, messages: list[dict[str, str]], output_text: str) -> float:
+        """メッセージリストと出力テキストから料金を計算します。"""
+        input_text = " ".join(msg["content"] for msg in messages)
+        return self._calculate_cost(self._count_tokens(input_text), self._count_tokens(output_text))
+
     def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
         """
         Chat CompletionsのmessagesをResponses APIのinput形式へ変換します。
@@ -286,20 +291,11 @@ class GPTClient:
 
         messages.append({"role": "user", "content": prompt})
 
-        # トークン数の計算
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         output_text = self._call_gpt5(prompt, system_instruction, max_tokens)
 
-        # 出力トークン数の計算
-        output_tokens = self._count_tokens(output_text)
-
         # 料金計算（将来の統計用に計算のみ実行）
-        _ = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_message_cost(messages, output_text)
 
         return output_text
 
@@ -401,18 +397,11 @@ class GPTClient:
 
         chat_session["messages"].append({"role": "user", "content": message})
 
-        # トークン数の計算
-        input_text = ""
-        for msg in chat_session["messages"]:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         assistant_message = self._call_gpt5_chat(chat_session["messages"], None, max_tokens)
-        output_tokens = self._count_tokens(assistant_message)
 
         # 料金計算（将来の統計用に計算のみ実行）
-        _ = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_message_cost(chat_session["messages"], assistant_message)
 
         chat_session["messages"].append({"role": "assistant", "content": assistant_message})
 
@@ -468,18 +457,11 @@ class GPTClient:
 
         messages.append({"role": "user", "content": f"コンテキスト: {context}\n\n質問: {message}"})
 
-        # トークン数の計算
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         output_text = self._call_gpt5_chat(messages, system_instruction=None, max_tokens=max_tokens)
-        output_tokens = self._count_tokens(output_text)
 
         # 料金計算（将来の統計用に計算のみ実行）
-        _ = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_message_cost(messages, output_text)
 
         return output_text
 
@@ -524,19 +506,12 @@ class GPTClient:
 
         all_messages.extend(messages)
 
-        # トークン数の計算
-        input_text = ""
-        for msg in all_messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         output_text = self._call_gpt5_chat(
             all_messages, system_instruction=None, max_tokens=max_tokens
         )
-        output_tokens = self._count_tokens(output_text)
 
         # 料金計算（将来の統計用に計算のみ実行）
-        _ = self._calculate_cost(input_tokens, output_tokens)
+        _ = self._calculate_message_cost(all_messages, output_text)
 
         return output_text
