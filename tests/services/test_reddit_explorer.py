@@ -65,7 +65,6 @@ async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api):
             ),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_subreddit = Mock()
             mock_submission = Mock()
             mock_submission.title = "Test Post"
@@ -106,9 +105,8 @@ async def test_collect_with_multiple_subreddits(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
             patch("asyncpraw.Reddit") as mock_reddit,
-            patch("tomli.load", return_value={"subreddits": ["python", "programming"]}),
+            patch("tomllib.load", return_value={"subreddits": ["python", "programming"]}),
         ):
-
             mock_subreddit = Mock()
             mock_subreddit.hot = AsyncMock(return_value=[])
 
@@ -132,7 +130,7 @@ async def test_collect_network_error(mock_env_vars):
     """
     Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
-    Then: エラーがログされるが、例外は発生しない
+    Then: Exceptionが発生する
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
@@ -143,12 +141,10 @@ async def test_collect_network_error(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_reddit.side_effect = Exception("Network error")
 
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
+            with pytest.raises(Exception):
+                await service.collect(target_dates=[date.today()])
 
 
 @pytest.mark.unit
@@ -169,7 +165,6 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch.object(service.storage, "save", new_callable=AsyncMock),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_subreddit = Mock()
             mock_submission = Mock()
             mock_submission.title = "Test"
@@ -180,9 +175,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
             mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
 
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -217,7 +210,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             ),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
-
             mock_subreddit = Mock()
             mock_submission = Mock()
             mock_submission.title = "Test Post"

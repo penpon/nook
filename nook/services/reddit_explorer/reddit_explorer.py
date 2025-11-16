@@ -3,13 +3,13 @@
 import asyncio
 import os
 import re
+import tomllib
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
 import asyncpraw
-import tomli
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
@@ -123,7 +123,7 @@ class RedditExplorer(BaseService):
         # サブレディットの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "subreddits.toml", "rb") as f:
-            self.subreddits_config = tomli.load(f)
+            self.subreddits_config = tomllib.load(f)
 
     def run(self, limit: int | None = None) -> None:
         """
@@ -205,24 +205,20 @@ class RedditExplorer(BaseService):
                                 f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"  # noqa: E501
                             )
 
-                self.logger.info(
-                    f"合計 {len(candidate_posts)} 件の投稿候補を取得しました"
-                )
+                self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
 
                 # 日付ごとにグループ化して各日独立で処理
                 posts_by_date = {}
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
                         # JSTタイムゾーンに変換して日付を取得
-                        jst_time = post.created_at.astimezone(
-                            timezone(timedelta(hours=9))
-                        )
+                        from datetime import timezone
+
+                        jst_time = post.created_at.astimezone(timezone(timedelta(hours=9)))
                         post_date = jst_time.date()
                         if post_date not in posts_by_date:
                             posts_by_date[post_date] = []
-                        posts_by_date[post_date].append(
-                            (category, subreddit_name, post)
-                        )
+                        posts_by_date[post_date].append((category, subreddit_name, post))
 
                 # 各日独立で処理
                 saved_files: list[tuple[str, str]] = []
@@ -265,21 +261,15 @@ class RedditExplorer(BaseService):
 
                     # 要約生成
                     log_summarization_start(self.logger)
-                    for idx, (category, subreddit_name, post) in enumerate(
-                        selected_posts, 1
-                    ):
-                        post.comments = await self._retrieve_top_comments_of_post(
-                            post, limit=5
-                        )
+                    for idx, (_, _, post) in enumerate(selected_posts, 1):
+                        post.comments = await self._retrieve_top_comments_of_post(post, limit=5)
                         await self._summarize_reddit_post(post)
                         log_summarization_progress(
                             self.logger, idx, len(selected_posts), post.title
                         )
 
                     # 保存
-                    day_saved_files = await self._store_summaries(
-                        selected_posts, [target_date]
-                    )
+                    day_saved_files = await self._store_summaries(selected_posts, [target_date])
                     for json_path, md_path in day_saved_files:
                         log_storage_complete(self.logger, json_path, md_path)
                         saved_files.append((json_path, md_path))
@@ -335,16 +325,11 @@ class RedditExplorer(BaseService):
                 post_type = "gallery"
             elif hasattr(submission, "poll_data") and submission.poll_data:
                 post_type = "poll"
-            elif (
-                hasattr(submission, "crosspost_parent") and submission.crosspost_parent
-            ):
+            elif hasattr(submission, "crosspost_parent") and submission.crosspost_parent:
                 post_type = "crosspost"
             elif submission.is_self:
                 post_type = "text"
-            elif any(
-                submission.url.endswith(ext)
-                for ext in [".jpg", ".jpeg", ".png", ".gif"]
-            ):
+            elif any(submission.url.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif"]):
                 post_type = "image"
             else:
                 post_type = "link"
@@ -368,7 +353,7 @@ class RedditExplorer(BaseService):
             )
 
             created_at = (
-                datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
+                datetime.fromtimestamp(submission.created_utc, tz=UTC)
                 if hasattr(submission, "created_utc")
                 else None
             )
@@ -381,9 +366,7 @@ class RedditExplorer(BaseService):
                 upvotes=submission.score,
                 text=text_ja,
                 permalink=f"https://www.reddit.com{submission.permalink}",
-                thumbnail=(
-                    submission.thumbnail if hasattr(submission, "thumbnail") else "self"
-                ),
+                thumbnail=(submission.thumbnail if hasattr(submission, "thumbnail") else "self"),
                 popularity_score=float(submission.score),
                 created_at=created_at,
             )
@@ -477,12 +460,12 @@ class RedditExplorer(BaseService):
         以下のReddit投稿を要約してください。
 
         タイトル: {post.title}
-        本文: {post.text if post.text else '(本文なし)'}
-        URL: {post.url if post.url else '(URLなし)'}
-        
+        本文: {post.text if post.text else "(本文なし)"}
+        URL: {post.url if post.url else "(URLなし)"}
+
         トップコメント:
         {chr(10).join([f"- {comment['text']}" for comment in post.comments])}
-        
+
         要約は以下の形式で行い、日本語で回答してください:
         1. 投稿の主な内容（1-2文）
         2. 重要なポイント（箇条書き3-5点）
@@ -538,7 +521,7 @@ class RedditExplorer(BaseService):
     def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:
         records: list[dict] = []
         for category, subreddit, post in posts:
-            created_at = post.created_at or datetime.now(timezone.utc)
+            created_at = post.created_at or datetime.now(UTC)
             records.append(
                 {
                     "id": post.id,
@@ -586,9 +569,9 @@ class RedditExplorer(BaseService):
             try:
                 created = datetime.fromisoformat(created_raw)
             except ValueError:
-                created = datetime.min.replace(tzinfo=timezone.utc)
+                created = datetime.min.replace(tzinfo=UTC)
         else:
-            created = datetime.min.replace(tzinfo=timezone.utc)
+            created = datetime.min.replace(tzinfo=UTC)
         return (popularity, created)
 
     def _extract_post_id_from_permalink(self, permalink: str) -> str:
@@ -654,9 +637,7 @@ class RedditExplorer(BaseService):
         sections = list(subreddit_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = (
-                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
-            )
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
             block = markdown[start:end]
             subreddit = match.group("subreddit").strip()
 

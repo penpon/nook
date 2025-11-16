@@ -16,9 +16,9 @@ ENV PATH="/root/.local/bin:$PATH"
 # 非rootユーザーの作成
 RUN useradd -m -u 1000 appuser
 
-# requirements.txtをコピー（キャッシュ効率化）
-COPY requirements.txt .
-RUN uv pip install --system --no-cache -r requirements.txt
+# pyproject.tomlをコピー（キャッシュ効率化）
+COPY pyproject.toml .
+RUN uv sync --no-dev --frozen
 
 # アプリケーションコードをコピー
 COPY nook ./nook

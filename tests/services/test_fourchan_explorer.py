@@ -11,14 +11,12 @@ nook/services/fourchan_explorer/fourchan_explorer.py のテスト
 
 from __future__ import annotations
 
-import re
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
-import respx
 
 # =============================================================================
 # 1. __init__ メソッドのテスト
@@ -68,7 +66,6 @@ async def test_collect_success(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test thread</body></html>")
             )
@@ -99,7 +96,6 @@ async def test_collect_network_error(mock_env_vars):
         service.http_client = AsyncMock()
 
         with patch.object(service, "setup_http_client", new_callable=AsyncMock):
-
             service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
             result = await service.collect(target_dates=[date.today()])
@@ -125,13 +121,10 @@ async def test_collect_gpt_api_error(mock_env_vars):
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -166,7 +159,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 return_value=Path("/data/test.json"),
             ),
         ):
-
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>Test thread</body></html>")
             )
@@ -489,9 +481,7 @@ async def test_retrieve_thread_posts_http_error(mock_env_vars, respx_mock):
     When: _retrieve_thread_posts()を呼び出す
     Then: 空リストが返される
     """
-    respx_mock.get("https://a.4cdn.org/g/thread/123456.json").mock(
-        return_value=httpx.Response(404)
-    )
+    respx_mock.get("https://a.4cdn.org/g/thread/123456.json").mock(return_value=httpx.Response(404))
 
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
@@ -605,10 +595,8 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
                             "replies": 50,
                             "images": 10,
                             "bumps": 45,
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         }
                     ],
                 }
@@ -624,7 +612,7 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
                 "posts": [
                     {
                         "no": 123456,
-                        "time": int(datetime.now(timezone.utc).timestamp()),
+                        "time": int(datetime.now(UTC).timestamp()),
                         "com": "AI post",
                     }
                 ]
@@ -669,10 +657,8 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
                             "no": i,
                             "sub": f"AI Thread {i}",
                             "com": "machine learning discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         }
                         for i in range(10)
                     ],
@@ -686,11 +672,7 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
         respx_mock.get(f"https://a.4cdn.org/g/thread/{i}.json").mock(
             return_value=httpx.Response(
                 200,
-                json={
-                    "posts": [
-                        {"no": i, "time": int(datetime.now(timezone.utc).timestamp())}
-                    ]
-                },
+                json={"posts": [{"no": i, "time": int(datetime.now(UTC).timestamp())}]},
             )
         )
 
@@ -729,19 +711,15 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
                             "no": 1,
                             "sub": "AI Discussion",
                             "com": "GPT-4 is amazing",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                         {
                             "no": 2,
                             "sub": "Random Thread",
                             "com": "Just a regular discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                     ],
                 }
@@ -752,11 +730,7 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
     respx_mock.get("https://a.4cdn.org/g/thread/1.json").mock(
         return_value=httpx.Response(
             200,
-            json={
-                "posts": [
-                    {"no": 1, "time": int(datetime.now(timezone.utc).timestamp())}
-                ]
-            },
+            json={"posts": [{"no": 1, "time": int(datetime.now(UTC).timestamp())}]},
         )
     )
 
@@ -785,9 +759,7 @@ async def test_retrieve_ai_threads_http_error(mock_env_vars, respx_mock):
     When: _retrieve_ai_threads()を呼び出す
     Then: RetryException が発生する
     """
-    respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(
-        return_value=httpx.Response(404)
-    )
+    respx_mock.get("https://a.4cdn.org/g/catalog.json").mock(return_value=httpx.Response(404))
 
     with patch("nook.common.base_service.setup_logger"):
         from nook.common.dedup import DedupTracker
@@ -827,19 +799,15 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
                             "no": 1,
                             "sub": "AI Discussion",
                             "com": "GPT discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                         {
                             "no": 2,
                             "sub": "AI Discussion",  # 同じタイトル
                             "com": "Another GPT discussion",
-                            "time": int(datetime.now(timezone.utc).timestamp()),
-                            "last_modified": int(
-                                datetime.now(timezone.utc).timestamp()
-                            ),
+                            "time": int(datetime.now(UTC).timestamp()),
+                            "last_modified": int(datetime.now(UTC).timestamp()),
                         },
                     ],
                 }
@@ -850,11 +818,7 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
     respx_mock.get("https://a.4cdn.org/g/thread/1.json").mock(
         return_value=httpx.Response(
             200,
-            json={
-                "posts": [
-                    {"no": 1, "time": int(datetime.now(timezone.utc).timestamp())}
-                ]
-            },
+            json={"posts": [{"no": 1, "time": int(datetime.now(UTC).timestamp())}]},
         )
     )
 
