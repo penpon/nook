@@ -1301,8 +1301,9 @@ async def test_network_timeout_handling(mock_env_vars):
     - 処理が適切な時間で完了する
     """
     with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
         import httpx
+
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
         service = FiveChanExplorer()
 
@@ -1350,9 +1351,7 @@ def test_board_server_cache_efficiency(mock_env_vars):
         service = FiveChanExplorer()
 
         # 1回目のアクセス
-        start_time = time.time()
         server1 = service._get_board_server("ai")
-        first_access_time = time.time() - start_time
 
         # 2回目以降のアクセス（キャッシュから）
         cache_access_times = []

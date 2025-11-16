@@ -12,8 +12,9 @@ pytestによって自動的に読み込まれます（インポート不要）�
 - mock_cloudscraper: cloudscraperのモック
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
 
 
 @pytest.fixture

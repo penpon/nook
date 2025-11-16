@@ -74,6 +74,7 @@ markers = [
     "performance: パフォーマンステスト",
     "memory: メモリテスト",
     "stress: ストレステスト",
+    "security: セキュリティテスト（脆弱性・攻撃耐性検証）",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
