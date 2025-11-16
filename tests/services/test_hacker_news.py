@@ -233,18 +233,11 @@ def test_load_blocked_domains_file_not_found(mock_env_vars):
     with (
         patch("nook.common.base_service.setup_logger"),
         patch("nook.common.base_service.GPTClient"),
+        patch("builtins.open", side_effect=FileNotFoundError("File not found")),
     ):
         service = HackerNewsRetriever()
 
-        # Mock _load_blocked_domains to simulate file not found
-        with patch.object(
-            service,
-            "_load_blocked_domains",
-            return_value={"blocked_domains": [], "reasons": {}},
-        ):
-            result = service._load_blocked_domains()
-            service.blocked_domains = result
-
+        # FileNotFoundErrorが発生した場合、デフォルトの空リストが設定される
         assert service.blocked_domains == {"blocked_domains": [], "reasons": {}}
 
 
