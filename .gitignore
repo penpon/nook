@@ -4,6 +4,7 @@
 /claude/templates
 .serena
 .CLAUDE.md
+.spec-workflow
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/
