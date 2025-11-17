@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import time
 import tracemalloc
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -779,7 +779,7 @@ def test_calculate_popularity_recent_thread(mock_env_vars):
     Then: recency_bonusが高い
     """
     with patch("nook.common.base_service.setup_logger"):
-        from datetime import date, datetime
+        from datetime import datetime
 
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
@@ -804,7 +804,7 @@ def test_calculate_popularity_old_thread(mock_env_vars):
     Then: recency_bonusが低い
     """
     with patch("nook.common.base_service.setup_logger"):
-        from datetime import date, datetime
+        from datetime import datetime
 
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
@@ -1128,7 +1128,7 @@ async def test_dat_parsing_malicious_input(mock_env_vars, malicious_dat_content,
 
             # 処理が完了することを確認（エラーにならないことが重要）
             assert isinstance(posts, list)
-            from datetime import date, datetime
+            from datetime import datetime
 
             assert latest is None or isinstance(latest, datetime)
 
@@ -1428,7 +1428,7 @@ async def test_get_with_403_tolerance_first_strategy_success(mock_env_vars):
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "Valid content"
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -1461,7 +1461,7 @@ async def test_get_with_403_tolerance_second_strategy_success(mock_env_vars):
             Mock(status_code=403, text="Forbidden"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1492,7 +1492,7 @@ async def test_get_with_403_tolerance_cloudflare_detection(mock_env_vars):
             Mock(status_code=200, text="Just a moment... Cloudflare challenge"),
             Mock(status_code=200, text="Valid content from 5ch"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1521,7 +1521,7 @@ async def test_get_with_403_tolerance_403_with_valid_content(mock_env_vars):
         mock_response = Mock()
         mock_response.status_code = 403
         mock_response.text = "x" * 150  # 150文字の有効コンテンツ
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -1552,7 +1552,7 @@ async def test_get_with_403_tolerance_all_strategies_fail(mock_env_vars):
         mock_response = Mock()
         mock_response.status_code = 403
         mock_response.text = "Forbidden"
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -1587,7 +1587,7 @@ async def test_get_with_403_tolerance_connection_error_then_success(mock_env_var
             Exception("Timeout error"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1618,12 +1618,12 @@ async def test_get_with_403_tolerance_cloudflare_with_long_wait(mock_env_vars):
             Mock(status_code=403, text="challenge page from Cloudflare"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            result = await service._get_with_403_tolerance("http://test.url", "ai")
+            await service._get_with_403_tolerance("http://test.url", "ai")
 
             # Cloudflare検出で30秒待機
             sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
@@ -1651,7 +1651,7 @@ async def test_get_with_403_tolerance_status_code_variations(mock_env_vars):
             Mock(status_code=503, text="Service Unavailable"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1684,12 +1684,12 @@ async def test_get_with_403_tolerance_strategy_wait_times(mock_env_vars):
             Mock(status_code=403, text="Forbidden"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            result = await service._get_with_403_tolerance("http://test.url", "ai")
+            await service._get_with_403_tolerance("http://test.url", "ai")
 
             # 待機時間が記録されている
             sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
@@ -1721,7 +1721,7 @@ async def test_get_with_403_tolerance_user_agent_rotation(mock_env_vars):
             Mock(status_code=403, text="Forbidden"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1752,7 +1752,7 @@ async def test_get_with_403_tolerance_403_with_small_content(mock_env_vars):
             Mock(status_code=403, text="x" * 50),  # 50文字（100文字未満）
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1785,7 +1785,7 @@ async def test_get_with_403_tolerance_mixed_errors_and_cloudflare(mock_env_vars)
             Exception("Connection timeout"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1814,7 +1814,7 @@ async def test_get_with_403_tolerance_immediate_200_no_cloudflare(mock_env_vars)
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "Valid content from server"
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -1846,7 +1846,7 @@ async def test_get_with_403_tolerance_unexpected_exception(mock_env_vars):
             Exception("Unexpected error occurred"),
             Mock(status_code=200, text="Valid content"),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -1876,7 +1876,7 @@ async def test_get_with_403_tolerance_alternative_endpoint_success(mock_env_vars
         mock_response = Mock()
         mock_response.status_code = 403
         mock_response.text = "Forbidden"
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -1884,7 +1884,7 @@ async def test_get_with_403_tolerance_alternative_endpoint_success(mock_env_vars
         alt_response = Mock()
         alt_response.status_code = 200
         alt_response.text = "Valid content from alternative endpoint"
-        
+
         with (
             patch.object(service, "_try_alternative_endpoints", new_callable=AsyncMock, return_value=alt_response),
             patch("asyncio.sleep", new_callable=AsyncMock),
@@ -1919,7 +1919,7 @@ async def test_try_alternative_endpoints_first_success(mock_env_vars):
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "Valid 5ch content\n" * 10  # 有効コンテンツ
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -1949,7 +1949,7 @@ async def test_try_alternative_endpoints_all_fail(mock_env_vars):
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.text = "Not Found"
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -1979,7 +1979,7 @@ async def test_try_alternative_endpoints_second_success(mock_env_vars):
             Mock(status_code=404, text="Not Found"),
             Mock(status_code=200, text="Valid 5ch content\n" * 10),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -2009,7 +2009,7 @@ async def test_try_alternative_endpoints_403_with_valid_content(mock_env_vars):
         mock_response = Mock()
         mock_response.status_code = 403
         mock_response.text = "Valid 5ch content\n" * 10  # >50文字
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -2041,7 +2041,7 @@ async def test_try_alternative_endpoints_cloudflare_rejection(mock_env_vars):
             Mock(status_code=200, text="Just a moment... challenge"),
             Mock(status_code=200, text="Valid 5ch content\n" * 10),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -2071,7 +2071,7 @@ async def test_try_alternative_endpoints_connection_error(mock_env_vars):
             Exception("Connection error"),
             Mock(status_code=200, text="Valid 5ch content\n" * 10),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -2101,7 +2101,7 @@ async def test_try_alternative_endpoints_short_content_rejection(mock_env_vars):
             Mock(status_code=200, text="Short"),  # <50文字
             Mock(status_code=200, text="Valid 5ch content\n" * 10),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -2134,7 +2134,7 @@ async def test_try_alternative_endpoints_5ch_2ch_variations(mock_env_vars):
             Mock(status_code=404, text="Not Found"),
             Mock(status_code=200, text="Valid 5ch content\n" * 10),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
@@ -2164,7 +2164,7 @@ async def test_try_alternative_endpoints_content_validation(mock_env_vars):
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "This is 5ch content with valid data\n" * 3
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(return_value=mock_response)
 
@@ -2197,12 +2197,12 @@ async def test_try_alternative_endpoints_wait_intervals(mock_env_vars):
             Mock(status_code=404, text="Not Found"),
             Mock(status_code=200, text="Valid 5ch content\n" * 10),
         ]
-        
+
         service.http_client._client = AsyncMock()
         service.http_client._client.get = AsyncMock(side_effect=responses)
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+            await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
 
             # 各戦略の間に3秒待機
             sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
@@ -2369,7 +2369,7 @@ async def test_retrieve_ai_threads_subject_txt_failure(mock_env_vars):
     Then: 空配列を返す
     """
     with patch("nook.common.base_service.setup_logger"):
-        from datetime import UTC, date, datetime
+        from datetime import date
 
         from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
 
@@ -2445,7 +2445,7 @@ async def test_retrieve_ai_threads_access_interval(mock_env_vars):
             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
         ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
 
             # 2秒間隔で待機
             sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
@@ -2461,7 +2461,7 @@ async def test_retrieve_ai_threads_exception_handling(mock_env_vars):
     Then: 例外を処理して空配列を返す
     """
     with patch("nook.common.base_service.setup_logger"):
-        from datetime import UTC, date, datetime
+        from datetime import date
 
         from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
 
