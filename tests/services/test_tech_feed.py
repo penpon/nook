@@ -623,10 +623,10 @@ async def test_retrieve_article_non_japanese_content(mock_env_vars):
             return_value=Mock(text="<html><body><p>This is an English article</p></body></html>")
         )
 
-        await service._retrieve_article(entry, "Test Feed", "tech")
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        # 日本語判定で除外される可能性がある
-        # 実装次第でNoneまたはArticle is returned
+        # 日本語判定で除外される
+        assert result is None
 
 
 @pytest.mark.unit
@@ -1125,10 +1125,10 @@ async def test_retrieve_article_empty_html(mock_env_vars):
 
         service.http_client.get = AsyncMock(return_value=Mock(text="<html></html>"))
 
-        await service._retrieve_article(entry, "Test Feed", "tech")
+        result = await service._retrieve_article(entry, "Test Feed", "tech")
 
-        # 空HTMLでも日本語判定で除外される可能性
-        # または空のArticle is returned
+        # 空HTMLは日本語判定で除外される
+        assert result is None
 
 
 @pytest.mark.unit

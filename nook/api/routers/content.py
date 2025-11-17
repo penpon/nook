@@ -58,7 +58,7 @@ SOURCE_MAPPING = {
 
 @router.get("/content/{source}", response_model=ContentResponse)
 async def get_content(
-    source: str, date: str | None = None, response: Response = None
+    source: str, date: str | None = None, response: Response | None = None
 ) -> ContentResponse:
     """
     特定のソースのコンテンツを取得します。
@@ -66,7 +66,7 @@ async def get_content(
     Parameters
     ----------
     source : str
-        データソース（reddit, hackernews, github, techfeed, paper）。
+        データソース（reddit, hacker-news, github, tech-news, business-news, arxiv, zenn, qiita, note, 4chan, 5chan, または all）。
     date : str, optional
         表示する日付（YYYY-MM-DD形式）。
 

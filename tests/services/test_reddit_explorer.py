@@ -7,7 +7,7 @@ nook/services/reddit_explorer/reddit_explorer.py のテスト
 - 投稿フィルタリング
 - データ保存
 - エラーハンドリング
-- 内部メソッドのユニットテスト（OAuth認証、投稿タイプ判定、UTC→JST変換、GPT要約）
+- 内部メソッドのユニットテスト（OAuth認証、投稿タイプ判定、UTCタイムスタンプ処理、GPT要約）
 """
 
 from __future__ import annotations
@@ -155,7 +155,7 @@ def test_init_with_valid_credentials(monkeypatch):
     # BaseServiceの初期化に必要
     monkeypatch.setenv("OPENAI_API_KEY", "test-api-key")
 
-    with patch("nook.common.logging.setup_logger"):
+    with patch("nook.common.base_service.setup_logger"):
         reddit_explorer_service = RedditExplorer(
             client_id="test-id", client_secret="test-secret", user_agent="test-agent"
         )
@@ -218,7 +218,7 @@ def test_init_missing_all_credentials(monkeypatch):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api):
+async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api, async_generator_helper):
     """
     Given: 有効なReddit API
     When: collectメソッドを呼び出す
@@ -247,11 +247,12 @@ async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api):
             mock_submission.url = "https://reddit.com/test"
             mock_submission.permalink = "/r/test/comments/test"
             mock_submission.author.name = "test_user"
-            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+            mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_submission]))
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+            mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
+            mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -283,7 +284,7 @@ async def test_collect_network_error(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_collect_gpt_api_error(mock_env_vars):
+async def test_collect_gpt_api_error(mock_env_vars, async_generator_helper):
     """
     Given: GPT APIがエラーを返す
     When: collectメソッドを呼び出す
@@ -301,11 +302,12 @@ async def test_collect_gpt_api_error(mock_env_vars):
             mock_submission = Mock()
             mock_submission.title = "Test"
             mock_submission.score = 100
-            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+            mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_submission]))
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+            mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
+            mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
             service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
@@ -316,7 +318,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_collect_with_multiple_subreddits(mock_env_vars):
+async def test_collect_with_multiple_subreddits(mock_env_vars, async_generator_helper):
     """
     Given: 複数のサブレディット
     When: collectメソッドを呼び出す
@@ -332,11 +334,12 @@ async def test_collect_with_multiple_subreddits(mock_env_vars):
             patch("tomllib.load", return_value={"subreddits": ["python", "programming"]}),
         ):
             mock_subreddit = Mock()
-            mock_subreddit.hot = AsyncMock(return_value=[])
+            mock_subreddit.hot = Mock(return_value=async_generator_helper([]))
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+            mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
+            mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
             result = await service.collect(target_dates=[date.today()])
 
@@ -345,7 +348,7 @@ async def test_collect_with_multiple_subreddits(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_full_workflow_collect_and_save(mock_env_vars):
+async def test_full_workflow_collect_and_save(mock_env_vars, async_generator_helper):
     """
     Given: 完全なワークフロー
     When: collect→save→cleanupを実行
@@ -368,11 +371,12 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             mock_submission = Mock()
             mock_submission.title = "Test Post"
             mock_submission.score = 100
-            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+            mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_submission]))
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+            mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
+            mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -444,7 +448,7 @@ async def test_post_type_detection(
 
 
 # =============================================================================
-# 4. UTCタイムスタンプ変換のユニットテスト
+# 5. UTCタイムスタンプ変換のユニットテスト
 # =============================================================================
 
 
@@ -492,7 +496,7 @@ async def test_utc_to_jst_conversion(
 
 
 # =============================================================================
-# 5. GPT要約のユニットテスト
+# 6. GPT要約のユニットテスト
 # =============================================================================
 
 
@@ -583,7 +587,7 @@ async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
 
 
 # =============================================================================
-# 6. 翻訳機能のユニットテスト
+# 7. 翻訳機能のユニットテスト
 # =============================================================================
 
 
@@ -642,7 +646,7 @@ async def test_translate_to_japanese_error_handling(reddit_explorer_service):
 
 
 # =============================================================================
-# 7. エラーケースのユニットテスト
+# 8. エラーケースのユニットテスト
 # =============================================================================
 
 
@@ -882,7 +886,7 @@ async def test_retrieve_top_comments_empty(reddit_explorer_service):
 
 
 # =============================================================================
-# 8. ヘルパーメソッドのユニットテスト
+# 9. ヘルパーメソッドのユニットテスト
 # =============================================================================
 
 
@@ -990,7 +994,7 @@ def test_select_top_posts(reddit_explorer_service):
 
 
 # =============================================================================
-# 9. シリアライズ・ストレージのユニットテスト
+# 10. シリアライズ・ストレージのユニットテスト
 # =============================================================================
 
 
@@ -1092,7 +1096,10 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
 
     posts = [("tech", "python", post)]
 
-    with patch("nook.services.reddit_explorer.reddit_explorer.store_daily_snapshots") as mock_store:
+    with patch(
+        "nook.services.reddit_explorer.reddit_explorer.store_daily_snapshots",
+        new_callable=AsyncMock,
+    ) as mock_store:
         mock_store.return_value = [("/data/2024-01-01.json", "/data/2024-01-01.md")]
 
         result = await reddit_explorer_service._store_summaries(posts, [date(2024, 1, 1)])
@@ -1100,11 +1107,11 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
         assert len(result) == 1
         assert result[0][0] == "/data/2024-01-01.json"
         assert result[0][1] == "/data/2024-01-01.md"
-    assert mock_store.called
+        assert mock_store.called
 
 
 # =============================================================================
-# 10. Markdownレンダリングのユニットテスト
+# 11. Markdownレンダリングのユニットテスト
 # =============================================================================
 
 
@@ -1204,7 +1211,7 @@ def test_render_markdown_multiple_subreddits(reddit_explorer_service):
 
 
 # =============================================================================
-# 11. Markdownパースのユニットテスト
+# 12. Markdownパースのユニットテスト
 # =============================================================================
 
 
@@ -1334,7 +1341,7 @@ Summary 3
 
 
 # =============================================================================
-# 12. _load_existing_postsのユニットテスト
+# 13. _load_existing_postsのユニットテスト
 # =============================================================================
 
 
@@ -1452,7 +1459,7 @@ async def test_load_existing_posts_no_data(reddit_explorer_service):
 
 
 # =============================================================================
-# 13. エッジケーステスト
+# 14. エッジケーステスト
 # =============================================================================
 
 
