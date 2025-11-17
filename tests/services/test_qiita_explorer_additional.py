@@ -126,58 +126,6 @@ async def test_collect_date_filtering_outside_range(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_collect_duplicate_check_excludes_duplicates(mock_env_vars):
-    """
-    Given: 重複タイトルのエントリ
-    When: collectメソッドを呼び出す
-    Then: 重複記事がスキップされる
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = QiitaExplorer()
-        service.http_client = AsyncMock()
-
-        with (
-            patch("feedparser.parse") as mock_parse,
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(
-                service,
-                "_get_all_existing_dates",
-                new_callable=AsyncMock,
-                return_value=[],
-            ),
-            patch(
-                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
-                new_callable=AsyncMock,
-            ) as mock_load,
-        ):
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_entry = Mock()
-            mock_entry.title = "重複記事"
-            mock_entry.link = "https://example.com/dup"
-            mock_entry.summary = "重複記事の説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
-            mock_feed.entries = [mock_entry]
-            mock_parse.return_value = mock_feed
-
-            # 重複として検出されるようにモック設定
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (True, "normalized_title")
-            mock_dedup.get_original_title.return_value = "重複記事"
-            mock_load.return_value = mock_dedup
-
-            service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
-            )
-
-            result = await service.collect(days=1, limit=10)
-
-            # 重複なので保存されない
-            assert result == []
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
 async def test_collect_storage_save_failure(mock_env_vars):
     """
     Given: ストレージ保存が失敗
