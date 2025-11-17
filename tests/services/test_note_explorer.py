@@ -1535,9 +1535,7 @@ def test_load_existing_titles_from_markdown(mock_env_vars):
 ### [記事タイトル3](https://example.com/3)
 本文3
 """
-        with patch.object(
-            service.storage, "load_markdown", return_value=markdown_content
-        ):
+        with patch.object(service.storage, "load_markdown", return_value=markdown_content):
             tracker = service._load_existing_titles()
 
             # タイトルが正しく抽出されている
@@ -1692,17 +1690,13 @@ def test_load_existing_titles_exception_handling(mock_env_vars):
         service = NoteExplorer()
 
         # storage.load_markdownが例外を発生させる
-        with patch.object(
-            service.storage, "load_markdown", side_effect=Exception("Load error")
-        ):
+        with patch.object(service.storage, "load_markdown", side_effect=Exception("Load error")):
             tracker = service._load_existing_titles()
 
             # 例外が発生してもDedupTrackerが返される
             assert tracker is not None
             # 空のtrackerなので全てが新規
             assert tracker.is_duplicate("任意のタイトル")[0] is False
-
-
 
 
 # =============================================================================
@@ -1839,7 +1833,9 @@ async def test_collect_with_existing_json_and_new_article_summarization(mock_env
             ) as mock_load,
             patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
             patch.object(service, "_summarize_article", new_callable=AsyncMock),
-            patch.object(service, "_store_summaries_for_date", new_callable=AsyncMock) as mock_store,
+            patch.object(
+                service, "_store_summaries_for_date", new_callable=AsyncMock
+            ) as mock_store,
         ):
             # フィード設定
             mock_feed = Mock()
@@ -1857,7 +1853,9 @@ async def test_collect_with_existing_json_and_new_article_summarization(mock_env
             mock_load.return_value = mock_dedup
 
             # 既存JSONファイルがある（既存記事タイトル: "既存記事"）
-            existing_json = json.dumps([{"title": "既存記事", "url": "https://example.com/existing"}])
+            existing_json = json.dumps(
+                [{"title": "既存記事", "url": "https://example.com/existing"}]
+            )
             mock_storage_load.return_value = existing_json
 
             service.http_client.get = AsyncMock(
@@ -1902,7 +1900,9 @@ async def test_collect_all_existing_articles_no_summarization(mock_env_vars):
             ) as mock_load,
             patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
             patch.object(service, "_summarize_article", new_callable=AsyncMock),
-            patch.object(service, "_store_summaries_for_date", new_callable=AsyncMock) as mock_store,
+            patch.object(
+                service, "_store_summaries_for_date", new_callable=AsyncMock
+            ) as mock_store,
         ):
             # フィード設定
             mock_feed = Mock()
@@ -1920,7 +1920,9 @@ async def test_collect_all_existing_articles_no_summarization(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             # 既存JSONファイルに同じタイトルの記事がある
-            existing_json = json.dumps([{"title": "既存記事", "url": "https://example.com/existing"}])
+            existing_json = json.dumps(
+                [{"title": "既存記事", "url": "https://example.com/existing"}]
+            )
             mock_storage_load.return_value = existing_json
 
             service.http_client.get = AsyncMock(
