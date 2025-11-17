@@ -1752,7 +1752,7 @@ def test_config_validation_reddit(mock_env_vars):
         assert len(service.subreddits_config) > 0
 
         # 各カテゴリにsubredditリストが存在することを確認
-        for category, subreddits in service.subreddits_config.items():
+        for subreddits in service.subreddits_config.values():
             assert isinstance(subreddits, list)
             assert len(subreddits) > 0
 
