@@ -14,13 +14,7 @@ import pytest
 from nook.common.dedup import DedupTracker
 
 
-# Test Fixtures
-@pytest.fixture
-def fixed_datetime():
-    """固定された日時を返すフィクスチャ（テスト安定性向上）"""
-    return datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
-
-
+# Test Helpers
 def get_jst_date_from_utc(utc_dt: datetime):
     """Convert UTC datetime to JST date"""
     from datetime import timezone
@@ -29,16 +23,15 @@ def get_jst_date_from_utc(utc_dt: datetime):
     return utc_dt.astimezone(jst).date()
 
 
-# Test Helpers
 def create_catalog_response(threads_data: list[dict]) -> Mock:
-    """カタログレスポンスのモックを作成"""
+    """Create a mock catalog response"""
     response = Mock()
     response.json.return_value = [{"threads": threads_data}]
     return response
 
 
 def create_thread_response(posts_data: list[dict]) -> Mock:
-    """スレッドレスポンスのモックを作成"""
+    """Create a mock thread response"""
     response = Mock()
     response.json.return_value = {"posts": posts_data}
     return response
@@ -66,7 +59,8 @@ async def test_collect_with_none_http_client():
             patch.object(service, "_retrieve_ai_threads", new_callable=AsyncMock, return_value=[]),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-            jst_today = get_jst_date_from_utc(datetime.now(UTC))
+            base_datetime = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+            jst_today = get_jst_date_from_utc(base_datetime)
             await service.collect(target_dates=[jst_today])
 
             # setup_http_clientが呼び出されたことを確認
@@ -95,7 +89,8 @@ async def test_collect_board_processing_error():
             ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
-            jst_today = get_jst_date_from_utc(datetime.now(UTC))
+            base_datetime = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+            jst_today = get_jst_date_from_utc(base_datetime)
             result = await service.collect(target_dates=[jst_today])
 
             # エラーがあっても処理が完了する（2つのボードのうち1つは成功）
@@ -278,8 +273,8 @@ async def test_collect_with_threads_grouping_by_date():
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        # 2つの異なる日付のスレッドを準備
-        today = datetime.now(UTC)
+        # 2つの異なる日付のスレッドを準備（固定日時使用）
+        today = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
         yesterday = today - timedelta(days=1)
 
         today_timestamp = int(today.timestamp())
@@ -355,7 +350,8 @@ async def test_collect_with_more_than_limit_threads_per_date():
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        today = datetime.now(UTC)
+        # 固定日時を使用
+        today = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
         today_timestamp = int(today.timestamp())
 
         # 20件のスレッドを準備（上限15件を超える）
@@ -426,7 +422,8 @@ async def test_collect_with_no_selected_threads():
                 new_callable=AsyncMock,
             ) as mock_save,
         ):
-            jst_today = get_jst_date_from_utc(datetime.now(UTC))
+            base_datetime = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+            jst_today = get_jst_date_from_utc(base_datetime)
             result = await service.collect(target_dates=[jst_today])
 
             # 保存処理が呼び出されない
@@ -452,7 +449,8 @@ async def test_collect_summarization_loop_coverage():
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        today = datetime.now(UTC)
+        # 固定日時を使用
+        today = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
         today_timestamp = int(today.timestamp())
 
         # 3件のスレッドを準備
