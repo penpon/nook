@@ -250,7 +250,7 @@ async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api, async_
             mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_submission]))
 
             mock_reddit_instance = Mock()
-            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -305,7 +305,7 @@ async def test_collect_gpt_api_error(mock_env_vars, async_generator_helper):
             mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_submission]))
 
             mock_reddit_instance = Mock()
-            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -337,7 +337,7 @@ async def test_collect_with_multiple_subreddits(mock_env_vars, async_generator_h
             mock_subreddit.hot = Mock(return_value=async_generator_helper([]))
 
             mock_reddit_instance = Mock()
-            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -374,7 +374,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars, async_generator_hel
             mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_submission]))
 
             mock_reddit_instance = Mock()
-            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -2290,7 +2290,7 @@ def test_extract_post_id_from_permalink_only_slashes(reddit_explorer_service):
     # スラッシュのみ
     permalink = "///"
     result = reddit_explorer_service._extract_post_id_from_permalink(permalink)
-    # スラッシュのみの場合、最後の空でない部分を返す
+    # スラッシュのみの場合、空文字列を返す
     assert result == ""
 
 
