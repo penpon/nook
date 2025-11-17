@@ -2264,8 +2264,9 @@ async def test_collect_with_many_posts_sorting(mock_env_vars, async_generator_he
             result = await service.collect(limit=30, target_dates=[target_date])
 
             assert isinstance(result, list)
-            # 1つのtarget_dateに対して1つのJSONと1つのMDファイルが保存される
-            assert len(result) == 2  # (JSON, MD) の1タプル = 2ファイル
+            # 1つのtarget_dateに対して1つの(JSON, MD)タプルが返される
+            assert len(result) == 1  # [(json_path, md_path)]
+            assert len(result[0]) == 2  # タプルには2つのパスが含まれる
 
 
 @pytest.mark.unit
