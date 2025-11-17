@@ -15,7 +15,7 @@ nook/services/note_explorer/note_explorer.py のテスト
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -1703,3 +1703,236 @@ def test_load_existing_titles_exception_handling(mock_env_vars):
             assert tracker.is_duplicate("任意のタイトル")[0] is False
 
 
+
+
+# =============================================================================
+# 追加テスト - L139-158, L171-218 のカバレッジ向上
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_duplicate_skip_with_retrieve_mock(mock_env_vars):
+    """L142-149: 重複記事がis_duplicate()=Trueでスキップされることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+        ):
+            # フィード設定
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "重複記事"
+            mock_entry.link = "https://example.com/dup"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            # 重複として検出
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (True, "normalized")
+            mock_dedup.get_original_title.return_value = "元のタイトル"
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, target_dates=[date(2024, 11, 14)])
+
+            # 重複記事はスキップされるため、結果は空
+            assert result == []
+            # is_duplicateが呼ばれたことを確認（複数カテゴリで複数回呼ばれる）
+            assert mock_dedup.is_duplicate.called
+            mock_dedup.is_duplicate.assert_any_call("重複記事")
+            # get_original_titleが呼ばれたことを確認
+            assert mock_dedup.get_original_title.called
+            mock_dedup.get_original_title.assert_any_call("normalized")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_out_of_date_range_skip_with_retrieve_mock(mock_env_vars):
+    """L152-155: 日付範囲外の記事がis_within_target_dates()=Falseでスキップされることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+        ):
+            # フィード設定
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "範囲外記事"
+            mock_entry.link = "https://example.com/old"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 1, 1, 0, 0, 0, 0, 0, 0)  # target_datesの範囲外
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, target_dates=[date(2024, 11, 14)])
+
+            # 日付範囲外の記事はスキップされるため、結果は空
+            assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_existing_json_and_new_article_summarization(mock_env_vars):
+    """L176-218: 既存JSONファイルがあり、新規記事が要約・保存されることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service, "_summarize_article", new_callable=AsyncMock),
+            patch.object(service, "_store_summaries_for_date", new_callable=AsyncMock) as mock_store,
+        ):
+            # フィード設定
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "新規記事"
+            mock_entry.link = "https://example.com/new"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            # 既存JSONファイルがある（既存記事タイトル: "既存記事"）
+            existing_json = json.dumps([{"title": "既存記事", "url": "https://example.com/existing"}])
+            mock_storage_load.return_value = existing_json
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            # _store_summaries_for_dateがパスを返す
+            mock_store.return_value = ("/data/2024-11-14.json", "/data/2024-11-14.md")
+
+            result = await service.collect(days=1, target_dates=[date(2024, 11, 14)], limit=10)
+
+            # 新規記事が保存される
+            assert len(result) >= 1
+            assert ("/data/2024-11-14.json", "/data/2024-11-14.md") in result
+            # _summarize_articleが呼ばれたことを確認
+            assert service._summarize_article.called
+            # _store_summaries_for_dateが呼ばれたことを確認
+            assert mock_store.called
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_all_existing_articles_no_summarization(mock_env_vars):
+    """L217-218: 全て既存記事の場合、要約されず log_no_new_articles() が呼ばれることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service, "_summarize_article", new_callable=AsyncMock),
+            patch.object(service, "_store_summaries_for_date", new_callable=AsyncMock) as mock_store,
+        ):
+            # フィード設定
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "既存記事"
+            mock_entry.link = "https://example.com/existing"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            # 既存JSONファイルに同じタイトルの記事がある
+            existing_json = json.dumps([{"title": "既存記事", "url": "https://example.com/existing"}])
+            mock_storage_load.return_value = existing_json
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, target_dates=[date(2024, 11, 14)], limit=10)
+
+            # 全て既存記事なので、保存されない
+            assert result == []
+            # _summarize_articleは呼ばれない
+            service._summarize_article.assert_not_called()
+            # _store_summaries_for_dateは呼ばれない
+            mock_store.assert_not_called()
