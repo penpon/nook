@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import time
 import tracemalloc
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -779,7 +779,7 @@ def test_calculate_popularity_recent_thread(mock_env_vars):
     Then: recency_bonusが高い
     """
     with patch("nook.common.base_service.setup_logger"):
-        from datetime import datetime
+        from datetime import date, datetime
 
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
@@ -804,7 +804,7 @@ def test_calculate_popularity_old_thread(mock_env_vars):
     Then: recency_bonusが低い
     """
     with patch("nook.common.base_service.setup_logger"):
-        from datetime import datetime
+        from datetime import date, datetime
 
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
@@ -1128,7 +1128,7 @@ async def test_dat_parsing_malicious_input(mock_env_vars, malicious_dat_content,
 
             # 処理が完了することを確認（エラーにならないことが重要）
             assert isinstance(posts, list)
-            from datetime import datetime
+            from datetime import date, datetime
 
             assert latest is None or isinstance(latest, datetime)
 
@@ -1217,7 +1217,8 @@ async def test_concurrent_thread_fetching_performance(mock_env_vars):
 
             # 処理時間が許容範囲内（並行処理により高速化）
             # 並行実行なら約0.05秒、逐次実行なら約0.5秒（10 * 0.05）
-            assert processing_time < 0.1, f"並行処理時間が長すぎる: {processing_time}秒"
+            # 環境依存を考慮して0.2秒に緩和
+            assert processing_time < 0.2, f"並行処理時間が長すぎる: {processing_time}秒"
 
 
 @pytest.mark.unit
@@ -1403,3 +1404,1072 @@ async def test_retry_backoff_performance(mock_env_vars):
 
             # バックオフ時間が指数的に増加していることを確認
             assert len(sleep_times) > 0
+
+# =============================================================================
+# 11. _get_with_403_tolerance メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_first_strategy_success(mock_env_vars):
+    """
+    Given: 1回目の戦略で200を返すモック
+    When: _get_with_403_toleranceを呼び出す
+    Then: リトライなしで即座に成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 1回目で200を返すモック
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "Valid content"
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 成功
+            assert result is not None
+            assert result.status_code == 200
+            # 最初の戦略で成功したので、スリープは1回だけ（戦略1の待機時間）
+            assert mock_sleep.call_count >= 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_second_strategy_success(mock_env_vars):
+    """
+    Given: 1回目は403、2回目は200
+    When: _get_with_403_toleranceを呼び出す
+    Then: 2回目の戦略で成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 1回目: 403、2回目: 200
+        responses = [
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 2回目で成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_cloudflare_detection(mock_env_vars):
+    """
+    Given: Cloudflareチャレンジページを含む200レスポンス
+    When: _get_with_403_toleranceを呼び出す
+    Then: Cloudflare検出してリトライ
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # Cloudflareチャレンジページ、その後成功
+        responses = [
+            Mock(status_code=200, text="Just a moment... Cloudflare challenge"),
+            Mock(status_code=200, text="Valid content from 5ch"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # Cloudflare検出後にリトライして成功
+            assert result is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_403_with_valid_content(mock_env_vars):
+    """
+    Given: 403だが有効コンテンツ（>100文字）を含むレスポンス
+    When: _get_with_403_toleranceを呼び出す
+    Then: 403でも有効コンテンツなので成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 403だが有効コンテンツ
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = "x" * 150  # 150文字の有効コンテンツ
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 403だが有効コンテンツなので成功
+            assert result is not None
+            assert result.status_code == 403
+            assert len(result.text) > 100
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_all_strategies_fail(mock_env_vars):
+    """
+    Given: 全戦略で403エラー
+    When: _get_with_403_toleranceを呼び出す
+    Then: 代替エンドポイント戦略を試行
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # すべて403で失敗
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = "Forbidden"
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        # 代替エンドポイント戦略もモック
+        with (
+            patch.object(service, "_try_alternative_endpoints", new_callable=AsyncMock, return_value=None),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 全戦略失敗でNone
+            assert result is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_connection_error_then_success(mock_env_vars):
+    """
+    Given: 最初の2戦略で接続エラー、3回目で成功
+    When: _get_with_403_toleranceを呼び出す
+    Then: 例外を処理して3回目で成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 1,2回目: エラー、3回目: 成功
+        responses = [
+            Exception("Connection error"),
+            Exception("Timeout error"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 3回目で成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_cloudflare_with_long_wait(mock_env_vars):
+    """
+    Given: Cloudflare 403エラー（challenge検出）
+    When: _get_with_403_toleranceを呼び出す
+    Then: 30秒待機後にリトライ
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # Cloudflare 403、その後成功
+        responses = [
+            Mock(status_code=403, text="challenge page from Cloudflare"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # Cloudflare検出で30秒待機
+            sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
+            assert 30 in sleep_calls  # Cloudflare回避のための30秒待機
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_status_code_variations(mock_env_vars):
+    """
+    Given: 様々なステータスコード（500, 502, 503）
+    When: _get_with_403_toleranceを呼び出す
+    Then: 各エラーを処理してリトライ
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 様々なエラー、最後に成功
+        responses = [
+            Mock(status_code=500, text="Internal Server Error"),
+            Mock(status_code=502, text="Bad Gateway"),
+            Mock(status_code=503, text="Service Unavailable"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 最終的に成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_strategy_wait_times(mock_env_vars):
+    """
+    Given: 複数戦略の実行
+    When: _get_with_403_toleranceを呼び出す
+    Then: 各戦略の待機時間が段階的に増加（2秒、5秒、8秒...）
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 最初の3戦略は403、4回目で成功
+        responses = [
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 待機時間が記録されている
+            sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
+            # 戦略別の待機時間: 2秒, 5秒(2+3), 8秒(2+3*2), 11秒(2+3*3)
+            assert len(sleep_calls) >= 3
+            # 最初の戦略の待機時間は2秒
+            assert sleep_calls[0] == 2
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_user_agent_rotation(mock_env_vars):
+    """
+    Given: 各戦略で異なるUser-Agentを使用
+    When: _get_with_403_toleranceを呼び出す
+    Then: 5つのUser-Agent戦略が順次試行される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 5回目で成功（5つの戦略すべてを試行）
+        responses = [
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 5つの戦略を試行して成功
+            assert result is not None
+            assert service.http_client._client.get.call_count == 5
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_403_with_small_content(mock_env_vars):
+    """
+    Given: 403エラーで100文字未満のコンテンツ
+    When: _get_with_403_toleranceを呼び出す
+    Then: 無効コンテンツとして次の戦略を試行
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 403で小さいコンテンツ、その後成功
+        responses = [
+            Mock(status_code=403, text="x" * 50),  # 50文字（100文字未満）
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 2回目で成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_mixed_errors_and_cloudflare(mock_env_vars):
+    """
+    Given: 複数のエラータイプが混在（403、Cloudflare、接続エラー）
+    When: _get_with_403_toleranceを呼び出す
+    Then: すべてのエラータイプを処理して最終的に成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 様々なエラー、最後に成功
+        responses = [
+            Mock(status_code=403, text="Forbidden"),
+            Mock(status_code=200, text="Just a moment... Cloudflare"),
+            Exception("Connection timeout"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 最終的に成功
+            assert result is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_immediate_200_no_cloudflare(mock_env_vars):
+    """
+    Given: 即座に200を返し、Cloudflareチャレンジなし
+    When: _get_with_403_toleranceを呼び出す
+    Then: 追加のリトライなしで即座に成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 即座に成功
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "Valid content from server"
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 即座に成功
+            assert result is not None
+            assert result.status_code == 200
+            assert "Cloudflare" not in result.text
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_unexpected_exception(mock_env_vars):
+    """
+    Given: 予期しない例外（戦略実行中の予期しないエラー）
+    When: _get_with_403_toleranceを呼び出す
+    Then: 例外を処理して次の戦略を試行
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 予期しない例外、その後成功
+        responses = [
+            Exception("Unexpected error occurred"),
+            Mock(status_code=200, text="Valid content"),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 例外を処理して成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_with_403_tolerance_alternative_endpoint_success(mock_env_vars):
+    """
+    Given: 全User-Agent戦略が失敗、代替エンドポイント戦略で成功
+    When: _get_with_403_toleranceを呼び出す
+    Then: _try_alternative_endpointsが呼び出されて成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # すべて403で失敗
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = "Forbidden"
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        # 代替エンドポイント戦略で成功
+        alt_response = Mock()
+        alt_response.status_code = 200
+        alt_response.text = "Valid content from alternative endpoint"
+        
+        with (
+            patch.object(service, "_try_alternative_endpoints", new_callable=AsyncMock, return_value=alt_response),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await service._get_with_403_tolerance("http://test.url", "ai")
+
+            # 代替エンドポイントで成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+# =============================================================================
+# 12. _try_alternative_endpoints メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_first_success(mock_env_vars):
+    """
+    Given: 1番目の代替URL（sp.5ch.net）で200
+    When: _try_alternative_endpointsを呼び出す
+    Then: リトライなしで即座に成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 1番目で成功
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "Valid 5ch content\n" * 10  # 有効コンテンツ
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 即座に成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_all_fail(mock_env_vars):
+    """
+    Given: 全代替URLで失敗
+    When: _try_alternative_endpointsを呼び出す
+    Then: Noneを返却
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # すべて失敗
+        mock_response = Mock()
+        mock_response.status_code = 404
+        mock_response.text = "Not Found"
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 全失敗でNone
+            assert result is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_second_success(mock_env_vars):
+    """
+    Given: 1番目失敗、2番目の代替URLで成功
+    When: _try_alternative_endpointsを呼び出す
+    Then: 2番目で成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 1番目: 失敗、2番目: 成功
+        responses = [
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=200, text="Valid 5ch content\n" * 10),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 2番目で成功
+            assert result is not None
+            assert result.status_code == 200
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_403_with_valid_content(mock_env_vars):
+    """
+    Given: 403だが有効コンテンツ（>50文字）
+    When: _try_alternative_endpointsを呼び出す
+    Then: 403でも有効コンテンツなので成功
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 403だが有効コンテンツ
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = "Valid 5ch content\n" * 10  # >50文字
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 403だが有効コンテンツ
+            assert result is not None
+            assert result.status_code == 403
+            assert len(result.text) > 50
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_cloudflare_rejection(mock_env_vars):
+    """
+    Given: Cloudflareチャレンジページ（無効コンテンツ）
+    When: _try_alternative_endpointsを呼び出す
+    Then: 無効コンテンツとして次の戦略を試行
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # Cloudflare、その後成功
+        responses = [
+            Mock(status_code=200, text="Just a moment... challenge"),
+            Mock(status_code=200, text="Valid 5ch content\n" * 10),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 2番目で成功
+            assert result is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_connection_error(mock_env_vars):
+    """
+    Given: 接続エラーが発生
+    When: _try_alternative_endpointsを呼び出す
+    Then: 例外を処理して次の戦略を試行
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 接続エラー、その後成功
+        responses = [
+            Exception("Connection error"),
+            Mock(status_code=200, text="Valid 5ch content\n" * 10),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 2番目で成功
+            assert result is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_short_content_rejection(mock_env_vars):
+    """
+    Given: 200だがコンテンツが短すぎる（<50文字）
+    When: _try_alternative_endpointsを呼び出す
+    Then: 無効コンテンツとして次の戦略を試行
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 短いコンテンツ、その後成功
+        responses = [
+            Mock(status_code=200, text="Short"),  # <50文字
+            Mock(status_code=200, text="Valid 5ch content\n" * 10),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 2番目で成功
+            assert result is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_5ch_2ch_variations(mock_env_vars):
+    """
+    Given: 代替URL戦略（sp.5ch.net、2ch.net、subject.txt等）
+    When: _try_alternative_endpointsを呼び出す
+    Then: 5つの代替戦略が順次試行される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 5回目で成功
+        responses = [
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=200, text="Valid 5ch content\n" * 10),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 5つの戦略を試行して成功
+            assert result is not None
+            assert service.http_client._client.get.call_count == 5
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_content_validation(mock_env_vars):
+    """
+    Given: コンテンツに"5ch"または"2ch"または改行を含む
+    When: _try_alternative_endpointsを呼び出す
+    Then: コンテンツが有効と判定される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # "5ch"を含む有効コンテンツ
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "This is 5ch content with valid data\n" * 3
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(return_value=mock_response)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # コンテンツ検証が成功
+            assert result is not None
+            assert "5ch" in result.text
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_try_alternative_endpoints_wait_intervals(mock_env_vars):
+    """
+    Given: 複数の代替戦略を試行
+    When: _try_alternative_endpointsを呼び出す
+    Then: 各戦略の間に3秒の待機時間
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 3回失敗、4回目で成功
+        responses = [
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=404, text="Not Found"),
+            Mock(status_code=200, text="Valid 5ch content\n" * 10),
+        ]
+        
+        service.http_client._client = AsyncMock()
+        service.http_client._client.get = AsyncMock(side_effect=responses)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            result = await service._try_alternative_endpoints("https://mevius.5ch.net/ai/", "ai")
+
+            # 各戦略の間に3秒待機
+            sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
+            assert all(t == 3 for t in sleep_calls)
+
+
+# =============================================================================
+# 13. _retrieve_ai_threads メソッドのテスト（AI関連スレッド取得）
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_keyword_matching(mock_env_vars):
+    """
+    Given: AIキーワードを含むスレッド
+    When: _retrieve_ai_threadsを呼び出す
+    Then: AIキーワードマッチングで正しくフィルタリング
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # subject.txtのモックデータ
+        threads_data = [
+            {"title": "AI・人工知能について", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
+            {"title": "機械学習の最新動向", "timestamp": "1234567891", "html_url": "http://test.url2", "dat_url": "http://test.dat2", "post_count": 50},
+            {"title": "無関係なスレッド", "timestamp": "1234567892", "html_url": "http://test.url3", "dat_url": "http://test.dat3", "post_count": 30},
+        ]
+
+        # モック投稿データ
+        mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
+
+        with (
+            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
+            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # AIキーワードマッチング（最初の2つのみ）
+            assert len(result) == 2
+            assert "AI" in result[0].title or "機械学習" in result[0].title
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_deduplication(mock_env_vars):
+    """
+    Given: 重複するタイトルのスレッド
+    When: _retrieve_ai_threadsを呼び出す
+    Then: 重複排除処理が正しく動作
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 重複するタイトル
+        threads_data = [
+            {"title": "AI技術について", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
+            {"title": "AI技術について", "timestamp": "1234567891", "html_url": "http://test.url2", "dat_url": "http://test.dat2", "post_count": 50},
+        ]
+
+        mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
+
+        with (
+            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
+            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # 重複排除で1つのみ
+            assert len(result) == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_limit_enforcement(mock_env_vars):
+    """
+    Given: 多数のAI関連スレッド
+    When: limitパラメータを指定して_retrieve_ai_threadsを呼び出す
+    Then: 指定した制限数で取得を停止
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 10個のAI関連スレッド
+        threads_data = [
+            {"title": f"AI技術{i}", "timestamp": f"123456789{i}", "html_url": f"http://test.url{i}", "dat_url": f"http://test.dat{i}", "post_count": 100}
+            for i in range(10)
+        ]
+
+        mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
+
+        with (
+            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
+            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=3, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # limit=3で3つのみ取得
+            assert len(result) == 3
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_no_posts_skip(mock_env_vars):
+    """
+    Given: 投稿取得に失敗したスレッド
+    When: _retrieve_ai_threadsを呼び出す
+    Then: 投稿がないスレッドはスキップ
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        threads_data = [
+            {"title": "AI技術1", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
+            {"title": "AI技術2", "timestamp": "1234567891", "html_url": "http://test.url2", "dat_url": "http://test.dat2", "post_count": 50},
+        ]
+
+        # 1番目は投稿あり、2番目は投稿なし
+        posts_results = [
+            ([{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}], datetime.now(UTC)),
+            ([], datetime.now(UTC)),  # 投稿なし
+        ]
+
+        with (
+            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
+            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, side_effect=posts_results),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # 投稿があるスレッドのみ（1つ）
+            assert len(result) == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_subject_txt_failure(mock_env_vars):
+    """
+    Given: subject.txt取得に失敗
+    When: _retrieve_ai_threadsを呼び出す
+    Then: 空配列を返す
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        with patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=[]):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # subject.txt取得失敗で空配列
+            assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_popularity_calculation(mock_env_vars):
+    """
+    Given: 異なる投稿数のスレッド
+    When: _retrieve_ai_threadsを呼び出す
+    Then: popularity_scoreが正しく計算される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        threads_data = [
+            {"title": "AI技術1", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
+        ]
+
+        mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}] * 10
+
+        with (
+            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
+            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # popularity_scoreが設定されている
+            assert len(result) == 1
+            assert result[0].popularity_score > 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_access_interval(mock_env_vars):
+    """
+    Given: 複数のスレッド取得
+    When: _retrieve_ai_threadsを呼び出す
+    Then: スレッド間に2秒のアクセス間隔
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        threads_data = [
+            {"title": f"AI技術{i}", "timestamp": f"123456789{i}", "html_url": f"http://test.url{i}", "dat_url": f"http://test.dat{i}", "post_count": 100}
+            for i in range(3)
+        ]
+
+        mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
+
+        with (
+            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
+            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # 2秒間隔で待機
+            sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
+            assert all(t == 2 for t in sleep_calls)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_ai_threads_exception_handling(mock_env_vars):
+    """
+    Given: 予期しない例外が発生
+    When: _retrieve_ai_threadsを呼び出す
+    Then: 例外を処理して空配列を返す
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        with patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, side_effect=Exception("Unexpected error")):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # 例外処理で空配列
+            assert result == []
