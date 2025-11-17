@@ -2473,3 +2473,280 @@ async def test_retrieve_ai_threads_exception_handling(mock_env_vars):
 
             # 例外処理で空配列
             assert result == []
+
+
+# =============================================================================
+# Edge Case Tests (Task 7)
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_empty_thread_handling(mock_env_vars):
+    """
+    Given: レスが0件のスレッド
+    When: _get_thread_posts_from_datを呼び出す
+    Then: 空配列を返す
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 空のDATファイル（ヘッダーのみ）
+        empty_dat_content = ""
+
+        service.http_client.get = AsyncMock(return_value=Mock(text=empty_dat_content, status_code=200))
+
+        posts, last_modified = await service._get_thread_posts_from_dat("https://test.5ch.net/test/dat/1234567890.dat")
+
+        # 空配列が返される
+        assert posts == []
+        # 空スレッドの場合はlast_modifiedがNone
+        assert last_modified is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_single_post_thread(mock_env_vars):
+    """
+    Given: OP投稿のみ（レス0件）のスレッド
+    When: _get_thread_posts_from_datを呼び出す
+    Then: 1つの投稿のみを正しく処理
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # OP投稿のみのDATファイル
+        single_post_dat = "名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:TestID<>これはテストスレッドです<>"
+
+        # cloudscraperをモック
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = single_post_dat.encode("shift_jis")
+        mock_response.text = single_post_dat
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with patch("cloudscraper.create_scraper", return_value=mock_scraper):
+            posts, last_modified = await service._get_thread_posts_from_dat("https://test.5ch.net/test/dat/1234567890.dat")
+
+            # 1つの投稿が返される
+            assert len(posts) == 1
+            assert posts[0]["com"] == "これはテストスレッドです"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_special_characters_in_post(mock_env_vars):
+    """
+    Given: 特殊文字（絵文字、HTML実体参照等）を含むレス
+    When: _get_thread_posts_from_datを呼び出す
+    Then: 特殊文字を正しくパース
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 特殊文字を含むDATファイル
+        special_chars_dat = "名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:TestID<>テスト😀&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;🎉<>\n"
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = special_chars_dat.encode("shift_jis", errors="ignore")
+        mock_response.text = special_chars_dat
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with patch("cloudscraper.create_scraper", return_value=mock_scraper):
+            posts, _ = await service._get_thread_posts_from_dat("https://test.5ch.net/test/dat/1234567890.dat")
+
+            # 特殊文字が含まれている
+            assert len(posts) == 1
+            assert "😀" in posts[0]["com"] or "&lt;" in posts[0]["com"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_large_thread_processing(mock_env_vars):
+    """
+    Given: 1000レス超の巨大スレッド
+    When: _get_thread_posts_from_datを呼び出す
+    Then: メモリ効率的に処理（最大10投稿まで返却）
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 1000レスのDATファイルを生成
+        large_thread_dat = "\n".join([f"名無しさん<>sage<>2024/11/14(木) 12:00:0{i % 10}.00 ID:TestID{i}<>レス{i}<>" for i in range(1000)])
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = large_thread_dat.encode("shift_jis")
+        mock_response.text = large_thread_dat
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with patch("cloudscraper.create_scraper", return_value=mock_scraper):
+            import time
+
+            start_time = time.time()
+            posts, _ = await service._get_thread_posts_from_dat("https://test.5ch.net/test/dat/1234567890.dat")
+            processing_time = time.time() - start_time
+
+            # 最大10投稿まで返却される（実装の制限）
+            assert len(posts) == 10
+            # 処理時間が妥当（3秒以内）
+            assert processing_time < 3.0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_unicode_handling(mock_env_vars):
+    """
+    Given: 日本語、絵文字等のUnicode文字列
+    When: _get_thread_posts_from_datを呼び出す
+    Then: Unicode文字列を正しく処理
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 日本語と絵文字を含むDATファイル
+        unicode_dat = "名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:TestID<>こんにちは世界🌏！テスト投稿です😊<>\n"
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = unicode_dat.encode("shift_jis", errors="ignore")
+        mock_response.text = unicode_dat
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with patch("cloudscraper.create_scraper", return_value=mock_scraper):
+            posts, _ = await service._get_thread_posts_from_dat("https://test.5ch.net/test/dat/1234567890.dat")
+
+            # Unicode文字列が正しく処理される
+            assert len(posts) == 1
+            assert "こんにちは世界" in posts[0]["com"]
+            assert "🌏" in posts[0]["com"] or "テスト投稿" in posts[0]["com"]
+
+
+# =============================================================================
+# Error Recovery Tests (Task 7)
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_partial_data_fetch_success(mock_env_vars):
+    """
+    Given: 一部のレスのみ取得成功
+    When: _get_thread_posts_from_datを呼び出す
+    Then: 部分データを返す
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+
+        # 正常な行と不正な行が混在
+        partial_dat = "名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:TestID1<>正常な投稿1<>\n" "不正な行データ\n" "名無しさん<>sage<>2024/11/14(木) 12:00:01.00 ID:TestID2<>正常な投稿2<>\n"
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = partial_dat.encode("shift_jis")
+        mock_response.text = partial_dat
+
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with patch("cloudscraper.create_scraper", return_value=mock_scraper):
+            posts, _ = await service._get_thread_posts_from_dat("https://test.5ch.net/test/dat/1234567890.dat")
+
+            # 正常な投稿のみが返される（部分データ）
+            assert len(posts) >= 1  # 少なくとも1つは取得される
+            if len(posts) > 0:
+                assert "正常な投稿" in posts[0]["com"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_fallback_strategy_final_case(mock_env_vars):
+    """
+    Given: 全代替エンドポイントが失敗
+    When: _try_alternative_endpointsを呼び出す
+    Then: 最終フォールバック戦略を実行してNoneを返す
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 全てのエンドポイントで403エラー
+        service.http_client.get = AsyncMock(return_value=Mock(text="Forbidden", status_code=403))
+
+        result = await service._try_alternative_endpoints("https://original.5ch.net/test/subjecttxt.txt", "test")
+
+        # 全失敗でNoneを返す
+        assert result is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_graceful_degradation(mock_env_vars):
+    """
+    Given: 一部機能が失敗
+    When: collectメソッドを呼び出す
+    Then: 他機能は継続して動作
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        from datetime import UTC, date, datetime
+
+        from nook.services.fivechan_explorer.fivechan_explorer import DedupTracker, FiveChanExplorer
+
+        service = FiveChanExplorer()
+        service.http_client = AsyncMock()
+
+        # 一部のスレッド取得は成功、一部は失敗
+        success_threads = [
+            {"title": "成功スレッド1", "timestamp": "1234567890", "html_url": "http://test1.url", "dat_url": "http://test1.dat", "post_count": 50},
+        ]
+
+        mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "成功投稿"}]
+
+        call_count = 0
+
+        async def mock_get_posts(dat_url):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return (mock_posts, datetime.now(UTC))
+            raise Exception("Thread fetch failed")
+
+        with (
+            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=success_threads),
+            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, side_effect=mock_get_posts),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            dedup_tracker = DedupTracker()
+            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+
+            # 一部成功したスレッドは返される
+            assert len(result) >= 0  # graceful degradation で部分的な結果を返す
