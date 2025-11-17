@@ -1,4 +1,4 @@
-from pydantic import Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings
 
 
@@ -22,11 +22,12 @@ class BaseConfig(BaseSettings):
     # データ保存関連
     DATA_DIR: str = Field(default="data")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        extra = "ignore"  # 余分な環境変数を無視
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",  # 余分な環境変数を無視
+    )
 
 
 class RedditConfig(BaseConfig):

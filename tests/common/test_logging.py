@@ -286,7 +286,7 @@ def test_setup_logger_custom_directory():
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         custom_dir = Path(tmpdir) / "custom_logs"
-        logger = setup_logger("test_logger", log_dir=str(custom_dir))
+        setup_logger("test_logger", log_dir=str(custom_dir))
 
         assert custom_dir.exists()
         assert (custom_dir / "test_logger.log").exists()
@@ -398,9 +398,8 @@ def test_setup_logger_invalid_level():
     When: setup_loggerを呼び出す
     Then: AttributeErrorが発生
     """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with pytest.raises(AttributeError):
-            setup_logger("test_logger", level="INVALID", log_dir=tmpdir)
+    with tempfile.TemporaryDirectory() as tmpdir, pytest.raises(AttributeError):
+        setup_logger("test_logger", level="INVALID", log_dir=tmpdir)
 
 
 @pytest.mark.unit
@@ -428,7 +427,7 @@ def test_setup_logger_file_handler_rotation():
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = setup_logger("test_logger", log_dir=tmpdir)
 
-        file_handler = [h for h in logger.handlers if hasattr(h, "maxBytes")][0]
+        file_handler = next(h for h in logger.handlers if hasattr(h, "maxBytes"))
         assert file_handler.maxBytes == 10 * 1024 * 1024
         assert file_handler.backupCount == 5
 
@@ -443,7 +442,7 @@ def test_setup_logger_file_handler_encoding():
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = setup_logger("test_logger", log_dir=tmpdir)
 
-        file_handler = [h for h in logger.handlers if hasattr(h, "encoding")][0]
+        file_handler = next(h for h in logger.handlers if hasattr(h, "encoding"))
         assert file_handler.encoding == "utf-8"
 
 
@@ -455,7 +454,7 @@ def test_setup_logger_log_file_created():
     Then: logs/test.logが作成される
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        logger = setup_logger("test", log_dir=tmpdir)
+        setup_logger("test", log_dir=tmpdir)
 
         log_file = Path(tmpdir) / "test.log"
         assert log_file.exists()

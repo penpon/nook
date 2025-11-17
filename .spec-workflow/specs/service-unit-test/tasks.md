@@ -169,7 +169,7 @@
 
 ### 3.1 arxiv_summarizer ユニットテスト実装
 
-- [-] 3.1. arxiv_summarizer ユニットテスト実装（20-25テストケース）
+- [x] 3.1. arxiv_summarizer ユニットテスト実装（20-25テストケース）
   - File: tests/services/test_arxiv_summarizer.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（6-8ケース）**:
@@ -241,7 +241,7 @@
 
 ### 3.3 fourchan_explorer ユニットテスト実装
 
-- [ ] 3.3. fourchan_explorer ユニットテスト実装（25-30テストケース）
+- [x] 3.3. fourchan_explorer ユニットテスト実装（25-30テストケース）
   - File: tests/services/test_fourchan_explorer.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（6-8ケース）**:
@@ -274,7 +274,7 @@
 
 ### 3.4 github_trending ユニットテスト実装
 
-- [ ] 3.4. github_trending ユニットテスト実装（20-25テストケース）
+- [x] 3.4. github_trending ユニットテスト実装（20-25テストケース）
   - File: tests/services/test_github_trending.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（5-7ケース）**:

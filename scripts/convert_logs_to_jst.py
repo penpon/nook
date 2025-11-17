@@ -3,7 +3,7 @@
 
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 # JSTタイムゾーン
 JST = timezone(timedelta(hours=9))
@@ -19,7 +19,7 @@ for line in sys.stdin:
         suffix = match.group(3)
 
         # UTCタイムスタンプをパース
-        utc_time = datetime.fromisoformat(timestamp_str).replace(tzinfo=timezone.utc)
+        utc_time = datetime.fromisoformat(timestamp_str).replace(tzinfo=UTC)
 
         # JSTに変換
         jst_time = utc_time.astimezone(JST)

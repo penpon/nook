@@ -3,11 +3,16 @@
 import asyncio
 import json
 import re
+
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli as tomllib  # Python 3.10
+
 from datetime import date, datetime
 from pathlib import Path
 
 import feedparser
-import tomli
 from bs4 import BeautifulSoup
 
 from nook.common.daily_snapshot import group_records_by_date
@@ -54,7 +59,7 @@ class NoteExplorer(BaseFeedService):
         # フィードの設定を読み込む
         script_dir = Path(__file__).parent
         with open(script_dir / "feed.toml", "rb") as f:
-            self.feed_config = tomli.load(f)
+            self.feed_config = tomllib.load(f)
 
     def run(self, days: int = 1, limit: int | None = None) -> None:
         """
@@ -181,7 +186,6 @@ class NoteExplorer(BaseFeedService):
 
                 # 既存/新規記事数をカウント
                 existing_count = len(existing_titles_for_date)
-                new_count = len(date_articles)
 
                 # ログ改善：真に新規の記事を確認
                 truly_new_articles = [

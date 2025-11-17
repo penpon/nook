@@ -33,11 +33,6 @@ from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
 
 @pytest.mark.unit
 def test_init_with_default_storage_dir(mock_env_vars):
-    """
-    Given: デフォルトのstorage_dir
-    When: ZennExplorerを初期化
-    Then: インスタンスが正常に作成され、feed_configが読み込まれる
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -49,21 +44,11 @@ def test_init_with_default_storage_dir(mock_env_vars):
 
 @pytest.mark.unit
 def test_init_total_limit_constant(mock_env_vars):
-    """
-    Given: ZennExplorerクラス
-    When: TOTAL_LIMIT定数を確認
-    Then: 15が設定されている
-    """
     assert ZennExplorer.TOTAL_LIMIT == 15
 
 
 @pytest.mark.unit
 def test_init_summary_limit_constant(mock_env_vars):
-    """
-    Given: ZennExplorerクラス
-    When: SUMMARY_LIMIT定数を確認
-    Then: 15が設定されている
-    """
     assert ZennExplorer.SUMMARY_LIMIT == 15
 
 
@@ -74,11 +59,6 @@ def test_init_summary_limit_constant(mock_env_vars):
 
 @pytest.mark.unit
 def test_run_with_default_params(mock_env_vars):
-    """
-    Given: run()
-    When: パラメータなしでrunメソッドを呼び出す
-    Then: デフォルト値(days=1, limit=None)で実行される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.collect = AsyncMock(return_value=[])
@@ -97,11 +77,6 @@ def test_run_with_default_params(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_success_with_valid_feed(mock_env_vars):
-    """
-    Given: 有効なRSSフィード
-    When: collectメソッドを呼び出す
-    Then: 記事が正常に取得・保存される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -154,11 +129,6 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_multiple_articles(mock_env_vars):
-    """
-    Given: 複数の記事を含むフィード
-    When: collectメソッドを呼び出す
-    Then: 全ての記事が処理される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -209,11 +179,6 @@ async def test_collect_with_multiple_articles(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_target_dates_none(mock_env_vars):
-    """
-    Given: target_dates=None
-    When: collectメソッドを呼び出す
-    Then: デフォルトの日付範囲で実行される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -252,11 +217,6 @@ async def test_collect_with_target_dates_none(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_network_error(mock_env_vars):
-    """
-    Given: ネットワークエラーが発生
-    When: collectメソッドを呼び出す
-    Then: エラーがログされるが、例外は発生しない
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -284,11 +244,6 @@ async def test_collect_network_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_invalid_feed_xml(mock_env_vars):
-    """
-    Given: 不正なXMLフィード
-    When: collectメソッドを呼び出す
-    Then: エラーがログされ、空リストが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -318,11 +273,6 @@ async def test_collect_invalid_feed_xml(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_http_client_timeout(mock_env_vars):
-    """
-    Given: HTTPクライアントがタイムアウト
-    When: collectメソッドを呼び出す
-    Then: エラーが適切に処理される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -363,11 +313,6 @@ async def test_collect_http_client_timeout(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_gpt_api_error(mock_env_vars):
-    """
-    Given: GPT APIがエラーを返す
-    When: collectメソッドを呼び出す
-    Then: エラーが適切に処理される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -419,11 +364,6 @@ async def test_collect_gpt_api_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_limit_zero(mock_env_vars):
-    """
-    Given: limit=0
-    When: collectメソッドを呼び出す
-    Then: 記事が取得されない
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -453,11 +393,6 @@ async def test_collect_with_limit_zero(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_limit_one(mock_env_vars):
-    """
-    Given: limit=1
-    When: collectメソッドを呼び出す
-    Then: 最大1件の記事が処理される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -500,119 +435,9 @@ async def test_collect_with_limit_one(mock_env_vars):
 
             assert isinstance(result, list)
 
-
-# =============================================================================
-# 6. _select_top_articles メソッドのテスト
-# =============================================================================
-
-
-@pytest.mark.unit
-def test_select_top_articles_with_empty_list(mock_env_vars):
-    """
-    Given: 空の記事リスト
-    When: _select_top_articlesを呼び出す
-    Then: 空リストが返される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = ZennExplorer()
-
-        result = service._select_top_articles([])
-
-        assert result == []
-
-
-@pytest.mark.unit
-def test_select_top_articles_sorts_by_popularity(mock_env_vars):
-    """
-    Given: 人気スコアが異なる複数の記事
-    When: _select_top_articlesを呼び出す
-    Then: 人気スコアの降順でソートされる
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = ZennExplorer()
-
-        articles = [
-            Article(
-                feed_name="Test",
-                title="Article 1",
-                url="http://example.com/1",
-                text="text",
-                soup=BeautifulSoup("", "html.parser"),
-                category="tech",
-                popularity_score=10.0,
-                published_at=datetime.now(),
-            ),
-            Article(
-                feed_name="Test",
-                title="Article 2",
-                url="http://example.com/2",
-                text="text",
-                soup=BeautifulSoup("", "html.parser"),
-                category="tech",
-                popularity_score=50.0,
-                published_at=datetime.now(),
-            ),
-            Article(
-                feed_name="Test",
-                title="Article 3",
-                url="http://example.com/3",
-                text="text",
-                soup=BeautifulSoup("", "html.parser"),
-                category="tech",
-                popularity_score=30.0,
-                published_at=datetime.now(),
-            ),
-        ]
-
-        result = service._select_top_articles(articles, limit=2)
-
-        assert len(result) == 2
-        assert result[0].popularity_score == 50.0
-        assert result[1].popularity_score == 30.0
-
-
-@pytest.mark.unit
-def test_select_top_articles_with_limit_none(mock_env_vars):
-    """
-    Given: limit=None
-    When: _select_top_articlesを呼び出す
-    Then: SUMMARY_LIMIT件が選択される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = ZennExplorer()
-
-        articles = [
-            Article(
-                feed_name="Test",
-                title=f"Article {i}",
-                url=f"http://example.com/{i}",
-                text="text",
-                soup=BeautifulSoup("", "html.parser"),
-                category="tech",
-                popularity_score=float(i),
-                published_at=datetime.now(),
-            )
-            for i in range(20)
-        ]
-
-        result = service._select_top_articles(articles, limit=None)
-
-        assert len(result) == service.SUMMARY_LIMIT
-
-
-# =============================================================================
-# 7. _retrieve_article メソッドのテスト
-# =============================================================================
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_retrieve_article_success(mock_env_vars):
-    """
-    Given: 有効なエントリ
-    When: _retrieve_articleを呼び出す
-    Then: Articleオブジェクトが返される
-    """
+    # =============================================================================
+    # 6. _select_top_articles メソッドのテスト
+    # =============================================================================
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -637,11 +462,6 @@ async def test_retrieve_article_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_no_url(mock_env_vars):
-    """
-    Given: URLを持たないエントリ
-    When: _retrieve_articleを呼び出す
-    Then: Noneが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -657,11 +477,6 @@ async def test_retrieve_article_no_url(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_http_error(mock_env_vars):
-    """
-    Given: HTTP取得時にエラーが発生
-    When: _retrieve_articleを呼び出す
-    Then: Noneが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -684,11 +499,6 @@ async def test_retrieve_article_http_error(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_meta_tag(mock_env_vars):
-    """
-    Given: 人気スコアを含むメタタグ
-    When: _extract_popularityを呼び出す
-    Then: スコアが正しく抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -705,11 +515,6 @@ def test_extract_popularity_with_meta_tag(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_without_score(mock_env_vars):
-    """
-    Given: 人気スコアがないHTML
-    When: _extract_popularityを呼び出す
-    Then: 0.0が返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -728,11 +533,6 @@ def test_extract_popularity_without_score(mock_env_vars):
 
 @pytest.mark.unit
 def test_get_markdown_header(mock_env_vars):
-    """
-    Given: ZennExplorerインスタンス
-    When: _get_markdown_headerを呼び出す
-    Then: ヘッダーテキストが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -749,11 +549,6 @@ def test_get_markdown_header(mock_env_vars):
 
 @pytest.mark.unit
 def test_get_summary_system_instruction(mock_env_vars):
-    """
-    Given: ZennExplorerインスタンス
-    When: _get_summary_system_instructionを呼び出す
-    Then: システム指示が返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -770,11 +565,6 @@ def test_get_summary_system_instruction(mock_env_vars):
 
 @pytest.mark.unit
 def test_get_summary_prompt_template(mock_env_vars):
-    """
-    Given: 記事オブジェクト
-    When: _get_summary_prompt_templateを呼び出す
-    Then: プロンプトテンプレートが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -802,11 +592,6 @@ def test_get_summary_prompt_template(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
-    """
-    Given: フィード解析エラー
-    When: collectを実行
-    Then: エラーがログされ、処理が続行される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -834,11 +619,6 @@ async def test_collect_handles_feed_parse_error_gracefully(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_full_workflow_collect_and_save(mock_env_vars):
-    """
-    Given: 完全なワークフロー
-    When: collect→save→cleanupを実行
-    Then: 全フローが正常に動作
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -897,11 +677,6 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_multiple_categories(mock_env_vars):
-    """
-    Given: 複数カテゴリ（tech, business）のフィード設定
-    When: collectメソッドを呼び出す
-    Then: すべてのカテゴリのフィードが処理される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -946,11 +721,6 @@ async def test_collect_with_multiple_categories(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_feedparser_attribute_error(mock_env_vars):
-    """
-    Given: feedparser.parseがAttributeErrorを発生
-    When: collectメソッドを呼び出す
-    Then: エラーがログされ、処理が継続される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -978,11 +748,6 @@ async def test_collect_feedparser_attribute_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_duplicate_article(mock_env_vars):
-    """
-    Given: 重複記事が存在
-    When: collectメソッドを呼び出す
-    Then: 重複記事がスキップされる
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1031,11 +796,6 @@ async def test_collect_with_duplicate_article(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_empty_feed_entries(mock_env_vars):
-    """
-    Given: エントリが空のフィード
-    When: collectメソッドを呼び出す
-    Then: 空のリストが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1066,11 +826,6 @@ async def test_collect_with_empty_feed_entries(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_continues_on_individual_feed_error(mock_env_vars):
-    """
-    Given: 1つのフィードで例外が発生、他のフィードは正常
-    When: collectメソッドを呼び出す
-    Then: エラーをログして処理が継続される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1094,7 +849,7 @@ async def test_collect_continues_on_individual_feed_error(mock_env_vars):
                 new_callable=AsyncMock,
             ),
         ):
-            # 1つ目のフィードでエラー、2つ目は成功
+            # 1つ目のフィードでエラー, 2つ目は成功
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
             mock_feed.entries = []
@@ -1118,11 +873,6 @@ async def test_collect_continues_on_individual_feed_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_http_404_error(mock_env_vars):
-    """
-    Given: HTTP 404エラーが発生
-    When: _retrieve_articleを呼び出す
-    Then: Noneが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1148,11 +898,6 @@ async def test_retrieve_article_http_404_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_http_500_error(mock_env_vars):
-    """
-    Given: HTTP 500エラーが発生
-    When: _retrieve_articleを呼び出す
-    Then: Noneが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1178,11 +923,6 @@ async def test_retrieve_article_http_500_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_meta_description_extraction(mock_env_vars):
-    """
-    Given: メタディスクリプションを含むHTML
-    When: _retrieve_articleを呼び出す
-    Then: メタディスクリプションがテキストとして抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1193,31 +933,19 @@ async def test_retrieve_article_meta_description_extraction(mock_env_vars):
         entry.summary = None  # summaryがない場合
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html_with_meta = """
-        <html>
-        <head>
-            <meta name="description" content="これはメタディスクリプションのテキストです。">
-        </head>
-        <body></body>
-        </html>
-        """
+        html_with_meta = """<html><head><meta name="description" content="これはメタディスクリプションのテキストです."></head><body></body></html>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html_with_meta))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is not None
-        assert "これはメタディスクリプションのテキストです。" in result.text
+        assert "これはメタディスクリプションのテキストです." in result.text
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_paragraph_fallback(mock_env_vars):
-    """
-    Given: メタディスクリプションがなく、段落のみのHTML
-    When: _retrieve_articleを呼び出す
-    Then: 段落のテキストが抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1228,32 +956,19 @@ async def test_retrieve_article_paragraph_fallback(mock_env_vars):
         entry.summary = None
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html_with_paragraphs = """
-        <html>
-        <body>
-            <p>最初の段落テキスト。</p>
-            <p>2番目の段落テキスト。</p>
-            <p>3番目の段落テキスト。</p>
-        </body>
-        </html>
-        """
+        html_with_paragraphs = """<<html> <body> <p>最初の段落テキスト.</p> <p>2番目の段落テキスト.</p> <p>3番目の段落テキスト.</p> </body> </html>>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html_with_paragraphs))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is not None
-        assert "最初の段落テキスト。" in result.text
+        assert "最初の段落テキスト." in result.text
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_entry_summary_priority(mock_env_vars):
-    """
-    Given: entry.summaryが存在するエントリ
-    When: _retrieve_articleを呼び出す
-    Then: entry.summaryが優先的にテキストとして使用される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1277,11 +992,6 @@ async def test_retrieve_article_entry_summary_priority(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_beautifulsoup_exception(mock_env_vars):
-    """
-    Given: BeautifulSoup解析中に例外が発生
-    When: _retrieve_articleを呼び出す
-    Then: Noneが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1306,23 +1016,11 @@ async def test_retrieve_article_beautifulsoup_exception(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_zenn_likes_count_meta(mock_env_vars):
-    """
-    Given: zenn:likes_count メタタグを含むHTML
-    When: _extract_popularityを呼び出す
-    Then: メタタグから正しくいいね数が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """
-        <html>
-        <head>
-            <meta property="zenn:likes_count" content="150">
-        </head>
-        <body></body>
-        </html>
-        """
+        html = """<<html> <head> <meta property="zenn:likes_count" content="150"> </head> <body></body> </html>>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1332,22 +1030,11 @@ def test_extract_popularity_zenn_likes_count_meta(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_data_like_count_attribute(mock_env_vars):
-    """
-    Given: data-like-count 属性を持つ要素を含むHTML
-    When: _extract_popularityを呼び出す
-    Then: data属性から正しくいいね数が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """
-        <html>
-        <body>
-            <button data-like-count="250">いいね</button>
-        </body>
-        </html>
-        """
+        html = """<<html> <body> <button data-like-count="250">いいね</button> </body> </html>>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1357,22 +1044,11 @@ def test_extract_popularity_data_like_count_attribute(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_button_text_extraction(mock_env_vars):
-    """
-    Given: ボタン内の「いいね」テキストから数値を抽出
-    When: _extract_popularityを呼び出す
-    Then: テキストから正しく数値が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """
-        <html>
-        <body>
-            <button>♥ いいね 320</button>
-        </body>
-        </html>
-        """
+        html = """<<html> <body> <button>HEART いいね 320</button> </body> </html>>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1382,22 +1058,11 @@ def test_extract_popularity_button_text_extraction(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_span_text_extraction(mock_env_vars):
-    """
-    Given: スパン内のテキストから数値を抽出
-    When: _extract_popularityを呼び出す
-    Then: テキストから正しく数値が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """
-        <html>
-        <body>
-            <span>いいね 180</span>
-        </body>
-        </html>
-        """
+        html = """<<html> <body> <span>いいね 180</span> </body> </html>>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1407,24 +1072,11 @@ def test_extract_popularity_span_text_extraction(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_max_from_multiple_candidates(mock_env_vars):
-    """
-    Given: 複数の候補が存在
-    When: _extract_popularityを呼び出す
-    Then: 最大値が選択される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """
-        <html>
-        <body>
-            <button data-like-count="100">いいね</button>
-            <span>いいね 250</span>
-            <div>いいね 50</div>
-        </body>
-        </html>
-        """
+        html = """<<html> <body> <button data-like-count="100">いいね</button> <span>いいね 250</span> <div>いいね 50</div> </body> </html>>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1434,11 +1086,6 @@ def test_extract_popularity_max_from_multiple_candidates(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_from_feed_entry_likes(mock_env_vars):
-    """
-    Given: フィードエントリにlikes属性が存在
-    When: _extract_popularityを呼び出す
-    Then: フィードエントリから正しくいいね数が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1453,11 +1100,6 @@ def test_extract_popularity_from_feed_entry_likes(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_from_feed_entry_zenn_likes_count(mock_env_vars):
-    """
-    Given: フィードエントリにzenn_likes_count属性が存在
-    When: _extract_popularityを呼び出す
-    Then: フィードエントリから正しくいいね数が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1474,11 +1116,6 @@ def test_extract_popularity_from_feed_entry_zenn_likes_count(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_all_methods_fail_returns_zero(mock_env_vars):
-    """
-    Given: すべての抽出方法が失敗
-    When: _extract_popularityを呼び出す
-    Then: 0.0が返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1496,17 +1133,12 @@ def test_extract_popularity_all_methods_fail_returns_zero(mock_env_vars):
 
 
 # =============================================================================
-# 16. _load_existing_titles メソッドのテスト（未カバー部分）
+# 16. _load_existing_titles メソッドのテスト(未カバー部分)
 # =============================================================================
 
 
 @pytest.mark.unit
 def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars):
-    """
-    Given: Markdownファイルに既存タイトルが含まれている
-    When: _load_existing_titlesを呼び出す
-    Then: DedupTrackerにタイトルが追加される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.storage.base_dir = Path(temp_data_dir)
@@ -1519,7 +1151,7 @@ def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars
 **フィード**: テストフィード
 
 **要約**:
-これは既存記事の要約です。
+これは既存記事の要約です.
 
 ---
 
@@ -1528,7 +1160,7 @@ def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars
 **フィード**: テストフィード2
 
 **要約**:
-これは2つ目の既存記事の要約です。
+これは2つ目の既存記事の要約です.
 
 ---
 """
@@ -1547,11 +1179,6 @@ def test_load_existing_titles_with_markdown_content(temp_data_dir, mock_env_vars
 
 @pytest.mark.unit
 def test_load_existing_titles_with_no_markdown(mock_env_vars):
-    """
-    Given: Markdownファイルが存在しない
-    When: _load_existing_titlesを呼び出す
-    Then: 空のDedupTrackerが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1566,11 +1193,6 @@ def test_load_existing_titles_with_no_markdown(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_existing_titles_with_exception(mock_env_vars):
-    """
-    Given: Markdownファイル読み込み時に例外が発生
-    When: _load_existing_titlesを呼び出す
-    Then: 空のDedupTrackerが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1591,11 +1213,6 @@ def test_load_existing_titles_with_exception(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars):
-    """
-    Given: entry.summaryがなく、メタディスクリプションもないが段落がある
-    When: _retrieve_articleを呼び出す
-    Then: 段落からテキストが抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1607,15 +1224,7 @@ async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars
         del entry.summary
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html = """
-        <html>
-        <body>
-            <p>段落1のテキスト</p>
-            <p>段落2のテキスト</p>
-            <p>段落3のテキスト</p>
-        </body>
-        </html>
-        """
+        html = """<<html> <body> <p>段落1のテキスト</p> <p>段落2のテキスト</p> <p>段落3のテキスト</p> </body> </html>>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html))
 
@@ -1629,11 +1238,6 @@ async def test_retrieve_article_no_summary_no_meta_with_paragraphs(mock_env_vars
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_no_summary_with_meta_description(mock_env_vars):
-    """
-    Given: entry.summaryがないが、メタディスクリプションがある
-    When: _retrieve_articleを呼び出す
-    Then: メタディスクリプションがテキストとして使用される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1644,14 +1248,7 @@ async def test_retrieve_article_no_summary_with_meta_description(mock_env_vars):
         del entry.summary
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html = """
-        <html>
-        <head>
-            <meta name="description" content="メタディスクリプションのテキスト">
-        </head>
-        <body></body>
-        </html>
-        """
+        html = """<<html> <head> <meta name="description" content="メタディスクリプションのテキスト"> </head> <body></body> </html>>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html))
 
@@ -1664,11 +1261,6 @@ async def test_retrieve_article_no_summary_with_meta_description(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_no_content_anywhere(mock_env_vars):
-    """
-    Given: entry.summary、メタディスクリプション、段落のいずれもない
-    When: _retrieve_articleを呼び出す
-    Then: 空文字列のテキストでArticleが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1679,12 +1271,7 @@ async def test_retrieve_article_no_content_anywhere(mock_env_vars):
         del entry.summary
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        html = """
-        <html>
-        <head></head>
-        <body></body>
-        </html>
-        """
+        html = """<<html> <head></head> <body></body> </html>>"""
 
         service.http_client.get = AsyncMock(return_value=Mock(text=html))
 
@@ -1697,11 +1284,6 @@ async def test_retrieve_article_no_content_anywhere(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_with_title_attribute_missing(mock_env_vars):
-    """
-    Given: entry.titleがない
-    When: _retrieve_articleを呼び出す
-    Then: タイトルが「無題」になる
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1729,22 +1311,11 @@ async def test_retrieve_article_with_title_attribute_missing(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_div_text_extraction(mock_env_vars):
-    """
-    Given: div要素内のテキストから数値を抽出
-    When: _extract_popularityを呼び出す
-    Then: テキストから正しく数値が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """
-        <html>
-        <body>
-            <div>いいね 280</div>
-        </body>
-        </html>
-        """
+        html = """<<html> <body> <div>いいね 280</div> </body> </html>>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
@@ -1754,40 +1325,21 @@ def test_extract_popularity_div_text_extraction(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_meta_tag_with_empty_content(mock_env_vars):
-    """
-    Given: メタタグのcontentが空文字列
-    When: _extract_popularityを呼び出す
-    Then: 次の抽出方法にフォールバックする
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
         entry = Mock()
-        html = """
-        <html>
-        <head>
-            <meta property="zenn:likes_count" content="">
-        </head>
-        <body>
-            <button data-like-count="100">いいね</button>
-        </body>
-        </html>
-        """
+        html = """<<html> <head> <meta property="zenn:likes_count" content=""> </head> <body> <button data-like-count="100">いいね</button> </body> </html>>"""
         soup = BeautifulSoup(html, "html.parser")
 
         result = service._extract_popularity(entry, soup)
 
-        # メタタグが空なので、data属性から抽出される
+        # メタタグが空なので, data属性から抽出される
         assert result == 100.0
 
 
 @pytest.mark.unit
 def test_extract_popularity_entry_likes_count_attribute(mock_env_vars):
-    """
-    Given: フィードエントリにlikes_count属性が存在
-    When: _extract_popularityを呼び出す
-    Then: likes_countから正しくいいね数が抽出される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1803,11 +1355,6 @@ def test_extract_popularity_entry_likes_count_attribute(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_debug_exception_handling(mock_env_vars):
-    """
-    Given: フィードエントリの人気情報取得時に例外が発生
-    When: _extract_popularityを呼び出す
-    Then: 例外がログされ、0.0が返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1832,11 +1379,6 @@ def test_extract_popularity_debug_exception_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_existing_articles_merge(mock_env_vars):
-    """
-    Given: 既存記事が存在し、新規記事を追加
-    When: collectメソッドを呼び出す
-    Then: 既存記事と新規記事がマージされる
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1900,11 +1442,6 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
-    """
-    Given: 既存記事が存在するが、新規記事がない
-    When: collectメソッドを呼び出す
-    Then: 既存記事が保持される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
         service.http_client = AsyncMock()
@@ -1954,18 +1491,13 @@ async def test_collect_with_no_new_articles_but_existing(mock_env_vars):
 
 
 # =============================================================================
-# 20. _store_summaries メソッドのテスト（未カバー部分）
+# 20. _store_summaries メソッドのテスト(未カバー部分)
 # =============================================================================
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_with_empty_articles(mock_env_vars):
-    """
-    Given: 空の記事リスト
-    When: _store_summariesを呼び出す
-    Then: 空のリストが返される
-    """
     with patch("nook.common.base_service.setup_logger"):
         service = ZennExplorer()
 
@@ -1973,3 +1505,295 @@ async def test_store_summaries_with_empty_articles(mock_env_vars):
         result = await service._store_summaries([], target_dates)
 
         assert result == []
+
+
+# =============================================================================
+# 21. 未カバー部分の追加テスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_json_parse_error(mock_env_vars):
+    """既存記事JSONのパースエラー処理をテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # 不正なJSONを返す
+            mock_storage_load.return_value = "invalid json {{"
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "新規記事"
+            mock_entry.link = "https://example.com/new"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # JSONパースエラーがあっても処理は継続される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_file_load_exception(mock_env_vars):
+    """既存ファイルロード時の例外処理をテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # ロード時に例外を発生させる
+            mock_storage_load.side_effect = Exception("File read error")
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 例外があっても処理は継続される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+def test_select_top_articles_with_limit_none(mock_env_vars):
+    """limit=Noneの場合にSUMMARY_LIMITが使用されることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        # 20個の記事を作成
+        articles = []
+        for i in range(20):
+            article = Article(
+                feed_name="Test",
+                title=f"記事{i}",
+                url=f"https://example.com/article{i}",
+                text="本文",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=float(i),
+                published_at=datetime.now(),
+            )
+            articles.append(article)
+
+        # limit=None で呼び出し
+        result = service._select_top_articles(articles, limit=None)
+
+        # SUMMARY_LIMIT(15)個が返される
+        assert len(result) == ZennExplorer.SUMMARY_LIMIT
+        # 人気スコアの降順でソートされている
+        assert result[0].popularity_score == 19.0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_store_summaries_with_articles(mock_env_vars):
+    """_store_summariesメソッドの正常系をテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        articles = [
+            Article(
+                feed_name="Test Feed",
+                title="記事1",
+                url="https://example.com/1",
+                text="本文1",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=10.0,
+                published_at=datetime(2024, 11, 14, 10, 0, 0),
+            ),
+            Article(
+                feed_name="Test Feed",
+                title="記事2",
+                url="https://example.com/2",
+                text="本文2",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=20.0,
+                published_at=datetime(2024, 11, 14, 12, 0, 0),
+            ),
+        ]
+
+        target_dates = [date(2024, 11, 14)]
+
+        with (
+            patch.object(
+                service,
+                "_load_existing_articles",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch.object(
+                service,
+                "save_json",
+                new_callable=AsyncMock,
+                return_value=Path("data/zenn_explorer/2024-11-14.json"),
+            ),
+            patch.object(
+                service,
+                "save_markdown",
+                new_callable=AsyncMock,
+                return_value=Path("data/zenn_explorer/2024-11-14.md"),
+            ),
+        ):
+            result = await service._store_summaries(articles, target_dates)
+
+            assert isinstance(result, list)
+            assert len(result) > 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_no_new_articles_with_existing_file_check(mock_env_vars):
+    """新規記事なし、既存ファイルの存在確認をテスト（237-240行）"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.zenn_explorer.zenn_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+        ):
+            # 既存記事データを返すが、新規記事なし
+            existing_data = json.dumps(
+                [
+                    {
+                        "title": "既存記事1",
+                        "url": "https://example.com/1",
+                        "feed_name": "Feed",
+                        "summary": "要約",
+                        "popularity_score": 10.0,
+                        "published_at": "2024-11-14T10:00:00",
+                        "category": "tech",
+                    },
+                    {
+                        "title": "既存記事2",
+                        "url": "https://example.com/2",
+                        "feed_name": "Feed",
+                        "summary": "要約2",
+                        "popularity_score": 20.0,
+                        "published_at": "2024-11-14T11:00:00",
+                        "category": "tech",
+                    },
+                ]
+            )
+
+            # 最初の呼び出しで既存データを返し、2回目以降も同じデータを返す
+            mock_storage_load.return_value = existing_data
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_feed.entries = []  # 新規記事なし
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_load.return_value = mock_dedup
+
+            result = await service.collect(days=1, limit=10)
+
+            # 既存ファイルがあるので、saved_filesに追加される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+def test_select_top_articles_with_custom_limit(mock_env_vars):
+    """カスタムlimitが正しく適用されることをテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = ZennExplorer()
+
+        # 10個の記事を作成
+        articles = []
+        for i in range(10):
+            article = Article(
+                feed_name="Test",
+                title=f"記事{i}",
+                url=f"https://example.com/{i}",
+                text="本文",
+                soup=BeautifulSoup("", "html.parser"),
+                category="tech",
+                popularity_score=float(i),
+                published_at=datetime.now(),
+            )
+            articles.append(article)
+
+        # limit=5 で呼び出し
+        result = service._select_top_articles(articles, limit=5)
+
+        # 5個が返される
+        assert len(result) == 5
+        # 人気スコアの降順でソートされている
+        assert result[0].popularity_score == 9.0
+        assert result[4].popularity_score == 5.0

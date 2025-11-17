@@ -46,7 +46,7 @@ class GPTClient:
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY must be provided or set as an environment variable")
 
-        self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4.1-nano")
+        self.model = model or os.environ.get("OPENAI_MODEL", "gpt-5-nano")
         if not self.model:
             raise ValueError("OPENAI_MODEL must be provided or set as an environment variable")
 
@@ -71,6 +71,11 @@ class GPTClient:
         input_cost = (input_tokens / 1_000_000) * PRICING["input"]
         output_cost = (output_tokens / 1_000_000) * PRICING["output"]
         return input_cost + output_cost
+
+    def _calculate_message_cost(self, messages: list[dict[str, str]], output_text: str) -> float:
+        """メッセージリストと出力テキストから料金を計算します。"""
+        input_text = " ".join(msg["content"] for msg in messages)
+        return self._calculate_cost(self._count_tokens(input_text), self._count_tokens(output_text))
 
     def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
         """
@@ -163,8 +168,8 @@ class GPTClient:
             output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
-            # Only continue with prev_id if we got some output to avoid infinite loop
-            prev_id = None
+            # Set prev_id from response for continuation
+            prev_id = getattr(resp, "id", None)
 
         return output_text
 
@@ -200,8 +205,8 @@ class GPTClient:
             output_text = getattr(resp, "output_text", "") or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
-            # Only continue with prev_id if we got some output to avoid infinite loop
-            prev_id = None
+            # Set prev_id from response for continuation
+            prev_id = getattr(resp, "id", None)
 
         return output_text
 
@@ -286,21 +291,11 @@ class GPTClient:
 
         messages.append({"role": "user", "content": prompt})
 
-        # トークン数の計算
-        service = service_name or self._get_calling_service()
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         output_text = self._call_gpt5(prompt, system_instruction, max_tokens)
 
-        # 出力トークン数の計算
-        output_tokens = self._count_tokens(output_text)
-
-        # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # 料金計算（将来の統計用に計算のみ実行）
+        _ = self._calculate_message_cost(messages, output_text)
 
         return output_text
 
@@ -402,19 +397,11 @@ class GPTClient:
 
         chat_session["messages"].append({"role": "user", "content": message})
 
-        # トークン数の計算
-        service = self._get_calling_service()
-        input_text = ""
-        for msg in chat_session["messages"]:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         assistant_message = self._call_gpt5_chat(chat_session["messages"], None, max_tokens)
-        output_tokens = self._count_tokens(assistant_message)
 
-        # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # 料金計算（将来の統計用に計算のみ実行）
+        _ = self._calculate_message_cost(chat_session["messages"], assistant_message)
 
         chat_session["messages"].append({"role": "assistant", "content": assistant_message})
 
@@ -470,19 +457,11 @@ class GPTClient:
 
         messages.append({"role": "user", "content": f"コンテキスト: {context}\n\n質問: {message}"})
 
-        # トークン数の計算
-        service = self._get_calling_service()
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         output_text = self._call_gpt5_chat(messages, system_instruction=None, max_tokens=max_tokens)
-        output_tokens = self._count_tokens(output_text)
 
-        # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # 料金計算（将来の統計用に計算のみ実行）
+        _ = self._calculate_message_cost(messages, output_text)
 
         return output_text
 
@@ -527,20 +506,12 @@ class GPTClient:
 
         all_messages.extend(messages)
 
-        # トークン数の計算
-        service = self._get_calling_service()
-        input_text = ""
-        for msg in all_messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
-
         # GPT-5 Responses API を使用
         output_text = self._call_gpt5_chat(
             all_messages, system_instruction=None, max_tokens=max_tokens
         )
-        output_tokens = self._count_tokens(output_text)
 
-        # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # 料金計算（将来の統計用に計算のみ実行）
+        _ = self._calculate_message_cost(all_messages, output_text)
 
         return output_text

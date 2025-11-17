@@ -39,7 +39,7 @@ def mock_env_vars(monkeypatch):
         "REDDIT_CLIENT_ID": "test-client-id",
         "REDDIT_CLIENT_SECRET": "test-client-secret",
         "REDDIT_USER_AGENT": "test-user-agent",
-        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108
+        "DATA_DIR": "/tmp/nook_test_data",  # nosec B108 - テスト環境でのみ使用
         "LOG_LEVEL": "INFO",
     }
     for key, value in env_vars.items():
@@ -58,15 +58,6 @@ def temp_data_dir(tmp_path):
 # =============================================================================
 # HTTPクライアント・API モックフィクスチャ
 # =============================================================================
-
-
-@pytest.fixture
-def mock_httpx_client():
-    """モックHTTPXクライアント"""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    return mock_client
 
 
 @pytest.fixture
@@ -210,6 +201,7 @@ def mock_hn_api(respx_mock, mock_hn_story):
 @pytest.fixture
 def mock_github_trending_html():
     """GitHub TrendingページのモックHTML"""
+    # fmt: off
     return """
     <html>
     <body>
@@ -231,7 +223,8 @@ def mock_github_trending_html():
         </article>
     </body>
     </html>
-    """
+    """  # noqa: E501
+    # fmt: on
 
 
 @pytest.fixture
@@ -346,7 +339,7 @@ def fixed_datetime(monkeypatch):
     class MockDatetime(datetime.datetime):
         @classmethod
         def now(cls, tz=None):
-            return cls(2024, 11, 14, 12, 0, 0)
+            return cls(2024, 11, 14, 12, 0, 0, tzinfo=tz)
 
     monkeypatch.setattr(datetime, "datetime", MockDatetime)
     return MockDatetime
@@ -475,7 +468,7 @@ def mock_4chan_catalog():
                 {
                     "no": 123456,
                     "sub": "AI Discussion Thread",
-                    "com": "Let's talk about artificial intelligence and machine learning",
+                    "com": "Let's talk about artificial intelligence and machine learning",  # noqa: E501
                     "replies": 50,
                     "images": 10,
                     "bumps": 45,
@@ -509,15 +502,17 @@ def mock_4chan_thread():
 @pytest.fixture
 def mock_5chan_subject_txt():
     """5chan subject.txtモック（Shift_JIS形式）"""
-    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"
+    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"  # noqa: E501
 
 
 @pytest.fixture
 def mock_5chan_dat():
     """5chan datファイルモック（Shift_JIS形式）"""
+    # fmt: off
     return """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう<>
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い<>
-"""
+"""  # noqa: E501
+    # fmt: on
 
 
 # =============================================================================
@@ -615,6 +610,237 @@ def mock_dedup_tracker():
 
 
 # =============================================================================
+# arXiv 専用フィクスチャ
+# =============================================================================
+
+
+@pytest.fixture
+def arxiv_service():
+    """ArxivSummarizerサービスのフィクスチャ（共通セットアップ）"""
+    with patch("nook.common.logging.setup_logger"):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
+
+        service = ArxivSummarizer()
+        yield service
+
+
+@pytest.fixture
+def test_date():
+    """テスト用固定日付"""
+    from datetime import date
+
+    return date(2024, 1, 1)
+
+
+@pytest.fixture
+def test_datetime():
+    """テスト用固定日時"""
+    from datetime import UTC, datetime
+
+    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
+
+
+@pytest.fixture
+def paper_info_factory():
+    """PaperInfoオブジェクトを生成するファクトリー"""
+    from datetime import UTC, datetime
+
+    def _create(
+        title="Test Paper",
+        abstract="Test Abstract",
+        url=None,
+        arxiv_id="2301.00001",
+        contents="Test contents",
+        published_at=None,
+        **kwargs,
+    ):
+        from nook.services.arxiv_summarizer.arxiv_summarizer import PaperInfo
+
+        if url is None:
+            url = f"http://arxiv.org/abs/{arxiv_id}"
+
+        if published_at is None:
+            published_at = datetime(2023, 1, 1, tzinfo=UTC)
+
+        paper = PaperInfo(
+            title=title,
+            abstract=abstract,
+            url=url,
+            contents=contents,
+            published_at=published_at,
+        )
+
+        # summaryが指定されていれば設定
+        if "summary" in kwargs:
+            paper.summary = kwargs["summary"]
+
+        return paper
+
+    return _create
+
+
+@pytest.fixture
+def mock_arxiv_paper_factory():
+    """arxiv.Resultオブジェクトのモックを生成するファクトリー"""
+    from datetime import UTC, datetime
+    from unittest.mock import Mock
+
+    def _create(
+        arxiv_id="2301.00001",
+        title="Test Paper Title",
+        summary="Test abstract",
+        published=None,
+        **kwargs,
+    ):
+        if published is None:
+            published = datetime(2023, 1, 1, tzinfo=UTC)
+
+        mock_paper = Mock()
+        mock_paper.entry_id = f"http://arxiv.org/abs/{arxiv_id}"
+        mock_paper.title = title
+        mock_paper.summary = summary
+        mock_paper.published = published
+
+        # 追加属性
+        for key, value in kwargs.items():
+            setattr(mock_paper, key, value)
+
+        return mock_paper
+
+    return _create
+
+
+# =============================================================================
+# arXiv テストヘルパー
+# =============================================================================
+
+
+class ArxivTestHelper:
+    """
+    arXivテスト用のヘルパークラス
+
+    テスト定数とモック作成メソッドを提供し、テストコードの重複を削減します。
+
+    使用例:
+        def test_example(arxiv_helper):
+            # 定数を使用
+            arxiv_id = arxiv_helper.DEFAULT_ARXIV_ID
+
+            # モック作成
+            mock_client = arxiv_helper.create_mock_http_client()
+    """
+
+    # ============================================================================
+    # テスト定数
+    # ============================================================================
+    DEFAULT_ARXIV_ID = "2301.00001"
+    DEFAULT_MIN_LINE_LENGTH = 80
+    SAMPLE_PAPER_IDS = ["2301.00001", "2301.00002", "2301.00003"]
+
+    # テストデータ定数
+    SAMPLE_PAPER_TITLE = "Test Paper Title"
+    SAMPLE_ABSTRACT = "Test abstract"
+    SAMPLE_CONTENTS = "Test contents"
+    SAMPLE_SUMMARY = "Test summary"
+
+    # HTML/Markdown テストデータ
+    SAMPLE_MARKDOWN_VALID = """# arXiv 論文要約 (2024-01-01)
+
+## [Test Paper 1](http://arxiv.org/abs/2301.00001)
+
+**abstract**:
+Abstract 1
+
+**summary**:
+Summary 1
+
+---
+"""
+
+    # ============================================================================
+    # モック作成メソッド
+    # ============================================================================
+
+    @staticmethod
+    def create_mock_http_client():
+        """HTTPクライアントのモックを作成
+
+        Returns:
+            AsyncMock: コンテキストマネージャーとして使用可能なモック
+        """
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf_response(content=b"%PDF-1.4 test content"):
+        """PDFレスポンスのモックを作成
+
+        Args:
+            content: PDFバイナリコンテンツ
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.content = content
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_html_response(text="<html><body>Test</body></html>"):
+        """HTMLレスポンスのモックを作成
+
+        Args:
+            text: HTMLテキスト
+
+        Returns:
+            Mock: HTTPレスポンスモック
+        """
+        mock_response = Mock()
+        mock_response.text = text
+        mock_response.raise_for_status = Mock()
+        return mock_response
+
+    @staticmethod
+    def create_mock_arxiv_client(results=None):
+        """arxiv.Clientのモックを作成
+
+        Args:
+            results: resultsメソッドが返すリスト（デフォルトは空リスト）
+
+        Returns:
+            Mock: arxiv.Clientモック
+        """
+        if results is None:
+            results = []
+        mock_client = Mock()
+        mock_client.results.return_value = results
+        return mock_client
+
+    @staticmethod
+    def create_mock_pdf(text="Test PDF content"):
+        from unittest.mock import MagicMock
+
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = text
+
+        mock_pdf = MagicMock()
+        mock_pdf.pages = [mock_page]
+        mock_pdf.__enter__.return_value = mock_pdf
+        mock_pdf.__exit__.return_value = None
+
+        return mock_pdf
+
+
+@pytest.fixture
+def arxiv_helper():
+    """ArxivTestHelperインスタンスを提供"""
+    return ArxivTestHelper()
+
+
+# =============================================================================
 # クリーンアップフィクスチャ
 # =============================================================================
 
@@ -627,125 +853,42 @@ def cleanup_after_test():
 
 
 # =============================================================================
-# 日付・時刻フィクスチャ
+# Hacker News モックフィクスチャ
 # =============================================================================
 
 
 @pytest.fixture
-def test_dates():
-    """テスト用の標準日付を提供"""
-    from datetime import date
-
-    return {
-        "reddit_post_date": date(2023, 11, 15),  # 1699999999は2023-11-15 03:33:19 UTC
-        "reddit_post_utc_timestamp": 1699999999,
-        "openai_created_timestamp": 1699999999,
-        "today": date(2024, 1, 1),
-        "utc_test_timestamp": 1704067200,  # 2024-01-01 00:00:00 UTC
-    }
-
-
-# =============================================================================
-# RedditExplorer専用フィクスチャ
-# =============================================================================
+def mock_logger():
+    """モックロガー"""
+    logger = Mock()
+    logger.info = Mock()
+    logger.error = Mock()
+    logger.warning = Mock()
+    logger.debug = Mock()
+    return logger
 
 
 @pytest.fixture
-def reddit_explorer_service(mock_env_vars):
-    """RedditExplorerサービスのインスタンスを提供"""
-    with patch("nook.common.logging.setup_logger"):
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+def hacker_news_service(mock_logger):
+    """HackerNewsRetrieverのフィクスチャ"""
+    with patch("nook.common.base_service.setup_logger", return_value=mock_logger):
+        from nook.services.hacker_news.hacker_news import HackerNewsRetriever
 
-        service = RedditExplorer()
-        yield service
-
-
-@pytest.fixture
-def mock_reddit_submission():
-    """モックReddit投稿オブジェクトを作成するファクトリー"""
-
-    def _create_submission(
-        post_type="text",
-        title="Test Post",
-        score=100,
-        num_comments=25,
-        created_utc=1699999999,
-        stickied=False,
-        post_id="test123",
-        url="https://reddit.com/test",
-        selftext="Test content",
-    ):
-        """モックsubmissionを作成"""
-        mock_sub = Mock()
-        mock_sub.stickied = stickied
-        mock_sub.title = title
-        mock_sub.score = score
-        mock_sub.num_comments = num_comments
-        mock_sub.created_utc = created_utc
-        mock_sub.id = post_id
-        mock_sub.permalink = f"/r/test/comments/{post_id}"
-        mock_sub.url = url
-        mock_sub.selftext = selftext
-        mock_sub.thumbnail = "self"
-
-        # 投稿タイプによって属性を変更
-        if post_type == "image":
-            mock_sub.is_video = False
-            mock_sub.is_gallery = False
-            mock_sub.poll_data = None
-            mock_sub.crosspost_parent = None
-            mock_sub.is_self = False
-            mock_sub.url = "https://i.redd.it/test.jpg"
-        elif post_type == "gallery":
-            mock_sub.is_video = False
-            mock_sub.is_gallery = True
-            mock_sub.poll_data = None
-            mock_sub.crosspost_parent = None
-            mock_sub.is_self = False
-        elif post_type == "video":
-            mock_sub.is_video = True
-            mock_sub.is_gallery = False
-            mock_sub.poll_data = None
-            mock_sub.crosspost_parent = None
-            mock_sub.is_self = False
-        elif post_type == "poll":
-            mock_sub.is_video = False
-            mock_sub.is_gallery = False
-            mock_sub.poll_data = {"options": []}
-            mock_sub.crosspost_parent = None
-            mock_sub.is_self = False
-        elif post_type == "crosspost":
-            mock_sub.is_video = False
-            mock_sub.is_gallery = False
-            mock_sub.poll_data = None
-            mock_sub.crosspost_parent = "original_post_id"
-            mock_sub.is_self = False
-        elif post_type == "text":
-            mock_sub.is_video = False
-            mock_sub.is_gallery = False
-            mock_sub.poll_data = None
-            mock_sub.crosspost_parent = None
-            mock_sub.is_self = True
-        elif post_type == "link":
-            mock_sub.is_video = False
-            mock_sub.is_gallery = False
-            mock_sub.poll_data = None
-            mock_sub.crosspost_parent = None
-            mock_sub.is_self = False
-            mock_sub.url = "https://example.com/article"
-
-        return mock_sub
-
-    return _create_submission
+        service = HackerNewsRetriever()
+        service.logger = mock_logger
+        return service
 
 
 @pytest.fixture
-def async_generator_helper():
-    """非同期イテレータを作成するヘルパー関数を提供"""
+async def fourchan_service(mock_logger, mock_env_vars):
+    """FourChanExplorerのフィクスチャ"""
+    with patch("nook.common.base_service.setup_logger", return_value=mock_logger):
+        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 
-    async def _async_generator(items):
-        """非同期イテレータを作成"""
-        for item in items:
-            yield item
-
-    return _async_generator
+        service = FourChanExplorer()
+        service.logger = mock_logger
+        try:
+            yield service
+        finally:
+            if hasattr(service, "http_client") and service.http_client is not None:
+                await service.cleanup()

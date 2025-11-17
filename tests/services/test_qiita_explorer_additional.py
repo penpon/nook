@@ -18,7 +18,6 @@ from bs4 import BeautifulSoup
 from nook.services.base_feed_service import Article
 from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
 
-
 # =============================================================================
 # 1. collect内部分岐 詳細テスト
 # =============================================================================
@@ -273,6 +272,8 @@ async def test_collect_feed_parse_exception_continues(mock_env_vars):
             mock_feed.feed.title = "Good Feed"
             mock_feed.entries = []
             mock_parse.side_effect = [Exception("Parse error"), mock_feed]
+
+            Mock()
 
             result = await service.collect(days=1)
 
