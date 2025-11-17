@@ -10,6 +10,11 @@ from nook.api.main import app
 
 client = TestClient(app)
 
+# テスト用定数
+MAX_TEXT_LENGTH_SINGLE_SOURCE = 1000
+MAX_TEXT_LENGTH_ALL_SOURCES = 500
+TRUNCATION_SUFFIX = "..."
+
 
 @pytest.mark.unit
 class TestContentRouterComprehensive:
@@ -80,7 +85,7 @@ class TestContentRouterComprehensive:
     @patch("nook.api.routers.content.storage.load_markdown")
     def test_get_content_hacker_news_long_text_truncated(self, mock_load_markdown, mock_load_json):
         """Hacker Newsで長い本文が1000文字で省略される"""
-        long_text = "a" * 1500
+        long_text = "a" * (MAX_TEXT_LENGTH_SINGLE_SOURCE + 500)
         mock_stories = [
             {
                 "title": "Long Story",
@@ -97,18 +102,20 @@ class TestContentRouterComprehensive:
         assert response.status_code == 200
         data = response.json()
         content = data["items"][0]["content"]
-        # 1000文字 + "..." が含まれることを確認
-        assert "..." in content
-        # 本文が1003文字（1000 + "..."）以下であることを確認（スコア表示を除く）
+        assert TRUNCATION_SUFFIX in content
+        # 本文が切り詰められていることを確認（スコア表示を除く）
         text_part = content.split("スコア:")[0].strip()
-        assert len(text_part) <= 1003
+        assert len(text_part) <= MAX_TEXT_LENGTH_SINGLE_SOURCE + len(TRUNCATION_SUFFIX)
 
     @patch("nook.api.routers.content.storage.load_json")
     @patch("nook.api.routers.content.storage.load_markdown")
     def test_get_content_arxiv_title_conversion(self, mock_load_markdown, mock_load_json):
         """ArXivソース指定でタイトルが変換される"""
         content_with_original_title = (
-            "1. 既存研究では何ができなかったのか\n\n" "テスト内容\n\n" "8. この論文を140字以内で要約するとどうなりますか？\n\n" "要約テスト"
+            "1. 既存研究では何ができなかったのか\n\n"
+            "テスト内容\n\n"
+            "8. この論文を140字以内で要約するとどうなりますか？\n\n"
+            "要約テスト"
         )
         mock_load_markdown.return_value = content_with_original_title
         mock_load_json.return_value = None
@@ -162,7 +169,7 @@ class TestContentRouterComprehensive:
     @patch("nook.api.routers.content.storage.load_markdown")
     def test_get_content_all_sources_hacker_news_truncation(self, mock_load_markdown, mock_load_json):
         """全ソース取得時のHacker Newsで長いテキストが500文字で省略される"""
-        long_text = "b" * 800
+        long_text = "b" * (MAX_TEXT_LENGTH_ALL_SOURCES + 300)
         mock_stories = [
             {
                 "title": "Long Story in All",
@@ -187,10 +194,9 @@ class TestContentRouterComprehensive:
         hn_items = [item for item in data["items"] if item["source"] == "hacker-news"]
         assert len(hn_items) == 1
         content = hn_items[0]["content"]
-        # 500文字 + "..." が含まれることを確認
-        assert "..." in content
+        assert TRUNCATION_SUFFIX in content
         text_part = content.split("スコア:")[0].strip()
-        assert len(text_part) <= 503  # 500 + "..."
+        assert len(text_part) <= MAX_TEXT_LENGTH_ALL_SOURCES + len(TRUNCATION_SUFFIX)
 
     # ===== 異常系テスト (7ケース) =====
 
