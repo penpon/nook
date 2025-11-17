@@ -58,7 +58,7 @@ SOURCE_MAPPING = {
 
 @router.get("/content/{source}", response_model=ContentResponse)
 async def get_content(
-    source: str, date: str | None = None, response: Response | None = None
+    source: str, date: str | None = None, response: Response = None
 ) -> ContentResponse:
     """
     特定のソースのコンテンツを取得します。
