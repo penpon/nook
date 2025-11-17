@@ -14,6 +14,7 @@ nook/services/note_explorer/note_explorer.py のテスト
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
