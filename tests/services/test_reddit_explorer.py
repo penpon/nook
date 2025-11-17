@@ -1731,7 +1731,7 @@ def test_config_file_exists_reddit(mock_env_vars):
     Then: subreddits.tomlが存在することを確認
     """
     with patch("nook.common.base_service.setup_logger"):
-        service = RedditExplorer()
+        _ = RedditExplorer()
 
         # 設定ファイルからサブレディット情報が読み込まれていることを確認
         config_path = Path(__file__).parent.parent.parent / "nook/services/reddit_explorer/subreddits.toml"
@@ -1901,8 +1901,8 @@ async def test_collect_subreddit_fetch_error_handling(mock_env_vars, async_gener
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
             # 最初のサブレディットはエラー、2番目は成功
-            mock_subreddit_error = AsyncMock()
-            mock_subreddit_error.hot = AsyncMock(side_effect=Exception("Subreddit not found"))
+            mock_subreddit_error = Mock()
+            mock_subreddit_error.hot = Mock(side_effect=Exception("Subreddit not found"))
 
             mock_submission_ok = Mock()
             mock_submission_ok.title = "Success Post"
@@ -1926,6 +1926,7 @@ async def test_collect_subreddit_fetch_error_handling(mock_env_vars, async_gener
             mock_subreddit_ok.hot = Mock(return_value=async_generator_helper([mock_submission_ok]))
 
             call_count = 0
+
             async def mock_subreddit_factory(name):
                 nonlocal call_count
                 call_count += 1
@@ -2021,7 +2022,7 @@ def test_serialize_posts_comprehensive(reddit_explorer_service):
 
 
 @pytest.mark.unit
-def test_render_markdown_multiple_subreddits(reddit_explorer_service):
+def test_render_markdown_comprehensive(reddit_explorer_service):
     """
     Given: 複数サブレディットの投稿レコード
     When: _render_markdownでマークダウン生成
