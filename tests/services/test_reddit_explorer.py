@@ -13,6 +13,7 @@ nook/services/reddit_explorer/reddit_explorer.py のテスト
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -21,19 +22,110 @@ import pytest
 from nook.common.dedup import DedupTracker
 from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
 
+
+# =============================================================================
+# Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def reddit_explorer_service(mock_env_vars):
+    """RedditExplorer インスタンスを提供するフィクスチャ"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = RedditExplorer()
+        yield service
+
+
+@pytest.fixture
+def mock_reddit_submission():
+    """Reddit投稿のモックを生成するファクトリーフィクスチャ"""
+
+    def _create_submission(
+        post_type="text",
+        title="Test Post",
+        post_id="test123",
+        created_utc=1700000000,
+        score=100,
+    ):
+        submission = Mock()
+        submission.title = title
+        submission.id = post_id
+        submission.created_utc = created_utc
+        submission.score = score
+        submission.stickied = False
+        submission.num_comments = 10
+        submission.selftext = "Test content"
+        submission.url = f"https://reddit.com/r/test/comments/{post_id}/"
+        submission.permalink = f"/r/test/comments/{post_id}/"
+        submission.author = Mock()
+        submission.author.name = "test_user"
+
+        # 投稿タイプに応じた属性設定
+        if post_type == "image":
+            submission.thumbnail = "https://example.com/thumb.jpg"
+            submission.post_hint = "image"
+        elif post_type == "gallery":
+            submission.is_gallery = True
+            submission.thumbnail = "https://example.com/thumb.jpg"
+        elif post_type == "video":
+            submission.is_video = True
+        elif post_type == "poll":
+            submission.poll_data = {"options": []}
+        elif post_type == "crosspost":
+            submission.crosspost_parent_list = [{"id": "parent123"}]
+        elif post_type == "text":
+            submission.thumbnail = "self"
+            submission.selftext = "Text content"
+        elif post_type == "link":
+            submission.thumbnail = "default"
+            submission.url = "https://example.com/article"
+
+        return submission
+
+    return _create_submission
+
+
+@pytest.fixture
+def test_dates():
+    """テスト用の日付・タイムスタンプを提供"""
+    return {
+        "today": date.today(),
+        "reddit_post_date": date(2023, 11, 15),
+        "reddit_post_utc_timestamp": int(
+            datetime(2023, 11, 15, 12, 0, 0, tzinfo=UTC).timestamp()
+        ),
+        "utc_test_timestamp": int(
+            datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC).timestamp()
+        ),
+    }
+
+
+@pytest.fixture
+def async_generator_helper():
+    """非同期ジェネレータを生成するヘルパー"""
+
+    async def _generator(items):
+        for item in items:
+            yield item
+
+    return _generator
+
+
 # =============================================================================
 # 1. __init__ メソッドのテスト
 # =============================================================================
 
 
 @pytest.mark.unit
-def test_init_with_default_storage_dir(reddit_explorer_service):
+def test_init_with_default_storage_dir(mock_env_vars):
     """
     Given: デフォルトのstorage_dir
     When: RedditExplorerを初期化
     Then: インスタンスが正常に作成される
     """
-    assert reddit_explorer_service.service_name == "reddit_explorer"
+    with patch("nook.common.base_service.setup_logger"):
+        service = RedditExplorer()
+        assert service.service_name == "reddit_explorer"
 
 
 # =============================================================================
@@ -86,7 +178,9 @@ def test_init_missing_credentials(reddit_explorer_service, monkeypatch):
     monkeypatch.delenv("REDDIT_USER_AGENT", raising=False)
 
     with pytest.raises(ValueError, match="Reddit API credentials"):
-        RedditExplorer(client_id="test-id", user_agent="test-agent")  # client_secretが欠落
+        RedditExplorer(
+            client_id="test-id", user_agent="test-agent"
+        )  # client_secretが欠落
 
 
 @pytest.mark.unit
@@ -108,7 +202,183 @@ def test_init_missing_all_credentials(monkeypatch):
 
 
 # =============================================================================
-# 3. 投稿タイプ判定のユニットテスト（7種類）- パラメタライズド
+# 3. collect メソッドのテスト
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api):
+    """
+    Given: 有効なReddit API
+    When: collectメソッドを呼び出す
+    Then: 投稿が正常に取得・保存される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = RedditExplorer()
+
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
+            mock_subreddit = Mock()
+            mock_submission = Mock()
+            mock_submission.title = "Test Post"
+            mock_submission.selftext = "Test content"
+            mock_submission.score = 100
+            mock_submission.num_comments = 25
+            mock_submission.created_utc = 1699999999
+            mock_submission.url = "https://reddit.com/test"
+            mock_submission.permalink = "/r/test/comments/test"
+            mock_submission.author.name = "test_user"
+            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+
+            mock_reddit_instance = Mock()
+            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(target_dates=[date.today()])
+
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_network_error(mock_env_vars):
+    """
+    Given: ネットワークエラーが発生
+    When: collectメソッドを呼び出す
+    Then: Exceptionが発生する
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = RedditExplorer()
+
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
+            mock_reddit.side_effect = Exception("Network error")
+
+            with pytest.raises(Exception):
+                await service.collect(target_dates=[date.today()])
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_gpt_api_error(mock_env_vars):
+    """
+    Given: GPT APIがエラーを返す
+    When: collectメソッドを呼び出す
+    Then: エラーが適切に処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = RedditExplorer()
+
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
+            mock_subreddit = Mock()
+            mock_submission = Mock()
+            mock_submission.title = "Test"
+            mock_submission.score = 100
+            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+
+            mock_reddit_instance = Mock()
+            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+
+            service.gpt_client.get_response = AsyncMock(
+                side_effect=Exception("API Error")
+            )
+
+            result = await service.collect(target_dates=[date.today()])
+
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_multiple_subreddits(mock_env_vars):
+    """
+    Given: 複数のサブレディット
+    When: collectメソッドを呼び出す
+    Then: 全てのサブレディットが処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = RedditExplorer()
+
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+            patch("asyncpraw.Reddit") as mock_reddit,
+            patch(
+                "tomllib.load", return_value={"subreddits": ["python", "programming"]}
+            ),
+        ):
+            mock_subreddit = Mock()
+            mock_subreddit.hot = AsyncMock(return_value=[])
+
+            mock_reddit_instance = Mock()
+            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+
+            result = await service.collect(target_dates=[date.today()])
+
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_full_workflow_collect_and_save(mock_env_vars):
+    """
+    Given: 完全なワークフロー
+    When: collect→save→cleanupを実行
+    Then: 全フローが正常に動作
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = RedditExplorer()
+
+        with (
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
+            patch("asyncpraw.Reddit") as mock_reddit,
+        ):
+            mock_subreddit = Mock()
+            mock_submission = Mock()
+            mock_submission.title = "Test Post"
+            mock_submission.score = 100
+            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+
+            mock_reddit_instance = Mock()
+            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
+            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(target_dates=[date.today()])
+
+            assert isinstance(result, list)
+
+            await service.cleanup()
+
+
+# =============================================================================
+# 4. 投稿タイプ判定のユニットテスト（7種類）- パラメタライズド
 # =============================================================================
 
 
@@ -151,68 +421,20 @@ async def test_post_type_detection(
     mock_subreddit = Mock()
     mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_sub]))
 
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(
-                service.storage,
-                "save",
-                new_callable=AsyncMock,
-                return_value=Path("/data/test.json"),
-            ),
-            patch("asyncpraw.Reddit") as mock_reddit,
-        ):
-            mock_subreddit = Mock()
-            mock_submission = Mock()
-            mock_submission.title = "Test Post"
-            mock_submission.selftext = "Test content"
-            mock_submission.score = 100
-            mock_submission.num_comments = 25
-            mock_submission.created_utc = 1699999999
-            mock_submission.url = "https://reddit.com/test"
-            mock_submission.permalink = "/r/test/comments/test"
-            mock_submission.author.name = "test_user"
-            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+    reddit_explorer_service.reddit = Mock()
+    reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
+    reddit_explorer_service._translate_to_japanese = AsyncMock(return_value="")
 
-            mock_reddit_instance = Mock()
-            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+    dedup_tracker = DedupTracker()
+    posts, total = await reddit_explorer_service._retrieve_hot_posts(
+        "test",
+        limit=10,
+        dedup_tracker=dedup_tracker,
+        target_dates=[test_dates["reddit_post_date"]],
+    )
 
-            service.gpt_client.get_response = AsyncMock(return_value="要約")
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_collect_with_multiple_subreddits(mock_env_vars):
-    """
-    Given: 複数のサブレディット
-    When: collectメソッドを呼び出す
-    Then: 全てのサブレディットが処理される
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-
-        service = RedditExplorer()
-
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock),
-            patch("asyncpraw.Reddit") as mock_reddit,
-            patch("tomllib.load", return_value={"subreddits": ["python", "programming"]}),
-        ):
-            mock_subreddit = Mock()
-            mock_subreddit.hot = AsyncMock(return_value=[])
-
-            mock_reddit_instance = Mock()
-            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
+    assert len(posts) == 1
+    assert posts[0].type == expected_type
 
 
 # =============================================================================
@@ -226,9 +448,9 @@ async def test_utc_to_jst_conversion(
     reddit_explorer_service, mock_reddit_submission, test_dates, async_generator_helper
 ):
     """
-    Given: ネットワークエラーが発生
-    When: collectメソッドを呼び出す
-    Then: Exceptionが発生する
+    Given: UTC タイムスタンプの投稿
+    When: _retrieve_hot_postsで投稿を処理
+    Then: created_atがUTCタイムゾーンで正しく変換される
     """
     utc_timestamp = test_dates["utc_test_timestamp"]
     mock_sub = mock_reddit_submission(
@@ -241,14 +463,30 @@ async def test_utc_to_jst_conversion(
     mock_subreddit = Mock()
     mock_subreddit.hot = Mock(return_value=async_generator_helper([mock_sub]))
 
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch("asyncpraw.Reddit") as mock_reddit,
-        ):
-            mock_reddit.side_effect = Exception("Network error")
+    reddit_explorer_service.reddit = Mock()
+    reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
+    reddit_explorer_service._translate_to_japanese = AsyncMock(
+        return_value="テスト内容"
+    )
 
-            with pytest.raises(Exception):
-                await service.collect(target_dates=[date.today()])
+    dedup_tracker = DedupTracker()
+    posts, total = await reddit_explorer_service._retrieve_hot_posts(
+        "test",
+        limit=10,
+        dedup_tracker=dedup_tracker,
+        target_dates=[test_dates["today"]],
+    )
+
+    assert len(posts) == 1
+    assert posts[0].created_at is not None
+    assert posts[0].created_at.tzinfo == UTC
+    expected_dt = datetime.fromtimestamp(utc_timestamp, tz=UTC)
+    assert posts[0].created_at == expected_dt
+
+
+# =============================================================================
+# 5. GPT要約のユニットテスト
+# =============================================================================
 
 
 @pytest.mark.unit
@@ -273,7 +511,9 @@ async def test_summarize_reddit_post_success(reddit_explorer_service):
     )
 
     reddit_explorer_service.gpt_client = Mock()
-    reddit_explorer_service.gpt_client.generate_content = Mock(return_value="これは要約です。")
+    reddit_explorer_service.gpt_client.generate_content = Mock(
+        return_value="これは要約です。"
+    )
 
     await reddit_explorer_service._summarize_reddit_post(post)
 
@@ -300,7 +540,9 @@ async def test_summarize_reddit_post_with_url(reddit_explorer_service):
     )
 
     reddit_explorer_service.gpt_client = Mock()
-    reddit_explorer_service.gpt_client.generate_content = Mock(return_value="リンク要約")
+    reddit_explorer_service.gpt_client.generate_content = Mock(
+        return_value="リンク要約"
+    )
 
     await reddit_explorer_service._summarize_reddit_post(post)
 
@@ -328,28 +570,15 @@ async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
     )
 
     reddit_explorer_service.gpt_client = Mock()
-    reddit_explorer_service.gpt_client.generate_content = Mock(side_effect=Exception("API Error"))
+    reddit_explorer_service.gpt_client.generate_content = Mock(
+        side_effect=Exception("API Error")
+    )
 
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock),
-            patch("asyncpraw.Reddit") as mock_reddit,
-        ):
-            mock_subreddit = Mock()
-            mock_submission = Mock()
-            mock_submission.title = "Test"
-            mock_submission.score = 100
-            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+    await reddit_explorer_service._summarize_reddit_post(post)
 
-            mock_reddit_instance = Mock()
-            mock_reddit_instance.subreddit = Mock(return_value=mock_subreddit)
-            mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
-
-            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
-
-            result = await service.collect(target_dates=[date.today()])
-
-            assert isinstance(result, list)
+    # エラーメッセージが要約に含まれることを確認
+    assert "エラーが発生しました" in post.summary
+    assert "API Error" in post.summary
 
 
 # =============================================================================
@@ -370,23 +599,13 @@ async def test_translate_to_japanese_success(reddit_explorer_service):
         return_value="これは翻訳されたテキストです。"
     )
 
-    result = await reddit_explorer_service._translate_to_japanese("This is a test text.")
+    result = await reddit_explorer_service._translate_to_japanese(
+        "This is a test text."
+    )
 
-        with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(
-                service.storage,
-                "save",
-                new_callable=AsyncMock,
-                return_value=Path("/data/test.json"),
-            ),
-            patch("asyncpraw.Reddit") as mock_reddit,
-        ):
-            mock_subreddit = Mock()
-            mock_submission = Mock()
-            mock_submission.title = "Test Post"
-            mock_submission.score = 100
-            mock_subreddit.hot = AsyncMock(return_value=[mock_submission])
+    assert result == "これは翻訳されたテキストです。"
+    assert reddit_explorer_service.gpt_client.generate_content.called
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -454,7 +673,9 @@ async def test_retrieve_hot_posts_subreddit_not_found(reddit_explorer_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_empty_results(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: 投稿が0件のサブレディット
     When: _retrieve_hot_postsで取得
@@ -480,7 +701,9 @@ async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, async_g
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_skip_stickied(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: スティッキー投稿を含むサブレディット
     When: _retrieve_hot_postsで取得
@@ -529,7 +752,9 @@ async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, async_g
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_duplicate_titles(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: 重複するタイトルの投稿
     When: _retrieve_hot_postsで取得
@@ -569,7 +794,9 @@ async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, asyn
     submission2.created_utc = 1700000000
 
     mock_subreddit = Mock()
-    mock_subreddit.hot = Mock(return_value=async_generator_helper([submission1, submission2]))
+    mock_subreddit.hot = Mock(
+        return_value=async_generator_helper([submission1, submission2])
+    )
 
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.subreddit = AsyncMock(return_value=mock_subreddit)
@@ -625,7 +852,9 @@ async def test_retrieve_top_comments_success(reddit_explorer_service):
         side_effect=["素晴らしい投稿！", "同意します"]
     )
 
-    comments = await reddit_explorer_service._retrieve_top_comments_of_post(post, limit=5)
+    comments = await reddit_explorer_service._retrieve_top_comments_of_post(
+        post, limit=5
+    )
 
     assert len(comments) == 2
     assert comments[0]["text"] == "素晴らしい投稿！"
@@ -658,7 +887,9 @@ async def test_retrieve_top_comments_empty(reddit_explorer_service):
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.submission = AsyncMock(return_value=mock_submission)
 
-    comments = await reddit_explorer_service._retrieve_top_comments_of_post(post, limit=5)
+    comments = await reddit_explorer_service._retrieve_top_comments_of_post(
+        post, limit=5
+    )
 
     assert len(comments) == 0
 
@@ -677,22 +908,32 @@ def test_extract_post_id_from_permalink(reddit_explorer_service):
     """
     # 標準的なパーマリンク
     permalink1 = "https://www.reddit.com/r/python/comments/abc123/test_post/"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "abc123"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "abc123"
+    )
 
     # クエリパラメータ付き
-    permalink2 = "https://www.reddit.com/r/python/comments/xyz789/test/?utm_source=share"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "xyz789"
+    permalink2 = (
+        "https://www.reddit.com/r/python/comments/xyz789/test/?utm_source=share"
+    )
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "xyz789"
+    )
 
     # 末尾スラッシュなし
     permalink3 = "/r/test/comments/def456/my_post"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink3) == "def456"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink3) == "def456"
+    )
 
     # 空文字列
     assert reddit_explorer_service._extract_post_id_from_permalink("") == ""
 
     # commentsがないパターン
     permalink4 = "/r/test/ghi789"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink4) == "ghi789"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink4) == "ghi789"
+    )
 
 
 @pytest.mark.unit
@@ -874,10 +1115,14 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
 
     posts = [("tech", "python", post)]
 
-    with patch("nook.services.reddit_explorer.reddit_explorer.store_daily_snapshots") as mock_store:
+    with patch(
+        "nook.services.reddit_explorer.reddit_explorer.store_daily_snapshots"
+    ) as mock_store:
         mock_store.return_value = [("/data/2024-01-01.json", "/data/2024-01-01.md")]
 
-        result = await reddit_explorer_service._store_summaries(posts, [date(2024, 1, 1)])
+        result = await reddit_explorer_service._store_summaries(
+            posts, [date(2024, 1, 1)]
+        )
 
         assert len(result) == 1
         assert result[0][0] == "/data/2024-01-01.json"
@@ -1133,7 +1378,9 @@ async def test_load_existing_posts_from_json_list(reddit_explorer_service):
         {"id": "test2", "title": "Post 2"},
     ]
 
-    with patch.object(reddit_explorer_service, "load_json", new_callable=AsyncMock) as mock_load:
+    with patch.object(
+        reddit_explorer_service, "load_json", new_callable=AsyncMock
+    ) as mock_load:
         mock_load.return_value = json_data
 
         result = await reddit_explorer_service._load_existing_posts(date(2024, 1, 1))
@@ -1156,7 +1403,9 @@ async def test_load_existing_posts_from_json_dict(reddit_explorer_service):
         "javascript": [{"id": "test2", "title": "JS Post"}],
     }
 
-    with patch.object(reddit_explorer_service, "load_json", new_callable=AsyncMock) as mock_load:
+    with patch.object(
+        reddit_explorer_service, "load_json", new_callable=AsyncMock
+    ) as mock_load:
         mock_load.return_value = json_data
 
         result = await reddit_explorer_service._load_existing_posts(date(2024, 1, 1))
@@ -1278,11 +1527,15 @@ def test_extract_post_id_edge_cases(reddit_explorer_service):
     """
     # commentsキーワードなし
     permalink1 = "/r/test/post123"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "post123"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink1) == "post123"
+    )
 
     # 複数のスラッシュ
     permalink2 = "/r/test/comments/abc123/title/extra/parts"
-    assert reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "abc123"
+    assert (
+        reddit_explorer_service._extract_post_id_from_permalink(permalink2) == "abc123"
+    )
 
     # None - Noneが渡された場合も例外を発生させず、空文字を返すことを検証
     assert reddit_explorer_service._extract_post_id_from_permalink(None) == ""
@@ -1322,7 +1575,9 @@ def test_run_method(reddit_explorer_service):
     When: runメソッドを呼び出す
     Then: collectメソッドが実行される
     """
-    with patch.object(reddit_explorer_service, "collect", new_callable=AsyncMock) as mock_collect:
+    with patch.object(
+        reddit_explorer_service, "collect", new_callable=AsyncMock
+    ) as mock_collect:
         mock_collect.return_value = []
 
         reddit_explorer_service.run(limit=10)
@@ -1333,7 +1588,9 @@ def test_run_method(reddit_explorer_service):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, async_generator_helper):
+async def test_retrieve_hot_posts_date_filter(
+    reddit_explorer_service, async_generator_helper
+):
     """
     Given: 対象日付外の投稿
     When: _retrieve_hot_postsで取得
@@ -1412,9 +1669,13 @@ async def test_retrieve_top_comments_without_body(reddit_explorer_service):
 
     reddit_explorer_service.reddit = Mock()
     reddit_explorer_service.reddit.submission = AsyncMock(return_value=mock_submission)
-    reddit_explorer_service._translate_to_japanese = AsyncMock(return_value="有効なコメント")
+    reddit_explorer_service._translate_to_japanese = AsyncMock(
+        return_value="有効なコメント"
+    )
 
-    comments = await reddit_explorer_service._retrieve_top_comments_of_post(post, limit=5)
+    comments = await reddit_explorer_service._retrieve_top_comments_of_post(
+        post, limit=5
+    )
 
     # body属性があるコメントのみ返される
     assert len(comments) == 1
