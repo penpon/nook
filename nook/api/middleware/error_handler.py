@@ -34,11 +34,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
 
     # 機密情報を含むヘッダーをマスク
     safe_headers = {
-        k: (
-            "***REDACTED***"
-            if k.lower() in {"authorization", "cookie", "set-cookie"}
-            else v
-        )
+        k: ("***REDACTED***" if k.lower() in {"authorization", "cookie", "set-cookie"} else v)
         for k, v in request.headers.items()
     }
 

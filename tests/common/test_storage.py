@@ -666,11 +666,7 @@ async def test_save_nested_json(tmp_path):
     Then: 正しくシリアライズされて保存
     """
     storage = LocalStorage(base_dir=str(tmp_path))
-    data = {
-        "level1": {
-            "level2": {"level3": {"list": [1, 2, 3], "nested_dict": {"key": "value"}}}
-        }
-    }
+    data = {"level1": {"level2": {"level3": {"list": [1, 2, 3], "nested_dict": {"key": "value"}}}}}
     filename = "nested.json"
 
     result_path = await storage.save(data, filename)
@@ -1196,11 +1192,7 @@ def test_load_json_nested_structure(tmp_path):
     """
     storage = LocalStorage(base_dir=str(tmp_path))
     service_name = "test"
-    data = {
-        "level1": {
-            "level2": {"level3": {"list": [1, 2, 3], "nested_dict": {"key": "value"}}}
-        }
-    }
+    data = {"level1": {"level2": {"level3": {"list": [1, 2, 3], "nested_dict": {"key": "value"}}}}}
 
     # JSONファイルを作成
     today_str = datetime.now().strftime("%Y-%m-%d")

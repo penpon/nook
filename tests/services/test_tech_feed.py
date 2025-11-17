@@ -139,9 +139,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars, respx_mock):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -196,9 +194,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # 複数エントリのモック
@@ -220,9 +216,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text="<html><body><p>日本語テキスト</p></body></html>"
-                )
+                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -359,9 +353,7 @@ async def test_collect_http_client_timeout(mock_env_vars):
             mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
-            service.http_client.get = AsyncMock(
-                side_effect=httpx.TimeoutException("Timeout")
-            )
+            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
             result = await service.collect(days=1)
 
@@ -388,9 +380,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -409,9 +399,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(days=1)
 
@@ -496,9 +484,7 @@ async def test_collect_with_limit_one(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -595,9 +581,7 @@ async def test_collect_with_days_thirty(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         service.http_client.get = AsyncMock(
-            return_value=Mock(
-                text="<html><body><p>これは日本語の記事です</p></body></html>"
-            )
+            return_value=Mock(text="<html><body><p>これは日本語の記事です</p></body></html>")
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
@@ -636,9 +620,7 @@ async def test_retrieve_article_non_japanese_content(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         service.http_client.get = AsyncMock(
-            return_value=Mock(
-                text="<html><body><p>This is an English article</p></body></html>"
-            )
+            return_value=Mock(text="<html><body><p>This is an English article</p></body></html>")
         )
 
         await service._retrieve_article(entry, "Test Feed", "tech")
@@ -840,9 +822,7 @@ async def test_collect_handles_storage_error(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -900,9 +880,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -924,9 +902,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text="<html><body><p>日本語のテスト記事</p></body></html>"
-                )
+                return_value=Mock(text="<html><body><p>日本語のテスト記事</p></body></html>")
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約テキスト")
 
@@ -1416,9 +1392,7 @@ async def test_collect_date_filtering_within_range(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -1448,9 +1422,7 @@ async def test_collect_date_filtering_within_range(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'
-                )
+                return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -1511,9 +1483,7 @@ async def test_retrieve_article_with_entry_summary(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         service.http_client.get = AsyncMock(
-            return_value=Mock(
-                text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'
-            )
+            return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
@@ -1620,9 +1590,7 @@ async def test_collect_storage_save_successful(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -1644,9 +1612,7 @@ async def test_collect_storage_save_successful(mock_env_vars):
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'
-                )
+                return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -1666,9 +1632,7 @@ async def test_retrieve_article_timeout_exception(mock_env_vars):
         entry.title = "テスト"
         entry.link = "https://example.com/timeout"
 
-        service.http_client.get = AsyncMock(
-            side_effect=httpx.TimeoutException("Timeout")
-        )
+        service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -1717,9 +1681,7 @@ async def test_collect_existing_article_titles_loaded(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'
-                )
+                return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
             )
 
             result = await service.collect(days=1)
@@ -1764,9 +1726,7 @@ async def test_collect_date_filtering_out_of_range(mock_env_vars):
             mock_parse.return_value = mock_feed
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'
-                )
+                return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
             )
 
             result = await service.collect(days=1)
@@ -1856,9 +1816,7 @@ async def test_collect_dedup_tracker_detects_duplicate(mock_env_vars):
                 "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
         ):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
@@ -1877,9 +1835,7 @@ async def test_collect_dedup_tracker_detects_duplicate(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text='<html lang="ja"><body><p>日本語テキスト</p></body></html>'
-                )
+                return_value=Mock(text='<html lang="ja"><body><p>日本語テキスト</p></body></html>')
             )
 
             result = await service.collect(days=1)

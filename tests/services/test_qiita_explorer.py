@@ -97,9 +97,7 @@ async def test_collect_multiple_categories_feed_processing(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             call_count = 0
@@ -160,9 +158,7 @@ async def test_collect_one_feed_fails_others_continue(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
 
@@ -220,9 +216,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -245,9 +239,7 @@ async def test_collect_success_with_valid_feed(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text="<html><body><p>日本語テキスト</p></body></html>"
-                )
+                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -276,9 +268,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -299,9 +289,7 @@ async def test_collect_with_multiple_articles(mock_env_vars):
             mock_load.return_value = mock_dedup
 
             service.http_client.get = AsyncMock(
-                return_value=Mock(
-                    text="<html><body><p>日本語テキスト</p></body></html>"
-                )
+                return_value=Mock(text="<html><body><p>日本語テキスト</p></body></html>")
             )
             service.gpt_client.get_response = AsyncMock(return_value="要約")
 
@@ -437,9 +425,7 @@ async def test_collect_http_client_timeout(mock_env_vars):
             mock_dedup = Mock()
             mock_dedup.is_duplicate.return_value = (False, "normalized")
 
-            service.http_client.get = AsyncMock(
-                side_effect=httpx.TimeoutException("Timeout")
-            )
+            service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
             result = await service.collect(days=1)
 
@@ -466,9 +452,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -487,9 +471,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
             service.http_client.get = AsyncMock(
                 return_value=Mock(text="<html><body>日本語</body></html>")
             )
-            service.gpt_client.get_response = AsyncMock(
-                side_effect=Exception("API Error")
-            )
+            service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
 
             result = await service.collect(days=1)
 
@@ -550,9 +532,7 @@ async def test_collect_with_limit_one(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             mock_feed = Mock()
@@ -592,9 +572,7 @@ async def test_collect_with_limit_one(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         service.http_client.get = AsyncMock(
-            return_value=Mock(
-                text="<html><body><p>これは日本語の記事です</p></body></html>"
-            )
+            return_value=Mock(text="<html><body><p>これは日本語の記事です</p></body></html>")
         )
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
@@ -702,9 +680,7 @@ async def test_retrieve_article_fallback_to_paragraphs(mock_env_vars):
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
         html_with_paragraphs = "<html><body><p>段落1</p><p>段落2</p><p>段落3</p><p>段落4</p><p>段落5</p><p>段落6</p></body></html>"
-        service.http_client.get = AsyncMock(
-            return_value=Mock(text=html_with_paragraphs)
-        )
+        service.http_client.get = AsyncMock(return_value=Mock(text=html_with_paragraphs))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -773,9 +749,7 @@ async def test_retrieve_article_timeout_error(mock_env_vars):
         entry.title = "テスト"
         entry.link = "https://example.com/timeout"
 
-        service.http_client.get = AsyncMock(
-            side_effect=httpx.TimeoutException("Request timeout")
-        )
+        service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Request timeout"))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -795,9 +769,7 @@ async def test_retrieve_article_empty_html(mock_env_vars):
         delattr(entry, "summary")
         entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
 
-        service.http_client.get = AsyncMock(
-            return_value=Mock(text="<html><body></body></html>")
-        )
+        service.http_client.get = AsyncMock(return_value=Mock(text="<html><body></body></html>"))
 
         result = await service._retrieve_article(entry, "Test Feed", "tech")
 
@@ -1100,9 +1072,7 @@ def test_extract_popularity_from_span_with_likes(mock_env_vars):
         service = QiitaExplorer()
 
         entry = Mock()
-        soup = BeautifulSoup(
-            "<html><body><span>165 likes</span></body></html>", "html.parser"
-        )
+        soup = BeautifulSoup("<html><body><span>165 likes</span></body></html>", "html.parser")
 
         result = service._extract_popularity(entry, soup)
 
@@ -1147,9 +1117,7 @@ def test_extract_popularity_text_without_keywords(mock_env_vars):
         service = QiitaExplorer()
 
         entry = Mock()
-        soup = BeautifulSoup(
-            "<html><body><span>123 views</span></body></html>", "html.parser"
-        )
+        soup = BeautifulSoup("<html><body><span>123 views</span></body></html>", "html.parser")
 
         result = service._extract_popularity(entry, soup)
 
@@ -1281,9 +1249,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
             patch.object(
                 service.storage,
                 "save",
@@ -1342,9 +1308,7 @@ async def test_collect_existing_json_parse_error(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock
-            ) as mock_storage_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # 不正なJSONを返す
@@ -1396,9 +1360,7 @@ async def test_collect_existing_file_load_exception(mock_env_vars):
                 "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch.object(
-                service.storage, "load", new_callable=AsyncMock
-            ) as mock_storage_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # ロード時に例外を発生させる
