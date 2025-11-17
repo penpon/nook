@@ -2264,8 +2264,8 @@ async def test_collect_with_many_posts_sorting(mock_env_vars, async_generator_he
             result = await service.collect(limit=30, target_dates=[target_date])
 
             assert isinstance(result, list)
-            # 上位15件のみが保存される
-            assert len(result) <= 15 * 2  # JSON + MD で最大30ファイル
+            # 1つのtarget_dateに対して1つのJSONと1つのMDファイルが保存される
+            assert len(result) == 2  # (JSON, MD) の1タプル = 2ファイル
 
 
 @pytest.mark.unit
