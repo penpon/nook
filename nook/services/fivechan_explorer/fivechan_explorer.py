@@ -28,6 +28,10 @@ from nook.common.logging_utils import (
 )
 from nook.common.storage import LocalStorage
 
+# 定数: スレッドあたりの最大投稿取得数
+# メモリ効率とパフォーマンスのバランスを保つため、大規模スレッドでも制限を設ける
+MAX_POSTS_PER_THREAD = 10
+
 
 @dataclass
 class Thread:
@@ -820,7 +824,12 @@ class FiveChanExplorer(BaseService):
                 self.logger.info(f"dat解析完了: 総行数{len(lines)}, 有効投稿{len(posts)}件")
                 if posts:
                     self.logger.info(f"dat取得成功: {len(posts)}投稿")
-                    limited_posts = posts[:10]
+                    # メモリ効率を保つため、最大MAX_POSTS_PER_THREAD件に制限
+                    limited_posts = posts[:MAX_POSTS_PER_THREAD]
+                    if len(posts) > MAX_POSTS_PER_THREAD:
+                        self.logger.info(
+                            f"投稿数が多いため{MAX_POSTS_PER_THREAD}件に制限: 元の投稿数{len(posts)}件"
+                        )
                     return limited_posts, latest_post_at
                 else:
                     self.logger.warning("dat内容は取得したが投稿データなし")
