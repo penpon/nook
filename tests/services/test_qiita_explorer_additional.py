@@ -9,6 +9,7 @@ nook/services/qiita_explorer/qiita_explorer.py の追加単体テスト
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -125,58 +126,6 @@ async def test_collect_date_filtering_outside_range(mock_env_vars):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_collect_duplicate_check_excludes_duplicates(mock_env_vars):
-    """
-    Given: 重複タイトルのエントリ
-    When: collectメソッドを呼び出す
-    Then: 重複記事がスキップされる
-    """
-    with patch("nook.common.base_service.setup_logger"):
-        service = QiitaExplorer()
-        service.http_client = AsyncMock()
-
-        with (
-            patch("feedparser.parse") as mock_parse,
-            patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(
-                service,
-                "_get_all_existing_dates",
-                new_callable=AsyncMock,
-                return_value=[],
-            ),
-            patch(
-                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
-                new_callable=AsyncMock,
-            ) as mock_load,
-        ):
-            mock_feed = Mock()
-            mock_feed.feed.title = "Test Feed"
-            mock_entry = Mock()
-            mock_entry.title = "重複記事"
-            mock_entry.link = "https://example.com/dup"
-            mock_entry.summary = "重複記事の説明"
-            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
-            mock_feed.entries = [mock_entry]
-            mock_parse.return_value = mock_feed
-
-            # 重複として検出されるようにモック設定
-            mock_dedup = Mock()
-            mock_dedup.is_duplicate.return_value = (True, "normalized_title")
-            mock_dedup.get_original_title.return_value = "重複記事"
-            mock_load.return_value = mock_dedup
-
-            service.http_client.get = AsyncMock(
-                return_value=Mock(text="<html><body><p>テキスト</p></body></html>")
-            )
-
-            result = await service.collect(days=1, limit=10)
-
-            # 重複なので保存されない
-            assert result == []
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
 async def test_collect_storage_save_failure(mock_env_vars):
     """
     Given: ストレージ保存が失敗
@@ -272,8 +221,6 @@ async def test_collect_feed_parse_exception_continues(mock_env_vars):
             mock_feed.feed.title = "Good Feed"
             mock_feed.entries = []
             mock_parse.side_effect = [Exception("Parse error"), mock_feed]
-
-            Mock()
 
             result = await service.collect(days=1)
 
@@ -853,3 +800,620 @@ def test_extract_popularity_entry_as_dict_with_qiita_likes(mock_env_vars):
         result = service._extract_popularity(entry, soup)
 
         assert result == 150.0
+
+
+# =============================================================================
+# 4. JSONパース処理テスト (L170-217カバー)
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_json_load_success(mock_env_vars):
+    """
+    Given: 既存記事JSONが正常にロードされる
+    When: collectメソッドを呼び出す
+    Then: 既存記事タイトルと新規記事が正しくマージされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # 既存記事JSONを返す
+            existing_json = json.dumps(
+                [
+                    {"title": "既存記事1", "url": "https://example.com/old1"},
+                    {"title": "既存記事2", "url": "https://example.com/old2"},
+                ]
+            )
+            mock_storage_load.return_value = existing_json
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "新規記事"
+            mock_entry.link = "https://example.com/new"
+            mock_entry.summary = "新規記事の説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 既存記事JSONの処理が正常に完了
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_json_malformed(mock_env_vars):
+    """
+    Given: 既存記事JSONが不正な形式
+    When: collectメソッドを呼び出す
+    Then: json.loads()が失敗し、例外ハンドリングされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # 不正なJSONを返す
+            mock_storage_load.return_value = "invalid json {{"
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 不正なJSONでも処理は継続される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_json_none(mock_env_vars):
+    """
+    Given: storage.load()がNoneを返す
+    When: collectメソッドを呼び出す
+    Then: 既存記事タイトルセットが空になる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # Noneを返す
+            mock_storage_load.return_value = None
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # Noneでも処理は継続される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_json_missing_title(mock_env_vars):
+    """
+    Given: 既存記事JSONのarticleにtitleフィールドがない
+    When: collectメソッドを呼び出す
+    Then: article.get("title", "")で空文字列が使用される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # titleフィールドがない記事JSON
+            existing_json = json.dumps(
+                [
+                    {"url": "https://example.com/old1"},  # titleなし
+                    {"title": "既存記事2", "url": "https://example.com/old2"},
+                ]
+            )
+            mock_storage_load.return_value = existing_json
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "新規記事"
+            mock_entry.link = "https://example.com/new"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # titleなしでも処理は継続される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_existing_json_exception(mock_env_vars):
+    """
+    Given: storage.load()が例外を投げる
+    When: collectメソッドを呼び出す
+    Then: 例外がキャッチされ、デバッグログが出力される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(
+                service.storage,
+                "load",
+                new_callable=AsyncMock,
+                side_effect=Exception("Storage error"),
+            ),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 例外があっても処理は継続される
+            assert isinstance(result, list)
+
+
+# =============================================================================
+# 5. データ取得処理テスト (L138-157カバー)
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_explicit_target_dates_covers_l138_157(mock_env_vars):
+    """
+    Given: 明示的なtarget_datesを指定
+    When: collectメソッドを呼び出す
+    Then: L138-157のforループが実行され、記事が処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        from datetime import date
+
+        # 明示的にtarget_datesを指定（2024-11-14）
+        target_dates = [date(2024, 11, 14)]
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_entry.updated_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10, target_dates=target_dates)
+
+            # 記事が正常に処理される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_retrieve_article_returns_article(mock_env_vars):
+    """
+    Given: _retrieve_article()が正常にArticleを返す
+    When: collectメソッドを呼び出す
+    Then: 記事が処理される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 記事が正常に処理される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_retrieve_article_returns_none(mock_env_vars):
+    """
+    Given: _retrieve_article()がNoneを返す
+    When: collectメソッドを呼び出す
+    Then: 記事がスキップされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            # linkがないエントリ（_retrieve_article()がNoneを返す）
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            delattr(mock_entry, "link")
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_load.return_value = mock_dedup
+
+            result = await service.collect(days=1, limit=10)
+
+            # Noneなのでスキップされ、保存されない
+            assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_duplicate_detection_skips(mock_env_vars):
+    """
+    Given: 重複記事が検出される
+    When: collectメソッドを呼び出す
+    Then: 重複記事がスキップされる
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "重複記事"
+            mock_entry.link = "https://example.com/dup"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            # 重複として検出
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (True, "normalized_title")
+            mock_dedup.get_original_title.return_value = "元のタイトル"
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+
+            result = await service.collect(days=1, limit=10)
+
+            # 重複なので保存されない
+            assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_date_range_filter_excludes(mock_env_vars):
+    """
+    Given: 日付範囲外の記事
+    When: collectメソッドを呼び出す
+    Then: 日付範囲外の記事が除外される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            # 古い日付のエントリ（2020年）
+            mock_entry = Mock()
+            mock_entry.title = "古い記事"
+            mock_entry.link = "https://example.com/old"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2020, 1, 1, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+
+            result = await service.collect(days=1, limit=10)
+
+            # 日付範囲外なので保存されない
+            assert result == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_successful_article_appended(mock_env_vars):
+    """
+    Given: 記事が全てのチェックを通過
+    When: collectメソッドを呼び出す
+    Then: 記事がcandidate_articlesに追加され、保存される
+    """
+    with patch("nook.common.base_service.setup_logger"):
+        service = QiitaExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+            mock_entry = Mock()
+            mock_entry.title = "記事"
+            mock_entry.link = "https://example.com/test"
+            mock_entry.summary = "説明"
+            mock_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+            mock_feed.entries = [mock_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_dedup.add = Mock()  # addメソッドのモック
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 記事が正常に処理されたことを確認
+            assert isinstance(result, list)

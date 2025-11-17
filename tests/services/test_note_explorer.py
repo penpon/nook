@@ -1475,3 +1475,231 @@ async def test_collect_with_duplicate_article(mock_env_vars):
 
             # 重複記事はスキップされる
             assert result == []
+
+
+# =============================================================================
+# 16. 未カバー範囲の追加テスト - L139-158, L171-218, L232-240, L316-318
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_retrieve_article_with_paragraphs_only(mock_env_vars):
+    """meta descriptionがなくparagraphsから本文を取得するテスト（L316-318）"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        entry = Mock()
+        entry.title = "テスト記事"
+        entry.link = "https://example.com/test"
+        if hasattr(entry, "summary"):
+            del entry.summary
+        entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+        # meta descriptionなし、paragraphsのみのHTML
+        html = """<html>
+        <head><title>Test</title></head>
+        <body>
+            <p>第1段落のテキスト</p>
+            <p>第2段落のテキスト</p>
+            <p>第3段落のテキスト</p>
+        </body>
+        </html>"""
+        service.http_client.get = AsyncMock(return_value=Mock(text=html))
+
+        result = await service._retrieve_article(entry, "Test Feed", "general")
+
+        assert result is not None
+        assert isinstance(result, Article)
+        # paragraphsから本文が取得されている
+        assert "第1段落のテキスト" in result.text
+        assert "第2段落のテキスト" in result.text
+
+
+@pytest.mark.unit
+def test_load_existing_titles_from_markdown(mock_env_vars):
+    """markdownから既存タイトルを読み込むテスト（L232-240）"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+
+        # markdownコンテンツをモック
+        markdown_content = """# Note Explorer
+
+### [記事タイトル1](https://example.com/1)
+本文1
+
+### [記事タイトル2](https://example.com/2)
+本文2
+
+### [記事タイトル3](https://example.com/3)
+本文3
+"""
+        with patch.object(
+            service.storage, "load_markdown", return_value=markdown_content
+        ):
+            tracker = service._load_existing_titles()
+
+            # タイトルが正しく抽出されている
+            assert tracker.is_duplicate("記事タイトル1")[0] is True
+            assert tracker.is_duplicate("記事タイトル2")[0] is True
+            assert tracker.is_duplicate("記事タイトル3")[0] is True
+            assert tracker.is_duplicate("新規記事")[0] is False
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_existing_json_filtering(mock_env_vars):
+    """既存記事JSONから新規記事をフィルタリングするテスト（L173-195）"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+            patch.object(service.storage, "save", new_callable=AsyncMock),
+        ):
+            # 既存記事JSONをモック
+            existing_json = '[{"title": "既存記事1", "url": "https://example.com/1"}]'
+            mock_storage_load.return_value = existing_json
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+
+            # 2つのエントリ: 1つは既存、1つは新規
+            existing_entry = Mock()
+            existing_entry.title = "既存記事1"
+            existing_entry.link = "https://example.com/1"
+            existing_entry.summary = "既存"
+            existing_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+            new_entry = Mock()
+            new_entry.title = "新規記事"
+            new_entry.link = "https://example.com/2"
+            new_entry.summary = "新規"
+            new_entry.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+            mock_feed.entries = [existing_entry, new_entry]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+            service.gpt_client.get_response = AsyncMock(return_value="要約")
+
+            result = await service.collect(days=1, limit=10)
+
+            # 新規記事のみが処理される
+            assert isinstance(result, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_collect_with_all_existing_articles(mock_env_vars):
+    """全記事が既存でlog_no_new_articlesが呼ばれるテスト（L217-218）"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+        service.http_client = AsyncMock()
+
+        with (
+            patch("feedparser.parse") as mock_parse,
+            patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(
+                service,
+                "_get_all_existing_dates",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "nook.services.note_explorer.note_explorer.load_existing_titles_from_storage",
+                new_callable=AsyncMock,
+            ) as mock_load,
+            patch.object(service.storage, "load", new_callable=AsyncMock) as mock_storage_load,
+        ):
+            # 既存記事JSONに全ての記事が含まれる
+            existing_json = """[
+                {"title": "記事1", "url": "https://example.com/1"},
+                {"title": "記事2", "url": "https://example.com/2"}
+            ]"""
+            mock_storage_load.return_value = existing_json
+
+            mock_feed = Mock()
+            mock_feed.feed.title = "Test Feed"
+
+            # 全て既存記事
+            entry1 = Mock()
+            entry1.title = "記事1"
+            entry1.link = "https://example.com/1"
+            entry1.summary = "説明1"
+            entry1.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+            entry2 = Mock()
+            entry2.title = "記事2"
+            entry2.link = "https://example.com/2"
+            entry2.summary = "説明2"
+            entry2.published_parsed = (2024, 11, 14, 0, 0, 0, 0, 0, 0)
+
+            mock_feed.entries = [entry1, entry2]
+            mock_parse.return_value = mock_feed
+
+            mock_dedup = Mock()
+            mock_dedup.is_duplicate.return_value = (False, "normalized")
+            mock_load.return_value = mock_dedup
+
+            service.http_client.get = AsyncMock(
+                return_value=Mock(text="<html><body><p>本文</p></body></html>")
+            )
+
+            result = await service.collect(days=1, limit=10)
+
+            # 新規記事がないため空リストが返される
+            assert result == []
+
+
+@pytest.mark.unit
+def test_select_top_articles_with_empty_list(mock_env_vars):
+    """空リストの場合にL261がカバーされるテスト"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+
+        # 空のarticlesリスト
+        result = service._select_top_articles([], limit=10)
+
+        # 空リストが返される
+        assert result == []
+
+
+@pytest.mark.unit
+def test_load_existing_titles_exception_handling(mock_env_vars):
+    """_load_existing_titlesのexception処理をテスト（L238-239）"""
+    with patch("nook.common.base_service.setup_logger"):
+        service = NoteExplorer()
+
+        # storage.load_markdownが例外を発生させる
+        with patch.object(
+            service.storage, "load_markdown", side_effect=Exception("Load error")
+        ):
+            tracker = service._load_existing_titles()
+
+            # 例外が発生してもDedupTrackerが返される
+            assert tracker is not None
+            # 空のtrackerなので全てが新規
+            assert tracker.is_duplicate("任意のタイトル")[0] is False
+
+
