@@ -890,10 +890,12 @@ async def test_collect_existing_json_load_success(mock_env_vars):
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # 既存記事JSONを返す
-            existing_json = json.dumps([
-                {"title": "既存記事1", "url": "https://example.com/old1"},
-                {"title": "既存記事2", "url": "https://example.com/old2"},
-            ])
+            existing_json = json.dumps(
+                [
+                    {"title": "既存記事1", "url": "https://example.com/old1"},
+                    {"title": "既存記事2", "url": "https://example.com/old2"},
+                ]
+            )
             mock_storage_load.return_value = existing_json
 
             mock_feed = Mock()
@@ -1062,10 +1064,12 @@ async def test_collect_existing_json_missing_title(mock_env_vars):
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             # titleフィールドがない記事JSON
-            existing_json = json.dumps([
-                {"url": "https://example.com/old1"},  # titleなし
-                {"title": "既存記事2", "url": "https://example.com/old2"},
-            ])
+            existing_json = json.dumps(
+                [
+                    {"url": "https://example.com/old1"},  # titleなし
+                    {"title": "既存記事2", "url": "https://example.com/old2"},
+                ]
+            )
             mock_storage_load.return_value = existing_json
 
             mock_feed = Mock()
