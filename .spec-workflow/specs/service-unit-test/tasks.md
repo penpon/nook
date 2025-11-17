@@ -135,7 +135,7 @@
 
 ### 2.5 zenn_explorer ユニットテスト実装
 
-- [-] 2.5. zenn_explorer ユニットテスト実装（15-18テストケース）
+- [x] 2.5. zenn_explorer ユニットテスト実装（15-18テストケース）
   - File: tests/services/test_zenn_explorer.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（6-8ケース）**:
@@ -201,7 +201,7 @@
 
 ### 3.2 fivechan_explorer ユニットテスト実装
 
-- [ ] 3.2. fivechan_explorer ユニットテスト実装（30-35テストケース）
+- [x] 3.2. fivechan_explorer ユニットテスト実装（30-35テストケース）
   - File: tests/services/test_fivechan_explorer.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（8-10ケース）**:
@@ -302,7 +302,7 @@
 
 ### 3.5 hacker_news ユニットテスト実装
 
-- [ ] 3.5. hacker_news ユニットテスト実装（25-30テストケース）
+- [x] 3.5. hacker_news ユニットテスト実装（25-30テストケース）
   - File: tests/services/test_hacker_news.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（6-8ケース）**:
