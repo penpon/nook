@@ -43,8 +43,7 @@ class BaseService(ABC):
 
     @handle_errors(retries=3)
     async def fetch_with_retry(self, url: str) -> str:
-        """リトライ機能付きのHTTP取得"""
-        # AsyncHTTPClientを使用（後で実装）
+        """リトライ機能付きのHTTP取得（サブクラスで実装）"""
         raise NotImplementedError("fetch_with_retry must be implemented by subclass")
 
     async def rate_limit(self) -> None:

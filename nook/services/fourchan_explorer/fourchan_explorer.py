@@ -2,7 +2,12 @@
 
 import asyncio
 import re
-import tomllib
+
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli as tomllib  # Python 3.10
+
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -139,8 +144,17 @@ class FourChanExplorer(BaseService):
             with open(boards_file, "rb") as f:
                 config = tomllib.load(f)
                 boards_dict = config.get("boards", {})
-                # ボードIDのリストを返す
-                return list(boards_dict.keys())
+                # enabled=trueのボードのみを返す（enabledキーがない場合はTrue扱い）
+                enabled_boards = []
+                for board_id, board_config in boards_dict.items():
+                    # board_configが辞書でenabledキーを持つ場合のみチェック
+                    if isinstance(board_config, dict):
+                        if board_config.get("enabled", True):
+                            enabled_boards.append(board_id)
+                    else:
+                        # 文字列値の場合（後方互換性）
+                        enabled_boards.append(board_id)
+                return enabled_boards
         except Exception as e:
             self.logger.error(f"エラー: boards.tomlの読み込みに失敗しました: {e}")
             self.logger.info("デフォルトのボードを使用します。")

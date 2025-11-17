@@ -241,7 +241,7 @@
 
 ### 3.3 fourchan_explorer ユニットテスト実装
 
-- [ ] 3.3. fourchan_explorer ユニットテスト実装（25-30テストケース）
+- [x] 3.3. fourchan_explorer ユニットテスト実装（25-30テストケース）
   - File: tests/services/test_fourchan_explorer.py
   - **実装するテストケース**:
     1. **collect内部分岐テスト（6-8ケース）**:

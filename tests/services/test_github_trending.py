@@ -236,8 +236,8 @@ async def test_collect_network_error(mock_env_vars):
         ):
             service.http_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
-            # エラーが発生することを期待
-            with pytest.raises(Exception):
+            # エラーが発生することを期待（handle_errorsデコレータがRetryExceptionを発生させる）
+            with pytest.raises(Exception):  # RetryExceptionまたはTimeoutException
                 await service.collect(target_dates=[date.today()])
 
 
@@ -1300,9 +1300,9 @@ async def test_store_summaries_for_date_save_failure(mock_env_vars):
                 "nook.services.github_trending.github_trending.store_daily_snapshots",
                 return_value=[],
             ),
+            pytest.raises(ValueError, match="保存に失敗しました"),
         ):
-            with pytest.raises(ValueError, match="保存に失敗しました"):
-                await service._store_summaries_for_date(repos, date.today())
+            await service._store_summaries_for_date(repos, date.today())
 
 
 @pytest.mark.unit

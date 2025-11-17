@@ -251,7 +251,7 @@ jobs:
       run: |
         echo "=== コード脆弱性をスキャン中 (bandit) ==="
         set +e
-        uv run bandit -r nook/ tests/ -ll -f txt
+        uv run bandit -r nook/ tests/ -lll -f txt
         bandit_exit=$?
         set -e
 

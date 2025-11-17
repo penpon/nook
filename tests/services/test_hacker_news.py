@@ -52,7 +52,7 @@ nook/services/hacker_news/hacker_news.py のユニットテスト
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, Mock, mock_open, patch
 
 import httpx
@@ -233,6 +233,7 @@ def test_load_blocked_domains_file_not_found(mock_env_vars):
     with (
         patch("nook.common.base_service.setup_logger"),
         patch("nook.common.base_service.GPTClient"),
+        patch("nook.common.base_service.BaseConfig"),
         patch("builtins.open", side_effect=FileNotFoundError("File not found")),
     ):
         service = HackerNewsRetriever()
@@ -849,15 +850,20 @@ async def test_get_top_stories_filtering(
         return None
 
     # respxの代わりに_fetch_storyを直接モックする
-    with patch.object(service, "_fetch_story", side_effect=mock_fetch_story):
-        with patch.object(service.http_client, "get", new_callable=AsyncMock) as mock_http_get:
-            # トップストーリーIDのモック
-            story_ids = [config["id"] for config in story_configs]
-            mock_http_get.return_value = Mock(json=lambda: story_ids)
+    with (
+        patch.object(service, "_fetch_story", side_effect=mock_fetch_story),
+        patch.object(service.http_client, "get", new_callable=AsyncMock) as mock_http_get,
+        patch.object(service, "_summarize_stories", new_callable=AsyncMock),
+    ):
+        # トップストーリーIDのモック
+        story_ids = [config["id"] for config in story_configs]
+        mock_http_get.return_value = Mock(json=lambda: story_ids)
 
-            # GPTクライアントのモック（要約が実行されるため）
-            with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
-                stories = await service._get_top_stories(15, dedup_tracker, [date.today()])
+        # GPTクライアントのモック（要約が実行されるため）
+        # UTC現在時刻をJST dateに変換
+        jst = timezone(timedelta(hours=9))
+        jst_today = datetime.now(UTC).astimezone(jst).date()
+        stories = await service._get_top_stories(15, dedup_tracker, [jst_today])
 
     await service.cleanup()
 
@@ -2213,8 +2219,11 @@ async def test_get_top_stories_with_fetch_exception(mock_env_vars, mock_logger):
             ]
 
             with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
+                # UTC現在時刻をJST dateに変換
+                jst = timezone(timedelta(hours=9))
+                jst_today = datetime.now(UTC).astimezone(jst).date()
                 stories = await service._get_top_stories(
-                    limit=15, dedup_tracker=DedupTracker(), target_dates=[date.today()]
+                    limit=15, dedup_tracker=DedupTracker(), target_dates=[jst_today]
                 )
 
                 # 例外が発生しても処理が継続し、正常なストーリーが返されることを確認
@@ -2249,8 +2258,11 @@ async def test_get_top_stories_story_without_created_at(mock_env_vars, mock_logg
             mock_fetch.return_value = story_without_date
 
             with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
+                # UTC現在時刻をJST dateに変換
+                jst = timezone(timedelta(hours=9))
+                jst_today = datetime.now(UTC).astimezone(jst).date()
                 stories = await service._get_top_stories(
-                    limit=15, dedup_tracker=DedupTracker(), target_dates=[date.today()]
+                    limit=15, dedup_tracker=DedupTracker(), target_dates=[jst_today]
                 )
 
                 # created_atがNoneなのでフィルタリングされる
@@ -2387,8 +2399,11 @@ async def test_get_top_stories_with_duplicate_detection(mock_env_vars, mock_logg
             mock_fetch.side_effect = [story1, story2, story3]
 
             with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
+                # UTC現在時刻をJST dateに変換
+                jst = timezone(timedelta(hours=9))
+                jst_today = datetime.now(UTC).astimezone(jst).date()
                 stories = await service._get_top_stories(
-                    limit=15, dedup_tracker=DedupTracker(), target_dates=[date.today()]
+                    limit=15, dedup_tracker=DedupTracker(), target_dates=[jst_today]
                 )
 
                 # 重複が除外され、2つのストーリーのみが返される
@@ -2437,14 +2452,19 @@ async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
             mock_fetch.side_effect = [story_today_1, story_today_2, story_yesterday_1]
 
             with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
+                # UTC datetimeをJST dateに変換
+                jst = timezone(timedelta(hours=9))
+                jst_today = today.astimezone(jst).date()
+                jst_yesterday = yesterday.astimezone(jst).date()
                 stories = await service._get_top_stories(
                     limit=15,
                     dedup_tracker=DedupTracker(),
-                    target_dates=[today.date(), yesterday.date()],
+                    target_dates=[jst_today, jst_yesterday],
                 )
 
-                # 日付別にグループ化され、ストーリーが選択される
-                assert len(stories) >= 2
+                # 日付別にグループ化され、各日から少なくとも1件のストーリーが選択される
+                story_dates = {s.created_at.date() for s in stories if s.created_at}
+                assert len(story_dates) >= 2, "複数の日付からストーリーが含まれるべき"
 
                 # 高スコアのストーリーが含まれていることを確認
                 scores = [s.score for s in stories]

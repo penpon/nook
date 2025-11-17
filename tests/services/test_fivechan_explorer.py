@@ -1082,7 +1082,7 @@ async def test_encoding_bomb_attack(mock_env_vars, encoding_bomb_data):
 @pytest.mark.security
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "malicious_dat_content,test_id",
+    ("malicious_dat_content", "test_id"),
     [
         (
             "<script>alert('XSS')</script><>sage<>2024/11/14<>悪意のある投稿",
