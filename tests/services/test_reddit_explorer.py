@@ -1734,7 +1734,9 @@ def test_config_file_exists_reddit(mock_env_vars):
         _ = RedditExplorer()
 
         # 設定ファイルからサブレディット情報が読み込まれていることを確認
-        config_path = Path(__file__).parent.parent.parent / "nook/services/reddit_explorer/subreddits.toml"
+        config_path = (
+            Path(__file__).parent.parent.parent / "nook/services/reddit_explorer/subreddits.toml"
+        )
         assert config_path.exists(), f"設定ファイルが存在しません: {config_path}"
 
 
@@ -1775,7 +1777,12 @@ async def test_collect_date_grouping(mock_env_vars, async_generator_helper):
 
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock, return_value=Path("/data/test.json")),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
             # 2つの異なる日付の投稿を作成
@@ -1803,7 +1810,11 @@ async def test_collect_date_grouping(mock_env_vars, async_generator_helper):
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
-            mock_reddit_instance.submission = AsyncMock(return_value=Mock(comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))))
+            mock_reddit_instance.submission = AsyncMock(
+                return_value=Mock(
+                    comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))
+                )
+            )
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -1830,9 +1841,16 @@ async def test_collect_daily_processing_with_existing_posts(mock_env_vars, async
 
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock, return_value=Path("/data/test.json")),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
             patch("asyncpraw.Reddit") as mock_reddit,
-            patch.object(service, "_load_existing_posts", new_callable=AsyncMock) as mock_load_existing,
+            patch.object(
+                service, "_load_existing_posts", new_callable=AsyncMock
+            ) as mock_load_existing,
         ):
             # 既存記事を返すようにモック
             mock_load_existing.return_value = [
@@ -1869,7 +1887,11 @@ async def test_collect_daily_processing_with_existing_posts(mock_env_vars, async
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
-            mock_reddit_instance.submission = AsyncMock(return_value=Mock(comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))))
+            mock_reddit_instance.submission = AsyncMock(
+                return_value=Mock(
+                    comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))
+                )
+            )
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -1936,7 +1958,11 @@ async def test_collect_subreddit_fetch_error_handling(mock_env_vars, async_gener
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = mock_subreddit_factory
-            mock_reddit_instance.submission = AsyncMock(return_value=Mock(comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))))
+            mock_reddit_instance.submission = AsyncMock(
+                return_value=Mock(
+                    comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))
+                )
+            )
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -2188,7 +2214,12 @@ async def test_collect_with_many_posts_sorting(mock_env_vars, async_generator_he
 
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock, return_value=Path("/data/test.json")),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
             # 20件の投稿を作成（SUMMARY_LIMITの15件を超える）
@@ -2218,7 +2249,11 @@ async def test_collect_with_many_posts_sorting(mock_env_vars, async_generator_he
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
-            mock_reddit_instance.submission = AsyncMock(return_value=Mock(comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))))
+            mock_reddit_instance.submission = AsyncMock(
+                return_value=Mock(
+                    comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))
+                )
+            )
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -2272,7 +2307,12 @@ async def test_collect_multiple_target_dates(mock_env_vars, async_generator_help
 
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service.storage, "save", new_callable=AsyncMock, return_value=Path("/data/test.json")),
+            patch.object(
+                service.storage,
+                "save",
+                new_callable=AsyncMock,
+                return_value=Path("/data/test.json"),
+            ),
             patch("asyncpraw.Reddit") as mock_reddit,
         ):
             # 投稿を作成
@@ -2299,7 +2339,11 @@ async def test_collect_multiple_target_dates(mock_env_vars, async_generator_help
 
             mock_reddit_instance = Mock()
             mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
-            mock_reddit_instance.submission = AsyncMock(return_value=Mock(comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))))
+            mock_reddit_instance.submission = AsyncMock(
+                return_value=Mock(
+                    comments=Mock(replace_more=AsyncMock(), list=Mock(return_value=[]))
+                )
+            )
             mock_reddit.return_value.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
             mock_reddit.return_value.__aexit__ = AsyncMock(return_value=None)
 
