@@ -2131,7 +2131,10 @@ async def test_store_summaries_with_threads(mock_env_vars):
             new_callable=AsyncMock,
         ) as mock_store:
             mock_store.return_value = [
-                ("data/fourchan_explorer/2024-11-14.json", "data/fourchan_explorer/2024-11-14.md"),
+                (
+                    "data/fourchan_explorer/2024-11-14.json",
+                    "data/fourchan_explorer/2024-11-14.md",
+                ),
             ]
 
             result = await service._store_summaries(threads, target_dates)
