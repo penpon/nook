@@ -287,7 +287,9 @@ def test_load_blocked_domains_invalid_json(mock_env_vars):
         ("not-a-url", ["reuters.com"], False, "invalid_url"),
     ],
 )
-def test_is_blocked_domain(mock_env_vars, mock_logger, url, blocked_domains, expected, test_case):
+def test_is_blocked_domain(
+    mock_env_vars, mock_logger, url, blocked_domains, expected, test_case
+):
     """
     Given: 様々なURL条件
     When: _is_blocked_domainを呼び出す
@@ -505,7 +507,9 @@ async def test_fetch_story_content_meta_description(mock_env_vars, respx_mock):
 
         story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = '<html><meta name="description" content="Test meta description"></html>'
+        html_content = (
+            '<html><meta name="description" content="Test meta description"></html>'
+        )
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -532,7 +536,9 @@ async def test_fetch_story_content_og_description(mock_env_vars, respx_mock):
 
         story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = '<html><meta property="og:description" content="OG description"></html>'
+        html_content = (
+            '<html><meta property="og:description" content="OG description"></html>'
+        )
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -634,9 +640,9 @@ async def test_fetch_story_content_http_errors(
     with patch.object(service.http_client, "get", side_effect=mock_get_error):
         await service._fetch_story_content(story)
 
-    assert expected_text in story.text, (
-        f"Expected '{expected_text}' in story.text for HTTP {status_code}"
-    )
+    assert (
+        expected_text in story.text
+    ), f"Expected '{expected_text}' in story.text for HTTP {status_code}"
 
     await service.cleanup()
 
@@ -715,7 +721,9 @@ async def test_fetch_story_content_http1_required(mock_env_vars, respx_mock):
             return_value=httpx.Response(200, text=html_content)
         )
 
-        with patch.object(service.http_client, "get", new_callable=AsyncMock) as mock_get:
+        with patch.object(
+            service.http_client, "get", new_callable=AsyncMock
+        ) as mock_get:
             mock_get.return_value = Mock(status_code=200, text=html_content)
 
             await service._fetch_story_content(story)
@@ -852,7 +860,9 @@ async def test_get_top_stories_filtering(
     # respxの代わりに_fetch_storyを直接モックする
     with (
         patch.object(service, "_fetch_story", side_effect=mock_fetch_story),
-        patch.object(service.http_client, "get", new_callable=AsyncMock) as mock_http_get,
+        patch.object(
+            service.http_client, "get", new_callable=AsyncMock
+        ) as mock_http_get,
         patch.object(service, "_summarize_stories", new_callable=AsyncMock),
     ):
         # トップストーリーIDのモック
@@ -1022,7 +1032,9 @@ async def test_update_blocked_domains_from_errors_no_errors(mock_env_vars):
             )
         ]
 
-        with patch.object(service, "_add_to_blocked_domains", new_callable=AsyncMock) as mock_add:
+        with patch.object(
+            service, "_add_to_blocked_domains", new_callable=AsyncMock
+        ) as mock_add:
             await service._update_blocked_domains_from_errors(stories)
 
             # エラーなしの場合、_add_to_blocked_domainsは呼び出されない
@@ -1241,8 +1253,12 @@ async def test_load_existing_titles_from_json(mock_env_vars):
         existing_data = [{"title": "Existing Title 1"}, {"title": "Existing Title 2"}]
 
         with (
-            patch.object(service.storage, "exists", new_callable=AsyncMock, return_value=True),
-            patch.object(service, "load_json", new_callable=AsyncMock, return_value=existing_data),
+            patch.object(
+                service.storage, "exists", new_callable=AsyncMock, return_value=True
+            ),
+            patch.object(
+                service, "load_json", new_callable=AsyncMock, return_value=existing_data
+            ),
         ):
             tracker = await service._load_existing_titles()
 
@@ -1273,8 +1289,12 @@ Some content
 """
 
         with (
-            patch.object(service.storage, "exists", new_callable=AsyncMock, return_value=False),
-            patch.object(service.storage, "load_markdown", return_value=markdown_content),
+            patch.object(
+                service.storage, "exists", new_callable=AsyncMock, return_value=False
+            ),
+            patch.object(
+                service.storage, "load_markdown", return_value=markdown_content
+            ),
         ):
             tracker = await service._load_existing_titles()
 
@@ -1326,7 +1346,9 @@ async def test_load_existing_stories_from_json(mock_env_vars):
 
         target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
 
-        with patch.object(service, "load_json", new_callable=AsyncMock, return_value=existing_data):
+        with patch.object(
+            service, "load_json", new_callable=AsyncMock, return_value=existing_data
+        ):
             stories = await service._load_existing_stories(target_date)
 
             assert len(stories) == 2
@@ -1356,7 +1378,9 @@ async def test_load_existing_stories_from_markdown(mock_env_vars):
         target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
 
         with (
-            patch.object(service, "load_json", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service, "load_json", new_callable=AsyncMock, return_value=None
+            ),
             patch.object(
                 service.storage,
                 "load",
@@ -1385,8 +1409,12 @@ async def test_load_existing_stories_no_file(mock_env_vars):
         target_date = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
 
         with (
-            patch.object(service, "load_json", new_callable=AsyncMock, return_value=None),
-            patch.object(service.storage, "load", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service, "load_json", new_callable=AsyncMock, return_value=None
+            ),
+            patch.object(
+                service.storage, "load", new_callable=AsyncMock, return_value=None
+            ),
         ):
             stories = await service._load_existing_stories(target_date)
 
@@ -1410,7 +1438,9 @@ async def test_summarize_stories(mock_env_vars):
         ]
 
         with (
-            patch.object(service, "_summarize_story", new_callable=AsyncMock) as mock_summarize,
+            patch.object(
+                service, "_summarize_story", new_callable=AsyncMock
+            ) as mock_summarize,
             patch.object(
                 service, "_update_blocked_domains_from_errors", new_callable=AsyncMock
             ) as mock_update,
@@ -1435,7 +1465,9 @@ async def test_summarize_stories_empty(mock_env_vars):
         service = HackerNewsRetriever()
 
         with (
-            patch.object(service, "_summarize_story", new_callable=AsyncMock) as mock_summarize,
+            patch.object(
+                service, "_summarize_story", new_callable=AsyncMock
+            ) as mock_summarize,
             patch.object(
                 service, "_update_blocked_domains_from_errors", new_callable=AsyncMock
             ) as mock_update,
@@ -1477,7 +1509,9 @@ async def test_store_summaries(mock_env_vars):
             "nook.services.hacker_news.hacker_news.store_daily_snapshots",
             new_callable=AsyncMock,
         ) as mock_store:
-            mock_store.return_value = [("/path/to/2024-11-14.json", "/path/to/2024-11-14.md")]
+            mock_store.return_value = [
+                ("/path/to/2024-11-14.json", "/path/to/2024-11-14.md")
+            ]
 
             result = await service._store_summaries(stories, target_dates)
 
@@ -1602,13 +1636,17 @@ def test_render_markdown_no_url(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = HackerNewsRetriever()
 
-        records = [{"title": "Test Story Without URL", "score": 100, "summary": "Test summary"}]
+        records = [
+            {"title": "Test Story Without URL", "score": 100, "summary": "Test summary"}
+        ]
 
         today = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
         markdown = service._render_markdown(records, today)
 
         assert "Test Story Without URL" in markdown
-        assert "[" not in markdown.split("## ")[1].split("\n")[0]  # タイトル行にリンク記法がない
+        assert (
+            "[" not in markdown.split("## ")[1].split("\n")[0]
+        )  # タイトル行にリンク記法がない
 
 
 @pytest.mark.unit
@@ -1923,7 +1961,9 @@ async def test_update_blocked_domains_various_error_reasons(hacker_news_service)
     async def mock_add_to_blocked_domains(new_domains):
         added_domains.update(new_domains)
 
-    with patch.object(service, "_add_to_blocked_domains", side_effect=mock_add_to_blocked_domains):
+    with patch.object(
+        service, "_add_to_blocked_domains", side_effect=mock_add_to_blocked_domains
+    ):
         # Should not raise an error
         await service._update_blocked_domains_from_errors(stories)
 
@@ -2014,10 +2054,16 @@ async def test_add_to_blocked_domains_file_not_exists(mock_env_vars, tmp_path):
             raise FileNotFoundError(f"File not found: {file}")
 
         with (
-            patch("nook.services.hacker_news.hacker_news.os.path.dirname") as mock_dirname,
+            patch(
+                "nook.services.hacker_news.hacker_news.os.path.dirname"
+            ) as mock_dirname,
             patch("nook.services.hacker_news.hacker_news.os.path.join") as mock_join,
-            patch("nook.services.hacker_news.hacker_news.os.path.abspath") as mock_abspath,
-            patch("nook.services.hacker_news.hacker_news.os.path.exists") as mock_exists,
+            patch(
+                "nook.services.hacker_news.hacker_news.os.path.abspath"
+            ) as mock_abspath,
+            patch(
+                "nook.services.hacker_news.hacker_news.os.path.exists"
+            ) as mock_exists,
             patch("builtins.open", side_effect=mock_open_impl),
         ):
             mock_abspath.return_value = str(tmp_path / "fake_module.py")
@@ -2082,10 +2128,18 @@ async def test_collect_http_client_initialization(mock_env_vars):
         service.http_client = None  # Ensure it's None
 
         with (
-            patch.object(service, "setup_http_client", new_callable=AsyncMock) as mock_setup,
-            patch.object(service, "_load_existing_titles", new_callable=AsyncMock) as mock_load,
-            patch.object(service, "_get_top_stories", new_callable=AsyncMock) as mock_get,
-            patch.object(service, "_store_summaries", new_callable=AsyncMock) as mock_store,
+            patch.object(
+                service, "setup_http_client", new_callable=AsyncMock
+            ) as mock_setup,
+            patch.object(
+                service, "_load_existing_titles", new_callable=AsyncMock
+            ) as mock_load,
+            patch.object(
+                service, "_get_top_stories", new_callable=AsyncMock
+            ) as mock_get,
+            patch.object(
+                service, "_store_summaries", new_callable=AsyncMock
+            ) as mock_store,
         ):
             mock_load.return_value = Mock()
             mock_get.return_value = []
@@ -2145,7 +2199,9 @@ async def test_load_existing_titles_with_empty_data(mock_env_vars, mock_logger):
     await service.setup_http_client()
 
     with (
-        patch.object(service.storage, "exists", new_callable=AsyncMock, return_value=True),
+        patch.object(
+            service.storage, "exists", new_callable=AsyncMock, return_value=True
+        ),
         patch.object(service, "load_json", new_callable=AsyncMock, return_value=[]),
     ):  # Empty data
         tracker = await service._load_existing_titles()
@@ -2161,7 +2217,9 @@ async def test_load_existing_titles_with_empty_data(mock_env_vars, mock_logger):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_load_existing_titles_with_items_without_title(mock_env_vars, mock_logger):
+async def test_load_existing_titles_with_items_without_title(
+    mock_env_vars, mock_logger
+):
     """
     Given: titleフィールドがないアイテムを含むJSONデータ
     When: _load_existing_titlesを呼び出す
@@ -2180,7 +2238,9 @@ async def test_load_existing_titles_with_items_without_title(mock_env_vars, mock
     ]
 
     with (
-        patch.object(service.storage, "exists", new_callable=AsyncMock, return_value=True),
+        patch.object(
+            service.storage, "exists", new_callable=AsyncMock, return_value=True
+        ),
         patch.object(service, "load_json", new_callable=AsyncMock, return_value=data),
     ):
         tracker = await service._load_existing_titles()
@@ -2212,7 +2272,9 @@ async def test_get_top_stories_with_fetch_exception(mock_env_vars, mock_logger):
         )
 
         # _fetch_storyが例外を発生させるようにモック
-        with patch.object(service, "_fetch_story", new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.side_effect = [
                 Exception("Test exception"),  # 1つ目は例外
                 create_test_story(),  # 2つ目は正常
@@ -2254,7 +2316,9 @@ async def test_get_top_stories_story_without_created_at(mock_env_vars, mock_logg
             return_value=httpx.Response(200, json=[1])
         )
 
-        with patch.object(service, "_fetch_story", new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.return_value = story_without_date
 
             with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
@@ -2315,7 +2379,9 @@ async def test_fetch_story_content_status_200_with_article(mock_env_vars, mock_l
     service = HackerNewsRetriever()
     await service.setup_http_client()
 
-    story = Story(title="Test Article", score=100, url="https://example.com/article-test")
+    story = Story(
+        title="Test Article", score=100, url="https://example.com/article-test"
+    )
 
     # HTMLレスポンス（メタディスクリプションや段落がなく、article要素のみ）
     html_content = """
@@ -2353,11 +2419,15 @@ async def test_collect_with_saved_files_logging(mock_env_vars, mock_logger):
     service = HackerNewsRetriever()
     service.http_client = AsyncMock()
 
-    saved_files = [("data/hacker_news/2024-11-14.json", "data/hacker_news/2024-11-14.md")]
+    saved_files = [
+        ("data/hacker_news/2024-11-14.json", "data/hacker_news/2024-11-14.md")
+    ]
 
     with (
         patch.object(service, "setup_http_client", new_callable=AsyncMock),
-        patch.object(service, "_load_existing_titles", new_callable=AsyncMock) as mock_load,
+        patch.object(
+            service, "_load_existing_titles", new_callable=AsyncMock
+        ) as mock_load,
         patch.object(service, "_get_top_stories", new_callable=AsyncMock) as mock_get,
         patch.object(service, "_store_summaries", new_callable=AsyncMock) as mock_store,
     ):
@@ -2395,7 +2465,9 @@ async def test_get_top_stories_with_duplicate_detection(mock_env_vars, mock_logg
             return_value=httpx.Response(200, json=[1, 2, 3])
         )
 
-        with patch.object(service, "_fetch_story", new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.side_effect = [story1, story2, story3]
 
             with patch.object(service, "_summarize_stories", new_callable=AsyncMock):
@@ -2448,7 +2520,9 @@ async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
             return_value=httpx.Response(200, json=[1, 2, 3])
         )
 
-        with patch.object(service, "_fetch_story", new_callable=AsyncMock) as mock_fetch:
+        with patch.object(
+            service, "_fetch_story", new_callable=AsyncMock
+        ) as mock_fetch:
             mock_fetch.side_effect = [story_today_1, story_today_2, story_yesterday_1]
 
             with patch.object(service, "_summarize_stories", new_callable=AsyncMock):

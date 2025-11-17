@@ -209,7 +209,9 @@ class FourChanExplorer(BaseService):
             # 各ボードからスレッドを取得
             for board in self.target_boards:
                 try:
-                    self.logger.info(f"ボード /{board}/ からのスレッド取得を開始します...")
+                    self.logger.info(
+                        f"ボード /{board}/ からのスレッド取得を開始します..."
+                    )
                     threads = await self._retrieve_ai_threads(
                         board,
                         thread_limit,
@@ -227,7 +229,9 @@ class FourChanExplorer(BaseService):
                 except Exception as e:
                     self.logger.error(f"Error processing board /{board}/: {str(e)}")
 
-            self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
+            self.logger.info(
+                f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました"
+            )
 
             # 日付ごとにグループ化して各日独立で上位15件を選択
             threads_by_date = {}
@@ -250,7 +254,9 @@ class FourChanExplorer(BaseService):
                             created = datetime.fromtimestamp(thread.timestamp)
                             return (thread.popularity_score, created)
 
-                        sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
+                        sorted_threads = sorted(
+                            date_threads, key=sort_key, reverse=True
+                        )
                         selected_threads.extend(sorted_threads[:total_limit])
 
             # 既存/新規スレッド数をカウント
@@ -261,7 +267,9 @@ class FourChanExplorer(BaseService):
             log_article_counts(self.logger, existing_count, new_count)
 
             if selected_threads:
-                log_summary_candidates(self.logger, selected_threads, "popularity_score")
+                log_summary_candidates(
+                    self.logger, selected_threads, "popularity_score"
+                )
 
                 # 要約生成
                 log_summarization_start(self.logger)
@@ -274,7 +282,9 @@ class FourChanExplorer(BaseService):
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
             if selected_threads:
-                saved_files = await self._store_summaries(selected_threads, effective_target_dates)
+                saved_files = await self._store_summaries(
+                    selected_threads, effective_target_dates
+                )
 
                 # 処理完了メッセージ
                 if saved_files:
@@ -335,7 +345,8 @@ class FourChanExplorer(BaseService):
 
                 # AIキーワードが含まれているかチェック
                 is_ai_related = any(
-                    keyword in subject or keyword in comment for keyword in self.ai_keywords
+                    keyword in subject or keyword in comment
+                    for keyword in self.ai_keywords
                 )
 
                 if is_ai_related:
@@ -404,7 +415,9 @@ class FourChanExplorer(BaseService):
                     )
 
                     effective_dt = latest_post_at or thread_created
-                    if not effective_dt or not is_within_target_dates(effective_dt, target_dates):
+                    if not effective_dt or not is_within_target_dates(
+                        effective_dt, target_dates
+                    ):
                         self.logger.debug(
                             "最新投稿日時が対象外のためスキップ: /%s/ %s (%s)",
                             board,
@@ -457,7 +470,9 @@ class FourChanExplorer(BaseService):
 
         return ai_threads
 
-    async def _retrieve_thread_posts(self, board: str, thread_id: int) -> list[dict[str, Any]]:
+    async def _retrieve_thread_posts(
+        self, board: str, thread_id: int
+    ) -> list[dict[str, Any]]:
         """
         スレッドの投稿を取得します。
 
@@ -507,7 +522,9 @@ class FourChanExplorer(BaseService):
 
         recency_bonus = 0.0
         try:
-            last_modified = thread_metadata.get("last_modified") or thread_metadata.get("time", 0)
+            last_modified = thread_metadata.get("last_modified") or thread_metadata.get(
+                "time", 0
+            )
             if last_modified:
                 now = datetime.now()
                 modified = datetime.fromtimestamp(last_modified)
@@ -705,7 +722,9 @@ class FourChanExplorer(BaseService):
         for board, threads in grouped.items():
             content += f"## /{board}/\n\n"
             for thread in threads:
-                title = thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
+                title = (
+                    thread.get("title") or f"無題スレッド #{thread.get('thread_id')}"
+                )
                 content += f"### [{title}]({thread.get('url')})\n\n"
                 published_raw = thread.get("published_at")
                 if published_raw:
@@ -734,7 +753,9 @@ class FourChanExplorer(BaseService):
         sections = list(board_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            end = (
+                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
+            )
             block = markdown[start:end]
             board = match.group(1).strip()
 
@@ -755,7 +776,9 @@ class FourChanExplorer(BaseService):
                 }
 
                 if timestamp:
-                    record["published_at"] = datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
+                    record["published_at"] = datetime.fromtimestamp(
+                        timestamp, tz=UTC
+                    ).isoformat()
 
                 records.append(record)
 

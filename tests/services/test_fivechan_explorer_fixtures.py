@@ -40,7 +40,9 @@ def mock_dat_data():
     """DAT形式のモックデータ"""
     return """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い
-""".encode("shift_jis")
+""".encode(
+        "shift_jis"
+    )
 
 
 @pytest.fixture

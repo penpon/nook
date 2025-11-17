@@ -94,7 +94,9 @@ async def test_collect_with_multiple_categories(arxiv_service):
         patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock),
         patch.object(arxiv_service.storage, "save", new_callable=AsyncMock),
     ):
-        arxiv_service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
+        arxiv_service.http_client.get = AsyncMock(
+            return_value=Mock(text="<feed></feed>")
+        )
 
         # When
         result = await arxiv_service.collect(target_dates=[date.today()])
@@ -122,7 +124,9 @@ async def test_collect_network_error(arxiv_service):
     arxiv_service.http_client = AsyncMock()
 
     with patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock):
-        arxiv_service.http_client.get = AsyncMock(side_effect=Exception("Network error"))
+        arxiv_service.http_client.get = AsyncMock(
+            side_effect=Exception("Network error")
+        )
 
         # When/Then
         with pytest.raises(RetryException):
@@ -168,7 +172,9 @@ async def test_collect_gpt_api_error(arxiv_service):
         arxiv_service.http_client.get = AsyncMock(
             return_value=Mock(text="<feed><entry></entry></feed>")
         )
-        arxiv_service.gpt_client.get_response = AsyncMock(side_effect=Exception("API Error"))
+        arxiv_service.gpt_client.get_response = AsyncMock(
+            side_effect=Exception("API Error")
+        )
 
         # When
         result = await arxiv_service.collect(target_dates=[date.today()])
@@ -202,7 +208,9 @@ async def test_full_workflow_collect_and_save(arxiv_service):
             return_value=Path("/data/test.json"),
         ),
     ):
-        arxiv_service.http_client.get = AsyncMock(return_value=Mock(text="<feed></feed>"))
+        arxiv_service.http_client.get = AsyncMock(
+            return_value=Mock(text="<feed></feed>")
+        )
         arxiv_service.gpt_client.get_response = AsyncMock(return_value="要約")
 
         # When
@@ -252,7 +260,9 @@ async def test_collect_http_client_not_initialized(arxiv_service):
     arxiv_service.http_client = None
 
     with (
-        patch.object(arxiv_service, "setup_http_client", new_callable=AsyncMock) as mock_setup,
+        patch.object(
+            arxiv_service, "setup_http_client", new_callable=AsyncMock
+        ) as mock_setup,
         patch.object(
             arxiv_service,
             "_get_curated_paper_ids",

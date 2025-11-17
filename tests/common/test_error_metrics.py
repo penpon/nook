@@ -574,4 +574,6 @@ def test_get_error_stats_thread_safe():
             thread.join()
 
     # 全てのスレッドが同じ結果を取得
-    assert all(count == 10 for count in results), f"Expected all counts to be 10, but got {results}"
+    assert all(
+        count == 10 for count in results
+    ), f"Expected all counts to be 10, but got {results}"
