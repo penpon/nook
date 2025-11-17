@@ -178,7 +178,7 @@ def test_init_with_env_credentials(reddit_explorer_service):
 
 
 @pytest.mark.unit
-def test_init_missing_credentials(reddit_explorer_service, monkeypatch):
+def test_init_missing_credentials(monkeypatch):
     """
     Given: Reddit APIクレデンシャルが不足
     When: RedditExplorerを初期化
