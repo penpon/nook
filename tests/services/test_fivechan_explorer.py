@@ -2630,18 +2630,28 @@ async def test_empty_thread_handling(mock_env_vars):
         from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
         service = FiveChanExplorer()
-        service.http_client = AsyncMock()
 
         # 空のDATファイル（ヘッダーのみ）
-        empty_dat_content = ""
+        empty_dat_content = b""
 
-        service.http_client.get = AsyncMock(
-            return_value=Mock(text=empty_dat_content, status_code=200)
-        )
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = empty_dat_content
 
-        posts, last_modified = await service._get_thread_posts_from_dat(
-            "https://test.5ch.net/test/dat/1234567890.dat"
-        )
+        mock_scraper = Mock()
+        mock_scraper.get = Mock(return_value=mock_response)
+        mock_scraper.headers = {}
+
+        with (
+            patch("cloudscraper.create_scraper", return_value=mock_scraper),
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
+            ),
+        ):
+            posts, last_modified = await service._get_thread_posts_from_dat(
+                "https://test.5ch.net/test/dat/1234567890.dat"
+            )
 
         # 空配列が返される
         assert posts == []
@@ -2728,10 +2738,13 @@ async def test_large_thread_processing(mock_env_vars):
     """
     Given: 1000レス超の巨大スレッド
     When: _get_thread_posts_from_datを呼び出す
-    Then: メモリ効率的に処理（最大10投稿まで返却）
+    Then: メモリ効率的に処理（最大MAX_POSTS_PER_THREAD投稿まで返却）
     """
     with patch("nook.common.base_service.setup_logger"):
-        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
+        from nook.services.fivechan_explorer.fivechan_explorer import (
+            FiveChanExplorer,
+            MAX_POSTS_PER_THREAD,
+        )
 
         service = FiveChanExplorer()
 
@@ -2761,8 +2774,8 @@ async def test_large_thread_processing(mock_env_vars):
             )
             processing_time = time.time() - start_time
 
-            # 最大10投稿まで返却される（実装の制限）
-            assert len(posts) == 10
+            # 最大MAX_POSTS_PER_THREAD投稿まで返却される（実装の制限）
+            assert len(posts) == MAX_POSTS_PER_THREAD
             # 処理時間が妥当（3秒以内）
             assert processing_time < 3.0
 
@@ -2861,13 +2874,17 @@ async def test_fallback_strategy_final_case(mock_env_vars):
 
         service = FiveChanExplorer()
         service.http_client = AsyncMock()
+        service.http_client._client = AsyncMock()
 
         # 全てのエンドポイントで403エラー
-        service.http_client.get = AsyncMock(return_value=Mock(text="Forbidden", status_code=403))
-
-        result = await service._try_alternative_endpoints(
-            "https://original.5ch.net/test/subjecttxt.txt", "test"
+        service.http_client._client.get = AsyncMock(
+            return_value=Mock(text="Forbidden", status_code=403)
         )
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._try_alternative_endpoints(
+                "https://original.5ch.net/test/subjecttxt.txt", "test"
+            )
 
         # 全失敗でNoneを返す
         assert result is None
