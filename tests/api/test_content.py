@@ -1,7 +1,7 @@
 """nook/api/routers/content.py のテストカバレッジ向上のための包括的なテスト"""
 
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -167,7 +167,9 @@ class TestContentRouterComprehensive:
 
     @patch("nook.api.routers.content.storage.load_json")
     @patch("nook.api.routers.content.storage.load_markdown")
-    def test_get_content_all_sources_hacker_news_truncation(self, mock_load_markdown, mock_load_json):
+    def test_get_content_all_sources_hacker_news_truncation(
+        self, mock_load_markdown, mock_load_json
+    ):
         """全ソース取得時のHacker Newsで長いテキストが500文字で省略される"""
         long_text = "b" * (MAX_TEXT_LENGTH_ALL_SOURCES + 300)
         mock_stories = [
@@ -264,7 +266,9 @@ class TestContentRouterComprehensive:
     @patch("nook.api.routers.content.storage.list_dates")
     @patch("nook.api.routers.content.storage.load_json")
     @patch("nook.api.routers.content.storage.load_markdown")
-    def test_get_content_fallback_to_latest(self, mock_load_markdown, mock_load_json, mock_list_dates):
+    def test_get_content_fallback_to_latest(
+        self, mock_load_markdown, mock_load_json, mock_list_dates
+    ):
         """データがない場合に最新の日付にフォールバックする"""
         # 最初の呼び出し（今日の日付）ではデータなし
         # 2回目の呼び出し（最新日付）でデータあり
@@ -290,7 +294,9 @@ class TestContentRouterComprehensive:
     @patch("nook.api.routers.content.storage.list_dates")
     @patch("nook.api.routers.content.storage.load_json")
     @patch("nook.api.routers.content.storage.load_markdown")
-    def test_get_content_no_available_dates(self, mock_load_markdown, mock_load_json, mock_list_dates):
+    def test_get_content_no_available_dates(
+        self, mock_load_markdown, mock_load_json, mock_list_dates
+    ):
         """利用可能な日付が全くない場合に404エラーを返す"""
         mock_load_markdown.return_value = None
         mock_load_json.return_value = None

@@ -827,7 +827,9 @@ class FiveChanExplorer(BaseService):
                     # メモリ効率を保つため、最大MAX_POSTS_PER_THREAD件に制限
                     limited_posts = posts[:MAX_POSTS_PER_THREAD]
                     if len(posts) > MAX_POSTS_PER_THREAD:
-                        self.logger.info(f"投稿数が多いため{MAX_POSTS_PER_THREAD}件に制限: 元の投稿数{len(posts)}件")
+                        self.logger.info(
+                            f"投稿数が多いため{MAX_POSTS_PER_THREAD}件に制限: 元の投稿数{len(posts)}件"
+                        )
                     return limited_posts, latest_post_at
                 else:
                     self.logger.warning("dat内容は取得したが投稿データなし")
