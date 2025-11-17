@@ -1405,6 +1405,7 @@ async def test_retry_backoff_performance(mock_env_vars):
             # バックオフ時間が指数的に増加していることを確認
             assert len(sleep_times) > 0
 
+
 # =============================================================================
 # 11. _get_with_403_tolerance メソッドのテスト
 # =============================================================================
@@ -1558,7 +1559,9 @@ async def test_get_with_403_tolerance_all_strategies_fail(mock_env_vars):
 
         # 代替エンドポイント戦略もモック
         with (
-            patch.object(service, "_try_alternative_endpoints", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                service, "_try_alternative_endpoints", new_callable=AsyncMock, return_value=None
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             result = await service._get_with_403_tolerance("http://test.url", "ai")
@@ -1886,7 +1889,12 @@ async def test_get_with_403_tolerance_alternative_endpoint_success(mock_env_vars
         alt_response.text = "Valid content from alternative endpoint"
 
         with (
-            patch.object(service, "_try_alternative_endpoints", new_callable=AsyncMock, return_value=alt_response),
+            patch.object(
+                service,
+                "_try_alternative_endpoints",
+                new_callable=AsyncMock,
+                return_value=alt_response,
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             result = await service._get_with_403_tolerance("http://test.url", "ai")
@@ -2231,21 +2239,48 @@ async def test_retrieve_ai_threads_keyword_matching(mock_env_vars):
 
         # subject.txtのモックデータ
         threads_data = [
-            {"title": "AI・人工知能について", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
-            {"title": "機械学習の最新動向", "timestamp": "1234567891", "html_url": "http://test.url2", "dat_url": "http://test.dat2", "post_count": 50},
-            {"title": "無関係なスレッド", "timestamp": "1234567892", "html_url": "http://test.url3", "dat_url": "http://test.dat3", "post_count": 30},
+            {
+                "title": "AI・人工知能について",
+                "timestamp": "1234567890",
+                "html_url": "http://test.url",
+                "dat_url": "http://test.dat",
+                "post_count": 100,
+            },
+            {
+                "title": "機械学習の最新動向",
+                "timestamp": "1234567891",
+                "html_url": "http://test.url2",
+                "dat_url": "http://test.dat2",
+                "post_count": 50,
+            },
+            {
+                "title": "無関係なスレッド",
+                "timestamp": "1234567892",
+                "html_url": "http://test.url3",
+                "dat_url": "http://test.dat3",
+                "post_count": 30,
+            },
         ]
 
         # モック投稿データ
         mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
 
         with (
-            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
-            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch.object(
+                service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data
+            ),
+            patch.object(
+                service,
+                "_get_thread_posts_from_dat",
+                new_callable=AsyncMock,
+                return_value=(mock_posts, datetime.now(UTC)),
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            result = await service._retrieve_ai_threads(
+                "ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # AIキーワードマッチング（最初の2つのみ）
             assert len(result) == 2
@@ -2269,19 +2304,40 @@ async def test_retrieve_ai_threads_deduplication(mock_env_vars):
 
         # 重複するタイトル
         threads_data = [
-            {"title": "AI技術について", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
-            {"title": "AI技術について", "timestamp": "1234567891", "html_url": "http://test.url2", "dat_url": "http://test.dat2", "post_count": 50},
+            {
+                "title": "AI技術について",
+                "timestamp": "1234567890",
+                "html_url": "http://test.url",
+                "dat_url": "http://test.dat",
+                "post_count": 100,
+            },
+            {
+                "title": "AI技術について",
+                "timestamp": "1234567891",
+                "html_url": "http://test.url2",
+                "dat_url": "http://test.dat2",
+                "post_count": 50,
+            },
         ]
 
         mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
 
         with (
-            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
-            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch.object(
+                service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data
+            ),
+            patch.object(
+                service,
+                "_get_thread_posts_from_dat",
+                new_callable=AsyncMock,
+                return_value=(mock_posts, datetime.now(UTC)),
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            result = await service._retrieve_ai_threads(
+                "ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # 重複排除で1つのみ
             assert len(result) == 1
@@ -2304,19 +2360,34 @@ async def test_retrieve_ai_threads_limit_enforcement(mock_env_vars):
 
         # 10個のAI関連スレッド
         threads_data = [
-            {"title": f"AI技術{i}", "timestamp": f"123456789{i}", "html_url": f"http://test.url{i}", "dat_url": f"http://test.dat{i}", "post_count": 100}
+            {
+                "title": f"AI技術{i}",
+                "timestamp": f"123456789{i}",
+                "html_url": f"http://test.url{i}",
+                "dat_url": f"http://test.dat{i}",
+                "post_count": 100,
+            }
             for i in range(10)
         ]
 
         mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
 
         with (
-            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
-            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch.object(
+                service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data
+            ),
+            patch.object(
+                service,
+                "_get_thread_posts_from_dat",
+                new_callable=AsyncMock,
+                return_value=(mock_posts, datetime.now(UTC)),
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=3, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            result = await service._retrieve_ai_threads(
+                "ai", limit=3, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # limit=3で3つのみ取得
             assert len(result) == 3
@@ -2338,23 +2409,47 @@ async def test_retrieve_ai_threads_no_posts_skip(mock_env_vars):
         service = FiveChanExplorer()
 
         threads_data = [
-            {"title": "AI技術1", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
-            {"title": "AI技術2", "timestamp": "1234567891", "html_url": "http://test.url2", "dat_url": "http://test.dat2", "post_count": 50},
+            {
+                "title": "AI技術1",
+                "timestamp": "1234567890",
+                "html_url": "http://test.url",
+                "dat_url": "http://test.dat",
+                "post_count": 100,
+            },
+            {
+                "title": "AI技術2",
+                "timestamp": "1234567891",
+                "html_url": "http://test.url2",
+                "dat_url": "http://test.dat2",
+                "post_count": 50,
+            },
         ]
 
         # 1番目は投稿あり、2番目は投稿なし
         posts_results = [
-            ([{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}], datetime.now(UTC)),
+            (
+                [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}],
+                datetime.now(UTC),
+            ),
             ([], datetime.now(UTC)),  # 投稿なし
         ]
 
         with (
-            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
-            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, side_effect=posts_results),
+            patch.object(
+                service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data
+            ),
+            patch.object(
+                service,
+                "_get_thread_posts_from_dat",
+                new_callable=AsyncMock,
+                side_effect=posts_results,
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            result = await service._retrieve_ai_threads(
+                "ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # 投稿があるスレッドのみ（1つ）
             assert len(result) == 1
@@ -2375,9 +2470,13 @@ async def test_retrieve_ai_threads_subject_txt_failure(mock_env_vars):
 
         service = FiveChanExplorer()
 
-        with patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=[]):
+        with patch.object(
+            service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=[]
+        ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            result = await service._retrieve_ai_threads(
+                "ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # subject.txt取得失敗で空配列
             assert result == []
@@ -2399,18 +2498,35 @@ async def test_retrieve_ai_threads_popularity_calculation(mock_env_vars):
         service = FiveChanExplorer()
 
         threads_data = [
-            {"title": "AI技術1", "timestamp": "1234567890", "html_url": "http://test.url", "dat_url": "http://test.dat", "post_count": 100},
+            {
+                "title": "AI技術1",
+                "timestamp": "1234567890",
+                "html_url": "http://test.url",
+                "dat_url": "http://test.dat",
+                "post_count": 100,
+            },
         ]
 
-        mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}] * 10
+        mock_posts = [
+            {"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}
+        ] * 10
 
         with (
-            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
-            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch.object(
+                service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data
+            ),
+            patch.object(
+                service,
+                "_get_thread_posts_from_dat",
+                new_callable=AsyncMock,
+                return_value=(mock_posts, datetime.now(UTC)),
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            result = await service._retrieve_ai_threads(
+                "ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # popularity_scoreが設定されている
             assert len(result) == 1
@@ -2433,19 +2549,34 @@ async def test_retrieve_ai_threads_access_interval(mock_env_vars):
         service = FiveChanExplorer()
 
         threads_data = [
-            {"title": f"AI技術{i}", "timestamp": f"123456789{i}", "html_url": f"http://test.url{i}", "dat_url": f"http://test.dat{i}", "post_count": 100}
+            {
+                "title": f"AI技術{i}",
+                "timestamp": f"123456789{i}",
+                "html_url": f"http://test.url{i}",
+                "dat_url": f"http://test.dat{i}",
+                "post_count": 100,
+            }
             for i in range(3)
         ]
 
         mock_posts = [{"name": "名無し", "mail": "sage", "date": "2024/11/14", "com": "テスト投稿"}]
 
         with (
-            patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data),
-            patch.object(service, "_get_thread_posts_from_dat", new_callable=AsyncMock, return_value=(mock_posts, datetime.now(UTC))),
+            patch.object(
+                service, "_get_subject_txt_data", new_callable=AsyncMock, return_value=threads_data
+            ),
+            patch.object(
+                service,
+                "_get_thread_posts_from_dat",
+                new_callable=AsyncMock,
+                return_value=(mock_posts, datetime.now(UTC)),
+            ),
             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
         ):
             dedup_tracker = DedupTracker()
-            await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            await service._retrieve_ai_threads(
+                "ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # 2秒間隔で待機
             sleep_calls = [call[0][0] for call in mock_sleep.call_args_list]
@@ -2467,9 +2598,16 @@ async def test_retrieve_ai_threads_exception_handling(mock_env_vars):
 
         service = FiveChanExplorer()
 
-        with patch.object(service, "_get_subject_txt_data", new_callable=AsyncMock, side_effect=Exception("Unexpected error")):
+        with patch.object(
+            service,
+            "_get_subject_txt_data",
+            new_callable=AsyncMock,
+            side_effect=Exception("Unexpected error"),
+        ):
             dedup_tracker = DedupTracker()
-            result = await service._retrieve_ai_threads("ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()])
+            result = await service._retrieve_ai_threads(
+                "ai", limit=10, dedup_tracker=dedup_tracker, target_dates=[date.today()]
+            )
 
             # 例外処理で空配列
             assert result == []
