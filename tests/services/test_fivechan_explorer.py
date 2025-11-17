@@ -2742,8 +2742,8 @@ async def test_large_thread_processing(mock_env_vars):
     """
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fivechan_explorer.fivechan_explorer import (
-            FiveChanExplorer,
             MAX_POSTS_PER_THREAD,
+            FiveChanExplorer,
         )
 
         service = FiveChanExplorer()
