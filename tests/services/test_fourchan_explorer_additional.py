@@ -1,11 +1,10 @@
 """
 Additional tests for fourchan_explorer coverage improvement
-Task 6: カバレッジ67.07% → 75%以上への向上
+Task 6: Coverage improvement from 67.07% to 75%+
 """
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
@@ -15,18 +14,37 @@ import pytest
 from nook.common.dedup import DedupTracker
 
 
-# Helper function
+# Test Fixtures
+@pytest.fixture
+def fixed_datetime():
+    """固定された日時を返すフィクスチャ（テスト安定性向上）"""
+    return datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+
+
 def get_jst_date_from_utc(utc_dt: datetime):
-    """UTC datetimeをJST dateに変換"""
+    """Convert UTC datetime to JST date"""
     from datetime import timezone
 
     jst = timezone(timedelta(hours=9))
     return utc_dt.astimezone(jst).date()
 
 
-# =============================================================================
+# Test Helpers
+def create_catalog_response(threads_data: list[dict]) -> Mock:
+    """カタログレスポンスのモックを作成"""
+    response = Mock()
+    response.json.return_value = [{"threads": threads_data}]
+    return response
+
+
+def create_thread_response(posts_data: list[dict]) -> Mock:
+    """スレッドレスポンスのモックを作成"""
+    response = Mock()
+    response.json.return_value = {"posts": posts_data}
+    return response
+
+
 # Additional Tests for Coverage Improvement - Task 6
-# =============================================================================
 
 
 @pytest.mark.unit
@@ -72,14 +90,18 @@ async def test_collect_board_processing_error():
 
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service, "_retrieve_ai_threads", side_effect=[Exception("Board error"), []]),
+            patch.object(
+                service, "_retrieve_ai_threads", side_effect=[Exception("Board error"), []]
+            ),
             patch.object(service.storage, "save", new_callable=AsyncMock),
         ):
             jst_today = get_jst_date_from_utc(datetime.now(UTC))
             result = await service.collect(target_dates=[jst_today])
 
-            # エラーがあっても処理が完了する
+            # エラーがあっても処理が完了する（2つのボードのうち1つは成功）
             assert isinstance(result, list)
+            # 2つのボードを処理するが、1つはエラーで0件、もう1つは空リストで0件
+            assert len(result) == 0
 
 
 @pytest.mark.unit
@@ -97,40 +119,33 @@ async def test_retrieve_ai_threads_date_filtering_outside_range():
         service.http_client = AsyncMock()
 
         # 30日以上前のスレッド（対象外）
-        old_timestamp = int((datetime.now(UTC) - timedelta(days=40)).timestamp())
+        base_datetime = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+        old_timestamp = int((base_datetime - timedelta(days=40)).timestamp())
 
-        # カタログレスポンスをモック
-        catalog_response = Mock()
-        catalog_response.json.return_value = [
+        # カタログレスポンスをモック（ヘルパー使用）
+        threads_data = [
             {
-                "threads": [
-                    {
-                        "no": 123456,
-                        "sub": "AI Thread",
-                        "com": "AI discussion",
-                        "replies": 10,
-                        "images": 2,
-                        "bumplimit": 0,
-                        "imagelimit": 0,
-                        "last_modified": old_timestamp,
-                        "time": old_timestamp,
-                    }
-                ]
+                "no": 123456,
+                "sub": "AI Thread",
+                "com": "AI discussion",
+                "replies": 10,
+                "images": 2,
+                "bumplimit": 0,
+                "imagelimit": 0,
+                "last_modified": old_timestamp,
+                "time": old_timestamp,
             }
         ]
+        catalog_response = create_catalog_response(threads_data)
 
-        # スレッド詳細レスポンスをモック
-        thread_response = Mock()
-        thread_response.json.return_value = {
-            "posts": [
-                {"no": 123456, "time": old_timestamp, "com": "OP post"}
-            ]
-        }
+        # スレッド詳細レスポンスをモック（ヘルパー使用）
+        posts_data = [{"no": 123456, "time": old_timestamp, "com": "OP post"}]
+        thread_response = create_thread_response(posts_data)
 
         service.http_client.get = AsyncMock(side_effect=[catalog_response, thread_response])
 
-        # 今日の日付のみを対象
-        jst_today = get_jst_date_from_utc(datetime.now(UTC))
+        # 固定日付を使用
+        jst_today = get_jst_date_from_utc(base_datetime)
         target_dates = {jst_today}
 
         dedup_tracker = DedupTracker()
@@ -140,6 +155,7 @@ async def test_retrieve_ai_threads_date_filtering_outside_range():
 
         # 対象外のスレッドはフィルタリングされる
         assert len(result) == 0
+        assert isinstance(result, list)
 
 
 @pytest.mark.unit
@@ -156,40 +172,33 @@ async def test_retrieve_ai_threads_timezone_handling():
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        current_timestamp = int(datetime.now(UTC).timestamp())
+        base_datetime = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+        current_timestamp = int(base_datetime.timestamp())
 
-        # カタログレスポンスをモック
-        catalog_response = Mock()
-        catalog_response.json.return_value = [
+        # カタログレスポンスをモック（ヘルパー使用）
+        threads_data = [
             {
-                "threads": [
-                    {
-                        "no": 123456,
-                        "sub": "AI Thread",
-                        "com": "AI discussion",
-                        "replies": 10,
-                        "images": 2,
-                        "bumplimit": 0,
-                        "imagelimit": 0,
-                        "last_modified": current_timestamp,
-                        "time": current_timestamp,
-                    }
-                ]
+                "no": 123456,
+                "sub": "AI Thread",
+                "com": "AI discussion",
+                "replies": 10,
+                "images": 2,
+                "bumplimit": 0,
+                "imagelimit": 0,
+                "last_modified": current_timestamp,
+                "time": current_timestamp,
             }
         ]
+        catalog_response = create_catalog_response(threads_data)
 
-        # スレッド詳細レスポンスをモック
-        thread_response = Mock()
-        thread_response.json.return_value = {
-            "posts": [
-                {"no": 123456, "time": current_timestamp, "com": "OP post"}
-            ]
-        }
+        # スレッド詳細レスポンスをモック（ヘルパー使用）
+        posts_data = [{"no": 123456, "time": current_timestamp, "com": "OP post"}]
+        thread_response = create_thread_response(posts_data)
 
         service.http_client.get = AsyncMock(side_effect=[catalog_response, thread_response])
         service.gpt_client.get_response = AsyncMock(return_value="Test summary")
 
-        jst_today = get_jst_date_from_utc(datetime.now(UTC))
+        jst_today = get_jst_date_from_utc(base_datetime)
         target_dates = {jst_today}
 
         dedup_tracker = DedupTracker()
@@ -200,6 +209,7 @@ async def test_retrieve_ai_threads_timezone_handling():
         # スレッドが正常に処理される
         assert len(result) == 1
         assert result[0].thread_id == 123456
+        assert result[0].board == "g"
 
 
 @pytest.mark.unit
@@ -216,36 +226,29 @@ async def test_retrieve_ai_threads_missing_effective_datetime_warning():
         service = FourChanExplorer()
         service.http_client = AsyncMock()
 
-        # カタログレスポンスをモック（タイムスタンプなし）
-        catalog_response = Mock()
-        catalog_response.json.return_value = [
+        # カタログレスポンスをモック（タイムスタンプなし、ヘルパー使用）
+        threads_data = [
             {
-                "threads": [
-                    {
-                        "no": 123456,
-                        "sub": "AI Thread",
-                        "com": "AI discussion",
-                        "replies": 10,
-                        "images": 2,
-                        "bumplimit": 0,
-                        "imagelimit": 0,
-                        # last_modifiedとtimeが両方ともない
-                    }
-                ]
+                "no": 123456,
+                "sub": "AI Thread",
+                "com": "AI discussion",
+                "replies": 10,
+                "images": 2,
+                "bumplimit": 0,
+                "imagelimit": 0,
+                # last_modifiedとtimeが両方ともない
             }
         ]
+        catalog_response = create_catalog_response(threads_data)
 
-        # スレッド詳細レスポンスをモック（投稿もタイムスタンプなし）
-        thread_response = Mock()
-        thread_response.json.return_value = {
-            "posts": [
-                {"no": 123456, "com": "OP post"}  # timeフィールドなし
-            ]
-        }
+        # スレッド詳細レスポンスをモック（投稿もタイムスタンプなし、ヘルパー使用）
+        posts_data = [{"no": 123456, "com": "OP post"}]  # timeフィールドなし
+        thread_response = create_thread_response(posts_data)
 
         service.http_client.get = AsyncMock(side_effect=[catalog_response, thread_response])
 
-        jst_today = get_jst_date_from_utc(datetime.now(UTC))
+        base_datetime = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+        jst_today = get_jst_date_from_utc(base_datetime)
         target_dates = {jst_today}
 
         dedup_tracker = DedupTracker()
@@ -255,6 +258,7 @@ async def test_retrieve_ai_threads_missing_effective_datetime_warning():
 
         # タイムスタンプがないスレッドはスキップされる
         assert len(result) == 0
+        assert isinstance(result, list)
 
 
 @pytest.mark.unit
@@ -300,9 +304,9 @@ async def test_collect_with_threads_grouping_by_date():
                 thread_id=i + 100,
                 board="g",
                 title=f"Yesterday Thread {i}",
-                url=f"https://boards.4chan.org/g/thread/{i+100}",
+                url=f"https://boards.4chan.org/g/thread/{i + 100}",
                 timestamp=yesterday_timestamp,
-                summary=f"Summary {i+100}",
+                summary=f"Summary {i + 100}",
                 popularity_score=50 - i,
                 posts=[],
             )
@@ -328,8 +332,10 @@ async def test_collect_with_threads_grouping_by_date():
             jst_yesterday = get_jst_date_from_utc(yesterday)
             result = await service.collect(target_dates=[jst_today, jst_yesterday])
 
-            # 両日のデータが処理される
+            # 両日のデータが処理される（日付ごとにグループ化）
             assert isinstance(result, list)
+            # storageのsaveメソッドが呼び出されたことを確認（データが保存された）
+            assert service.storage.save.call_count >= 1
 
 
 @pytest.mark.unit
@@ -378,13 +384,23 @@ async def test_collect_with_more_than_limit_threads_per_date():
                 "save",
                 new_callable=AsyncMock,
                 return_value=Path("/data/test.json"),
-            ),
+            ) as mock_save,
         ):
             jst_today = get_jst_date_from_utc(today)
             result = await service.collect(target_dates=[jst_today], thread_limit=15)
 
             # 15件に制限される
             assert isinstance(result, list)
+            # 保存が呼び出されたことを確認（JSON + Markdown = 2回）
+            assert mock_save.call_count == 2
+            # 最初の呼び出し（JSON保存）のデータを確認
+            first_call_args = mock_save.call_args_list[0]
+            if first_call_args and len(first_call_args[0]) > 0:
+                saved_data = first_call_args[0][0]
+                # リストの場合（スレッドのリスト）
+                if isinstance(saved_data, list):
+                    # thread_limitが指定されているため、それ以下に制限される
+                    assert len(saved_data) <= 15
 
 
 @pytest.mark.unit
@@ -403,9 +419,7 @@ async def test_collect_with_no_selected_threads():
 
         with (
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(
-                service, "_retrieve_ai_threads", new_callable=AsyncMock, return_value=[]
-            ),
+            patch.object(service, "_retrieve_ai_threads", new_callable=AsyncMock, return_value=[]),
             patch.object(
                 service.storage,
                 "save",
@@ -472,5 +486,6 @@ async def test_collect_summarization_loop_coverage():
             jst_today = get_jst_date_from_utc(today)
             await service.collect(target_dates=[jst_today])
 
-            # 要約が呼び出される（少なくとも1回以上）
+            # 要約が呼び出される（複数のボードに対して処理されるため、正確な回数は実装依存）
+            # 少なくとも3回以上呼び出されることを確認
             assert mock_summarize.call_count >= 3
