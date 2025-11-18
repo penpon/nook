@@ -11,6 +11,7 @@ Reddit Explorer統合テスト
 エンドツーエンドテストとして実装しています。
 """
 
+import json
 from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
@@ -42,6 +43,10 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     #    これにより、asyncprawの複雑な依存を避けつつ、フロー全体をテスト
     from nook.services.reddit_explorer.reddit_explorer import RedditPost
 
+    # 固定のUTC日時を使用（タイムゾーン不整合を回避）
+    test_datetime = datetime.now(UTC)
+    test_date = test_datetime.date()
+
     mock_post = RedditPost(
         type="text",
         id="test123",
@@ -50,9 +55,8 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
         upvotes=100,
         text="Test content",
         permalink="https://reddit.com/r/test/comments/test123/",
-        created_at=datetime.now(UTC),
+        created_at=test_datetime,
     )
-    mock_post.comments = [{"text": "Test comment", "score": 50}]
 
     with (
         patch.object(service, "setup_http_client", new_callable=AsyncMock),
@@ -73,8 +77,8 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
         # GPT要約モック
         mock_gpt.return_value = "テスト要約"
 
-        # 3. データ収集実行（今日の日付を明示的に指定）
-        result = await service.collect(limit=10, target_dates=[date.today()])
+        # 3. データ収集実行（UTC日付を明示的に指定）
+        result = await service.collect(limit=10, target_dates=[test_date])
 
         # 4. 検証: データ取得確認
         assert len(result) > 0, "データが取得できていません"
@@ -141,6 +145,10 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
     # 2. モック設定
     from nook.services.reddit_explorer.reddit_explorer import RedditPost
 
+    # 固定のUTC日時を使用（タイムゾーン不整合を回避）
+    test_datetime = datetime.now(UTC)
+    test_date = test_datetime.date()
+
     mock_post = RedditPost(
         type="text",
         id="test123",
@@ -149,9 +157,8 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
         upvotes=100,
         text="Test content",
         permalink="https://reddit.com/r/test/comments/test123/",
-        created_at=datetime.now(UTC),
+        created_at=test_datetime,
     )
-    mock_post.comments = [{"text": "Test comment", "score": 50}]
 
     with (
         patch.object(service, "setup_http_client", new_callable=AsyncMock),
@@ -172,17 +179,16 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
         # GPT APIエラーをシミュレート（翻訳と要約の両方）
         mock_gpt.side_effect = Exception("API rate limit exceeded")
 
-        # 3. フォールバック動作確認（今日の日付を明示的に指定）
-        result = await service.collect(limit=10, target_dates=[date.today()])
+        # 3. フォールバック動作確認（UTC日付を明示的に指定）
+        result = await service.collect(limit=10, target_dates=[test_date])
 
         # 4. 検証: 要約失敗でもデータは取得される
         assert len(result) > 0, "GPTエラー時でもデータが取得されるべき"
 
         # 5. 検証: 保存されたデータを読み込んで確認
         json_path, _ = result[0]
-        import json
 
-        with open(json_path) as f:
+        with open(json_path, encoding="utf-8") as f:
             saved_data = json.load(f)
 
         # データが存在することを確認
