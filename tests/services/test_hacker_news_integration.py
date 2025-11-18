@@ -237,9 +237,12 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
         return test_stories
 
     with (
-        patch.object(service, "_get_top_stories", side_effect=fake_get_top_stories),
+        patch.object(service, "_get_top_stories", new_callable=AsyncMock) as mock_get_top_stories,
         patch.object(service.gpt_client, "generate_async", new_callable=AsyncMock) as mock_gpt,
     ):
+        # _get_top_storiesは実際に_summarize_storiesを通した上でテストデータを返す
+        mock_get_top_stories.side_effect = fake_get_top_stories
+
         # GPT APIエラーをシミュレート
         # AsyncMockの場合、side_effectに直接例外を設定する
         mock_gpt.side_effect = Exception("API rate limit exceeded")
