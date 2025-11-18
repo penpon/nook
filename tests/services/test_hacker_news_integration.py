@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -36,7 +37,7 @@ TEST_STORY_TEXT = "This is a test article content for integration testing. " * 1
 # =============================================================================
 
 
-def create_mock_hn_api_response(story_id: int, **kwargs) -> dict:
+def create_mock_hn_api_response(story_id: int, **kwargs: Any) -> dict[str, Any]:
     """HN API形式のストーリーレスポンスを作成"""
     return {
         "id": story_id,
@@ -229,18 +230,26 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
         ),
     ]
 
+    # _get_top_storiesの代わりに、実際に_summarize_storiesを呼び出すfake関数を作成
+    async def fake_get_top_stories(limit, dedup_tracker, target_dates):
+        # GPTエラーを伴う実際の要約処理を通す
+        await service._summarize_stories(test_stories)
+        return test_stories
+
     with (
-        patch.object(service, "_get_top_stories", new_callable=AsyncMock) as mock_get_stories,
+        patch.object(service, "_get_top_stories", side_effect=fake_get_top_stories),
         patch.object(service.gpt_client, "generate_async", new_callable=AsyncMock) as mock_gpt,
     ):
-        # _get_top_storiesはテストストーリーを返す
-        mock_get_stories.return_value = test_stories
-
         # GPT APIエラーをシミュレート
         mock_gpt.side_effect = Exception("API rate limit exceeded")
 
         # 3. データ収集実行（GPTエラーがあっても処理は継続）
         result = await service.collect(limit=2)
+
+        # 3-1. GPT APIが実際に呼ばれたことを確認
+        assert mock_gpt.await_count == len(test_stories), (
+            f"GPT APIは{len(test_stories)}回呼ばれるべきですが、{mock_gpt.await_count}回でした"
+        )
 
         # 4. 検証: データは必ず保存されるべき（GPTエラーがあっても）
         assert result is not None, "GPTエラー時でもresultはNoneであってはいけません"
@@ -270,12 +279,11 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
             assert story["summary"] is not None, "summaryはNoneであってはいけません"
 
             # GPTエラー時のフォールバック値を検証
-            # 空文字列、またはエラーメッセージ「要約の生成中にエラーが発生しました: {詳細}」のいずれか
+            # エラーメッセージ「要約の生成中にエラーが発生しました: {詳細}」で始まることを確認
             assert isinstance(story["summary"], str), (
                 f"summaryは文字列であるべきです: {type(story['summary'])}"
             )
-            # フォールバック動作を確認（空文字列か特定のエラーメッセージで始まる）
-            is_valid_fallback = story["summary"] == "" or story["summary"].startswith(
-                "要約の生成中にエラーが発生しました"
+            # フォールバック動作を確認（特定のエラーメッセージで始まる）
+            assert story["summary"].startswith("要約の生成中にエラーが発生しました"), (
+                f"予期しないsummary値（フォールバックメッセージが設定されていません）: {story['summary']}"
             )
-            assert is_valid_fallback, f"予期しないsummary値: {story['summary']}"
