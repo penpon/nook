@@ -162,7 +162,9 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
         with (
             patch("httpx.AsyncClient") as mock_client,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service, "_get_thread_posts_from_dat", side_effect=mock_get_thread_posts_dos),
+            patch.object(
+                service, "_get_thread_posts_from_dat", side_effect=mock_get_thread_posts_dos
+            ),
             patch.object(service, "_store_summaries", return_value=[]),
         ):
             # HTTPクライアントのモック設定
@@ -271,7 +273,7 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
                     "date": "2024/11/14",
                     "com": "テスト😀&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;🎉",
                     "time": "2024/11/14",
-                    "title": "テスト&lt;script&gt;alert(\"XSS\")&lt;/script&gt;スレ",
+                    "title": 'テスト&lt;script&gt;alert("XSS")&lt;/script&gt;スレ',
                 }
             ]
             return (posts, None)
