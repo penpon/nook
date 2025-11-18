@@ -6,7 +6,7 @@ Reddit Explorer統合テスト
 - ネットワークエラーハンドリング
 - GPT APIエラーハンドリングとフォールバック
 
-注意: RedditExplorerはasyncp rawを直接使用しているため、
+注意: RedditExplorerはasyncprawを直接使用しているため、
 完全な統合テストではなく、主要なコンポーネントをモック化した
 エンドツーエンドテストとして実装しています。
 """
