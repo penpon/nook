@@ -165,15 +165,13 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
 
                 # 処理時間が許容範囲内 (大量データ処理のため緩く設定: 60秒)
                 # 注: DoS攻撃シミュレーションのため、実際には長時間かかる
-                assert (
-                    processing_time < MAX_PROCESSING_TIME_SECONDS
-                ), f"処理時間が長すぎる: {processing_time}秒"
+                assert processing_time < MAX_PROCESSING_TIME_SECONDS, (
+                    f"処理時間が長すぎる: {processing_time}秒"
+                )
 
                 # メモリ使用量が許容範囲内 (100MB以下に緩和)
                 memory_mb = peak / 1024 / 1024
-                assert (
-                    memory_mb < MAX_MEMORY_USAGE_MB
-                ), f"メモリ使用量が多すぎる: {memory_mb}MB"
+                assert memory_mb < MAX_MEMORY_USAGE_MB, f"メモリ使用量が多すぎる: {memory_mb}MB"
             finally:
                 tracemalloc.stop()
 
