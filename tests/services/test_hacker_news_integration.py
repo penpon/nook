@@ -259,14 +259,13 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
             assert story["summary"] is not None, "summaryはNoneであってはいけません"
 
             # GPTエラー時のフォールバック値を検証
-            # 空文字列、またはエラーメッセージ「要約の生成中にエラーが発生しました」のいずれか
+            # 空文字列、またはエラーメッセージ「要約の生成中にエラーが発生しました: {詳細}」のいずれか
             assert (
                 isinstance(story["summary"], str)
             ), f"summaryは文字列であるべきです: {type(story['summary'])}"
-            # フォールバック動作を確認（空文字列か特定のエラーメッセージ）
+            # フォールバック動作を確認（空文字列か特定のエラーメッセージで始まる）
             is_valid_fallback = (
                 story["summary"] == ""
-                or story["summary"] == "要約の生成中にエラーが発生しました"
-                or len(story["summary"]) > 0  # 予期しないフォールバック文字列も許容
+                or story["summary"].startswith("要約の生成中にエラーが発生しました")
             )
             assert is_valid_fallback, f"予期しないsummary値: {story['summary']}"
