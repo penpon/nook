@@ -7,7 +7,6 @@ nook/services/fivechan_explorer/fivechan_explorer.py の統合テスト
 
 from __future__ import annotations
 
-from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -25,8 +24,8 @@ TEST_BOARD_ID = "livegalileo"
 TEST_BOARD_NAME = "なんでも実況J"
 TEST_THREAD_TITLE = "【AI】ChatGPTについて語るスレ【機械学習】"
 TEST_THREAD_CONTENT = "AI技術の発展について議論するテストスレッド。" * 50
-# 今日の日付のタイムスタンプを生成
-TEST_THREAD_TIMESTAMP = int(datetime.now().timestamp())
+# 固定のタイムスタンプ（2020-01-01 00:00:00 UTC）を使用して再現性を確保
+TEST_THREAD_TIMESTAMP = 1577836800
 
 
 # =============================================================================
