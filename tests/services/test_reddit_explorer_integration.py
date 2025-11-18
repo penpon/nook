@@ -15,7 +15,6 @@ from __future__ import annotations
 import tracemalloc
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
