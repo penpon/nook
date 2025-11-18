@@ -119,8 +119,8 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
 
     検証項目:
     - 10MB以上のレスポンスを安全に処理
-    - メモリ使用量が閾値以下 (50MB以下)
-    - 処理時間が許容範囲内 (5秒以下)
+    - メモリ使用量が閾値以下 (100MB以下)
+    - 処理時間が許容範囲内 (60秒以下)
     - クラッシュしない
     """
     with patch("nook.common.base_service.setup_logger"):
