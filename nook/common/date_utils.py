@@ -43,8 +43,10 @@ def normalize_datetime_to_local(dt: datetime | None) -> datetime | None:
         return None
 
     local_tz = _local_timezone()
-    tz = dt.tzinfo or local_tz
-    return dt.replace(tzinfo=tz).astimezone(local_tz)
+    # naive datetimeの場合はUTCとして扱う
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(local_tz)
 
 
 def is_within_target_dates(dt: datetime | None, target_dates: Iterable[date]) -> bool:

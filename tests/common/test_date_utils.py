@@ -306,11 +306,11 @@ def test_normalize_datetime_naive():
     """
     Given: datetime(2024,1,15,10,30)（tzinfo=None）
     When: normalize_datetime_to_localを呼び出す
-    Then: datetime(2024,1,15,10,30, tzinfo=JST)が返される
+    Then: UTCとして扱われJSTに変換される (10:30 UTC -> 19:30 JST)
     """
     dt = datetime(2024, 1, 15, 10, 30, 0)
     result = normalize_datetime_to_local(dt)
-    expected = datetime(2024, 1, 15, 10, 30, 0, tzinfo=JST)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
 
 
