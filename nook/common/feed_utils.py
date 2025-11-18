@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 from collections.abc import Iterable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -22,6 +22,11 @@ _STRING_FIELDS: Iterable[str] = (
     "created",
     "issued",
 )
+
+
+def _jst_timezone() -> timezone:
+    """Return JST (Japan Standard Time) timezone."""
+    return timezone(timedelta(hours=9))
 
 
 def _get_entry_value(entry: Any, field: str) -> Any:
@@ -48,10 +53,13 @@ def _parse_iso_datetime(value: str) -> datetime | None:
     except ValueError:
         return None
 
+    # Convert to JST timezone-aware datetime
     if parsed.tzinfo is None:
-        return parsed + timedelta(hours=9)
+        # Treat naive datetime as UTC, then convert to JST
+        return parsed.replace(tzinfo=UTC).astimezone(_jst_timezone())
 
-    return parsed.astimezone(UTC).replace(tzinfo=None) + timedelta(hours=9)
+    # Already has timezone, convert to JST
+    return parsed.astimezone(_jst_timezone())
 
 
 def parse_entry_datetime(entry: Any) -> datetime | None:
@@ -65,7 +73,8 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         except (TypeError, ValueError):
             continue
 
-        return datetime.fromtimestamp(timestamp, tz=UTC).replace(tzinfo=None) + timedelta(hours=9)
+        # Convert UTC timestamp to JST timezone-aware datetime
+        return datetime.fromtimestamp(timestamp, tz=UTC).astimezone(_jst_timezone())
 
     for field in _STRING_FIELDS:
         value = _get_entry_value(entry, field)
@@ -80,9 +89,12 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
             parsed = None
 
         if parsed:
+            # Convert to JST timezone-aware datetime
             if parsed.tzinfo is None:
-                return parsed.replace(tzinfo=None) + timedelta(hours=9)
-            return parsed.astimezone(UTC).replace(tzinfo=None) + timedelta(hours=9)
+                # Treat naive datetime as UTC, then convert to JST
+                return parsed.replace(tzinfo=UTC).astimezone(_jst_timezone())
+            # Already has timezone, convert to JST
+            return parsed.astimezone(_jst_timezone())
 
         iso_parsed = _parse_iso_datetime(text)
         if iso_parsed:
