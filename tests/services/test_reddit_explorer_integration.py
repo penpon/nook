@@ -13,15 +13,15 @@ Reddit Explorer 統合テスト
 from __future__ import annotations
 
 import tracemalloc
-from datetime import UTC, date, datetime
+import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 
-from nook.common.service_errors import ServiceException
-from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
+from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
 
 # =============================================================================
 # パフォーマンス制約定数
@@ -45,7 +45,6 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # 2. モック設定（asyncpraw Redditクライアント）
-    import uuid
     unique_id = str(uuid.uuid4())[:8]
     mock_submission = Mock()
     mock_submission.id = f"test_{unique_id}"
@@ -127,8 +126,8 @@ async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env
         # RedditExplorerはエラーをログに記録するが、例外をraiseしない設計の場合があるため
         # 結果が空であることを確認
         result = await service.collect(limit=1)
-        # ネットワークエラー時は結果が空または少ない
-        assert len(result) == 0 or len(result) < 1
+        # ネットワークエラー時は結果が空であるべき
+        assert len(result) == 0, "ネットワークエラー時は結果が空であるべき"
 
 
 @pytest.mark.integration
@@ -142,7 +141,6 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # モック設定
-    import uuid
     unique_id = str(uuid.uuid4())[:8]
     mock_submission = Mock()
     mock_submission.id = f"test_{unique_id}"
@@ -245,12 +243,9 @@ async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars
     When: collect()を実行
     Then: メモリ使用量が50MB以内
     """
-    tracemalloc.start()
-
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # 大量投稿のモック（100件）
-    import uuid
     test_batch_id = str(uuid.uuid4())[:8]
     mock_submissions = []
     for i in range(100):
@@ -297,25 +292,28 @@ async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars
     mock_reddit.__aenter__ = AsyncMock(return_value=mock_reddit)
     mock_reddit.__aexit__ = AsyncMock(return_value=None)
 
-    with (
-        patch("asyncpraw.Reddit", return_value=mock_reddit),
-        patch.object(service.gpt_client, "generate_content", return_value="テスト要約") as mock_gpt,
-        patch.object(service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]) as mock_comments,
-    ):
-        # 実行
-        result = await service.collect(limit=100)
+    tracemalloc.start()
+    try:
+        with (
+            patch("asyncpraw.Reddit", return_value=mock_reddit),
+            patch.object(service.gpt_client, "generate_content", return_value="テスト要約") as mock_gpt,
+            patch.object(service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]) as mock_comments,
+        ):
+            # 実行
+            result = await service.collect(limit=100)
 
-        # メモリ使用量チェック
-        current, peak = tracemalloc.get_traced_memory()
+            # メモリ使用量チェック
+            current, peak = tracemalloc.get_traced_memory()
+
+            # 50MB以内
+            assert peak < MAX_MEMORY_USAGE_MB * 1024 * 1024, (
+                f"メモリ使用量が制限を超えました: {peak / (1024 * 1024):.2f} MB > {MAX_MEMORY_USAGE_MB} MB"
+            )
+
+            # データ取得確認
+            assert len(result) > 0, "大量データでもデータが取得できること"
+    finally:
         tracemalloc.stop()
-
-        # 50MB以内
-        assert peak < MAX_MEMORY_USAGE_MB * 1024 * 1024, (
-            f"メモリ使用量が制限を超えました: {peak / (1024 * 1024):.2f} MB > {MAX_MEMORY_USAGE_MB} MB"
-        )
-
-        # データ取得確認
-        assert len(result) > 0, "大量データでもデータが取得できること"
 
 
 @pytest.mark.integration
@@ -329,7 +327,6 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # モック投稿
-    import uuid
     unique_id = str(uuid.uuid4())[:8]
     mock_submission = Mock()
     mock_submission.id = f"test_{unique_id}"
@@ -359,11 +356,6 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
     mock_comments_obj.replace_more = AsyncMock(return_value=None)
     mock_comments_obj.list = Mock(return_value=[mock_comment])
     mock_submission.comments = mock_comments_obj
-
-    # 成功時のレスポンス
-    async def mock_success_generator(*args, **kwargs):
-        """成功時のasync generatorのモック"""
-        yield mock_submission
 
     # hot()メソッドの呼び出し回数をカウント
     call_count = {"count": 0}
