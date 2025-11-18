@@ -61,6 +61,7 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
 
     with (
         patch.object(service, "setup_http_client", new_callable=AsyncMock),
+        patch("asyncpraw.Reddit") as mock_reddit,
         patch.object(
             service,
             "_retrieve_hot_posts",
@@ -75,6 +76,9 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
         ),
         patch.object(service.gpt_client, "generate_content") as mock_gpt,
     ):
+        # asyncprawのコンテキストマネージャをモック
+        mock_reddit_instance = AsyncMock()
+        mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
         # GPT要約モック
         mock_gpt.return_value = "テスト要約"
 
@@ -111,6 +115,7 @@ async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env
     # 2. モック設定（ネットワークエラー）
     with (
         patch.object(service, "setup_http_client", new_callable=AsyncMock),
+        patch("asyncpraw.Reddit") as mock_reddit,
         patch.object(
             service,
             "_retrieve_hot_posts",
@@ -118,9 +123,15 @@ async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env
             side_effect=httpx.ConnectError("Connection failed"),
         ),
     ):
+        # asyncprawのコンテキストマネージャをモック
+        mock_reddit_instance = AsyncMock()
+        mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+
         # 3. エラーハンドリング確認
         # ネットワークエラーはキャッチされ、空の結果が返る
-        test_date = datetime.now(UTC).date()
+        # 固定のUTC日時を使用（再現性のため）
+        test_datetime = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
+        test_date = test_datetime.date()
         result = await service.collect(limit=10, target_dates=[test_date])
 
         # 4. 検証: 空の結果が返ること
@@ -162,6 +173,7 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
 
     with (
         patch.object(service, "setup_http_client", new_callable=AsyncMock),
+        patch("asyncpraw.Reddit") as mock_reddit,
         patch.object(
             service,
             "_retrieve_hot_posts",
@@ -176,6 +188,10 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
         ),
         patch.object(service.gpt_client, "generate_content") as mock_gpt,
     ):
+        # asyncprawのコンテキストマネージャをモック
+        mock_reddit_instance = AsyncMock()
+        mock_reddit.return_value.__aenter__.return_value = mock_reddit_instance
+
         # GPT APIエラーをシミュレート（翻訳と要約の両方）
         mock_gpt.side_effect = Exception("API rate limit exceeded")
 
