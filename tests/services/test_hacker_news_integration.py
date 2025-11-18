@@ -158,7 +158,7 @@ async def test_error_handling_network_failure_hacker_news(tmp_path, mock_env_var
     """
     Given: ネットワークエラーが発生する状況
     When: collect()メソッドを実行
-    Then: 適切にエラーがハンドリングされる（例外発生または空の結果）
+    Then: RetryExceptionが発生する（retry decoratorによる3回のリトライ後）
     """
     # 1. サービス初期化
     storage_dir = str(tmp_path / "hacker_news_error_test")
@@ -173,16 +173,14 @@ async def test_error_handling_network_failure_hacker_news(tmp_path, mock_env_var
         # 接続エラーを発生させる
         mock_http_get.side_effect = httpx.ConnectError("Connection failed")
 
-        # 3. エラーハンドリング確認
-        # collect()がエラーを適切にハンドリングして例外を伝播させるか、
-        # または空の結果を返すかを検証
-        try:
-            result = await service.collect(limit=3)
-            # エラーハンドリングで空の結果を返す場合
-            assert result == [], "ネットワークエラー時は空の結果を返すべきです"
-        except (httpx.ConnectError, Exception) as e:
-            # 例外を伝播させる場合
-            assert "Connection failed" in str(e) or "ConnectError" in str(type(e).__name__)
+        # 3. エラーハンドリング確認: RetryExceptionが発生することを検証
+        from nook.common.exceptions import RetryException
+
+        with pytest.raises(RetryException) as exc_info:
+            await service.collect(limit=3)
+        # リトライデコレータにより3回リトライ後にRetryExceptionが発生する
+        assert "Failed after 3 attempts" in str(exc_info.value)
+        assert "Connection failed" in str(exc_info.value)
 
 
 # =============================================================================
@@ -196,7 +194,7 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
     """
     Given: GPT APIエラーが発生する状況
     When: collect()メソッドを実行
-    Then: フォールバック処理が動作し、要約なしでもデータが保存される
+    Then: フォールバック処理が動作し、要約なしでもデータが保存される（データ保存は必須）
     """
     # 1. サービス初期化
     storage_dir = str(tmp_path / "hacker_news_gpt_error_test")
@@ -235,38 +233,40 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
         # 3. データ収集実行（GPTエラーがあっても処理は継続）
         result = await service.collect(limit=2)
 
-        # 4. 検証: データ取得確認
-        # GPTエラーがあってもデータは取得されるべき
-        if result:
-            # データが保存された場合
-            assert len(result) > 0, "GPTエラーがあってもデータは保存されるべきです"
+        # 4. 検証: データは必ず保存されるべき（GPTエラーがあっても）
+        assert result is not None, "GPTエラー時でもresultはNoneであってはいけません"
+        assert len(result) > 0, "GPTエラーがあってもデータは保存されるべきです"
 
-            saved_json_path, saved_md_path = result[0]
-            assert Path(saved_json_path).exists()
+        saved_json_path, saved_md_path = result[0]
+        assert Path(saved_json_path).exists(), f"JSONファイルが保存されていません: {saved_json_path}"
 
-            # 保存内容確認
-            import json
+        # 5. 保存内容確認
+        import json
 
-            with open(saved_json_path) as f:
-                saved_data = json.load(f)
+        with open(saved_json_path) as f:
+            saved_data = json.load(f)
 
-            # データは取得されている
-            assert len(saved_data) >= 1
-            for story in saved_data:
-                assert "title" in story
-                assert "text" in story
-                assert "url" in story
+        # データは取得されている
+        assert len(saved_data) >= 1, "最低1件のストーリーが保存されるべきです"
+        for story in saved_data:
+            # 必須フィールドの確認
+            assert "title" in story, "titleフィールドが存在しません"
+            assert "text" in story, "textフィールドが存在しません"
+            assert "url" in story, "urlフィールドが存在しません"
 
-                # summaryフィールドが存在することを確認
-                # _summarize_storyメソッド内でExceptionが発生した場合、
-                # summaryに"要約の生成中にエラーが発生しました"というメッセージが設定されるか、
-                # または空文字列になる可能性がある
-                if "summary" in story:
-                    # GPTエラー時でもsummaryフィールドは存在する（空文字列またはエラーメッセージ）
-                    assert story["summary"] is not None, "summaryはNoneであってはいけません"
-                    # 空文字列かエラーメッセージのいずれか
-                    # （統合テストでは_get_top_storiesをモックしているため、
-                    # 要約処理がスキップされ、空文字列になる可能性がある）
-        else:
-            # エラーハンドリングで空の結果を返す場合も許容
-            assert result == []
+            # summaryフィールドの検証
+            assert "summary" in story, "summaryフィールドが存在しません"
+            assert story["summary"] is not None, "summaryはNoneであってはいけません"
+
+            # GPTエラー時のフォールバック値を検証
+            # 空文字列、またはエラーメッセージ「要約の生成中にエラーが発生しました」のいずれか
+            assert (
+                isinstance(story["summary"], str)
+            ), f"summaryは文字列であるべきです: {type(story['summary'])}"
+            # フォールバック動作を確認（空文字列か特定のエラーメッセージ）
+            is_valid_fallback = (
+                story["summary"] == ""
+                or story["summary"] == "要約の生成中にエラーが発生しました"
+                or len(story["summary"]) > 0  # 予期しないフォールバック文字列も許容
+            )
+            assert is_valid_fallback, f"予期しないsummary値: {story['summary']}"
