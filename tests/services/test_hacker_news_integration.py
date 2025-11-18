@@ -26,7 +26,7 @@ import httpx
 import pytest
 
 from nook.common.exceptions import RetryException
-from nook.services.hacker_news.hacker_news import HackerNewsRetriever, Story
+from nook.services.hacker_news.hacker_news import HackerNewsRetriever
 
 
 # テスト用タイムスタンプ（今日の日付）
@@ -52,6 +52,7 @@ async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars)
     service = HackerNewsRetriever(storage_dir=str(tmp_path))
     # ストレージを一時ディレクトリに設定（BaseServiceがハードコードされたパスを使うため）
     from nook.common.storage import LocalStorage
+
     service.storage = LocalStorage(str(tmp_path))
     await service.setup_http_client()
 
