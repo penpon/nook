@@ -21,8 +21,8 @@ import pytest
 # =============================================================================
 MAX_RESPONSE_SIZE_MB = 10
 MAX_RESPONSE_SIZE_BYTES = MAX_RESPONSE_SIZE_MB * 1024 * 1024
-MAX_PROCESSING_TIME_SECONDS = 1.0
-MAX_MEMORY_USAGE_MB = 50
+MAX_PROCESSING_TIME_SECONDS = 60.0
+MAX_MEMORY_USAGE_MB = 100
 MAX_MEMORY_USAGE_BYTES = MAX_MEMORY_USAGE_MB * 1024 * 1024
 
 
@@ -101,6 +101,9 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
             assert result is not None, "collect()の結果がNoneでないこと"
             assert isinstance(result, list), "結果がlistオブジェクトであること"
 
+            # 悪意あるデータでも GPT 要約が実行されていることを確認
+            service.gpt_client.generate_content.assert_called()
+
 
 @pytest.mark.integration
 @pytest.mark.security
@@ -162,11 +165,15 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
 
                 # 処理時間が許容範囲内 (大量データ処理のため緩く設定: 60秒)
                 # 注: DoS攻撃シミュレーションのため、実際には長時間かかる
-                assert processing_time < 60.0, f"処理時間が長すぎる: {processing_time}秒"
+                assert (
+                    processing_time < MAX_PROCESSING_TIME_SECONDS
+                ), f"処理時間が長すぎる: {processing_time}秒"
 
                 # メモリ使用量が許容範囲内 (100MB以下に緩和)
                 memory_mb = peak / 1024 / 1024
-                assert memory_mb < MAX_MEMORY_USAGE_MB * 2, f"メモリ使用量が多すぎる: {memory_mb}MB"
+                assert (
+                    memory_mb < MAX_MEMORY_USAGE_MB
+                ), f"メモリ使用量が多すぎる: {memory_mb}MB"
             finally:
                 tracemalloc.stop()
 
@@ -246,3 +253,8 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
             # 検証
             assert result is not None, "collect()の結果がNoneでないこと"
             assert isinstance(result, list), "結果がlistオブジェクトであること"
+
+            # 収集結果のどこかにエスケープ済みスクリプト文字列が残っていることを確認
+            # データ収集層では元データを保持し、サニタイゼーションは表示層で行う設計
+            serialized = "".join(str(item) for item in result)
+            assert "&lt;script&gt;" in serialized, "HTMLエスケープ済み文字列が保持されていること"
