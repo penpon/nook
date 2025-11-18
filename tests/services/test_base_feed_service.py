@@ -10,7 +10,7 @@ nook/services/base_feed_service.py のテスト
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -18,6 +18,9 @@ import pytest
 from bs4 import BeautifulSoup
 
 from nook.services.base_feed_service import Article, BaseFeedService
+
+# JST timezone helper
+JST = timezone(timedelta(hours=9))
 
 # =============================================================================
 # テスト用のBaseFeedService実装クラス
@@ -250,13 +253,13 @@ def test_group_articles_by_date_normal(mock_env_vars, article_factory):
     service = TestFeedService()
 
     article1 = article_factory(title="記事1")
-    article1.published_at = datetime(2024, 11, 14, 10, 0, 0)
+    article1.published_at = datetime(2024, 11, 14, 10, 0, 0, tzinfo=JST)
 
     article2 = article_factory(title="記事2")
-    article2.published_at = datetime(2024, 11, 14, 15, 0, 0)
+    article2.published_at = datetime(2024, 11, 14, 15, 0, 0, tzinfo=JST)
 
     article3 = article_factory(title="記事3")
-    article3.published_at = datetime(2024, 11, 15, 10, 0, 0)
+    article3.published_at = datetime(2024, 11, 15, 10, 0, 0, tzinfo=JST)
 
     articles = [article1, article2, article3]
 
