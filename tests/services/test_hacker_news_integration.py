@@ -7,7 +7,7 @@ Hacker Newsサービスのエンドツーエンド動作を検証する統合テ
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -15,7 +15,6 @@ import httpx
 import pytest
 
 from nook.services.hacker_news.hacker_news import (
-    SCORE_THRESHOLD,
     HackerNewsRetriever,
     Story,
 )
@@ -123,8 +122,12 @@ async def test_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars):
 
         # 5. 検証: Storage保存確認
         saved_json_path, saved_md_path = result[0]
-        assert Path(saved_json_path).exists(), f"JSONファイルが保存されていません: {saved_json_path}"
-        assert Path(saved_md_path).exists(), f"Markdownファイルが保存されていません: {saved_md_path}"
+        assert Path(saved_json_path).exists(), (
+            f"JSONファイルが保存されていません: {saved_json_path}"
+        )
+        assert Path(saved_md_path).exists(), (
+            f"Markdownファイルが保存されていません: {saved_md_path}"
+        )
 
         # 6. 検証: 保存内容確認
         import json
@@ -142,9 +145,15 @@ async def test_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars):
 
         # ストーリーのタイトルが正しいことを確認
         story_titles = [s["title"] for s in saved_data]
-        assert "Test Story 1 - Integration Test" in story_titles, "テストストーリー1が保存されていません"
-        assert "Test Story 2 - Integration Test" in story_titles, "テストストーリー2が保存されていません"
-        assert "Test Story 3 - Integration Test" in story_titles, "テストストーリー3が保存されていません"
+        assert "Test Story 1 - Integration Test" in story_titles, (
+            "テストストーリー1が保存されていません"
+        )
+        assert "Test Story 2 - Integration Test" in story_titles, (
+            "テストストーリー2が保存されていません"
+        )
+        assert "Test Story 3 - Integration Test" in story_titles, (
+            "テストストーリー3が保存されていません"
+        )
 
 
 # =============================================================================
@@ -238,7 +247,9 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
         assert len(result) > 0, "GPTエラーがあってもデータは保存されるべきです"
 
         saved_json_path, saved_md_path = result[0]
-        assert Path(saved_json_path).exists(), f"JSONファイルが保存されていません: {saved_json_path}"
+        assert Path(saved_json_path).exists(), (
+            f"JSONファイルが保存されていません: {saved_json_path}"
+        )
 
         # 5. 保存内容確認
         import json
@@ -260,12 +271,11 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
 
             # GPTエラー時のフォールバック値を検証
             # 空文字列、またはエラーメッセージ「要約の生成中にエラーが発生しました: {詳細}」のいずれか
-            assert (
-                isinstance(story["summary"], str)
-            ), f"summaryは文字列であるべきです: {type(story['summary'])}"
+            assert isinstance(story["summary"], str), (
+                f"summaryは文字列であるべきです: {type(story['summary'])}"
+            )
             # フォールバック動作を確認（空文字列か特定のエラーメッセージで始まる）
-            is_valid_fallback = (
-                story["summary"] == ""
-                or story["summary"].startswith("要約の生成中にエラーが発生しました")
+            is_valid_fallback = story["summary"] == "" or story["summary"].startswith(
+                "要約の生成中にエラーが発生しました"
             )
             assert is_valid_fallback, f"予期しないsummary値: {story['summary']}"
