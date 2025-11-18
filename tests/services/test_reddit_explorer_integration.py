@@ -12,14 +12,14 @@ Reddit Explorer統合テスト
 """
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 
-from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
 
 # =============================================================================
 # 統合テスト
@@ -41,10 +41,9 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     # 2. 主要なメソッドをモックして統合テスト実行
     #    _retrieve_hot_posts, _retrieve_top_comments_of_post, _summarize_reddit_postをモック
     #    これにより、asyncprawの複雑な依存を避けつつ、フロー全体をテスト
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
 
     # 固定のUTC日時を使用（タイムゾーン不整合を回避）
-    test_datetime = datetime.now(UTC)
+    test_datetime = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
     test_date = test_datetime.date()
 
     mock_post = RedditPost(
@@ -119,7 +118,8 @@ async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env
     ):
         # 3. エラーハンドリング確認
         # ネットワークエラーはキャッチされ、空の結果が返る
-        result = await service.collect(limit=10, target_dates=[date.today()])
+        test_date = datetime.now(UTC).date()
+        result = await service.collect(limit=10, target_dates=[test_date])
 
         # 4. 検証: 空の結果が返ること
         assert result == [], "ネットワークエラー時は空の結果が返るべき"
@@ -143,10 +143,8 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
         service.logger = mock_logger
 
     # 2. モック設定
-    from nook.services.reddit_explorer.reddit_explorer import RedditPost
-
     # 固定のUTC日時を使用（タイムゾーン不整合を回避）
-    test_datetime = datetime.now(UTC)
+    test_datetime = datetime(2024, 11, 14, 12, 0, 0, tzinfo=UTC)
     test_date = test_datetime.date()
 
     mock_post = RedditPost(
