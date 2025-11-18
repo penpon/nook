@@ -50,6 +50,9 @@ async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars)
     """
     # 1. サービス初期化
     service = HackerNewsRetriever(storage_dir=str(tmp_path))
+    # ストレージを一時ディレクトリに設定（BaseServiceがハードコードされたパスを使うため）
+    from nook.common.storage import LocalStorage
+    service.storage = LocalStorage(str(tmp_path))
     await service.setup_http_client()
 
     # 2. モック設定（外部API）
@@ -90,12 +93,19 @@ async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars)
             "time": get_today_timestamp(),
         }
 
-        mock_get.side_effect = [
-            mock_topstories_response,  # topstories.json
-            mock_story_response_1,  # story 12345
-            mock_story_response_2,  # story 12346
-            mock_story_response_3,  # story 12347
-        ]
+        # URLごとにモックレスポンスを設定
+        async def mock_get_side_effect(url, **kwargs):
+            if "topstories.json" in url:
+                return mock_topstories_response
+            elif "/item/12345.json" in url:
+                return mock_story_response_1
+            elif "/item/12346.json" in url:
+                return mock_story_response_2
+            elif "/item/12347.json" in url:
+                return mock_story_response_3
+            raise ValueError(f"Unexpected URL: {url}")
+
+        mock_get.side_effect = mock_get_side_effect
 
         # GPT要約モック
         mock_gpt.generate_async = AsyncMock(return_value="テスト要約")
@@ -104,17 +114,13 @@ async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars)
         result = await service.collect(limit=3, target_dates=[date.today()])
 
         # 4. 検証: データ取得確認
-        # NOTE: デデュプトラッカーの影響により、テスト実行順序によっては空の結果が返される可能性がある
-        # 個別に実行した場合や、クリーンな環境では正常にデータが取得される
         assert isinstance(result, list), "結果がリスト形式ではありません"
+        assert len(result) > 0, f"データが取得されていません。Result: {result}"
+        assert result[0][0].endswith(".json"), "JSONファイルが保存されていません"
+        assert result[0][1].endswith(".md"), "Markdownファイルが保存されていません"
 
-        # データが取得された場合の検証
-        if len(result) > 0:
-            assert result[0][0].endswith(".json"), "JSONファイルが保存されていません"
-            assert result[0][1].endswith(".md"), "Markdownファイルが保存されていません"
-
-            # 5. 検証: GPT要約が呼び出された
-            assert mock_gpt.generate_async.call_count > 0, "GPT要約が呼び出されていません"
+        # 5. 検証: GPT要約が呼び出された
+        assert mock_gpt.generate_async.call_count > 0, "GPT要約が呼び出されていません"
 
 
 @pytest.mark.integration
