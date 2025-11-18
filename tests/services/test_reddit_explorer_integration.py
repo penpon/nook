@@ -45,6 +45,7 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     service = RedditExplorer()
     # テスト用のストレージパスを設定（tmp_pathを使用してテスト分離）
     from nook.common.storage import LocalStorage
+
     service.storage = LocalStorage(str(tmp_path / "data" / "reddit_explorer"))
 
     # 2. モック設定（asyncpraw Redditクライアント）
@@ -93,7 +94,9 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     with (
         patch("asyncpraw.Reddit", return_value=mock_reddit),
         patch.object(service.gpt_client, "generate_content", return_value="テスト要約"),
-        patch.object(service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]),
+        patch.object(
+            service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]
+        ),
     ):
         # 3. データ収集実行
         result = await service.collect(limit=1)
@@ -107,7 +110,9 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
         expected_dir = Path("data") / "reddit_explorer"
         assert expected_dir.exists(), f"ストレージディレクトリが作成されていません: {expected_dir}"
         saved_data_paths = list(expected_dir.glob("*.json"))
-        assert len(saved_data_paths) > 0, f"ストレージディレクトリにJSONファイルが保存されていません: {expected_dir}"
+        assert len(saved_data_paths) > 0, (
+            f"ストレージディレクトリにJSONファイルが保存されていません: {expected_dir}"
+        )
 
 
 @pytest.mark.integration
@@ -121,6 +126,7 @@ async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env
     service = RedditExplorer()
     # テスト用のストレージパスを設定
     from nook.common.storage import LocalStorage
+
     service.storage = LocalStorage(str(tmp_path / "data" / "reddit_explorer"))
 
     mock_reddit = AsyncMock()
@@ -148,6 +154,7 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
     service = RedditExplorer()
     # テスト用のストレージパスを設定
     from nook.common.storage import LocalStorage
+
     service.storage = LocalStorage(str(tmp_path / "data" / "reddit_explorer"))
 
     # モック設定
@@ -195,8 +202,12 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
 
     with (
         patch("asyncpraw.Reddit", return_value=mock_reddit),
-        patch.object(service.gpt_client, "generate_content", side_effect=Exception("API rate limit exceeded")) as mock_gpt,
-        patch.object(service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]),
+        patch.object(
+            service.gpt_client, "generate_content", side_effect=Exception("API rate limit exceeded")
+        ) as mock_gpt,
+        patch.object(
+            service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]
+        ),
     ):
         # フォールバック動作確認
         result = await service.collect(limit=1)
@@ -223,6 +234,7 @@ async def test_empty_data_handling_reddit_explorer(tmp_path, mock_env_vars):
     service = RedditExplorer()
     # テスト用のストレージパスを設定
     from nook.common.storage import LocalStorage
+
     service.storage = LocalStorage(str(tmp_path / "data" / "reddit_explorer"))
 
     async def mock_empty_generator(*args, **kwargs):
@@ -259,6 +271,7 @@ async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars
     service = RedditExplorer()
     # テスト用のストレージパスを設定
     from nook.common.storage import LocalStorage
+
     service.storage = LocalStorage(str(tmp_path / "data" / "reddit_explorer"))
 
     # 大量投稿のモック（100件）
@@ -313,7 +326,9 @@ async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars
         with (
             patch("asyncpraw.Reddit", return_value=mock_reddit),
             patch.object(service.gpt_client, "generate_content", return_value="テスト要約"),
-            patch.object(service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]),
+            patch.object(
+                service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]
+            ),
         ):
             # 実行
             result = await service.collect(limit=100)
@@ -343,6 +358,7 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
     service = RedditExplorer()
     # テスト用のストレージパスを設定
     from nook.common.storage import LocalStorage
+
     service.storage = LocalStorage(str(tmp_path / "data" / "reddit_explorer"))
 
     # モック投稿
@@ -398,7 +414,9 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
     with (
         patch("asyncpraw.Reddit", return_value=mock_reddit),
         patch.object(service.gpt_client, "generate_content", return_value="テスト要約"),
-        patch.object(service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]),
+        patch.object(
+            service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]
+        ),
     ):
         # 実行
         result = await service.collect(limit=1)
@@ -407,4 +425,6 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
         # RedditExplorerは複数のsubredditを処理するため、タイムアウト後も処理を継続する
         assert isinstance(result, list), "結果がリスト型でない"
         # タイムアウトが発生したが、処理は継続され結果が返される
-        assert call_count["count"] >= 2, f"リトライが実行されませんでした: call_count={call_count['count']}"
+        assert call_count["count"] >= 2, (
+            f"リトライが実行されませんでした: call_count={call_count['count']}"
+        )
