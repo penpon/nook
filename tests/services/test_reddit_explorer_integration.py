@@ -35,8 +35,10 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     Then: データ取得 → GPT要約 → Storage保存の全体フローが成功する
     """
     # 1. サービス初期化
-    with patch("nook.common.base_service.setup_logger"):
+    mock_logger = Mock()
+    with patch("nook.common.base_service.setup_logger", return_value=mock_logger):
         service = RedditExplorer(storage_dir=str(tmp_path))
+        service.logger = mock_logger
 
     # 2. 主要なメソッドをモックして統合テスト実行
     #    _retrieve_hot_posts, _retrieve_top_comments_of_post, _summarize_reddit_postをモック
