@@ -7,6 +7,7 @@ nook/services/fivechan_explorer/fivechan_explorer.py の統合テスト
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -26,6 +27,8 @@ TEST_THREAD_TITLE = "【AI】ChatGPTについて語るスレ【機械学習】"
 TEST_THREAD_CONTENT = "AI技術の発展について議論するテストスレッド。" * 50
 # 固定のタイムスタンプ（2020-01-01 00:00:00 UTC）を使用して再現性を確保
 TEST_THREAD_TIMESTAMP = 1577836800
+# テストスレッドの日付（target_dates指定用）
+TEST_TARGET_DATE = date(2020, 1, 1)
 
 
 # =============================================================================
@@ -98,8 +101,8 @@ async def test_full_data_flow_fivechan_explorer_to_storage(tmp_path, mock_env_va
         # GPT要約のモック
         mock_gpt.return_value = "テスト要約: この記事は統合テストの一環として作成されました。"
 
-        # 3. データ収集実行
-        result = await service.collect(thread_limit=10)
+        # 3. データ収集実行（テストスレッドの日付を明示的に指定）
+        result = await service.collect(thread_limit=10, target_dates=[TEST_TARGET_DATE])
 
         # 4. 検証: データ取得確認
         assert result is not None, "collect()がNoneを返しました"
@@ -221,8 +224,8 @@ async def test_error_handling_gpt_api_failure_fivechan_explorer(tmp_path, mock_e
         # GPT APIエラーをシミュレート
         mock_gpt.side_effect = Exception("API rate limit exceeded")
 
-        # 3. データ収集実行（GPTエラーがあっても処理は継続）
-        result = await service.collect(thread_limit=5)
+        # 3. データ収集実行（GPTエラーがあっても処理は継続、テストスレッドの日付を明示的に指定）
+        result = await service.collect(thread_limit=5, target_dates=[TEST_TARGET_DATE])
 
         # 4. 検証: データは保存されるべき（GPTエラーがあっても）
         assert result is not None, "GPTエラー時でもresultはNoneであってはいけません"
