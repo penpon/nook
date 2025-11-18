@@ -74,6 +74,22 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
         scraper_mock.get = Mock(return_value=dat_response)
         scraper_mock.headers = {}
 
+        # _get_thread_posts_from_datのモック設定
+        # XSSペイロードを含む投稿データを返す
+        async def mock_get_thread_posts(dat_url):
+            posts = [
+                {
+                    "no": 1,
+                    "name": "<script>alert('XSS')</script>",
+                    "mail": "sage",
+                    "date": "2024/11/14",
+                    "com": "<script>alert('XSS')</script>悪意のある投稿",
+                    "time": "2024/11/14",
+                    "title": "<script>alert('XSS')</script>悪意のあるスレ",
+                }
+            ]
+            return (posts, None)
+
         with (
             patch("httpx.AsyncClient") as mock_client,
             patch("cloudscraper.create_scraper", return_value=scraper_mock),
@@ -83,6 +99,7 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
             ),
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service, "_store_summaries", return_value=[("test.json", "test.md")]),
+            patch.object(service, "_get_thread_posts_from_dat", side_effect=mock_get_thread_posts),
         ):
             # HTTPクライアントのモック設定 (_get_subject_txt_data用)
             client_instance = AsyncMock()
@@ -137,10 +154,15 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
         subject_response.status_code = 200
         subject_response.content = huge_response_data
 
+        # _get_thread_posts_from_datのモック設定
+        # DoSテストでは空のリストを返す（大量のHTTPリクエストを避けるため）
+        async def mock_get_thread_posts_dos(dat_url):
+            return ([], None)
+
         with (
             patch("httpx.AsyncClient") as mock_client,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
-            patch.object(service, "_get_thread_posts_from_dat", return_value=([], None)),
+            patch.object(service, "_get_thread_posts_from_dat", side_effect=mock_get_thread_posts_dos),
             patch.object(service, "_store_summaries", return_value=[]),
         ):
             # HTTPクライアントのモック設定
@@ -238,6 +260,22 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
             stored_threads.extend(threads)
             return [("test.json", "test.md")]
 
+        # _get_thread_posts_from_datのモック設定
+        # HTMLエスケープ済み文字を含む投稿データを返す
+        async def mock_get_thread_posts_sanitization(dat_url):
+            posts = [
+                {
+                    "no": 1,
+                    "name": "名無しさん",
+                    "mail": "sage",
+                    "date": "2024/11/14",
+                    "com": "テスト😀&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;🎉",
+                    "time": "2024/11/14",
+                    "title": "テスト&lt;script&gt;alert(\"XSS\")&lt;/script&gt;スレ",
+                }
+            ]
+            return (posts, None)
+
         with (
             patch("httpx.AsyncClient") as mock_client,
             patch("cloudscraper.create_scraper", return_value=scraper_mock),
@@ -247,6 +285,11 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
             ),
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(service, "_store_summaries", side_effect=capture_store),
+            patch.object(
+                service,
+                "_get_thread_posts_from_dat",
+                side_effect=mock_get_thread_posts_sanitization,
+            ),
         ):
             # HTTPクライアントのモック設定 (_get_subject_txt_data用)
             client_instance = AsyncMock()
