@@ -26,6 +26,7 @@ import httpx
 import pytest
 
 from nook.common.exceptions import RetryException
+from nook.common.storage import LocalStorage
 from nook.services.hacker_news.hacker_news import HackerNewsRetriever
 
 
@@ -51,8 +52,6 @@ async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars)
     # 1. サービス初期化
     service = HackerNewsRetriever(storage_dir=str(tmp_path))
     # ストレージを一時ディレクトリに設定（BaseServiceがハードコードされたパスを使うため）
-    from nook.common.storage import LocalStorage
-
     service.storage = LocalStorage(str(tmp_path))
     await service.setup_http_client()
 
@@ -158,6 +157,7 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
     """
     # 1. サービス初期化
     service = HackerNewsRetriever(storage_dir=str(tmp_path))
+    service.storage = LocalStorage(str(tmp_path))
     await service.setup_http_client()
 
     # 2. モック設定
@@ -190,11 +190,17 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
             "time": get_today_timestamp(),
         }
 
-        mock_get.side_effect = [
-            mock_topstories_response,
-            mock_story_response_1,
-            mock_story_response_2,
-        ]
+        # URLベースのside_effect関数を定義
+        async def mock_get_side_effect(url, **kwargs):
+            if "topstories.json" in url:
+                return mock_topstories_response
+            elif "/item/12345.json" in url:
+                return mock_story_response_1
+            elif "/item/12346.json" in url:
+                return mock_story_response_2
+            raise ValueError(f"Unexpected URL: {url}")
+
+        mock_get.side_effect = mock_get_side_effect
 
         # GPT APIエラーをシミュレート
         mock_gpt.generate_async = AsyncMock(side_effect=Exception("API rate limit exceeded"))
@@ -251,6 +257,7 @@ async def test_pagination_handling_hacker_news(tmp_path, mock_env_vars):
     """
     # 1. サービス初期化
     service = HackerNewsRetriever(storage_dir=str(tmp_path))
+    service.storage = LocalStorage(str(tmp_path))
     await service.setup_http_client()
 
     # 2. 大量のストーリーIDをモック
@@ -264,18 +271,28 @@ async def test_pagination_handling_hacker_news(tmp_path, mock_env_vars):
         mock_topstories_response = Mock()
         mock_topstories_response.json.return_value = story_ids
 
-        # ストーリー詳細のモック
-        mock_story_response = Mock()
-        mock_story_response.json.return_value = {
-            "title": "Test Story",
-            "score": 100,
-            "url": "https://example.com/test",
-            "text": "This is a test story with sufficient length for filtering. " * 10,
-            "time": get_today_timestamp(),
-        }
+        # ストーリー詳細のモック（各ストーリーにユニークなタイトル）
+        def create_story_response(story_id):
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "title": f"Test Pagination Story {story_id}",
+                "score": 100,
+                "url": f"https://example.com/test-{story_id}",
+                "text": "This is a test story with sufficient length for filtering. " * 10,
+                "time": get_today_timestamp(),
+            }
+            return mock_response
 
-        # topstories.json + 100個のストーリー詳細
-        mock_get.side_effect = [mock_topstories_response] + [mock_story_response] * 100
+        # URLベースのside_effect関数を定義
+        async def mock_get_side_effect(url, **kwargs):
+            if "topstories.json" in url:
+                return mock_topstories_response
+            for story_id in story_ids:
+                if f"/item/{story_id}.json" in url:
+                    return create_story_response(story_id)
+            raise ValueError(f"Unexpected URL: {url}")
+
+        mock_get.side_effect = mock_get_side_effect
 
         # GPT要約モック
         mock_gpt.generate_async = AsyncMock(return_value="テスト要約")
