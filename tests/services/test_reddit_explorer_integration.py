@@ -106,8 +106,8 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
 
         # 5. 検証: Storage保存確認
         # データディレクトリが作成されているか確認
-        # storage_dirパラメータは現在使用されていないため、デフォルトの "data/reddit_explorer" を確認
-        expected_dir = Path("data") / "reddit_explorer"
+        # tmp_pathを使用しているため、tmp_path配下のディレクトリをチェック
+        expected_dir = tmp_path / "data" / "reddit_explorer"
         assert expected_dir.exists(), f"ストレージディレクトリが作成されていません: {expected_dir}"
         saved_data_paths = list(expected_dir.glob("*.json"))
         assert len(saved_data_paths) > 0, (
