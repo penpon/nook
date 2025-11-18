@@ -9,11 +9,9 @@ nook/services/fivechan_explorer/fivechan_explorer.py の統合テスト (セキ�
 
 from __future__ import annotations
 
-import asyncio
 import time
 import tracemalloc
 from datetime import date
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -56,15 +54,11 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
         service = FiveChanExplorer()
 
         # テストデータ: XSSペイロードを含むスレッドタイトル
-        malicious_subject = (
-            "1234567890.dat<><script>alert('XSS')</script>悪意のあるスレ (100)\n"
-        )
+        malicious_subject = "1234567890.dat<><script>alert('XSS')</script>悪意のあるスレ (100)\n"
         subject_data = malicious_subject.encode("shift_jis", errors="ignore")
 
         # テストデータ: XSSペイロードを含むスレッド本文
-        malicious_dat = (
-            "<script>alert('XSS')</script><>sage<>2024/11/14<>悪意のある投稿<>\n"
-        )
+        malicious_dat = "<script>alert('XSS')</script><>sage<>2024/11/14<>悪意のある投稿<>\n"
         dat_data = malicious_dat.encode("shift_jis", errors="ignore")
 
         # モックレスポンス設定
@@ -168,15 +162,11 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
 
                 # 処理時間が許容範囲内 (大量データ処理のため緩く設定: 60秒)
                 # 注: DoS攻撃シミュレーションのため、実際には長時間かかる
-                assert (
-                    processing_time < 60.0
-                ), f"処理時間が長すぎる: {processing_time}秒"
+                assert processing_time < 60.0, f"処理時間が長すぎる: {processing_time}秒"
 
                 # メモリ使用量が許容範囲内 (100MB以下に緩和)
                 memory_mb = peak / 1024 / 1024
-                assert memory_mb < MAX_MEMORY_USAGE_MB * 2, (
-                    f"メモリ使用量が多すぎる: {memory_mb}MB"
-                )
+                assert memory_mb < MAX_MEMORY_USAGE_MB * 2, f"メモリ使用量が多すぎる: {memory_mb}MB"
             finally:
                 tracemalloc.stop()
 
@@ -213,7 +203,7 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
         # テストデータ: HTMLエスケープが必要な文字を含むスレッド本文
         html_special_chars_dat = (
             "名無しさん<>sage<>2024/11/14<>"
-            'テスト😀&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;🎉<>\n'
+            "テスト😀&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;🎉<>\n"
         )
         dat_data = html_special_chars_dat.encode("shift_jis", errors="ignore")
 
