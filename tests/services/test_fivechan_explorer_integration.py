@@ -82,6 +82,7 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
                 side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
             ),
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service, "_store_summaries", return_value=[("test.json", "test.md")]),
         ):
             # HTTPクライアントのモック設定 (_get_subject_txt_data用)
             client_instance = AsyncMock()
@@ -125,8 +126,11 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
 
         service = FiveChanExplorer()
 
-        # テストデータ: 10MBの巨大なレスポンス
-        huge_response_data = b"x" * MAX_RESPONSE_SIZE_BYTES
+        # テストデータ: 10MBの巨大なレスポンス (有効なsubject.txt形式)
+        # subject.txt形式: "timestamp.dat<>title (count)\n"
+        single_thread_entry = b"1234567890.dat<>" + b"A" * 200 + b" (100)\n"
+        num_entries = MAX_RESPONSE_SIZE_BYTES // len(single_thread_entry)
+        huge_response_data = single_thread_entry * num_entries
 
         # モックレスポンス設定
         subject_response = Mock()
@@ -136,6 +140,8 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
         with (
             patch("httpx.AsyncClient") as mock_client,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service, "_get_thread_posts_from_dat", return_value=([], None)),
+            patch.object(service, "_store_summaries", return_value=[]),
         ):
             # HTTPクライアントのモック設定
             client_instance = AsyncMock()
@@ -225,6 +231,13 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
         scraper_mock.get = Mock(return_value=dat_response)
         scraper_mock.headers = {}
 
+        # Mock _store_summaries to capture the threads being stored
+        stored_threads = []
+
+        def capture_store(threads, target_dates):
+            stored_threads.extend(threads)
+            return [("test.json", "test.md")]
+
         with (
             patch("httpx.AsyncClient") as mock_client,
             patch("cloudscraper.create_scraper", return_value=scraper_mock),
@@ -233,6 +246,7 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
                 side_effect=lambda f, *args, **kwargs: f(*args, **kwargs),
             ),
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
+            patch.object(service, "_store_summaries", side_effect=capture_store),
         ):
             # HTTPクライアントのモック設定 (_get_subject_txt_data用)
             client_instance = AsyncMock()
@@ -252,7 +266,11 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
             assert result is not None, "collect()の結果がNoneでないこと"
             assert isinstance(result, list), "結果がlistオブジェクトであること"
 
-            # 収集結果のどこかにエスケープ済みスクリプト文字列が残っていることを確認
-            # データ収集層では元データを保持し、サニタイゼーションは表示層で行う設計
-            serialized = "".join(str(item) for item in result)
-            assert "&lt;script&gt;" in serialized, "HTMLエスケープ済み文字列が保持されていること"
+            # 収集されたスレッドデータにエスケープ済み文字列が保持されていることを確認
+            assert len(stored_threads) > 0, "スレッドが収集されていること"
+            # スレッドタイトルまたは投稿内容にエスケープ済み文字列が含まれていることを確認
+            thread_data = "".join(
+                str(thread.title) + "".join(str(post.content) for post in thread.posts)
+                for thread in stored_threads
+            )
+            assert "&lt;script&gt;" in thread_data, "HTMLエスケープ済み文字列が保持されていること"
