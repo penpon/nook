@@ -45,9 +45,11 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # 2. モック設定（asyncpraw Redditクライアント）
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     mock_submission = Mock()
-    mock_submission.id = "test123"
-    mock_submission.title = "Test Reddit Post"
+    mock_submission.id = f"test_{unique_id}"
+    mock_submission.title = f"Unique Test Reddit Post {unique_id}"
     mock_submission.selftext = "This is a test post content."
     mock_submission.author = Mock()
     mock_submission.author.name = "test_user"
@@ -98,14 +100,11 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
         assert len(result) > 0, "データが取得できていません"
 
         # 5. 検証: Storage保存確認
-        # tmp_pathにデータディレクトリが作成されているか確認
-        expected_dir = Path(tmp_path) / "reddit_explorer"
-        if expected_dir.exists():
-            saved_data_paths = list(expected_dir.glob("*.json"))
-            assert len(saved_data_paths) > 0, "データが保存されていません"
-        else:
-            # 保存ディレクトリが存在しない場合でも、resultが返されていればOK
-            assert len(result) > 0, "データが取得できていれば保存も成功と見なす"
+        # データディレクトリが作成されているか確認
+        expected_dir = Path(tmp_path) / "data" / "reddit_explorer"
+        assert expected_dir.exists(), f"ストレージディレクトリが作成されていません: {expected_dir}"
+        saved_data_paths = list(expected_dir.glob("*.json"))
+        assert len(saved_data_paths) > 0, f"ストレージディレクトリにJSONファイルが保存されていません: {expected_dir}"
 
 
 @pytest.mark.integration
@@ -143,9 +142,11 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # モック設定
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     mock_submission = Mock()
-    mock_submission.id = "test123"
-    mock_submission.title = "Test Reddit Post"
+    mock_submission.id = f"test_{unique_id}"
+    mock_submission.title = f"Unique GPT Test Post {unique_id}"
     mock_submission.selftext = "This is a test post content."
     mock_submission.author = Mock()
     mock_submission.author.name = "test_user"
@@ -192,10 +193,10 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
         # フォールバック動作確認
         result = await service.collect(limit=1)
 
-        # 要約失敗時でもデータは取得・保存されるべき（実装依存）
-        # RedditExplorerがGPTエラー時にどう動作するかに依存
-        # エラーログが記録されることを期待
-        # 結果は空またはエラーメッセージを含む可能性がある
+        # 検証: GPTエラー時でも処理は継続され、結果はリスト型
+        assert isinstance(result, list), "GPTエラー時でも結果はリスト型であるべき"
+        # GPTが呼ばれたことを確認（エラーハンドリングが動作している証拠）
+        assert mock_gpt.called, "GPT APIが呼ばれるべき"
 
 
 # =============================================================================
@@ -215,8 +216,8 @@ async def test_empty_data_handling_reddit_explorer(tmp_path, mock_env_vars):
 
     async def mock_empty_generator(*args, **kwargs):
         """空のasync generatorのモック"""
-        return
-        yield  # この行は実行されないが、generatorであることを示す
+        if False:
+            yield
 
     mock_subreddit = Mock()
     mock_subreddit.hot = mock_empty_generator
@@ -249,11 +250,13 @@ async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # 大量投稿のモック（100件）
+    import uuid
+    test_batch_id = str(uuid.uuid4())[:8]
     mock_submissions = []
     for i in range(100):
         mock_submission = Mock()
-        mock_submission.id = f"test{i}"
-        mock_submission.title = f"Test Reddit Post {i}"
+        mock_submission.id = f"perf_test_{test_batch_id}_{i}"
+        mock_submission.title = f"Unique Perf Test Post {test_batch_id} #{i}"
         mock_submission.selftext = f"This is test post content {i}." * 10  # 長めのテキスト
         mock_submission.author = Mock()
         mock_submission.author.name = f"test_user_{i}"
@@ -326,9 +329,11 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
     service = RedditExplorer(storage_dir=str(tmp_path))
 
     # モック投稿
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     mock_submission = Mock()
-    mock_submission.id = "test123"
-    mock_submission.title = "Test Reddit Post"
+    mock_submission.id = f"test_{unique_id}"
+    mock_submission.title = f"Unique Retry Test Post {unique_id}"
     mock_submission.selftext = "This is a test post content."
     mock_submission.author = Mock()
     mock_submission.author.name = "test_user"
@@ -355,19 +360,24 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
     mock_comments_obj.list = Mock(return_value=[mock_comment])
     mock_submission.comments = mock_comments_obj
 
+    # 成功時のレスポンス
+    async def mock_success_generator(*args, **kwargs):
+        """成功時のasync generatorのモック"""
+        yield mock_submission
+
+    # hot()メソッドの呼び出し回数をカウント
     call_count = {"count": 0}
 
-    async def mock_retry_generator(*args, **kwargs):
-        """リトライをシミュレートするasync generatorのモック"""
+    async def mock_hot_with_retry(*args, **kwargs):
+        """リトライをシミュレート: 1回目タイムアウト、2回目成功"""
         call_count["count"] += 1
         if call_count["count"] == 1:
-            # 最初の呼び出しでタイムアウト
             raise httpx.TimeoutException("Timeout")
-        # 2回目で成功
+        # 2回目以降は成功
         yield mock_submission
 
     mock_subreddit = Mock()
-    mock_subreddit.hot = mock_retry_generator
+    mock_subreddit.hot = mock_hot_with_retry
 
     mock_reddit = AsyncMock()
     mock_reddit.subreddit.return_value = mock_subreddit
@@ -380,12 +390,10 @@ async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
         patch.object(service, "_retrieve_top_comments_of_post", new_callable=AsyncMock, return_value=[]) as mock_comments,
     ):
         # 実行
-        # RedditExplorerはリトライロジックを持つ場合と持たない場合がある
-        # タイムアウト時は例外を投げるかログ記録して継続する
-        # この実装では、タイムアウト時はスキップされる想定
         result = await service.collect(limit=1)
 
-        # 検証: タイムアウト後もエラーハンドリングされ、処理が継続される
-        # 実装によってはリトライして成功する
-        # ここでは、少なくともエラーで停止しないことを確認
+        # 検証: リトライが実行され、エラーハンドリングされたことを確認
+        # RedditExplorerは複数のsubredditを処理するため、タイムアウト後も処理を継続する
         assert isinstance(result, list), "結果がリスト型でない"
+        # タイムアウトが発生したが、処理は継続され結果が返される
+        assert call_count["count"] >= 2, f"リトライが実行されませんでした: call_count={call_count['count']}"
