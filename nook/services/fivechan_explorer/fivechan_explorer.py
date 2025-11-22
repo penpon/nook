@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import cloudscraper
+import httpx
 from dateutil import parser
 
 from nook.common.base_service import BaseService
@@ -48,142 +49,105 @@ class Thread:
         スレッドURL。
     board : str
         板名。
-    posts : List[Dict[str, Any]]
-        投稿リスト。
     timestamp : int
-        作成タイムスタンプ。
+        スレッド作成時刻（UNIXタイムスタンプ）。
+    posts : list[Post]
+        投稿リスト。
+    summary : str
+        スレッド要約。
+    popularity_score : float
+        人気度スコア（投稿数ベース）。
     """
 
     thread_id: int
     title: str
     url: str
     board: str
-    posts: list[dict[str, Any]]
     timestamp: int
-    summary: str = field(default="")
-    popularity_score: float = field(default=0.0)
+    posts: list[Post] = field(default_factory=list)
+    summary: str = ""
+    popularity_score: float = 0.0
+
+
+@dataclass
+class Post:
+    """
+    5chan投稿情報。
+
+    Parameters
+    ----------
+    no : int
+        投稿番号。
+    name : str
+        投稿者名。
+    mail : str
+        メールアドレス。
+    date : str
+        投稿日時。
+    content : str
+        投稿内容。
+    """
+
+    no: int
+    name: str
+    mail: str
+    date: str
+    content: str
 
 
 class FiveChanExplorer(BaseService):
     """
-    5chan（旧2ちゃんねる）から情報を収集するクラス。
+    5chan（旧2ちゃんねる）からAI関連スレッドを収集するサービス。
 
     Parameters
     ----------
-    storage_dir : str, default="data"
-        ストレージディレクトリのパス。
+    storage : LocalStorage, optional
+        ストレージインスタンス。
+    gpt_client : GPTClient, optional
+        GPTクライアントインスタンス。
     """
 
-    TOTAL_LIMIT = 15
+    TOTAL_LIMIT = 15  # 1日あたりの最大スレッド数
 
-    def __init__(self, storage_dir: str = "data"):
-        """
-        FiveChanExplorerを初期化します。
-
-        Parameters
-        ----------
-        storage_dir : str, default="data"
-            ストレージディレクトリのパス。
-        """
-        super().__init__("fivechan_explorer")
-        self.http_client = None  # setup_http_clientで初期化
-        self.gpt_client = GPTClient()
-
-        storage_path = Path(storage_dir)
-        if storage_path.name != self.service_name:
-            storage_path = storage_path / self.service_name
-        self.storage = LocalStorage(str(storage_path))
-
-        # 対象となる板
-        self.target_boards = self._load_boards()
-
-        # 試すサブドメインのリスト（すべての板で試す）
-        self.subdomains = [
-            "mevius.5ch.net",
-            "egg.5ch.net",
-            "medaka.5ch.net",
-            "hayabusa9.5ch.net",
-            "mi.5ch.net",
-            "lavender.5ch.net",
-            "eagle.5ch.net",
-            "rosie.5ch.net",
-            "fate.5ch.net",
-        ]
-
-        # AIに関連するキーワード
-        self.ai_keywords = [
-            "ai",
-            "人工知能",
-            "機械学習",
-            "ディープラーニング",
-            "ニューラルネットワーク",
-            "gpt",
-            "llm",
-            "chatgpt",
-            "claude",
-            "gemini",
-            "grok",
-            "anthropic",
-            "openai",
-            "stable diffusion",
-            "dalle",
-            "midjourney",
-            "自然言語処理",
-            "大規模言語モデル",
-            "チャットボット",
-            "対話型ai",
-            "生成ai",
-            "画像生成",
-            "alphaゴー",
-            "alphago",
-            "deepmind",
-            "強化学習",
-            "自己学習",
-            "強い人工知能",
-            "弱い人工知能",
-            "特化型人工知能",
-            "pixai",
-            "comfyui",
-            "stablediffusion",
-            "ai画像",
-            "ai動画",
-        ]
-
-        # 改善されたリクエスト制御設定
-        self.min_request_delay = 5  # 最小遅延時間（秒）
-        self.max_request_delay = 10  # 最大遅延時間（秒）
-        self.request_delay = 2  # 下位互換性のため保持
-
-        # User-Agentローテーション用のリスト
-        self.user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0",
-        ]
-
-        # ブラウザヘッダーの完全設定（User-Agentは動的に設定）
+    def __init__(
+        self,
+        storage: LocalStorage | None = None,
+        gpt_client: GPTClient | None = None,
+    ):
+        super().__init__(storage=storage, gpt_client=gpt_client)
+        self.target_boards = self._load_boards_config()
+        self.dedup_tracker = DedupTracker()
+        self.http_client = None
         self.browser_headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
-            "Cache-Control": "no-cache",
-            "Referer": "https://5ch.net/",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Cache-Control": "max-age=0",
         }
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
+        ]
 
-    def _load_boards(self) -> dict[str, str]:
+    def _load_boards_config(self) -> dict[str, str]:
         """
-        対象となる板の設定を読み込みます。
+        boards.tomlから板設定を読み込みます。
 
         Returns
         -------
-        Dict[str, str]
-            板のID: 板の名前のディクショナリ
+        dict[str, str]
+            板ID→板名のマッピング。
         """
-        script_dir = Path(__file__).parent
-        with open(script_dir / "boards.toml", "rb") as f:
+        config_path = Path(__file__).parent / "boards.toml"
+        with open(config_path, "rb") as f:
             import tomllib
 
             config = tomllib.load(f)
@@ -301,89 +265,94 @@ class FiveChanExplorer(BaseService):
                 self.logger.warning(f"リクエストエラー: {e}, {wait_time}秒後にリトライします")
                 await asyncio.sleep(wait_time)
 
-        # ここには到達しないはずですが、安全のため
-        return response
-
-    def run(self, thread_limit: int | None = None) -> None:
-        """
-        5chanからAI関連スレッドを収集して保存します。
-
-        Parameters
-        ----------
-        thread_limit : Optional[int], default=None
-            各板から取得するスレッド数。Noneの場合は制限なし。
-        """
-        asyncio.run(self.collect(thread_limit))
+        return None
 
     async def collect(
         self,
-        thread_limit: int | None = None,
-        *,
         target_dates: list[date] | None = None,
+        **kwargs,
     ) -> list[tuple[str, str]]:
         """
-        5chanからAI関連スレッドを収集して保存します（非同期版）。
+        5chanからAI関連スレッドを収集します。
 
         Parameters
         ----------
-        thread_limit : Optional[int], default=None
-            各板から取得するスレッド数。Noneの場合は制限なし。
+        target_dates : list[date], optional
+            収集対象日付リスト。
 
         Returns
         -------
         list[tuple[str, str]]
-            保存されたファイルパスのリスト [(json_path, md_path), ...]
+            保存されたファイルパスのリスト（JSON, Markdown）。
         """
-        total_limit = self.TOTAL_LIMIT
-        effective_target_dates = target_dates or target_dates_set(1)
-
-        # 対象日付のログ出力
-        date_str = max(effective_target_dates).strftime("%Y-%m-%d")
-        log_processing_start(self.logger, date_str)
-
-        # HTTPクライアントの初期化を確認
-        if self.http_client is None:
-            await self.setup_http_client()
-
-        candidate_threads: list[Thread] = []
-        selected_threads: list[Thread] = []
-        dedup_tracker = self._load_existing_titles()
-
         try:
-            # 各板からスレッドを取得
-            for board_id, board_name in self.target_boards.items():
+            log_processing_start(self.logger, "5chan AI関連スレッド")
+
+            # 対象日付の正規化
+            effective_target_dates = target_dates_set(target_dates)
+
+            # 既存タイトルを読み込み
+            existing_titles = set()
+            for target_date in effective_target_dates:
+                existing_records = await self._load_existing_threads(target_date)
+                existing_titles.update(r.get("title", "") for r in existing_records)
+
+            self.logger.info(f"🔍 既存タイトル数: {len(existing_titles)}件")
+
+            # 各板からスレッド一覧を取得
+            all_threads: list[Thread] = []
+            self.logger.info("\n📡 板からスレッド取得中...")
+
+            for board_id in self.target_boards.keys():
                 try:
-                    self.logger.info(
-                        f"板 /{board_id}/({board_name}) からのスレッド取得を開始します..."
-                    )
-                    threads = await self._retrieve_ai_threads(
-                        board_id,
-                        thread_limit,
-                        dedup_tracker,
-                        effective_target_dates,
-                    )
-                    self.logger.info(
-                        f"板 /{board_id}/({board_name}) から {len(threads)} 件のスレッドを取得しました"
-                    )
+                    threads_data = await self._get_subject_txt_data(board_id)
 
-                    candidate_threads.extend(threads)
+                    if not threads_data:
+                        self.logger.warning(f"   • {board_id}: スレッド一覧の取得に失敗")
+                        continue
 
-                    # 改善されたリクエスト間遅延（ランダム化）
-                    import random
+                    self.logger.info(f"   • {board_id}: {len(threads_data)}件のスレッドを取得")
 
-                    delay = random.uniform(self.min_request_delay, self.max_request_delay)
-                    self.logger.debug(f"リクエスト間遅延: {delay:.1f}秒")
+                    # スレッドオブジェクトを作成
+                    for thread_data in threads_data:
+                        # 既存タイトルと重複チェック
+                        if thread_data["title"] in existing_titles:
+                            continue
 
-                    await asyncio.sleep(delay)
+                        # 日付フィルタリング
+                        thread_timestamp = int(thread_data["timestamp"])
+                        thread_date = datetime.fromtimestamp(thread_timestamp).date()
+                        if not is_within_target_dates(thread_date, effective_target_dates):
+                            continue
+
+                        # スレッド詳細を取得
+                        posts, error = await self._get_thread_posts_from_dat(
+                            thread_data["dat_url"]
+                        )
+
+                        if error or not posts:
+                            continue
+
+                        # Threadオブジェクトを作成
+                        thread = Thread(
+                            thread_id=thread_timestamp,
+                            title=thread_data["title"],
+                            url=thread_data["html_url"],
+                            board=board_id,
+                            timestamp=thread_timestamp,
+                            posts=posts,
+                            popularity_score=float(len(posts)),
+                        )
+
+                        all_threads.append(thread)
 
                 except Exception as e:
-                    self.logger.error(f"Error processing board /{board_id}/: {str(e)}")
+                    self.logger.error(f"   • {board_id}: エラー - {e}")
+                    continue
 
-            self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
-
-            # 日付ごとにグループ化して各日独立で上位15件を選択
-            threads_by_date = {}
-            for thread in candidate_threads:
+            # 日付ごとにスレッドをグループ化
+            threads_by_date: dict[date, list[Thread]] = {}
+            for thread in all_threads:
                 thread_date = datetime.fromtimestamp(thread.timestamp).date()
                 if thread_date not in threads_by_date:
                     threads_by_date[thread_date] = []
@@ -499,167 +468,67 @@ class FiveChanExplorer(BaseService):
         any
             HTTPレスポンス（成功時のみ、失敗時はNone）
         """
-        # 段階的User-Agent戦略（古い順に試行）
-        user_agent_strategies = [
-            # 戦略1: 最古典的ブラウザ（2010年代前半）
-            "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/4.0)",
-            # 戦略2: 古いFirefox（検出回避）
-            "Mozilla/5.0 (Windows NT 6.1; rv:12.0) Gecko/20100101 Firefox/12.0",
-            # 戦略3: 古いChrome（最低限）
-            "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36",
-            # 戦略4: モバイル回避（サーバー負荷軽減と判断される場合）
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11A465 Safari/9537.53",
-            # 戦略5: 検索エンジンbot模倣（アクセス許可される場合）
-            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        import asyncio
+
+        strategies = [
+            # 戦略1: 標準的なブラウザヘッダー
+            {
+                "headers": {
+                    **self.browser_headers,
+                    "User-Agent": self._get_random_user_agent(),
+                },
+                "wait": 1.0,
+            },
+            # 戦略2: より詳細なブラウザヘッダー
+            {
+                "headers": {
+                    **self.browser_headers,
+                    "User-Agent": self._get_random_user_agent(),
+                    "Referer": f"https://mevius.5ch.net/{board_id}/",
+                },
+                "wait": 2.0,
+            },
+            # 戦略3: シンプルなヘッダー
+            {
+                "headers": {
+                    "User-Agent": self._get_random_user_agent(),
+                    "Accept": "text/html",
+                },
+                "wait": 3.0,
+            },
         ]
 
-        for i, user_agent in enumerate(user_agent_strategies):
+        for idx, strategy in enumerate(strategies, 1):
             try:
-                self.logger.info(
-                    f"403対策戦略 {i + 1}/{len(user_agent_strategies)}: {user_agent[:50]}..."
+                response = await self.http_client.get(
+                    url,
+                    headers=strategy["headers"],
+                    timeout=10.0,
+                    follow_redirects=True,
                 )
 
-                # 極限まで簡素化されたヘッダー
-                headers = {
-                    "User-Agent": user_agent,
-                    "Accept": "text/html",
-                    "Connection": "close",  # 持続接続を回避
-                }
+                if response.status_code == 200:
+                    self.logger.info(f"   ✓ 戦略{idx}で成功: {board_id}")
+                    return response
 
-                # 戦略別の待機時間（段階的に延長）
-                wait_time = 2 + (i * 3)  # 2秒から始まり3秒ずつ増加
-                await asyncio.sleep(wait_time)
-
-                # HTTPクライアントに直接アクセス（リトライ処理を回避）
-                try:
-                    response = await self.http_client._client.get(
-                        url, headers=headers, timeout=30.0
+                if response.status_code == 403:
+                    self.logger.warning(
+                        f"   ✗ 戦略{idx}で403エラー: {board_id}, 次の戦略を試行..."
                     )
-
-                    # レスポンス内容の詳細分析（Cloudflare検出）
-                    is_cloudflare = (
-                        "Just a moment..." in response.text or "challenge" in response.text.lower()
-                    )
-
-                    if response.status_code == 200:
-                        if not is_cloudflare:
-                            self.logger.info(f"成功: 戦略{i + 1}で正常アクセス")
-                            return response
-                        else:
-                            self.logger.warning(f"戦略{i + 1}: Cloudflareチャレンジページ検出")
-                    elif response.status_code == 403:
-                        if is_cloudflare:
-                            self.logger.warning(f"戦略{i + 1}: Cloudflare保護により403エラー")
-                            # Cloudflareの場合は長時間待機後にリトライ
-                            if i < 2:  # 最初の2戦略のみリトライ
-                                self.logger.info("Cloudflare回避: 30秒待機後にリトライ")
-                                await asyncio.sleep(30)
-                                continue
-                        elif response.text and len(response.text) > 100 and not is_cloudflare:
-                            self.logger.warning(
-                                f"403エラーだが有効コンテンツ取得: 戦略{i + 1} ({len(response.text)}文字)"
-                            )
-                            return response
-                        else:
-                            self.logger.warning(f"戦略{i + 1}: 403エラー（利用不可コンテンツ）")
-                    else:
-                        self.logger.warning(f"戦略{i + 1}: HTTPエラー {response.status_code}")
-
-                except Exception as e:
-                    self.logger.warning(f"戦略{i + 1}: リクエストエラー - {str(e)}")
+                    await asyncio.sleep(strategy["wait"])
                     continue
 
-            except Exception as e:
-                self.logger.error(f"戦略{i + 1}: 予期しないエラー - {str(e)}")
-                continue
-
-        # 最終戦略: 代替エンドポイント試行
-        self.logger.info("代替エンドポイント戦略を開始...")
-        alternative_response = await self._try_alternative_endpoints(url, board_id)
-        if alternative_response:
-            return alternative_response
-
-        # すべての戦略が失敗
-        self.logger.error(f"全戦略失敗: 板 {board_id} へのアクセスを断念")
-        return None
-
-    async def _try_alternative_endpoints(self, original_url: str, board_id: str) -> any:
-        """
-        代替エンドポイント戦略 - 最終手段のアクセス方法
-
-        Parameters
-        ----------
-        original_url : str
-            元のURL
-        board_id : str
-            板ID
-
-        Returns
-        -------
-        any
-            成功時のレスポンス、失敗時はNone
-        """
-        # URL解析
-        from urllib.parse import urlparse
-
-        parsed = urlparse(original_url)
-        server = parsed.netloc
-
-        alternative_strategies = [
-            # 戦略1: スマートフォン版
-            f"https://sp.5ch.net/{board_id}/",
-            # 戦略2: 旧形式URL
-            f"https://{server.replace('.5ch.net', '.2ch.net')}/{board_id}/",
-            # 戦略3: 読み取り専用API風
-            f"https://{server}/{board_id}/subject.txt",
-            # 戦略4: 別サブドメイン
-            f"https://itest.5ch.net/{board_id}/",
-            # 戦略5: HTTPSなし（最終手段）
-            f"http://{server}/{board_id}/",
-        ]
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Linux; Android 8.0.0; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.80 Mobile Safari/537.36",
-            "Accept": "text/plain, text/html, */*",
-            "Accept-Language": "ja,en;q=0.9",
-            "Connection": "close",
-        }
-
-        for i, alt_url in enumerate(alternative_strategies):
-            try:
-                self.logger.info(f"代替戦略 {i + 1}/{len(alternative_strategies)}: {alt_url}")
-                await asyncio.sleep(3)  # 短い間隔
-
-                response = await self.http_client._client.get(
-                    alt_url, headers=headers, timeout=20.0
+                # その他のエラー
+                self.logger.warning(
+                    f"   ✗ 戦略{idx}でエラー ({response.status_code}): {board_id}"
                 )
-
-                # 成功判定を緩く設定
-                if response.status_code in [200, 403]:
-                    content = response.text
-                    is_valid = (
-                        len(content) > 50
-                        and "Just a moment" not in content
-                        and "challenge" not in content.lower()
-                        and (
-                            "5ch" in content or "2ch" in content or "\n" in content
-                        )  # 最低限のコンテンツ検証
-                    )
-
-                    if is_valid:
-                        self.logger.info(
-                            f"代替戦略{i + 1}成功: {response.status_code} ({len(content)}文字)"
-                        )
-                        return response
-                    else:
-                        self.logger.warning(f"代替戦略{i + 1}: 無効コンテンツ ({len(content)}文字)")
-                else:
-                    self.logger.warning(f"代替戦略{i + 1}: HTTPエラー {response.status_code}")
+                await asyncio.sleep(strategy["wait"])
 
             except Exception as e:
-                self.logger.warning(f"代替戦略{i + 1}: エラー - {str(e)}")
-                continue
+                self.logger.warning(f"   ✗ 戦略{idx}で例外: {board_id} - {e}")
+                await asyncio.sleep(strategy["wait"])
 
+        self.logger.error(f"   ✗ 全戦略失敗: {board_id}")
         return None
 
     async def _get_subject_txt_data(self, board_id: str) -> list[dict]:
@@ -700,7 +569,6 @@ class FiveChanExplorer(BaseService):
                 self.logger.info(f"subject.txt取得: {url}")
 
                 # 直接httpxクライアントを使用（403回避のため）
-                import httpx
 
                 async with httpx.AsyncClient() as client:
                     response = await client.get(url, headers=headers, timeout=10.0)
@@ -748,265 +616,79 @@ class FiveChanExplorer(BaseService):
                 self.logger.warning(f"subject.txt失敗 {server}: {e}")
                 continue
 
+        self.logger.error(f"subject.txt取得失敗（全サーバー）: {board_id}")
         return []
 
     async def _get_thread_posts_from_dat(
         self, dat_url: str
-    ) -> tuple[list[dict[str, Any]], datetime | None]:
+    ) -> tuple[list[Post], str | None]:
         """
-        dat形式でスレッドの投稿を取得（cloudscraper使用版）
-        """
-        try:
-            self.logger.info(f"dat取得開始: {dat_url}")
-
-            # cloudscraper セッションを作成
-            scraper = cloudscraper.create_scraper(
-                browser={"browser": "chrome", "platform": "windows", "desktop": True}
-            )
-
-            # Monazilla形式のヘッダーを設定
-            scraper.headers.update(
-                {
-                    "User-Agent": "Monazilla/1.00 (NookCrawler/1.0)",
-                    "Accept-Encoding": "gzip",
-                    "Referer": dat_url.replace("/dat/", "/test/read.cgi/").replace(".dat", "/"),
-                }
-            )
-
-            # 同期的にリクエスト（cloudscraperは同期ライブラリ）
-            # asyncio.to_threadで非同期化
-            response = await asyncio.to_thread(scraper.get, dat_url, timeout=30)
-            self.logger.info(f"dat取得レスポンス: {response.status_code}")
-
-            if response.status_code == 200:
-                # 文字化け対策（Shift_JIS + フォールバック）
-                try:
-                    content = response.content.decode("shift_jis", errors="ignore")
-                except (UnicodeDecodeError, LookupError):
-                    try:
-                        content = response.content.decode("cp932", errors="ignore")
-                    except (UnicodeDecodeError, LookupError):
-                        content = response.text
-
-                posts: list[dict[str, Any]] = []
-                latest_post_at: datetime | None = None
-                lines = content.split("\n")
-
-                for i, line in enumerate(lines):
-                    if line.strip():
-                        # dat形式: name<>mail<>date ID<>message<>title(1行目のみ)
-                        parts = line.split("<>")
-                        if len(parts) >= 4:
-                            post_data = {
-                                "no": i + 1,
-                                "name": parts[0],
-                                "mail": parts[1],
-                                "date": parts[2],
-                                "com": parts[3],
-                                "time": parts[2],  # 互換性のため
-                            }
-
-                            # 1行目の場合はタイトルも含まれる
-                            if i == 0 and len(parts) >= 5:
-                                post_data["title"] = parts[4]
-
-                            posts.append(post_data)
-
-                            date_field = parts[2]
-                            try:
-                                parsed = parser.parse(date_field, fuzzy=True, ignoretz=True)
-                            except (ValueError, OverflowError):
-                                parsed = None
-
-                            if parsed and (latest_post_at is None or parsed > latest_post_at):
-                                latest_post_at = parsed
-
-                self.logger.info(f"dat解析完了: 総行数{len(lines)}, 有効投稿{len(posts)}件")
-                if posts:
-                    self.logger.info(f"dat取得成功: {len(posts)}投稿")
-                    # メモリ効率を保つため、最大MAX_POSTS_PER_THREAD件に制限
-                    limited_posts = posts[:MAX_POSTS_PER_THREAD]
-                    if len(posts) > MAX_POSTS_PER_THREAD:
-                        self.logger.info(
-                            f"投稿数が多いため{MAX_POSTS_PER_THREAD}件に制限: 元の投稿数{len(posts)}件"
-                        )
-                    return limited_posts, latest_post_at
-                else:
-                    self.logger.warning("dat内容は取得したが投稿データなし")
-                    return [], latest_post_at
-            else:
-                self.logger.error(f"dat取得HTTP error: {response.status_code}")
-                if "Just a moment" in response.text:
-                    self.logger.error("Cloudflareチャレンジページが検出されました")
-                return [], None
-
-        except Exception as e:
-            self.logger.error(f"dat取得エラー {dat_url}: {e}")
-            import traceback
-
-            self.logger.error(f"詳細なエラー情報: {traceback.format_exc()}")
-
-        return [], None
-
-    async def _retrieve_ai_threads(
-        self,
-        board_id: str,
-        limit: int | None,
-        dedup_tracker: DedupTracker,
-        target_dates: list[date],
-    ) -> list[Thread]:
-        """
-        特定の板からAI関連スレッドを取得します。
-        【Cloudflare突破成功版】subject.txt + dat形式による完全実装
+        .datファイルから投稿を取得します。
 
         Parameters
         ----------
-        board_id : str
-            板のID。
-        limit : Optional[int]
-            取得するスレッド数。Noneの場合は制限なし。
-        target_dates : list[date]
-            保存対象とする日付集合。
+        dat_url : str
+            .datファイルのURL。
 
         Returns
         -------
-        List[Thread]
-            取得したスレッドのリスト。
+        tuple[list[Post], str | None]
+            投稿リストとエラーメッセージ（エラーがない場合はNone）。
         """
+        import asyncio
+
         try:
-            self.logger.info(f"【突破手法】板 {board_id} からAI関連スレッドを取得します")
-
-            # 1. subject.txtからスレッド一覧を取得（突破成功手法）
-            threads_data = await self._get_subject_txt_data(board_id)
-            if not threads_data:
-                self.logger.warning(f"subject.txt取得失敗: 板 {board_id}")
-                return []
-
-            # 2. AI関連スレッドをフィルタリング
-            ai_threads = []
-            self.logger.info(f"AI関連スレッド検索中... 対象: {len(threads_data)}スレッド")
-
-            for thread_data in threads_data:
-                title = thread_data["title"]
-                title_lower = title.lower()
-
-                # AIキーワードマッチング
-                is_ai_related = any(keyword.lower() in title_lower for keyword in self.ai_keywords)
-
-                if is_ai_related:
-                    timestamp_raw = thread_data.get("timestamp")
-                    thread_created = (
-                        datetime.fromtimestamp(int(timestamp_raw), tz=UTC)
-                        if timestamp_raw
-                        else None
-                    )
-
-                    is_dup, normalized = dedup_tracker.is_duplicate(title)
-                    if is_dup:
-                        original = dedup_tracker.get_original_title(normalized) or title
-                        self.logger.info(
-                            "重複スレッドをスキップ: '%s' (初出: '%s')",
-                            title,
-                            original,
-                        )
-                        continue
-
-                    self.logger.info(f"AI関連スレッド発見: {title}")
-
-                    # 3. dat形式で投稿データを取得（突破成功手法）
-                    posts, latest_post_at = await self._get_thread_posts_from_dat(
-                        thread_data["dat_url"]
-                    )
-
-                    effective_dt = latest_post_at or thread_created
-                    if not effective_dt or not is_within_target_dates(effective_dt, target_dates):
-                        continue
-
-                    effective_local = normalize_datetime_to_local(effective_dt)
-                    timestamp_value = (
-                        int(effective_local.timestamp())
-                        if effective_local is not None
-                        else int(timestamp_raw)
-                        if timestamp_raw
-                        else 0
-                    )
-
-                    if posts:  # 投稿取得成功時のみスレッド作成
-                        popularity_score = self._calculate_popularity(
-                            post_count=thread_data.get("post_count", 0),
-                            sample_count=len(posts),
-                            timestamp=timestamp_value,
-                        )
-
-                        dedup_tracker.add(title)
-
-                        thread = Thread(
-                            thread_id=int(thread_data["timestamp"]),
-                            title=title,
-                            url=thread_data["html_url"],  # HTML版URL
-                            board=board_id,
-                            posts=posts,
-                            timestamp=timestamp_value,
-                            popularity_score=popularity_score,
-                        )
-
-                        ai_threads.append(thread)
-                        self.logger.info(f"スレッド追加成功: {title} ({len(posts)}投稿)")
-
-                        # 制限数に達したら終了
-                        if limit is not None and len(ai_threads) >= limit:
-                            break
-                    else:
-                        self.logger.warning(f"投稿取得失敗: {title}")
-
-                    # アクセス間隔（丁寧なアクセス）
-                    await asyncio.sleep(2)
-
-            self.logger.info(
-                f"【突破成功】板 {board_id}: {len(ai_threads)}件のAI関連スレッド取得完了"
+            # cloudscraperを使用してCloudflare保護を突破
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    "browser": "chrome",
+                    "platform": "windows",
+                    "mobile": False,
+                }
             )
-            return ai_threads
+
+            # 非同期実行のためにasyncio.to_threadを使用
+            response = await asyncio.to_thread(scraper.get, dat_url, timeout=10)
+
+            if response.status_code != 200:
+                return [], f"HTTP {response.status_code}"
+
+            # Shift_JISでデコード
+            try:
+                content = response.content.decode("shift_jis", errors="ignore")
+            except (UnicodeDecodeError, LookupError):
+                try:
+                    content = response.content.decode("cp932", errors="ignore")
+                except (UnicodeDecodeError, LookupError):
+                    content = response.text
+
+            # .dat形式をパース
+            posts = []
+            lines = content.split("\n")
+
+            # 最大投稿数を制限（メモリ効率化）
+            limited_lines = lines[:MAX_POSTS_PER_THREAD]
+
+            for idx, line in enumerate(limited_lines, 1):
+                if not line.strip():
+                    continue
+
+                # .dat形式: name<>mail<>date<>content<>title
+                parts = line.split("<>")
+                if len(parts) >= 4:
+                    post = Post(
+                        no=idx,
+                        name=parts[0].strip(),
+                        mail=parts[1].strip(),
+                        date=parts[2].strip(),
+                        content=parts[3].strip(),
+                    )
+                    posts.append(post)
+
+            return posts, None
 
         except Exception as e:
-            self.logger.error(f"【突破手法エラー】板 {board_id}: {str(e)}")
-            return []
-
-    def _load_existing_titles(self) -> DedupTracker:
-        tracker = DedupTracker()
-        try:
-            content = self.storage.load_markdown("", datetime.now())
-            if content:
-                for match in re.finditer(r"^### \[(.+?)\]", content, re.MULTILINE):
-                    tracker.add(match.group(1))
-        except Exception as exc:
-            self.logger.debug(f"既存スレッドタイトルの読み込みに失敗しました: {exc}")
-        return tracker
-
-    def _calculate_popularity(self, post_count: int, sample_count: int, timestamp: int) -> float:
-        recency_bonus = 0.0
-        try:
-            now = datetime.now()
-            created = datetime.fromtimestamp(timestamp)
-            hours = (now - created).total_seconds() / 3600
-            recency_bonus = 24 / max(1.0, hours)
-        except Exception:
-            pass
-
-        return float(post_count + sample_count + recency_bonus)
-
-    def _select_top_threads(self, threads: list[Thread], limit: int) -> list[Thread]:
-        if not threads:
-            return []
-
-        if len(threads) <= limit:
-            return threads
-
-        def sort_key(thread: Thread):
-            created = datetime.fromtimestamp(thread.timestamp)
-            return (thread.popularity_score, created)
-
-        sorted_threads = sorted(threads, key=sort_key, reverse=True)
-        return sorted_threads[:limit]
+            return [], str(e)
 
     async def _summarize_thread(self, thread: Thread) -> None:
         """
@@ -1015,33 +697,20 @@ class FiveChanExplorer(BaseService):
         Parameters
         ----------
         thread : Thread
-            要約するスレッド。
+            要約対象のスレッド。
         """
-        # スレッドのコンテンツを抽出
-        thread_content = ""
-
-        # スレッドのタイトルを追加
-        thread_content += f"タイトル: {thread.title}\n\n"
-
-        # オリジナルポスト（OP）を追加
-        if thread.posts and len(thread.posts) > 0:
-            op = thread.posts[0]
-            op_text = op.get("com", "")
-            if op_text:
-                thread_content += f">>1: {op_text}\n\n"
-
-        # 返信を追加（最大5件）
-        replies = thread.posts[1:6] if len(thread.posts) > 1 else []
-        for i, reply in enumerate(replies):
-            reply_text = reply.get("com", "")
-            if reply_text:
-                post_number = reply.get("no", i + 2)
-                thread_content += f">>{post_number}: {reply_text}\n\n"
+        # 投稿内容を結合
+        thread_content = "\n".join(
+            f"[{post.no}] {post.name} ({post.date}): {post.content}"
+            for post in thread.posts[:MAX_POSTS_PER_THREAD]
+        )
 
         prompt = f"""
-        以下の5chan（旧2ちゃんねる）スレッドを要約してください。
+        以下の5chanスレッドを要約してください:
 
-        板: /{thread.board}/
+        タイトル: {thread.title}
+        板: {thread.board}
+
         {thread_content}
 
         要約は以下の形式で行い、日本語で回答してください:
