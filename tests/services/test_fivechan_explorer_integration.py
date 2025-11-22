@@ -91,7 +91,7 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
             return (posts, None)
 
         with (
-            patch("httpx.AsyncClient") as mock_client,
+            patch("nook.services.fivechan_explorer.fivechan_explorer.httpx.AsyncClient") as mock_client,
             patch("cloudscraper.create_scraper", return_value=scraper_mock),
             patch(
                 "asyncio.to_thread",
@@ -160,7 +160,7 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
             return ([], None)
 
         with (
-            patch("httpx.AsyncClient") as mock_client,
+            patch("nook.services.fivechan_explorer.fivechan_explorer.httpx.AsyncClient") as mock_client,
             patch.object(service, "setup_http_client", new_callable=AsyncMock),
             patch.object(
                 service, "_get_thread_posts_from_dat", side_effect=mock_get_thread_posts_dos
@@ -279,7 +279,7 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
             return (posts, None)
 
         with (
-            patch("httpx.AsyncClient") as mock_client,
+            patch("nook.services.fivechan_explorer.fivechan_explorer.httpx.AsyncClient") as mock_client,
             patch("cloudscraper.create_scraper", return_value=scraper_mock),
             patch(
                 "asyncio.to_thread",
