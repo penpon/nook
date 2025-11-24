@@ -1,6 +1,6 @@
 import functools
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
 from nook.common.exceptions import APIException, ServiceException
@@ -18,7 +18,7 @@ class ServiceErrorHandler:
     def handle_api_error(self, api_name: str):
         """API呼び出しのエラーハンドリングデコレータ"""
 
-        def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
             @functools.wraps(func)
             async def wrapper(*args, **kwargs) -> T:
                 try:
@@ -53,7 +53,7 @@ class ServiceErrorHandler:
     def handle_data_processing(self, operation: str):
         """データ処理のエラーハンドリングデコレータ"""
 
-        def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
             @functools.wraps(func)
             async def wrapper(*args, **kwargs) -> T:
                 try:

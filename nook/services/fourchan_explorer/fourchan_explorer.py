@@ -8,8 +8,9 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -230,7 +231,7 @@ class FourChanExplorer(BaseService):
             self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
 
             # 日付ごとにグループ化して各日独立で上位15件を選択
-            threads_by_date = {}
+            threads_by_date: dict[date, list[Thread]] = {}
             for thread in candidate_threads:
                 thread_date = datetime.fromtimestamp(thread.timestamp).date()
                 if thread_date not in threads_by_date:
@@ -297,7 +298,7 @@ class FourChanExplorer(BaseService):
         board: str,
         limit: int | None,
         dedup_tracker: DedupTracker,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> list[Thread]:
         """特定のボードからAI関連スレッドを取得します。
 
@@ -318,6 +319,8 @@ class FourChanExplorer(BaseService):
         """
         # カタログの取得（すべてのスレッドのリスト）
         catalog_url = f"https://a.4cdn.org/{board}/catalog.json"
+        if self.http_client is None:
+            raise RuntimeError("HTTP client not initialized")
         response = await self.http_client.get(catalog_url)
         catalog_data = response.json()
 
@@ -342,7 +345,7 @@ class FourChanExplorer(BaseService):
                     thread_id = thread.get("no")
                     timestamp_raw = thread.get("time")
                     thread_created = (
-                        datetime.fromtimestamp(int(timestamp_raw), tz=UTC)
+                        datetime.fromtimestamp(int(timestamp_raw), tz=timezone.utc)
                         if timestamp_raw
                         else None
                     )
@@ -361,7 +364,7 @@ class FourChanExplorer(BaseService):
 
                     last_modified_raw = thread.get("last_modified")
                     last_modified_dt = (
-                        datetime.fromtimestamp(int(last_modified_raw), tz=UTC)
+                        datetime.fromtimestamp(int(last_modified_raw), tz=timezone.utc)
                         if last_modified_raw
                         else thread_created
                     )
@@ -390,7 +393,7 @@ class FourChanExplorer(BaseService):
 
                     latest_post_ts = max(
                         (
-                            int(post.get("time"))
+                            int(post.get("time") or 0)
                             for post in thread_data
                             if post.get("time") is not None
                         ),
@@ -398,7 +401,7 @@ class FourChanExplorer(BaseService):
                     )
 
                     latest_post_at = (
-                        datetime.fromtimestamp(latest_post_ts, tz=UTC)
+                        datetime.fromtimestamp(latest_post_ts, tz=timezone.utc)
                         if latest_post_ts is not None
                         else None
                     )
@@ -415,8 +418,8 @@ class FourChanExplorer(BaseService):
 
                     if effective_dt is not None:
                         if effective_dt.tzinfo is None:
-                            effective_dt = effective_dt.replace(tzinfo=UTC)
-                        effective_utc = effective_dt.astimezone(UTC)
+                            effective_dt = effective_dt.replace(tzinfo=timezone.utc)
+                        effective_utc = effective_dt.astimezone(timezone.utc)
                         timestamp_value = int(effective_utc.timestamp())
                     else:
                         # これは355行目の検証により理論的には発生しないが、防御的に処理
@@ -475,6 +478,8 @@ class FourChanExplorer(BaseService):
         """
         thread_url = f"https://a.4cdn.org/{board}/thread/{thread_id}.json"
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(thread_url)
             thread_data = response.json()
             posts = thread_data.get("posts", [])
@@ -599,7 +604,7 @@ class FourChanExplorer(BaseService):
             thread.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
-        self, threads: list[Thread], target_dates: list[date]
+        self, threads: list[Thread], target_dates: Iterable[date]
     ) -> list[tuple[str, str]]:
         if not threads:
             self.logger.info("保存するスレッドがありません")
@@ -626,7 +631,7 @@ class FourChanExplorer(BaseService):
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
         records: list[dict] = []
         for thread in threads:
-            published = datetime.fromtimestamp(thread.timestamp, tz=UTC)
+            published = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
             records.append(
                 {
                     "thread_id": thread.thread_id,
@@ -667,16 +672,16 @@ class FourChanExplorer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
             timestamp = item.get("timestamp")
             if timestamp:
                 try:
-                    published = datetime.fromtimestamp(int(timestamp), tz=UTC)
+                    published = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
                 except Exception:
-                    published = datetime.min.replace(tzinfo=UTC)
+                    published = datetime.min.replace(tzinfo=timezone.utc)
             else:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         return (popularity, published)
 
     def _extract_thread_id_from_url(self, url: str) -> int:
@@ -755,7 +760,9 @@ class FourChanExplorer(BaseService):
                 }
 
                 if timestamp:
-                    record["published_at"] = datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
+                    record["published_at"] = datetime.fromtimestamp(
+                        timestamp, tz=timezone.utc
+                    ).isoformat()
 
                 records.append(record)
 

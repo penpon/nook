@@ -185,6 +185,8 @@ class HackerNewsRetriever(BaseService):
 
         """
         # 1. topstoriesから多めに記事IDを取得（100件）
+        if self.http_client is None:
+            raise RuntimeError("HTTP client not initialized")
         response = await self.http_client.get(f"{self.base_url}/topstories.json")
         story_ids = response.json()
         if FETCH_LIMIT is not None:
@@ -208,8 +210,9 @@ class HackerNewsRetriever(BaseService):
         # 4. フィルタリング処理を追加
         filtered_stories = []
         for story in all_stories:
-            if story.created_at:
-                story_date = normalize_datetime_to_local(story.created_at).date()
+            created_at = story.created_at
+            if created_at:
+                story_date = normalize_datetime_to_local(created_at).date()
 
                 # スコアフィルタリング
                 if story.score < SCORE_THRESHOLD:
@@ -250,8 +253,9 @@ class HackerNewsRetriever(BaseService):
         # 日付ごとにグループ化
         stories_by_date: dict[date, list[Story]] = {}
         for story in unique_stories:
-            if story.created_at:
-                story_date = normalize_datetime_to_local(story.created_at).date()
+            created_at = story.created_at
+            if created_at:
+                story_date = normalize_datetime_to_local(created_at).date()
                 if story_date not in stories_by_date:
                     stories_by_date[story_date] = []
                 stories_by_date[story_date].append(story)
@@ -360,10 +364,12 @@ class HackerNewsRetriever(BaseService):
     async def _fetch_story(self, story_id: int) -> Story | None:
         """個別のストーリーを取得"""
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(f"{self.base_url}/item/{story_id}.json")
             item = response.json()
 
-            if "title" not in item:
+            if not item or "title" not in item:
                 return None
 
             story = Story(
@@ -417,6 +423,8 @@ class HackerNewsRetriever(BaseService):
             self.logger.info(f"Using HTTP/1.1 for {story.url} (required domain)")
 
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(story.url, force_http1=force_http1)
 
             if response.status_code == 200:

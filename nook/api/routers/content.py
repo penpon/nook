@@ -56,7 +56,7 @@ SOURCE_MAPPING = {
 
 @router.get("/content/{source}", response_model=ContentResponse)
 async def get_content(
-    source: str, date: str | None = None, response: Response = None
+    source: str, date: str | None = None, response: Response | None = None
 ) -> ContentResponse:
     """特定のソースのコンテンツを取得します。
 
@@ -133,7 +133,7 @@ async def get_content(
                     )
         else:
             # 他のソースは従来通りMarkdownから取得
-            content = storage.load_markdown(service_name, target_date)
+            content = storage.load_markdown(service_name, target_date) or ""
 
             if content:
                 # 論文要約の場合はタイトルを変換
@@ -150,6 +150,7 @@ async def get_content(
                             f"{target_date.strftime('%Y-%m-%d')}"
                         ),
                         content=content,
+                        url=None,
                         source=source,
                     )
                 )
@@ -187,7 +188,7 @@ async def get_content(
                         )
             else:
                 # 他のソースは従来通りMarkdownから取得
-                content = storage.load_markdown(service_name, target_date)
+                content = storage.load_markdown(service_name, target_date) or ""
                 if content:
                     # 論文要約の場合はタイトルを変換
                     if src == "arxiv":
@@ -202,6 +203,7 @@ async def get_content(
                                 f"{target_date.strftime('%Y-%m-%d')}"
                             ),
                             content=content,
+                            url=None,
                             source=src,
                         )
                     )

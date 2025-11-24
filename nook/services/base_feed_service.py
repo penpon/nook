@@ -153,8 +153,11 @@ class BaseFeedService(BaseService):
         for article in articles:
             if article.published_at:
                 normalized = normalize_datetime_to_local(article.published_at)
-                article.published_at = normalized.replace(tzinfo=None)
-                date_key = article.published_at.strftime("%Y-%m-%d")
+                if normalized:
+                    article.published_at = normalized.replace(tzinfo=None)
+                    date_key = article.published_at.strftime("%Y-%m-%d")
+                else:
+                    date_key = default_date
             else:
                 date_key = default_date
             by_date.setdefault(date_key, []).append(article)

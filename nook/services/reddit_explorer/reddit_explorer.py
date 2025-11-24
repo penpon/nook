@@ -3,6 +3,7 @@
 import asyncio
 import os
 import re
+from collections.abc import Iterable
 
 try:
     import tomllib  # Python 3.11+
@@ -12,7 +13,7 @@ except ModuleNotFoundError:
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import asyncpraw
 
@@ -213,7 +214,7 @@ class RedditExplorer(BaseService):
                 self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
 
                 # 日付ごとにグループ化して各日独立で処理
-                posts_by_date = {}
+                posts_by_date: dict[date, list[tuple[str, str, RedditPost]]] = {}
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
                         # JSTタイムゾーンに変換して日付を取得
@@ -291,7 +292,7 @@ class RedditExplorer(BaseService):
         subreddit_name: str,
         limit: int | None,
         dedup_tracker: DedupTracker,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> tuple[list[RedditPost], int]:
         """サブレディットの人気投稿を取得します。
 
@@ -303,36 +304,44 @@ class RedditExplorer(BaseService):
             取得する投稿数。Noneの場合は制限なし。
         dedup_tracker : DedupTracker
             タイトル重複を追跡するトラッカー。
-        target_dates : list[date]
+        target_dates : Iterable[date]
             保存対象とする日付集合。
 
         Returns
         -------
-        tuple[List[RedditPost], int]
+        tuple[list[RedditPost], int]
             取得した投稿のリストと、本来取得できた件数のタプル。
 
         """
+        if self.reddit is None:
+            raise RuntimeError("Reddit client not initialized")
         subreddit = await self.reddit.subreddit(subreddit_name)
         posts = []
         total_found = 0
 
         async for submission in subreddit.hot(limit=limit):
+            if not submission or not getattr(submission, "subreddit", None):
+                continue
+
+            # subreddit_name_prefixed = submission.subreddit.display_name_prefixed
             if submission.stickied:
                 continue
 
             total_found += 1
 
             # 投稿タイプを判定
-            post_type = "text"
-            if hasattr(submission, "is_video") and submission.is_video:
+            post_type: Literal["image", "gallery", "video", "poll", "crosspost", "text", "link"] = (
+                "text"
+            )
+            if getattr(submission, "is_video", False):
                 post_type = "video"
-            elif hasattr(submission, "is_gallery") and submission.is_gallery:
+            elif getattr(submission, "is_gallery", False):
                 post_type = "gallery"
-            elif hasattr(submission, "poll_data") and submission.poll_data:
+            elif getattr(submission, "poll_data", None):
                 post_type = "poll"
-            elif hasattr(submission, "crosspost_parent") and submission.crosspost_parent:
+            elif getattr(submission, "crosspost_parent", None):
                 post_type = "crosspost"
-            elif submission.is_self:
+            elif getattr(submission, "is_self", False):
                 post_type = "text"
             elif any(submission.url.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif"]):
                 post_type = "image"
@@ -431,6 +440,8 @@ class RedditExplorer(BaseService):
             取得したコメントのリスト。
 
         """
+        if self.reddit is None:
+            raise RuntimeError("Reddit client not initialized")
         submission = await self.reddit.submission(id=post.id)
 
         # コメントを取得する前にソート順を設定
@@ -548,7 +559,7 @@ class RedditExplorer(BaseService):
             )
         return records
 
-    async def _load_existing_posts(self, target_date: datetime) -> list[dict]:
+    async def _load_existing_posts(self, target_date: date | datetime) -> list[dict]:
         date_str = target_date.strftime("%Y-%m-%d")
         filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
@@ -648,7 +659,7 @@ class RedditExplorer(BaseService):
 
             for post_match in post_pattern.finditer(block + "---"):
                 permalink = post_match.group("permalink")
-                record = {
+                record: dict[str, Any] = {
                     "id": self._extract_post_id_from_permalink(permalink),
                     "category": "unknown",
                     "title": post_match.group("title").strip(),

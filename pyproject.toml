@@ -196,8 +196,10 @@ ignore = [
     "EXE001", # Shebang present but file not executable
     # 全角記号
     "RUF001", # 全角記号(コメント)
-    "RUF002", # 全角記号(docstring)
     "RUF003", # 全角記号(コメント)
+    "D203",  # 1 blank line required before class docstring (conflicts with D211)
+    "D213",  # Multi-line docstring summary should start at the second line (conflicts with D212)
+    "RUF002", # Docstring contains ambiguous unicode character (Japanese text)
 ]
 
 [tool.ruff.lint.per-file-ignores]

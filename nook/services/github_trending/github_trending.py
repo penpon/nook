@@ -7,6 +7,7 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 from pathlib import Path
@@ -237,6 +238,8 @@ class GithubTrending(BaseService):
             url += f"/{language}"
 
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
 
@@ -417,7 +420,7 @@ class GithubTrending(BaseService):
         self,
         repositories_by_language: list[tuple[str, list[Repository]]],
         limit_per_language: int | None,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> list[tuple[str, str]]:
         """リポジトリ情報を保存します。
 
