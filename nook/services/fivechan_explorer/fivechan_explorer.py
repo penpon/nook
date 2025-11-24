@@ -3,17 +3,14 @@ import re
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
 
 import cloudscraper
 import httpx
-from dateutil import parser
 
 from nook.common.base_service import BaseService
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import (
     is_within_target_dates,
-    normalize_datetime_to_local,
     target_dates_set,
 )
 from nook.common.dedup import DedupTracker
@@ -36,8 +33,7 @@ MAX_POSTS_PER_THREAD = 10
 
 @dataclass
 class Thread:
-    """
-    5chanスレッド情報。
+    """5chanスレッド情報。
 
     Parameters
     ----------
@@ -57,6 +53,7 @@ class Thread:
         スレッド要約。
     popularity_score : float
         人気度スコア（投稿数ベース）。
+
     """
 
     thread_id: int
@@ -64,15 +61,14 @@ class Thread:
     url: str
     board: str
     timestamp: int
-    posts: list[Post] = field(default_factory=list)
+    posts: list["Post"] = field(default_factory=list)
     summary: str = ""
     popularity_score: float = 0.0
 
 
 @dataclass
 class Post:
-    """
-    5chan投稿情報。
+    """5chan投稿情報。
 
     Parameters
     ----------
@@ -86,6 +82,7 @@ class Post:
         投稿日時。
     content : str
         投稿内容。
+
     """
 
     no: int
@@ -96,8 +93,7 @@ class Post:
 
 
 class FiveChanExplorer(BaseService):
-    """
-    5chan（旧2ちゃんねる）からAI関連スレッドを収集するサービス。
+    """5chan（旧2ちゃんねる）からAI関連スレッドを収集するサービス。
 
     Parameters
     ----------
@@ -105,6 +101,7 @@ class FiveChanExplorer(BaseService):
         ストレージインスタンス。
     gpt_client : GPTClient, optional
         GPTクライアントインスタンス。
+
     """
 
     TOTAL_LIMIT = 15  # 1日あたりの最大スレッド数
@@ -138,13 +135,13 @@ class FiveChanExplorer(BaseService):
         ]
 
     def _load_boards_config(self) -> dict[str, str]:
-        """
-        boards.tomlから板設定を読み込みます。
+        """boards.tomlから板設定を読み込みます。
 
         Returns
         -------
         dict[str, str]
             板ID→板名のマッピング。
+
         """
         config_path = Path(__file__).parent / "boards.toml"
         with open(config_path, "rb") as f:
@@ -171,21 +168,20 @@ class FiveChanExplorer(BaseService):
             return boards
 
     def _get_random_user_agent(self) -> str:
-        """
-        ランダムなUser-Agentを取得します。
+        """ランダムなUser-Agentを取得します。
 
         Returns
         -------
         str
             ランダムに選択されたUser-Agent文字列。
+
         """
         import random
 
         return random.choice(self.user_agents)
 
     def _calculate_backoff_delay(self, retry_count: int) -> float:
-        """
-        指数バックオフによる遅延時間を計算します。
+        """指数バックオフによる遅延時間を計算します。
 
         Parameters
         ----------
@@ -196,14 +192,14 @@ class FiveChanExplorer(BaseService):
         -------
         float
             遅延時間（秒）。
+
         """
         # 基本遅延時間: 2^retry_count秒、最大300秒
         base_delay = min(2**retry_count, 300)
         return base_delay
 
     async def _get_with_retry(self, url: str, max_retries: int = 3, **kwargs) -> any:
-        """
-        リトライ機能付きHTTP GETリクエスト。
+        """リトライ機能付きHTTP GETリクエスト。
 
         Parameters
         ----------
@@ -216,9 +212,8 @@ class FiveChanExplorer(BaseService):
         -------
         any
             HTTPレスポンス。
-        """
-        import asyncio
 
+        """
         for attempt in range(max_retries + 1):
             try:
                 # 動的なUser-Agentでヘッダーを更新
@@ -272,8 +267,7 @@ class FiveChanExplorer(BaseService):
         target_dates: list[date] | None = None,
         **kwargs,
     ) -> list[tuple[str, str]]:
-        """
-        5chanからAI関連スレッドを収集します。
+        """5chanからAI関連スレッドを収集します。
 
         Parameters
         ----------
@@ -284,6 +278,7 @@ class FiveChanExplorer(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト（JSON, Markdown）。
+
         """
         try:
             log_processing_start(self.logger, "5chan AI関連スレッド")
@@ -326,9 +321,7 @@ class FiveChanExplorer(BaseService):
                             continue
 
                         # スレッド詳細を取得
-                        posts, error = await self._get_thread_posts_from_dat(
-                            thread_data["dat_url"]
-                        )
+                        posts, error = await self._get_thread_posts_from_dat(thread_data["dat_url"])
 
                         if error or not posts:
                             continue
@@ -363,7 +356,7 @@ class FiveChanExplorer(BaseService):
             for target_date in sorted(effective_target_dates):
                 if target_date in threads_by_date:
                     date_threads = threads_by_date[target_date]
-                    if len(date_threads) <= total_limit:
+                    if len(date_threads) <= self.TOTAL_LIMIT:
                         selected_threads.extend(date_threads)
                     else:
 
@@ -372,7 +365,7 @@ class FiveChanExplorer(BaseService):
                             return (thread.popularity_score, created)
 
                         sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
-                        selected_threads.extend(sorted_threads[:total_limit])
+                        selected_threads.extend(sorted_threads[: self.TOTAL_LIMIT])
 
             # 既存/新規スレッド数をカウント
             existing_count = 0  # 既存スレッド数（簡略化）
@@ -414,8 +407,7 @@ class FiveChanExplorer(BaseService):
             pass
 
     def _build_board_url(self, board_id: str, server: str) -> str:
-        """
-        板URLを構築します。
+        """板URLを構築します。
 
         Parameters
         ----------
@@ -428,12 +420,12 @@ class FiveChanExplorer(BaseService):
         -------
         str
             構築された板URL。
+
         """
         return f"https://{server}/{board_id}/"
 
     def _get_board_server(self, board_id: str) -> str:
-        """
-        boards.tomlから板のサーバー情報を取得します。
+        """boards.tomlから板のサーバー情報を取得します。
         TASK-068: bbsmenu.html依存を除去し、静的設定から取得
 
         Parameters
@@ -445,6 +437,7 @@ class FiveChanExplorer(BaseService):
         -------
         str
             サーバーのホスト名。存在しない場合はデフォルト値。
+
         """
         # boards.tomlから直接サーバー情報を取得（bbsmenu.html依存除去）
         server = self.board_servers.get(board_id, "mevius.5ch.net")
@@ -452,8 +445,7 @@ class FiveChanExplorer(BaseService):
         return server
 
     async def _get_with_403_tolerance(self, url: str, board_id: str) -> any:
-        """
-        403エラー耐性HTTP GETリクエスト - think harderの結果
+        """403エラー耐性HTTP GETリクエスト - think harderの結果
         複数のUser-Agent、ヘッダー戦略、間隔調整を試行
 
         Parameters
@@ -467,9 +459,8 @@ class FiveChanExplorer(BaseService):
         -------
         any
             HTTPレスポンス（成功時のみ、失敗時はNone）
-        """
-        import asyncio
 
+        """
         strategies = [
             # 戦略1: 標準的なブラウザヘッダー
             {
@@ -512,16 +503,12 @@ class FiveChanExplorer(BaseService):
                     return response
 
                 if response.status_code == 403:
-                    self.logger.warning(
-                        f"   ✗ 戦略{idx}で403エラー: {board_id}, 次の戦略を試行..."
-                    )
+                    self.logger.warning(f"   ✗ 戦略{idx}で403エラー: {board_id}, 次の戦略を試行...")
                     await asyncio.sleep(strategy["wait"])
                     continue
 
                 # その他のエラー
-                self.logger.warning(
-                    f"   ✗ 戦略{idx}でエラー ({response.status_code}): {board_id}"
-                )
+                self.logger.warning(f"   ✗ 戦略{idx}でエラー ({response.status_code}): {board_id}")
                 await asyncio.sleep(strategy["wait"])
 
             except Exception as e:
@@ -532,8 +519,7 @@ class FiveChanExplorer(BaseService):
         return None
 
     async def _get_subject_txt_data(self, board_id: str) -> list[dict]:
-        """
-        subject.txt形式でスレッド一覧を取得（Cloudflare突破成功手法）
+        """subject.txt形式でスレッド一覧を取得（Cloudflare突破成功手法）
 
         Parameters
         ----------
@@ -544,6 +530,7 @@ class FiveChanExplorer(BaseService):
         -------
         List[dict]
             スレッド情報リスト
+
         """
         # 成功確認済みサーバーマッピング（実際のテスト結果に基づく）
         server_mapping = {
@@ -619,11 +606,8 @@ class FiveChanExplorer(BaseService):
         self.logger.error(f"subject.txt取得失敗（全サーバー）: {board_id}")
         return []
 
-    async def _get_thread_posts_from_dat(
-        self, dat_url: str
-    ) -> tuple[list[Post], str | None]:
-        """
-        .datファイルから投稿を取得します。
+    async def _get_thread_posts_from_dat(self, dat_url: str) -> tuple[list[Post], str | None]:
+        """.datファイルから投稿を取得します。
 
         Parameters
         ----------
@@ -634,9 +618,8 @@ class FiveChanExplorer(BaseService):
         -------
         tuple[list[Post], str | None]
             投稿リストとエラーメッセージ（エラーがない場合はNone）。
-        """
-        import asyncio
 
+        """
         try:
             # cloudscraperを使用してCloudflare保護を突破
             scraper = cloudscraper.create_scraper(
@@ -691,13 +674,13 @@ class FiveChanExplorer(BaseService):
             return [], str(e)
 
     async def _summarize_thread(self, thread: Thread) -> None:
-        """
-        スレッドを要約します。
+        """スレッドを要約します。
 
         Parameters
         ----------
         thread : Thread
             要約対象のスレッド。
+
         """
         # 投稿内容を結合
         thread_content = "\n".join(
@@ -737,8 +720,8 @@ class FiveChanExplorer(BaseService):
             )
             thread.summary = summary
         except Exception as e:
-            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
-            thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+            self.logger.error(f"要約の生成中にエラーが発生しました: {e!s}")
+            thread.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
         self, threads: list[Thread], target_dates: list[date]
