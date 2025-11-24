@@ -1,5 +1,4 @@
-"""
-ArxivSummarizer - フォーマット・シリアライズ のテスト
+"""ArxivSummarizer - フォーマット・シリアライズ のテスト
 
 このファイルは元々 test_arxiv_summarizer.py の一部でしたが、
 保守性向上のため機能別に分割されました。
@@ -46,12 +45,10 @@ from nook.services.arxiv_summarizer.arxiv_summarizer import (
     ids=["tex_format", "normal_text", "partial_match"],
 )
 def test_remove_tex_backticks(input_text, expected_output):
-    """
-    Given: 様々な形式の文字列
+    """Given: 様々な形式の文字列
     When: remove_tex_backticksを呼び出す
     Then: 適切に処理される
     """
-
     # When
     result = remove_tex_backticks(input_text)
 
@@ -71,12 +68,10 @@ def test_remove_tex_backticks(input_text, expected_output):
     ids=["with_markers", "without_markers"],
 )
 def test_remove_outer_markdown_markers(input_text, expected_output):
-    """
-    Given: Markdownマーカーの有無が異なる文字列
+    """Given: Markdownマーカーの有無が異なる文字列
     When: remove_outer_markdown_markersを呼び出す
     Then: 適切に処理される
     """
-
     # When
     result = remove_outer_markdown_markers(input_text)
 
@@ -96,12 +91,10 @@ def test_remove_outer_markdown_markers(input_text, expected_output):
     ids=["with_quotes", "without_quotes"],
 )
 def test_remove_outer_singlequotes(input_text, expected_output):
-    """
-    Given: シングルクォートの有無が異なる文字列
+    """Given: シングルクォートの有無が異なる文字列
     When: remove_outer_singlequotesを呼び出す
     Then: 適切に処理される
     """
-
     # When
     result = remove_outer_singlequotes(input_text)
 
@@ -117,8 +110,7 @@ def test_remove_outer_singlequotes(input_text, expected_output):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_paper_info_success(arxiv_service):
-    """
-    Given: 有効な論文情報
+    """Given: 有効な論文情報
     When: _summarize_paper_infoメソッドを呼び出す
     Then: 要約が正常に生成される
     """
@@ -147,8 +139,7 @@ async def test_summarize_paper_info_success(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_paper_info_gpt_error(arxiv_service):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: _summarize_paper_infoメソッドを呼び出す
     Then: エラーメッセージが要約として設定される
     """
@@ -174,8 +165,7 @@ async def test_summarize_paper_info_gpt_error(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_paper_info_removes_tex_backticks(arxiv_service):
-    """
-    Given: TeX形式のバッククォートを含む要約
+    """Given: TeX形式のバッククォートを含む要約
     When: _summarize_paper_infoメソッドを呼び出す
     Then: バッククォートが除去される
     """
@@ -205,8 +195,7 @@ async def test_summarize_paper_info_removes_tex_backticks(arxiv_service):
 
 @pytest.mark.unit
 def test_serialize_papers_success(arxiv_service, paper_info_factory):
-    """
-    Given: 有効な論文情報のリスト
+    """Given: 有効な論文情報のリスト
     When: _serialize_papersメソッドを呼び出す
     Then: 辞書のリストに正常にシリアライズされる
     """
@@ -244,8 +233,7 @@ def test_serialize_papers_success(arxiv_service, paper_info_factory):
 
 @pytest.mark.unit
 def test_serialize_papers_no_published_date(arxiv_service):
-    """
-    Given: published_atがNoneの論文情報
+    """Given: published_atがNoneの論文情報
     When: _serialize_papersメソッドを呼び出す
     Then: 現在時刻が使用される
     """
@@ -296,8 +284,7 @@ def test_serialize_papers_no_published_date(arxiv_service):
     ids=["valid_date", "invalid_date", "no_date"],
 )
 def test_paper_sort_key(arxiv_service, item, expected_tuple):
-    """
-    Given: 様々なpublished_at状態の論文
+    """Given: 様々なpublished_at状態の論文
     When: _paper_sort_keyメソッドを呼び出す
     Then: 正しいソートキーが返される
     """
@@ -316,8 +303,7 @@ def test_paper_sort_key(arxiv_service, item, expected_tuple):
 
 @pytest.mark.unit
 def test_render_markdown_success(arxiv_service, test_datetime):
-    """
-    Given: 有効な論文レコードのリスト
+    """Given: 有効な論文レコードのリスト
     When: _render_markdownメソッドを呼び出す
     Then: Markdown形式のテキストが生成される
     """
@@ -351,8 +337,7 @@ def test_render_markdown_success(arxiv_service, test_datetime):
 
 @pytest.mark.unit
 def test_render_markdown_empty_list(arxiv_service, test_datetime):
-    """
-    Given: 空の論文レコードリスト
+    """Given: 空の論文レコードリスト
     When: _render_markdownメソッドを呼び出す
     Then: ヘッダーのみのMarkdownが生成される
     """
@@ -424,8 +409,7 @@ Summary 2
     ids=["valid_markdown", "empty_text", "invalid_format"],
 )
 def test_parse_markdown(arxiv_service, markdown, expected_result):
-    """
-    Given: 様々な形式のMarkdownテキスト
+    """Given: 様々な形式のMarkdownテキスト
     When: _parse_markdownメソッドを呼び出す
     Then: 適切な論文レコードリストが返される
     """

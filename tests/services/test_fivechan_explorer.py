@@ -1,5 +1,4 @@
-"""
-nook/services/fivechan_explorer/fivechan_explorer.py のテスト
+"""nook/services/fivechan_explorer/fivechan_explorer.py のテスト
 
 テスト観点:
 - FiveChanExplorerの初期化
@@ -52,8 +51,7 @@ def huge_response_data():
 
 @pytest.mark.unit
 def test_init_with_default_storage_dir(mock_env_vars):
-    """
-    Given: デフォルトのstorage_dir
+    """Given: デフォルトのstorage_dir
     When: FiveChanExplorerを初期化
     Then: インスタンスが正常に作成される
     """
@@ -73,8 +71,7 @@ def test_init_with_default_storage_dir(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_success(mock_env_vars):
-    """
-    Given: 有効な掲示板データ
+    """Given: 有効な掲示板データ
     When: collectメソッドを呼び出す
     Then: データが正常に取得・保存される
     """
@@ -111,8 +108,7 @@ async def test_collect_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_network_error(mock_env_vars):
-    """
-    Given: ネットワークエラーが発生
+    """Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
     Then: エラーがログされるが、例外は発生しない
     """
@@ -133,8 +129,7 @@ async def test_collect_network_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_gpt_api_error(mock_env_vars):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: collectメソッドを呼び出す
     Then: エラーが適切に処理される
     """
@@ -166,8 +161,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_full_workflow_collect_and_save(mock_env_vars):
-    """
-    Given: 完全なワークフロー
+    """Given: 完全なワークフロー
     When: collect→save→cleanupを実行
     Then: 全フローが正常に動作
     """
@@ -206,8 +200,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_subject_txt_data_success(mock_env_vars):
-    """
-    Given: 有効なShift_JISエンコードのsubject.txt
+    """Given: 有効なShift_JISエンコードのsubject.txt
     When: _get_subject_txt_dataを呼び出す
     Then: スレッド一覧が正しく解析される
     """
@@ -244,8 +237,7 @@ async def test_get_subject_txt_data_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_subject_txt_data_malformed_encoding(mock_env_vars):
-    """
-    Given: 文字化けを含むsubject.txt（無効バイト含む）
+    """Given: 文字化けを含むsubject.txt（無効バイト含む）
     When: _get_subject_txt_dataを呼び出す
     Then: errors='ignore'で文字化け部分を無視して処理
     """
@@ -277,8 +269,7 @@ async def test_get_subject_txt_data_malformed_encoding(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_subject_txt_data_malformed_format(mock_env_vars):
-    """
-    Given: 不正なフォーマットのsubject.txt（正規表現マッチ失敗）
+    """Given: 不正なフォーマットのsubject.txt（正規表現マッチ失敗）
     When: _get_subject_txt_dataを呼び出す
     Then: マッチしない行はスキップされる
     """
@@ -313,8 +304,7 @@ async def test_get_subject_txt_data_malformed_format(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_subject_txt_data_subdomain_retry(mock_env_vars):
-    """
-    Given: 最初のサーバーが失敗、2番目のサーバーが成功
+    """Given: 最初のサーバーが失敗、2番目のサーバーが成功
     When: _get_subject_txt_dataを呼び出す
     Then: 複数サブドメインをリトライして成功
     """
@@ -347,8 +337,7 @@ async def test_get_subject_txt_data_subdomain_retry(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_subject_txt_data_all_servers_fail(mock_env_vars):
-    """
-    Given: すべてのサーバーが失敗
+    """Given: すべてのサーバーが失敗
     When: _get_subject_txt_dataを呼び出す
     Then: 空配列が返される
     """
@@ -372,8 +361,7 @@ async def test_get_subject_txt_data_all_servers_fail(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_subject_txt_data_encoding_fallback(mock_env_vars):
-    """
-    Given: shift_jisで失敗するが、cp932で成功するデータ
+    """Given: shift_jisで失敗するが、cp932で成功するデータ
     When: _get_subject_txt_dataを呼び出す
     Then: エンコーディングフォールバックで正常処理
     """
@@ -410,8 +398,7 @@ async def test_get_subject_txt_data_encoding_fallback(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_thread_posts_from_dat_success(mock_env_vars):
-    """
-    Given: 有効なdat形式データ（<>区切り）
+    """Given: 有効なdat形式データ（<>区切り）
     When: _get_thread_posts_from_datを呼び出す
     Then: 投稿リストが正しく解析される
     """
@@ -454,8 +441,7 @@ async def test_get_thread_posts_from_dat_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
-    """
-    Given: Shift_JISエンコードのdatファイル
+    """Given: Shift_JISエンコードのdatファイル
     When: _get_thread_posts_from_datを呼び出す
     Then: 正しくデコードされる
     """
@@ -491,8 +477,7 @@ async def test_get_thread_posts_from_dat_shift_jis_decode(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_thread_posts_from_dat_malformed_line(mock_env_vars):
-    """
-    Given: <>区切りが不足している不正な行
+    """Given: <>区切りが不足している不正な行
     When: _get_thread_posts_from_datを呼び出す
     Then: 不正な行はスキップされる
     """
@@ -532,8 +517,7 @@ another_invalid<>only_two
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_thread_posts_from_dat_http_error(mock_env_vars):
-    """
-    Given: HTTPエラー（404など）
+    """Given: HTTPエラー（404など）
     When: _get_thread_posts_from_datを呼び出す
     Then: 空配列とNoneを返す
     """
@@ -566,8 +550,7 @@ async def test_get_thread_posts_from_dat_http_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_thread_posts_from_dat_empty_content(mock_env_vars):
-    """
-    Given: 空のdatファイル
+    """Given: 空のdatファイル
     When: _get_thread_posts_from_datを呼び出す
     Then: 空配列を返す
     """
@@ -599,8 +582,7 @@ async def test_get_thread_posts_from_dat_empty_content(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_thread_posts_from_dat_encoding_cascade(mock_env_vars):
-    """
-    Given: 文字化けを含むdatファイル
+    """Given: 文字化けを含むdatファイル
     When: _get_thread_posts_from_datを呼び出す
     Then: エンコーディングカスケード（shift_jis→cp932→utf-8）で処理
     """
@@ -641,8 +623,7 @@ async def test_get_thread_posts_from_dat_encoding_cascade(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_retry_success(mock_env_vars):
-    """
-    Given: 即座に200レスポンス
+    """Given: 即座に200レスポンス
     When: _get_with_retryを呼び出す
     Then: リトライなしで成功
     """
@@ -667,8 +648,7 @@ async def test_get_with_retry_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_retry_rate_limit_429(mock_env_vars):
-    """
-    Given: 429レート制限エラー（Retry-Afterヘッダー付き）
+    """Given: 429レート制限エラー（Retry-Afterヘッダー付き）
     When: _get_with_retryを呼び出す
     Then: Retry-After時間待機後にリトライ
     """
@@ -695,8 +675,7 @@ async def test_get_with_retry_rate_limit_429(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_retry_server_error_500(mock_env_vars):
-    """
-    Given: 500系サーバーエラー
+    """Given: 500系サーバーエラー
     When: _get_with_retryを呼び出す
     Then: 指数バックオフでリトライ
     """
@@ -724,8 +703,7 @@ async def test_get_with_retry_server_error_500(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_retry_connection_error(mock_env_vars):
-    """
-    Given: 接続エラーが発生
+    """Given: 接続エラーが発生
     When: _get_with_retryを呼び出す
     Then: 例外からリトライして成功
     """
@@ -749,8 +727,7 @@ async def test_get_with_retry_connection_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_retry_max_retries_exceeded(mock_env_vars):
-    """
-    Given: 最大リトライ回数を超える
+    """Given: 最大リトライ回数を超える
     When: _get_with_retryを呼び出す
     Then: 最終的にエラーを送出
     """
@@ -773,8 +750,7 @@ async def test_get_with_retry_max_retries_exceeded(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_recent_thread(mock_env_vars):
-    """
-    Given: 最近作成されたスレッド（1時間前）
+    """Given: 最近作成されたスレッド（1時間前）
     When: _calculate_popularityを呼び出す
     Then: recency_bonusが高い
     """
@@ -798,8 +774,7 @@ def test_calculate_popularity_recent_thread(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_old_thread(mock_env_vars):
-    """
-    Given: 古いスレッド（48時間前）
+    """Given: 古いスレッド（48時間前）
     When: _calculate_popularityを呼び出す
     Then: recency_bonusが低い
     """
@@ -823,8 +798,7 @@ def test_calculate_popularity_old_thread(mock_env_vars):
 
 @pytest.mark.unit
 def test_get_random_user_agent(mock_env_vars):
-    """
-    Given: user_agentsリスト
+    """Given: user_agentsリスト
     When: _get_random_user_agentを複数回呼び出す
     Then: ランダムなUser-Agentが選択される
     """
@@ -845,8 +819,7 @@ def test_get_random_user_agent(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_backoff_delay(mock_env_vars):
-    """
-    Given: リトライ回数
+    """Given: リトライ回数
     When: _calculate_backoff_delayを呼び出す
     Then: 指数バックオフの遅延時間が計算される
     """
@@ -864,8 +837,7 @@ def test_calculate_backoff_delay(mock_env_vars):
 
 @pytest.mark.unit
 def test_build_board_url(mock_env_vars):
-    """
-    Given: 板IDとサーバー
+    """Given: 板IDとサーバー
     When: _build_board_urlを呼び出す
     Then: 正しい板URLが構築される
     """
@@ -881,8 +853,7 @@ def test_build_board_url(mock_env_vars):
 
 @pytest.mark.unit
 def test_get_board_server(mock_env_vars):
-    """
-    Given: 板ID
+    """Given: 板ID
     When: _get_board_serverを呼び出す
     Then: boards.tomlから正しいサーバー情報を取得
     """
@@ -914,8 +885,7 @@ def test_get_board_server(mock_env_vars):
 @pytest.mark.security
 @pytest.mark.asyncio
 async def test_malicious_input_in_thread_title(mock_env_vars):
-    """
-    Given: XSS/SQLインジェクション等の悪意のある入力がスレッドタイトルに含まれる
+    """Given: XSS/SQLインジェクション等の悪意のある入力がスレッドタイトルに含まれる
     When: subject.txtをパース
     Then: エラーなく処理され、データが保存される（サニタイゼーションは表示層で行う設計）
 
@@ -974,8 +944,7 @@ async def test_malicious_input_in_thread_title(mock_env_vars):
 @pytest.mark.security
 @pytest.mark.asyncio
 async def test_dos_attack_oversized_response(mock_env_vars, huge_response_data):
-    """
-    Given: 10MBの巨大なレスポンス（DoS攻撃シミュレーション）
+    """Given: 10MBの巨大なレスポンス（DoS攻撃シミュレーション）
     When: subject.txtを取得
     Then: メモリオーバーフローせずに処理または拒否
 
@@ -1027,8 +996,7 @@ async def test_dos_attack_oversized_response(mock_env_vars, huge_response_data):
 @pytest.mark.security
 @pytest.mark.asyncio
 async def test_encoding_bomb_attack(mock_env_vars, encoding_bomb_data):
-    """
-    Given: エンコーディングボム（Shift_JISスペース100万個 = 2MB → 数GB）
+    """Given: エンコーディングボム（Shift_JISスペース100万個 = 2MB → 数GB）
     When: subject.txtをデコード
     Then: 安全に処理（メモリ枯渇しない）
 
@@ -1094,8 +1062,7 @@ async def test_encoding_bomb_attack(mock_env_vars, encoding_bomb_data):
     ids=["xss", "sql_injection", "oversized_name"],
 )
 async def test_dat_parsing_malicious_input(mock_env_vars, malicious_dat_content, test_id):
-    """
-    Given: 悪意のある入力データがDAT形式に含まれる
+    """Given: 悪意のある入力データがDAT形式に含まれる
     When: DAT解析を実行
     Then: エラーなく処理される（サニタイゼーションは表示層の責任）
 
@@ -1158,8 +1125,7 @@ async def test_dat_parsing_malicious_input(mock_env_vars, malicious_dat_content,
 @pytest.mark.performance
 @pytest.mark.asyncio
 async def test_concurrent_thread_fetching_performance(mock_env_vars):
-    """
-    Given: 複数スレッドの並行取得
+    """Given: 複数スレッドの並行取得
     When: 10個のスレッドを同時取得
     Then: 適切な並行処理により高速に完了
 
@@ -1225,8 +1191,7 @@ async def test_concurrent_thread_fetching_performance(mock_env_vars):
 @pytest.mark.performance
 @pytest.mark.asyncio
 async def test_memory_efficiency_large_dataset(mock_env_vars):
-    """
-    Given: 大量のスレッドデータ（100個）
+    """Given: 大量のスレッドデータ（100個）
     When: 処理を実行
     Then: メモリリークなく効率的に処理
 
@@ -1277,8 +1242,7 @@ async def test_memory_efficiency_large_dataset(mock_env_vars):
 @pytest.mark.performance
 @pytest.mark.asyncio
 async def test_network_timeout_handling(mock_env_vars):
-    """
-    Given: ネットワークタイムアウト
+    """Given: ネットワークタイムアウト
     When: スレッドデータ取得
     Then: 適切なタイムアウトエラーハンドリング（無限待機しない）
 
@@ -1322,8 +1286,7 @@ async def test_network_timeout_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.performance
 def test_board_server_cache_efficiency(mock_env_vars):
-    """
-    Given: 同じ板を複数回アクセス
+    """Given: 同じ板を複数回アクセス
     When: _get_board_serverを繰り返し呼び出し
     Then: キャッシュにより高速化
 
@@ -1359,8 +1322,7 @@ def test_board_server_cache_efficiency(mock_env_vars):
 @pytest.mark.performance
 @pytest.mark.asyncio
 async def test_retry_backoff_performance(mock_env_vars):
-    """
-    Given: リトライが必要な状況
+    """Given: リトライが必要な状況
     When: 指数バックオフでリトライ
     Then: 適切な遅延時間でリトライ
 
@@ -1414,8 +1376,7 @@ async def test_retry_backoff_performance(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_first_strategy_success(mock_env_vars):
-    """
-    Given: 1回目の戦略で200を返すモック
+    """Given: 1回目の戦略で200を返すモック
     When: _get_with_403_toleranceを呼び出す
     Then: リトライなしで即座に成功
     """
@@ -1446,8 +1407,7 @@ async def test_get_with_403_tolerance_first_strategy_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_second_strategy_success(mock_env_vars):
-    """
-    Given: 1回目は403、2回目は200
+    """Given: 1回目は403、2回目は200
     When: _get_with_403_toleranceを呼び出す
     Then: 2回目の戦略で成功
     """
@@ -1477,8 +1437,7 @@ async def test_get_with_403_tolerance_second_strategy_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_cloudflare_detection(mock_env_vars):
-    """
-    Given: Cloudflareチャレンジページを含む200レスポンス
+    """Given: Cloudflareチャレンジページを含む200レスポンス
     When: _get_with_403_toleranceを呼び出す
     Then: Cloudflare検出してリトライ
     """
@@ -1507,8 +1466,7 @@ async def test_get_with_403_tolerance_cloudflare_detection(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_403_with_valid_content(mock_env_vars):
-    """
-    Given: 403だが有効コンテンツ（>100文字）を含むレスポンス
+    """Given: 403だが有効コンテンツ（>100文字）を含むレスポンス
     When: _get_with_403_toleranceを呼び出す
     Then: 403でも有効コンテンツなので成功
     """
@@ -1538,8 +1496,7 @@ async def test_get_with_403_tolerance_403_with_valid_content(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_all_strategies_fail(mock_env_vars):
-    """
-    Given: 全戦略で403エラー
+    """Given: 全戦略で403エラー
     When: _get_with_403_toleranceを呼び出す
     Then: 代替エンドポイント戦略を試行
     """
@@ -1573,8 +1530,7 @@ async def test_get_with_403_tolerance_all_strategies_fail(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_connection_error_then_success(mock_env_vars):
-    """
-    Given: 最初の2戦略で接続エラー、3回目で成功
+    """Given: 最初の2戦略で接続エラー、3回目で成功
     When: _get_with_403_toleranceを呼び出す
     Then: 例外を処理して3回目で成功
     """
@@ -1605,8 +1561,7 @@ async def test_get_with_403_tolerance_connection_error_then_success(mock_env_var
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_cloudflare_with_long_wait(mock_env_vars):
-    """
-    Given: Cloudflare 403エラー（challenge検出）
+    """Given: Cloudflare 403エラー（challenge検出）
     When: _get_with_403_toleranceを呼び出す
     Then: 30秒待機後にリトライ
     """
@@ -1636,8 +1591,7 @@ async def test_get_with_403_tolerance_cloudflare_with_long_wait(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_status_code_variations(mock_env_vars):
-    """
-    Given: 様々なステータスコード（500, 502, 503）
+    """Given: 様々なステータスコード（500, 502, 503）
     When: _get_with_403_toleranceを呼び出す
     Then: 各エラーを処理してリトライ
     """
@@ -1669,8 +1623,7 @@ async def test_get_with_403_tolerance_status_code_variations(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_strategy_wait_times(mock_env_vars):
-    """
-    Given: 複数戦略の実行
+    """Given: 複数戦略の実行
     When: _get_with_403_toleranceを呼び出す
     Then: 各戦略の待機時間が段階的に増加（2秒、5秒、8秒...）
     """
@@ -1705,8 +1658,7 @@ async def test_get_with_403_tolerance_strategy_wait_times(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_user_agent_rotation(mock_env_vars):
-    """
-    Given: 各戦略で異なるUser-Agentを使用
+    """Given: 各戦略で異なるUser-Agentを使用
     When: _get_with_403_toleranceを呼び出す
     Then: 5つのUser-Agent戦略が順次試行される
     """
@@ -1739,8 +1691,7 @@ async def test_get_with_403_tolerance_user_agent_rotation(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_403_with_small_content(mock_env_vars):
-    """
-    Given: 403エラーで100文字未満のコンテンツ
+    """Given: 403エラーで100文字未満のコンテンツ
     When: _get_with_403_toleranceを呼び出す
     Then: 無効コンテンツとして次の戦略を試行
     """
@@ -1770,8 +1721,7 @@ async def test_get_with_403_tolerance_403_with_small_content(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_mixed_errors_and_cloudflare(mock_env_vars):
-    """
-    Given: 複数のエラータイプが混在（403、Cloudflare、接続エラー）
+    """Given: 複数のエラータイプが混在（403、Cloudflare、接続エラー）
     When: _get_with_403_toleranceを呼び出す
     Then: すべてのエラータイプを処理して最終的に成功
     """
@@ -1802,8 +1752,7 @@ async def test_get_with_403_tolerance_mixed_errors_and_cloudflare(mock_env_vars)
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_immediate_200_no_cloudflare(mock_env_vars):
-    """
-    Given: 即座に200を返し、Cloudflareチャレンジなし
+    """Given: 即座に200を返し、Cloudflareチャレンジなし
     When: _get_with_403_toleranceを呼び出す
     Then: 追加のリトライなしで即座に成功
     """
@@ -1833,8 +1782,7 @@ async def test_get_with_403_tolerance_immediate_200_no_cloudflare(mock_env_vars)
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_unexpected_exception(mock_env_vars):
-    """
-    Given: 予期しない例外（戦略実行中の予期しないエラー）
+    """Given: 予期しない例外（戦略実行中の予期しないエラー）
     When: _get_with_403_toleranceを呼び出す
     Then: 例外を処理して次の戦略を試行
     """
@@ -1864,8 +1812,7 @@ async def test_get_with_403_tolerance_unexpected_exception(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_with_403_tolerance_alternative_endpoint_success(mock_env_vars):
-    """
-    Given: 全User-Agent戦略が失敗、代替エンドポイント戦略で成功
+    """Given: 全User-Agent戦略が失敗、代替エンドポイント戦略で成功
     When: _get_with_403_toleranceを呼び出す
     Then: _try_alternative_endpointsが呼び出されて成功
     """
@@ -1912,8 +1859,7 @@ async def test_get_with_403_tolerance_alternative_endpoint_success(mock_env_vars
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_first_success(mock_env_vars):
-    """
-    Given: 1番目の代替URL（sp.5ch.net）で200
+    """Given: 1番目の代替URL（sp.5ch.net）で200
     When: _try_alternative_endpointsを呼び出す
     Then: リトライなしで即座に成功
     """
@@ -1942,8 +1888,7 @@ async def test_try_alternative_endpoints_first_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_all_fail(mock_env_vars):
-    """
-    Given: 全代替URLで失敗
+    """Given: 全代替URLで失敗
     When: _try_alternative_endpointsを呼び出す
     Then: Noneを返却
     """
@@ -1971,8 +1916,7 @@ async def test_try_alternative_endpoints_all_fail(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_second_success(mock_env_vars):
-    """
-    Given: 1番目失敗、2番目の代替URLで成功
+    """Given: 1番目失敗、2番目の代替URLで成功
     When: _try_alternative_endpointsを呼び出す
     Then: 2番目で成功
     """
@@ -2002,8 +1946,7 @@ async def test_try_alternative_endpoints_second_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_403_with_valid_content(mock_env_vars):
-    """
-    Given: 403だが有効コンテンツ（>50文字）
+    """Given: 403だが有効コンテンツ（>50文字）
     When: _try_alternative_endpointsを呼び出す
     Then: 403でも有効コンテンツなので成功
     """
@@ -2033,8 +1976,7 @@ async def test_try_alternative_endpoints_403_with_valid_content(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_cloudflare_rejection(mock_env_vars):
-    """
-    Given: Cloudflareチャレンジページ（無効コンテンツ）
+    """Given: Cloudflareチャレンジページ（無効コンテンツ）
     When: _try_alternative_endpointsを呼び出す
     Then: 無効コンテンツとして次の戦略を試行
     """
@@ -2063,8 +2005,7 @@ async def test_try_alternative_endpoints_cloudflare_rejection(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_connection_error(mock_env_vars):
-    """
-    Given: 接続エラーが発生
+    """Given: 接続エラーが発生
     When: _try_alternative_endpointsを呼び出す
     Then: 例外を処理して次の戦略を試行
     """
@@ -2093,8 +2034,7 @@ async def test_try_alternative_endpoints_connection_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_short_content_rejection(mock_env_vars):
-    """
-    Given: 200だがコンテンツが短すぎる（<50文字）
+    """Given: 200だがコンテンツが短すぎる（<50文字）
     When: _try_alternative_endpointsを呼び出す
     Then: 無効コンテンツとして次の戦略を試行
     """
@@ -2123,8 +2063,7 @@ async def test_try_alternative_endpoints_short_content_rejection(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_5ch_2ch_variations(mock_env_vars):
-    """
-    Given: 代替URL戦略（sp.5ch.net、2ch.net、subject.txt等）
+    """Given: 代替URL戦略（sp.5ch.net、2ch.net、subject.txt等）
     When: _try_alternative_endpointsを呼び出す
     Then: 5つの代替戦略が順次試行される
     """
@@ -2157,8 +2096,7 @@ async def test_try_alternative_endpoints_5ch_2ch_variations(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_content_validation(mock_env_vars):
-    """
-    Given: コンテンツに"5ch"または"2ch"または改行を含む
+    """Given: コンテンツに"5ch"または"2ch"または改行を含む
     When: _try_alternative_endpointsを呼び出す
     Then: コンテンツが有効と判定される
     """
@@ -2187,8 +2125,7 @@ async def test_try_alternative_endpoints_content_validation(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_try_alternative_endpoints_wait_intervals(mock_env_vars):
-    """
-    Given: 複数の代替戦略を試行
+    """Given: 複数の代替戦略を試行
     When: _try_alternative_endpointsを呼び出す
     Then: 各戦略の間に3秒の待機時間
     """
@@ -2225,8 +2162,7 @@ async def test_try_alternative_endpoints_wait_intervals(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_keyword_matching(mock_env_vars):
-    """
-    Given: AIキーワードを含むスレッド
+    """Given: AIキーワードを含むスレッド
     When: _retrieve_ai_threadsを呼び出す
     Then: AIキーワードマッチングで正しくフィルタリング
     """
@@ -2290,8 +2226,7 @@ async def test_retrieve_ai_threads_keyword_matching(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_deduplication(mock_env_vars):
-    """
-    Given: 重複するタイトルのスレッド
+    """Given: 重複するタイトルのスレッド
     When: _retrieve_ai_threadsを呼び出す
     Then: 重複排除処理が正しく動作
     """
@@ -2346,8 +2281,7 @@ async def test_retrieve_ai_threads_deduplication(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_limit_enforcement(mock_env_vars):
-    """
-    Given: 多数のAI関連スレッド
+    """Given: 多数のAI関連スレッド
     When: limitパラメータを指定して_retrieve_ai_threadsを呼び出す
     Then: 指定した制限数で取得を停止
     """
@@ -2396,8 +2330,7 @@ async def test_retrieve_ai_threads_limit_enforcement(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_no_posts_skip(mock_env_vars):
-    """
-    Given: 投稿取得に失敗したスレッド
+    """Given: 投稿取得に失敗したスレッド
     When: _retrieve_ai_threadsを呼び出す
     Then: 投稿がないスレッドはスキップ
     """
@@ -2458,8 +2391,7 @@ async def test_retrieve_ai_threads_no_posts_skip(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_subject_txt_failure(mock_env_vars):
-    """
-    Given: subject.txt取得に失敗
+    """Given: subject.txt取得に失敗
     When: _retrieve_ai_threadsを呼び出す
     Then: 空配列を返す
     """
@@ -2485,8 +2417,7 @@ async def test_retrieve_ai_threads_subject_txt_failure(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_popularity_calculation(mock_env_vars):
-    """
-    Given: 異なる投稿数のスレッド
+    """Given: 異なる投稿数のスレッド
     When: _retrieve_ai_threadsを呼び出す
     Then: popularity_scoreが正しく計算される
     """
@@ -2536,8 +2467,7 @@ async def test_retrieve_ai_threads_popularity_calculation(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_access_interval(mock_env_vars):
-    """
-    Given: 複数のスレッド取得
+    """Given: 複数のスレッド取得
     When: _retrieve_ai_threadsを呼び出す
     Then: スレッド間に2秒のアクセス間隔
     """
@@ -2586,8 +2516,7 @@ async def test_retrieve_ai_threads_access_interval(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_exception_handling(mock_env_vars):
-    """
-    Given: 予期しない例外が発生
+    """Given: 予期しない例外が発生
     When: _retrieve_ai_threadsを呼び出す
     Then: 例外を処理して空配列を返す
     """
@@ -2621,8 +2550,7 @@ async def test_retrieve_ai_threads_exception_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_empty_thread_handling(mock_env_vars):
-    """
-    Given: レスが0件のスレッド
+    """Given: レスが0件のスレッド
     When: _get_thread_posts_from_datを呼び出す
     Then: 空配列を返す
     """
@@ -2662,8 +2590,7 @@ async def test_empty_thread_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_single_post_thread(mock_env_vars):
-    """
-    Given: OP投稿のみ（レス0件）のスレッド
+    """Given: OP投稿のみ（レス0件）のスレッド
     When: _get_thread_posts_from_datを呼び出す
     Then: 1つの投稿のみを正しく処理
     """
@@ -2700,8 +2627,7 @@ async def test_single_post_thread(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_special_characters_in_post(mock_env_vars):
-    """
-    Given: 特殊文字（絵文字、HTML実体参照等）を含むレス
+    """Given: 特殊文字（絵文字、HTML実体参照等）を含むレス
     When: _get_thread_posts_from_datを呼び出す
     Then: 特殊文字を正しくパース
     """
@@ -2735,8 +2661,7 @@ async def test_special_characters_in_post(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_large_thread_processing(mock_env_vars):
-    """
-    Given: 1000レス超の巨大スレッド
+    """Given: 1000レス超の巨大スレッド
     When: _get_thread_posts_from_datを呼び出す
     Then: メモリ効率的に処理（最大MAX_POSTS_PER_THREAD投稿まで返却）
     """
@@ -2783,8 +2708,7 @@ async def test_large_thread_processing(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_unicode_handling(mock_env_vars):
-    """
-    Given: 日本語、絵文字等のUnicode文字列
+    """Given: 日本語、絵文字等のUnicode文字列
     When: _get_thread_posts_from_datを呼び出す
     Then: Unicode文字列を正しく処理
     """
@@ -2824,8 +2748,7 @@ async def test_unicode_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_partial_data_fetch_success(mock_env_vars):
-    """
-    Given: 一部のレスのみ取得成功
+    """Given: 一部のレスのみ取得成功
     When: _get_thread_posts_from_datを呼び出す
     Then: 部分データを返す
     """
@@ -2864,8 +2787,7 @@ async def test_partial_data_fetch_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fallback_strategy_final_case(mock_env_vars):
-    """
-    Given: 全代替エンドポイントが失敗
+    """Given: 全代替エンドポイントが失敗
     When: _try_alternative_endpointsを呼び出す
     Then: 最終フォールバック戦略を実行してNoneを返す
     """
@@ -2893,8 +2815,7 @@ async def test_fallback_strategy_final_case(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_graceful_degradation(mock_env_vars):
-    """
-    Given: 一部機能が失敗
+    """Given: 一部機能が失敗
     When: collectメソッドを呼び出す
     Then: 他機能は継続して動作
     """

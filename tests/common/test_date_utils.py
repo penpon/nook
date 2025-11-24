@@ -31,8 +31,7 @@ JST = timezone(timedelta(hours=9))
 
 @pytest.mark.unit
 def test_local_timezone_returns_jst():
-    """
-    Given: なし
+    """Given: なし
     When: _local_timezoneを呼び出す
     Then: timezone(timedelta(hours=9))が返される
     """
@@ -50,8 +49,7 @@ def test_local_timezone_returns_jst():
 
 @pytest.mark.unit
 def test_compute_target_dates_default():
-    """
-    Given: 引数なし
+    """Given: 引数なし
     When: compute_target_datesを呼び出す
     Then: 今日のJSTの日付1つのリストが返される
     """
@@ -63,8 +61,7 @@ def test_compute_target_dates_default():
 
 @pytest.mark.unit
 def test_compute_target_dates_one_day():
-    """
-    Given: days=1, base_date=date(2024,1,15)
+    """Given: days=1, base_date=date(2024,1,15)
     When: compute_target_datesを呼び出す
     Then: [date(2024,1,15)]が返される
     """
@@ -75,8 +72,7 @@ def test_compute_target_dates_one_day():
 
 @pytest.mark.unit
 def test_compute_target_dates_three_days():
-    """
-    Given: days=3, base_date=date(2024,1,15)
+    """Given: days=3, base_date=date(2024,1,15)
     When: compute_target_datesを呼び出す
     Then: [date(2024,1,15), date(2024,1,14), date(2024,1,13)]が返される
     """
@@ -87,8 +83,7 @@ def test_compute_target_dates_three_days():
 
 @pytest.mark.unit
 def test_compute_target_dates_seven_days():
-    """
-    Given: days=7, base_date=date(2024,1,15)
+    """Given: days=7, base_date=date(2024,1,15)
     When: compute_target_datesを呼び出す
     Then: 7日分のリスト（降順）が返される
     """
@@ -103,8 +98,7 @@ def test_compute_target_dates_seven_days():
 
 @pytest.mark.unit
 def test_compute_target_dates_zero_days():
-    """
-    Given: days=0, base_date=date(2024,1,15)
+    """Given: days=0, base_date=date(2024,1,15)
     When: compute_target_datesを呼び出す
     Then: [date(2024,1,15)]（1日分）が返される
     """
@@ -115,8 +109,7 @@ def test_compute_target_dates_zero_days():
 
 @pytest.mark.unit
 def test_compute_target_dates_negative_days():
-    """
-    Given: days=-5, base_date=date(2024,1,15)
+    """Given: days=-5, base_date=date(2024,1,15)
     When: compute_target_datesを呼び出す
     Then: [date(2024,1,15)]（1日分）が返される
     """
@@ -127,8 +120,7 @@ def test_compute_target_dates_negative_days():
 
 @pytest.mark.unit
 def test_compute_target_dates_none_days():
-    """
-    Given: days=None, base_date=date(2024,1,15)
+    """Given: days=None, base_date=date(2024,1,15)
     When: compute_target_datesを呼び出す
     Then: [date(2024,1,15)]（1日分）が返される
     """
@@ -139,8 +131,7 @@ def test_compute_target_dates_none_days():
 
 @pytest.mark.unit
 def test_compute_target_dates_none_base_date():
-    """
-    Given: days=1, base_date=None
+    """Given: days=1, base_date=None
     When: compute_target_datesを呼び出す
     Then: 今日のJST日付が返される
     """
@@ -152,8 +143,7 @@ def test_compute_target_dates_none_base_date():
 
 @pytest.mark.unit
 def test_compute_target_dates_cross_month():
-    """
-    Given: days=5, base_date=date(2024,1,3)
+    """Given: days=5, base_date=date(2024,1,3)
     When: compute_target_datesを呼び出す
     Then: [2024-01-03, 01-02, 01-01, 2023-12-31, 12-30]が返される
     """
@@ -170,8 +160,7 @@ def test_compute_target_dates_cross_month():
 
 @pytest.mark.unit
 def test_compute_target_dates_cross_year():
-    """
-    Given: days=5, base_date=date(2024,1,2)
+    """Given: days=5, base_date=date(2024,1,2)
     When: compute_target_datesを呼び出す
     Then: [2024-01-02, 01-01, 2023-12-31, 12-30, 12-29]が返される
     """
@@ -188,8 +177,7 @@ def test_compute_target_dates_cross_year():
 
 @pytest.mark.unit
 def test_compute_target_dates_leap_year():
-    """
-    Given: days=2, base_date=date(2024,3,1)
+    """Given: days=2, base_date=date(2024,3,1)
     When: compute_target_datesを呼び出す
     Then: [2024-03-01, 02-29]（うるう日含む）が返される
     """
@@ -200,8 +188,7 @@ def test_compute_target_dates_leap_year():
 
 @pytest.mark.unit
 def test_compute_target_dates_large_days():
-    """
-    Given: days=365, base_date=date(2024,12,31)
+    """Given: days=365, base_date=date(2024,12,31)
     When: compute_target_datesを呼び出す
     Then: 365日分のリストが返される
     """
@@ -216,8 +203,7 @@ def test_compute_target_dates_large_days():
 
 @pytest.mark.unit
 def test_compute_target_dates_descending_order():
-    """
-    Given: days=5, base_date=date(2024,1,15)
+    """Given: days=5, base_date=date(2024,1,15)
     When: compute_target_datesを呼び出す
     Then: リストが降順（新しい順）になっている
     """
@@ -234,8 +220,7 @@ def test_compute_target_dates_descending_order():
 
 @pytest.mark.unit
 def test_target_dates_set_returns_set():
-    """
-    Given: days=3, base_date=date(2024,1,15)
+    """Given: days=3, base_date=date(2024,1,15)
     When: target_dates_setを呼び出す
     Then: set型で3要素が返される
     """
@@ -246,8 +231,7 @@ def test_target_dates_set_returns_set():
 
 @pytest.mark.unit
 def test_target_dates_set_matches_compute():
-    """
-    Given: days=5, base_date=date(2024,1,15)
+    """Given: days=5, base_date=date(2024,1,15)
     When: target_dates_setを呼び出す
     Then: compute_target_datesの結果と一致
     """
@@ -258,8 +242,7 @@ def test_target_dates_set_matches_compute():
 
 @pytest.mark.unit
 def test_target_dates_set_no_duplicates():
-    """
-    Given: days=3, base_date=date(2024,1,15)
+    """Given: days=3, base_date=date(2024,1,15)
     When: target_dates_setを呼び出す
     Then: set要素数=3（重複なし）
     """
@@ -277,8 +260,7 @@ def test_target_dates_set_no_duplicates():
 
 @pytest.mark.unit
 def test_normalize_datetime_utc_to_jst():
-    """
-    Given: datetime(2024,1,15,10,30, tzinfo=UTC)
+    """Given: datetime(2024,1,15,10,30, tzinfo=UTC)
     When: normalize_datetime_to_localを呼び出す
     Then: datetime(2024,1,15,19,30, tzinfo=JST)が返される
     """
@@ -290,8 +272,7 @@ def test_normalize_datetime_utc_to_jst():
 
 @pytest.mark.unit
 def test_normalize_datetime_jst_to_jst():
-    """
-    Given: datetime(2024,1,15,10,30, tzinfo=JST)
+    """Given: datetime(2024,1,15,10,30, tzinfo=JST)
     When: normalize_datetime_to_localを呼び出す
     Then: datetime(2024,1,15,10,30, tzinfo=JST)が返される（変換なし）
     """
@@ -303,8 +284,7 @@ def test_normalize_datetime_jst_to_jst():
 
 @pytest.mark.unit
 def test_normalize_datetime_naive():
-    """
-    Given: datetime(2024,1,15,10,30)（tzinfo=None）
+    """Given: datetime(2024,1,15,10,30)（tzinfo=None）
     When: normalize_datetime_to_localを呼び出す
     Then: UTCとして扱われJSTに変換される (10:30 UTC -> 19:30 JST)
     """
@@ -316,8 +296,7 @@ def test_normalize_datetime_naive():
 
 @pytest.mark.unit
 def test_normalize_datetime_negative_timezone():
-    """
-    Given: datetime(2024,1,15,10,30, tzinfo=UTC-5)
+    """Given: datetime(2024,1,15,10,30, tzinfo=UTC-5)
     When: normalize_datetime_to_localを呼び出す
     Then: JSTに変換される
     """
@@ -334,8 +313,7 @@ def test_normalize_datetime_negative_timezone():
 
 @pytest.mark.unit
 def test_normalize_datetime_none_input():
-    """
-    Given: dt=None
+    """Given: dt=None
     When: normalize_datetime_to_localを呼び出す
     Then: Noneが返される
     """
@@ -345,8 +323,7 @@ def test_normalize_datetime_none_input():
 
 @pytest.mark.unit
 def test_normalize_datetime_utc_midnight():
-    """
-    Given: datetime(2024,1,15,0,0,0, tzinfo=UTC)
+    """Given: datetime(2024,1,15,0,0,0, tzinfo=UTC)
     When: normalize_datetime_to_localを呼び出す
     Then: datetime(2024,1,15,9,0,0, tzinfo=JST)が返される
     """
@@ -358,8 +335,7 @@ def test_normalize_datetime_utc_midnight():
 
 @pytest.mark.unit
 def test_normalize_datetime_jst_midnight():
-    """
-    Given: datetime(2024,1,15,0,0,0, tzinfo=JST)
+    """Given: datetime(2024,1,15,0,0,0, tzinfo=JST)
     When: normalize_datetime_to_localを呼び出す
     Then: datetime(2024,1,15,0,0,0, tzinfo=JST)が返される
     """
@@ -371,8 +347,7 @@ def test_normalize_datetime_jst_midnight():
 
 @pytest.mark.unit
 def test_normalize_datetime_date_boundary():
-    """
-    Given: datetime(2024,1,15,23,59,59, tzinfo=UTC)
+    """Given: datetime(2024,1,15,23,59,59, tzinfo=UTC)
     When: normalize_datetime_to_localを呼び出す
     Then: datetime(2024,1,16,8,59,59, tzinfo=JST)が返される
     """
@@ -384,8 +359,7 @@ def test_normalize_datetime_date_boundary():
 
 @pytest.mark.unit
 def test_normalize_datetime_cross_day():
-    """
-    Given: datetime(2024,1,15,20,0,0, tzinfo=UTC)
+    """Given: datetime(2024,1,15,20,0,0, tzinfo=UTC)
     When: normalize_datetime_to_localを呼び出す
     Then: datetime(2024,1,16,5,0,0, tzinfo=JST)が返される
     """
@@ -404,8 +378,7 @@ def test_normalize_datetime_cross_day():
 
 @pytest.mark.unit
 def test_is_within_target_dates_in_range():
-    """
-    Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates={date(2024,1,15)}
+    """Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -417,8 +390,7 @@ def test_is_within_target_dates_in_range():
 
 @pytest.mark.unit
 def test_is_within_target_dates_out_of_range():
-    """
-    Given: dt=datetime(2024,1,16,10,0, tzinfo=JST), target_dates={date(2024,1,15)}
+    """Given: dt=datetime(2024,1,16,10,0, tzinfo=JST), target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: Falseが返される
     """
@@ -430,8 +402,7 @@ def test_is_within_target_dates_out_of_range():
 
 @pytest.mark.unit
 def test_is_within_target_dates_multiple_dates():
-    """
-    Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates={date(2024,1,14), date(2024,1,15), date(2024,1,16)}
+    """Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates={date(2024,1,14), date(2024,1,15), date(2024,1,16)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -443,8 +414,7 @@ def test_is_within_target_dates_multiple_dates():
 
 @pytest.mark.unit
 def test_is_within_target_dates_utc_datetime():
-    """
-    Given: dt=datetime(2024,1,15,10,0, tzinfo=UTC), target_dates={date(2024,1,15)}
+    """Given: dt=datetime(2024,1,15,10,0, tzinfo=UTC), target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: JST変換後に判定される
     """
@@ -460,8 +430,7 @@ def test_is_within_target_dates_utc_datetime():
 
 @pytest.mark.unit
 def test_is_within_target_dates_none_datetime():
-    """
-    Given: dt=None, target_dates={date(2024,1,15)}
+    """Given: dt=None, target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: Falseが返される
     """
@@ -472,8 +441,7 @@ def test_is_within_target_dates_none_datetime():
 
 @pytest.mark.unit
 def test_is_within_target_dates_empty_target_dates():
-    """
-    Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates=set()
+    """Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates=set()
     When: is_within_target_datesを呼び出す
     Then: Falseが返される
     """
@@ -485,8 +453,7 @@ def test_is_within_target_dates_empty_target_dates():
 
 @pytest.mark.unit
 def test_is_within_target_dates_empty_list():
-    """
-    Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates=[]
+    """Given: dt=datetime(2024,1,15,10,0, tzinfo=JST), target_dates=[]
     When: is_within_target_datesを呼び出す
     Then: Falseが返される
     """
@@ -498,8 +465,7 @@ def test_is_within_target_dates_empty_list():
 
 @pytest.mark.unit
 def test_is_within_target_dates_naive_datetime():
-    """
-    Given: dt=datetime(2024,1,15,10,0)（tzinfo=None）, target_dates={date(2024,1,15)}
+    """Given: dt=datetime(2024,1,15,10,0)（tzinfo=None）, target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: JST扱いでTrueが返される
     """
@@ -514,8 +480,7 @@ def test_is_within_target_dates_naive_datetime():
 
 @pytest.mark.unit
 def test_is_within_target_dates_jst_midnight_start():
-    """
-    Given: dt=datetime(2024,1,15,0,0,0, tzinfo=JST), target_dates={date(2024,1,15)}
+    """Given: dt=datetime(2024,1,15,0,0,0, tzinfo=JST), target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -527,8 +492,7 @@ def test_is_within_target_dates_jst_midnight_start():
 
 @pytest.mark.unit
 def test_is_within_target_dates_jst_midnight_end():
-    """
-    Given: dt=datetime(2024,1,15,23,59,59, tzinfo=JST), target_dates={date(2024,1,15)}
+    """Given: dt=datetime(2024,1,15,23,59,59, tzinfo=JST), target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -540,8 +504,7 @@ def test_is_within_target_dates_jst_midnight_end():
 
 @pytest.mark.unit
 def test_is_within_target_dates_utc_crosses_day():
-    """
-    Given: dt=datetime(2024,1,14,20,0,0, tzinfo=UTC)（JST 01/15 05:00）, target_dates={date(2024,1,15)}
+    """Given: dt=datetime(2024,1,14,20,0,0, tzinfo=UTC)（JST 01/15 05:00）, target_dates={date(2024,1,15)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -554,8 +517,7 @@ def test_is_within_target_dates_utc_crosses_day():
 
 @pytest.mark.unit
 def test_is_within_target_dates_utc_different_day():
-    """
-    Given: dt=datetime(2024,1,15,2,0,0, tzinfo=UTC)（JST 01/15 11:00）, target_dates={date(2024,1,14)}
+    """Given: dt=datetime(2024,1,15,2,0,0, tzinfo=UTC)（JST 01/15 11:00）, target_dates={date(2024,1,14)}
     When: is_within_target_datesを呼び出す
     Then: Falseが返される
     """
@@ -571,8 +533,7 @@ def test_is_within_target_dates_utc_different_day():
 
 @pytest.mark.unit
 def test_is_within_target_dates_multiple_timezones():
-    """
-    Given: UTCとJSTの時刻、複数target_dates
+    """Given: UTCとJSTの時刻、複数target_dates
     When: is_within_target_datesを呼び出す
     Then: 正しく判定される
     """
@@ -585,8 +546,7 @@ def test_is_within_target_dates_multiple_timezones():
 
 @pytest.mark.unit
 def test_is_within_target_dates_leap_day():
-    """
-    Given: dt=datetime(2024,2,29,10,0, tzinfo=JST), target_dates={date(2024,2,29)}
+    """Given: dt=datetime(2024,2,29,10,0, tzinfo=JST), target_dates={date(2024,2,29)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """
@@ -598,8 +558,7 @@ def test_is_within_target_dates_leap_day():
 
 @pytest.mark.unit
 def test_is_within_target_dates_year_boundary():
-    """
-    Given: dt=datetime(2024,12,31,23,59,59, tzinfo=JST), target_dates={date(2024,12,31)}
+    """Given: dt=datetime(2024,12,31,23,59,59, tzinfo=JST), target_dates={date(2024,12,31)}
     When: is_within_target_datesを呼び出す
     Then: Trueが返される
     """

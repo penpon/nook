@@ -5,6 +5,7 @@
 .serena
 .CLAUDE.md
 .spec-workflow
+.pre-commit-config.yaml
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/

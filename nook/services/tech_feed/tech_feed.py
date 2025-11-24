@@ -31,26 +31,26 @@ from nook.services.base_feed_service import Article, BaseFeedService
 
 
 class TechFeed(BaseFeedService):
-    """
-    技術ニュースのRSSフィードを監視・収集・要約するクラス。
+    """技術ニュースのRSSフィードを監視・収集・要約するクラス。
 
     Parameters
     ----------
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     TOTAL_LIMIT = 15
     SUMMARY_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data"):
-        """
-        TechFeedを初期化します。
+        """TechFeedを初期化します。
 
         Parameters
         ----------
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+
         """
         super().__init__("tech_feed")
         self.http_client = None  # setup_http_clientで初期化
@@ -61,8 +61,7 @@ class TechFeed(BaseFeedService):
             self.feed_config = tomllib.load(f)
 
     def run(self, days: int = 1, limit: int | None = None) -> None:
-        """
-        技術ニュースのRSSフィードを監視・収集・要約して保存します。
+        """技術ニュースのRSSフィードを監視・収集・要約して保存します。
 
         Parameters
         ----------
@@ -70,6 +69,7 @@ class TechFeed(BaseFeedService):
             何日前までの記事を取得するか。
         limit : Optional[int], default=None
             各フィードから取得する記事数。Noneの場合は制限なし。
+
         """
         asyncio.run(self.collect(days, limit))
 
@@ -80,8 +80,7 @@ class TechFeed(BaseFeedService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        技術ニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
+        """技術ニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
 
         Parameters
         ----------
@@ -94,6 +93,7 @@ class TechFeed(BaseFeedService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -158,7 +158,7 @@ class TechFeed(BaseFeedService):
 
                     except Exception as e:
                         self.logger.error(
-                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
+                            f"フィード {feed_url} の処理中にエラーが発生しました: {e!s}"
                         )
 
             # 日付ごとにグループ化
@@ -230,8 +230,7 @@ class TechFeed(BaseFeedService):
     def _select_top_articles(
         self, articles: list[Article], limit: int | None = None
     ) -> list[Article]:
-        """
-        記事を人気スコアでソートし、上位N件を選択します。
+        """記事を人気スコアでソートし、上位N件を選択します。
 
         Parameters
         ----------
@@ -244,6 +243,7 @@ class TechFeed(BaseFeedService):
         -------
         list[Article]
             選択された記事リスト
+
         """
         if not articles:
             return []
@@ -256,8 +256,7 @@ class TechFeed(BaseFeedService):
         return sorted_articles[:selection_limit]
 
     async def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Article | None:
-        """
-        記事を取得します（日本語判定含む）。
+        """記事を取得します（日本語判定含む）。
 
         Parameters
         ----------
@@ -272,6 +271,7 @@ class TechFeed(BaseFeedService):
         -------
         Article or None
             取得した記事。取得に失敗した場合はNone。
+
         """
         try:
             # URLを取得
@@ -326,7 +326,7 @@ class TechFeed(BaseFeedService):
 
         except Exception as e:
             self.logger.error(
-                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
+                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {e!s}"
             )
             return None
 

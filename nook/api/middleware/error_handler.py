@@ -62,7 +62,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             details={"response_body": exc.response_body} if exc.response_body else None,
         )
 
-    elif isinstance(exc, ConfigurationException):
+    if isinstance(exc, ConfigurationException):
         return create_error_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             error_type="configuration_error",
@@ -70,7 +70,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             error_id=error_id,
         )
 
-    elif isinstance(exc, DataException):
+    if isinstance(exc, DataException):
         return create_error_response(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             error_type="data_error",
@@ -78,7 +78,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             error_id=error_id,
         )
 
-    elif isinstance(exc, ServiceException):
+    if isinstance(exc, ServiceException):
         return create_error_response(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             error_type="service_error",
@@ -86,7 +86,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             error_id=error_id,
         )
 
-    elif isinstance(exc, NookException):
+    if isinstance(exc, NookException):
         return create_error_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             error_type="application_error",
@@ -94,7 +94,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             error_id=error_id,
         )
 
-    elif isinstance(exc, RequestValidationError):
+    if isinstance(exc, RequestValidationError):
         return create_error_response(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             error_type="validation_error",
@@ -103,7 +103,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             details={"errors": exc.errors()},
         )
 
-    elif isinstance(exc, StarletteHTTPException):
+    if isinstance(exc, StarletteHTTPException):
         return create_error_response(
             status_code=exc.status_code,
             error_type="http_error",
@@ -111,14 +111,13 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
             error_id=error_id,
         )
 
-    else:
-        # 予期しないエラー
-        return create_error_response(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_type="internal_error",
-            message="An unexpected error occurred",
-            error_id=error_id,
-        )
+    # 予期しないエラー
+    return create_error_response(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        error_type="internal_error",
+        message="An unexpected error occurred",
+        error_id=error_id,
+    )
 
 
 def create_error_response(

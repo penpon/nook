@@ -1,5 +1,4 @@
-"""
-Nookの各サービスを非同期で実行するスクリプト。
+"""Nookの各サービスを非同期で実行するスクリプト。
 情報を並行収集し、ローカルストレージに保存します。
 """
 
@@ -239,7 +238,7 @@ def run_service_sync(service_name: str):
             runner.sync_services[service_name].run()
             print(f"{service_name}の実行が完了しました。")
         except Exception as e:
-            print(f"{service_name}の実行中にエラーが発生しました: {str(e)}")
+            print(f"{service_name}の実行中にエラーが発生しました: {e!s}")
     else:
         print(f"サービス '{service_name}' が見つかりません。")
 

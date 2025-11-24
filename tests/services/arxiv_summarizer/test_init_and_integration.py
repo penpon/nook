@@ -1,5 +1,4 @@
-"""
-ArxivSummarizer - 初期化・統合テスト
+"""ArxivSummarizer - 初期化・統合テスト
 
 このファイルは元々 test_arxiv_summarizer.py の一部でしたが、
 保守性向上のため機能別に分割されました。
@@ -29,8 +28,7 @@ import pytest
 
 @pytest.mark.unit
 def test_init_with_default_storage_dir(arxiv_service):
-    """
-    Given: デフォルトのstorage_dir
+    """Given: デフォルトのstorage_dir
     When: ArxivSummarizerを初期化
     Then: インスタンスが正常に作成される
     """
@@ -47,8 +45,7 @@ def test_init_with_default_storage_dir(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_success_with_papers(arxiv_service, mock_arxiv_api):
-    """
-    Given: 有効なarXiv API
+    """Given: 有効なarXiv API
     When: collectメソッドを呼び出す
     Then: 論文が正常に取得・保存される
     """
@@ -82,8 +79,7 @@ async def test_collect_success_with_papers(arxiv_service, mock_arxiv_api):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_multiple_categories(arxiv_service):
-    """
-    Given: 複数のカテゴリ
+    """Given: 複数のカテゴリ
     When: collectメソッドを呼び出す
     Then: 全てのカテゴリが処理される
     """
@@ -111,8 +107,7 @@ async def test_collect_with_multiple_categories(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_network_error(arxiv_service):
-    """
-    Given: ネットワークエラーが発生
+    """Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
     Then: RetryExceptionが発生する
     """
@@ -132,8 +127,7 @@ async def test_collect_network_error(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_invalid_xml(arxiv_service):
-    """
-    Given: 不正なXML
+    """Given: 不正なXML
     When: collectメソッドを呼び出す
     Then: エラーがログされ、空リストが返される
     """
@@ -153,8 +147,7 @@ async def test_collect_invalid_xml(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_gpt_api_error(arxiv_service):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: collectメソッドを呼び出す
     Then: エラーが適切に処理される
     """
@@ -185,8 +178,7 @@ async def test_collect_gpt_api_error(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_full_workflow_collect_and_save(arxiv_service):
-    """
-    Given: 完全なワークフロー
+    """Given: 完全なワークフロー
     When: collect→save→cleanupを実行
     Then: 全フローが正常に動作
     """
@@ -221,8 +213,7 @@ async def test_full_workflow_collect_and_save(arxiv_service):
 
 @pytest.mark.unit
 def test_run_method(arxiv_service):
-    """
-    Given: ArxivSummarizerインスタンス
+    """Given: ArxivSummarizerインスタンス
     When: runメソッドを呼び出す
     Then: asyncio.runでcollectが呼ばれる
     """
@@ -243,8 +234,7 @@ def test_run_method(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_http_client_not_initialized(arxiv_service):
-    """
-    Given: http_clientが未初期化
+    """Given: http_clientが未初期化
     When: collectメソッドを呼び出す
     Then: setup_http_clientが自動的に呼ばれる
     """
@@ -271,8 +261,7 @@ async def test_collect_http_client_not_initialized(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_empty_target_dates(arxiv_service):
-    """
-    Given: 空のtarget_dates
+    """Given: 空のtarget_dates
     When: collectメソッドを呼び出す
     Then: 早期リターンで空リストが返される
     """
@@ -294,8 +283,7 @@ async def test_collect_empty_target_dates(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_empty_daily_ids(arxiv_service):
-    """
-    Given: _get_curated_paper_idsが空リストを返す
+    """Given: _get_curated_paper_idsが空リストを返す
     When: collectメソッドを呼び出す
     Then: ログが出力され、空リストが返される
     """
@@ -318,8 +306,7 @@ async def test_collect_empty_daily_ids(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_none_daily_ids(arxiv_service):
-    """
-    Given: _get_curated_paper_idsがNoneを返す（URLが見つからない）
+    """Given: _get_curated_paper_idsがNoneを返す（URLが見つからない）
     When: collectメソッドを呼び出す
     Then: ログが出力され、空リストが返される
     """
@@ -342,8 +329,7 @@ async def test_collect_none_daily_ids(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_all_duplicate_ids(arxiv_service):
-    """
-    Given: すべてのIDが重複している
+    """Given: すべてのIDが重複している
     When: collectメソッドを呼び出す（複数日付）
     Then: 重複スキップのログが出力され、空リストが返される
     """

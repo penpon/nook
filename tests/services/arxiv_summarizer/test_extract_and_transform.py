@@ -1,5 +1,4 @@
-"""
-ArxivSummarizer - テキスト抽出・変換 のテスト
+"""ArxivSummarizer - テキスト抽出・変換 のテスト
 
 このファイルは元々 test_arxiv_summarizer.py の一部でしたが、
 保守性向上のため機能別に分割されました。
@@ -28,8 +27,7 @@ import pytest
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_pdf_success(arxiv_service, arxiv_helper):
-    """
-    Given: 有効なPDF
+    """Given: 有効なPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: テキストが正常に抽出される
     """
@@ -60,8 +58,7 @@ async def test_extract_from_pdf_success(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_pdf_empty_content(arxiv_service, arxiv_helper):
-    """
-    Given: 空のPDF
+    """Given: 空のPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: 空文字列が返される
     """
@@ -84,8 +81,7 @@ async def test_extract_from_pdf_empty_content(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_pdf_corrupted(arxiv_service, arxiv_helper):
-    """
-    Given: 破損したPDF
+    """Given: 破損したPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: 空文字列が返される
     """
@@ -111,8 +107,7 @@ async def test_extract_from_pdf_corrupted(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_pdf_download_error(arxiv_service, arxiv_helper):
-    """
-    Given: PDFダウンロードがエラー
+    """Given: PDFダウンロードがエラー
     When: _extract_from_pdfメソッドを呼び出す
     Then: 空文字列が返される
     """
@@ -133,8 +128,7 @@ async def test_extract_from_pdf_download_error(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_pdf_filters_short_lines(arxiv_service, arxiv_helper):
-    """
-    Given: 短い行を含むPDF
+    """Given: 短い行を含むPDF
     When: _extract_from_pdfメソッドを呼び出す
     Then: 短い行がフィルタリングされる
     """
@@ -179,8 +173,7 @@ Another long enough line that should be kept because it is sufficiently long.
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_html_success(arxiv_service, arxiv_helper):
-    """
-    Given: 有効なHTML
+    """Given: 有効なHTML
     When: _extract_from_htmlメソッドを呼び出す
     Then: テキストが正常に抽出される
     """
@@ -218,8 +211,7 @@ async def test_extract_from_html_success(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_html_404_error(arxiv_service):
-    """
-    Given: HTML URLが404エラーを返す
+    """Given: HTML URLが404エラーを返す
     When: _extract_from_htmlメソッドを呼び出す
     Then: 空文字列が返される
     """
@@ -240,8 +232,7 @@ async def test_extract_from_html_404_error(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_html_empty_body(arxiv_service):
-    """
-    Given: 空のHTML
+    """Given: 空のHTML
     When: _extract_from_htmlメソッドを呼び出す
     Then: 空文字列が返される
     """
@@ -264,8 +255,7 @@ async def test_extract_from_html_empty_body(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_from_html_download_error(arxiv_service):
-    """
-    Given: HTMLダウンロードがエラー
+    """Given: HTMLダウンロードがエラー
     When: _extract_from_htmlメソッドを呼び出す
     Then: 空文字列が返される
     """
@@ -291,8 +281,7 @@ async def test_extract_from_html_download_error(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_body_text_from_html(arxiv_service):
-    """
-    Given: HTMLが利用可能
+    """Given: HTMLが利用可能
     When: _extract_body_textメソッドを呼び出す
     Then: HTMLからテキストが抽出される
     """
@@ -313,8 +302,7 @@ async def test_extract_body_text_from_html(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_body_text_fallback_to_pdf(arxiv_service):
-    """
-    Given: HTML抽出が失敗し、PDF抽出が成功
+    """Given: HTML抽出が失敗し、PDF抽出が成功
     When: _extract_body_textメソッドを呼び出す
     Then: PDFからテキストが抽出される
     """
@@ -338,8 +326,7 @@ async def test_extract_body_text_fallback_to_pdf(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_extract_body_text_both_fail(arxiv_service):
-    """
-    Given: HTMLとPDFの両方の抽出が失敗
+    """Given: HTMLとPDFの両方の抽出が失敗
     When: _extract_body_textメソッドを呼び出す
     Then: 空文字列が返される
     """
@@ -390,8 +377,7 @@ async def test_extract_body_text_both_fail(arxiv_service):
     ids=["valid_line", "too_short", "with_email", "with_university", "no_period"],
 )
 def test_is_valid_body_line(arxiv_service, arxiv_helper, line, expected_result):
-    """
-    Given: 様々な条件の本文行
+    """Given: 様々な条件の本文行
     When: _is_valid_body_lineメソッドを呼び出す
     Then: 適切な検証結果が返される
     """
@@ -412,8 +398,7 @@ def test_is_valid_body_line(arxiv_service, arxiv_helper, line, expected_result):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_to_japanese_success(arxiv_service):
-    """
-    Given: 有効な英語テキスト
+    """Given: 有効な英語テキスト
     When: _translate_to_japaneseメソッドを呼び出す
     Then: 日本語に翻訳される
     """
@@ -431,8 +416,7 @@ async def test_translate_to_japanese_success(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_to_japanese_gpt_error(arxiv_service):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: _translate_to_japaneseメソッドを呼び出す
     Then: 原文が返される
     """
@@ -449,8 +433,7 @@ async def test_translate_to_japanese_gpt_error(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_to_japanese_empty_text(arxiv_service):
-    """
-    Given: 空のテキスト
+    """Given: 空のテキスト
     When: _translate_to_japaneseメソッドを呼び出す
     Then: 空文字列が返される
     """

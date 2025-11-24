@@ -1,5 +1,4 @@
-"""
-Nookの各サービスを実行するスクリプト。
+"""Nookの各サービスを実行するスクリプト。
 情報を収集し、ローカルストレージに保存します。
 """
 
@@ -29,35 +28,29 @@ from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
 
 
 def run_fivechan_explorer():
-    """
-    5chanからのAI関連スレッド収集サービスを実行します。
-    """
+    """5chanからのAI関連スレッド収集サービスを実行します。"""
     print("5chanからAI関連スレッドを収集しています...")
     try:
         fivechan_explorer = FiveChanExplorer()
         fivechan_explorer.run()
         print("5chanからのAI関連スレッド収集が完了しました。")
     except Exception as e:
-        print(f"5chanからのAI関連スレッド収集中にエラーが発生しました: {str(e)}")
+        print(f"5chanからのAI関連スレッド収集中にエラーが発生しました: {e!s}")
 
 
 def run_fourchan_explorer():
-    """
-    4chanからのAI関連スレッド収集サービスを実行します。
-    """
+    """4chanからのAI関連スレッド収集サービスを実行します。"""
     print("4chanからAI関連スレッドを収集しています...")
     try:
         fourchan_explorer = FourChanExplorer()
         fourchan_explorer.run()
         print("4chanからのAI関連スレッド収集が完了しました。")
     except Exception as e:
-        print(f"4chanからのAI関連スレッド収集中にエラーが発生しました: {str(e)}")
+        print(f"4chanからのAI関連スレッド収集中にエラーが発生しました: {e!s}")
 
 
 def run_github_trending():
-    """
-    GitHubトレンドサービスを実行します。
-    """
+    """GitHubトレンドサービスを実行します。"""
     print("GitHubトレンドリポジトリを収集しています...")
     github_trending = GithubTrending()
     asyncio.run(github_trending.collect())
@@ -65,9 +58,7 @@ def run_github_trending():
 
 
 def run_hacker_news():
-    """
-    Hacker Newsからのトップ記事収集サービスを実行します。
-    """
+    """Hacker Newsからのトップ記事収集サービスを実行します。"""
     print("Hacker Newsからトップ記事を収集しています...")
     try:
         hacker_news = HackerNewsRetriever()
@@ -75,52 +66,44 @@ def run_hacker_news():
         hacker_news.run(limit=15)
         print("Hacker Newsの記事収集が完了しました。")
     except Exception as e:
-        print(f"Hacker Newsの記事収集中にエラーが発生しました: {str(e)}")
+        print(f"Hacker Newsの記事収集中にエラーが発生しました: {e!s}")
 
 
 def run_note_explorer():
-    """
-    Noteエクスプローラーサービスを実行します。
-    """
+    """Noteエクスプローラーサービスを実行します。"""
     print("Note投稿を収集しています...")
     try:
         note_explorer = NoteExplorer()
         note_explorer.run()
         print("Note投稿の収集が完了しました。")
     except Exception as e:
-        print(f"Note投稿の収集中にエラーが発生しました: {str(e)}")
+        print(f"Note投稿の収集中にエラーが発生しました: {e!s}")
 
 
 def run_zenn_explorer():
-    """
-    Zennエクスプローラーサービスを実行します。
-    """
+    """Zennエクスプローラーサービスを実行します。"""
     print("Zenn投稿を収集しています...")
     try:
         zenn_explorer = ZennExplorer()
         zenn_explorer.run()
         print("zenn投稿の収集が完了しました。")
     except Exception as e:
-        print(f"zenn投稿の収集中にエラーが発生しました: {str(e)}")
+        print(f"zenn投稿の収集中にエラーが発生しました: {e!s}")
 
 
 def run_qiita_explorer():
-    """
-    Qiitaエクスプローラーサービスを実行します。
-    """
+    """Qiitaエクスプローラーサービスを実行します。"""
     print("Qiita投稿を収集しています...")
     try:
         qiita_explorer = QiitaExplorer()
         qiita_explorer.run()
         print("qiita投稿の収集が完了しました。")
     except Exception as e:
-        print(f"qiita投稿の収集中にエラーが発生しました: {str(e)}")
+        print(f"qiita投稿の収集中にエラーが発生しました: {e!s}")
 
 
 def run_reddit_explorer():
-    """
-    Redditエクスプローラーサービスを実行します。
-    """
+    """Redditエクスプローラーサービスを実行します。"""
     print("Reddit投稿を収集しています...")
     try:
         # APIキーの確認
@@ -133,13 +116,11 @@ def run_reddit_explorer():
         reddit_explorer.run()
         print("Reddit投稿の収集が完了しました。")
     except Exception as e:
-        print(f"Reddit投稿の収集中にエラーが発生しました: {str(e)}")
+        print(f"Reddit投稿の収集中にエラーが発生しました: {e!s}")
 
 
 def run_tech_feed():
-    """
-    技術記事のフィード収集サービスを実行します。
-    """
+    """技術記事のフィード収集サービスを実行します。"""
     print("技術記事のフィードを収集しています...")
     try:
         tech_feed = TechFeed()
@@ -147,13 +128,11 @@ def run_tech_feed():
         tech_feed.run(limit=5)
         print("技術記事のフィードの収集が完了しました。")
     except Exception as e:
-        print(f"技術記事のフィード収集中にエラーが発生しました: {str(e)}")
+        print(f"技術記事のフィード収集中にエラーが発生しました: {e!s}")
 
 
 def run_business_feed():
-    """
-    ビジネス記事のフィード収集サービスを実行します。
-    """
+    """ビジネス記事のフィード収集サービスを実行します。"""
     print("ビジネス記事のフィードを収集しています...")
     try:
         business_feed = BusinessFeed()
@@ -161,13 +140,11 @@ def run_business_feed():
         business_feed.run(limit=5)
         print("ビジネス記事のフィードの収集が完了しました。")
     except Exception as e:
-        print(f"ビジネス記事のフィード収集中にエラーが発生しました: {str(e)}")
+        print(f"ビジネス記事のフィード収集中にエラーが発生しました: {e!s}")
 
 
 def run_arxiv_summarizer():
-    """
-    論文要約サービスを実行します。
-    """
+    """論文要約サービスを実行します。"""
     print("arXiv論文を収集・要約しています...")
     try:
         # Grok APIキーの確認
@@ -180,13 +157,11 @@ def run_arxiv_summarizer():
         arxiv_summarizer.run()
         print("論文の収集・要約が完了しました。")
     except Exception as e:
-        print(f"論文の収集・要約中にエラーが発生しました: {str(e)}")
+        print(f"論文の収集・要約中にエラーが発生しました: {e!s}")
 
 
 def main():
-    """
-    コマンドライン引数に基づいて、指定されたサービスを実行します。
-    """
+    """コマンドライン引数に基づいて、指定されたサービスを実行します。"""
     parser = argparse.ArgumentParser(description="Nookサービスを実行します")
     parser.add_argument(
         "--service",

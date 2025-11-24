@@ -1,5 +1,4 @@
-"""
-nook/services/hacker_news/hacker_news.py のユニットテスト
+"""nook/services/hacker_news/hacker_news.py のユニットテスト
 
 ## テスト構成
 
@@ -118,6 +117,7 @@ def create_test_story(
 
     Returns:
         Story: テスト用のStoryオブジェクト
+
     """
     if created_at is None:
         created_at = datetime.now(UTC)
@@ -141,6 +141,7 @@ def mock_hn_story_response(story_id: int = TEST_STORY_ID, **kwargs) -> dict:
 
     Returns:
         dict: HN API形式のストーリーレスポンス
+
     """
     default_response = {
         "id": story_id,
@@ -173,6 +174,7 @@ def create_error_story(
 
     Returns:
         Story: エラー状態のStoryオブジェクト
+
     """
     return Story(
         title=f"{domain} {title_suffix}",
@@ -192,6 +194,7 @@ def create_stories_batch(count: int, **kwargs) -> list[Story]:
 
     Returns:
         list[Story]: 作成されたStoryオブジェクトのリスト
+
     """
     stories = []
     for i in range(count):
@@ -209,8 +212,7 @@ def create_stories_batch(count: int, **kwargs) -> list[Story]:
 
 @pytest.mark.unit
 def test_load_blocked_domains_success(mock_env_vars):
-    """
-    Given: 正常なblocked_domains.jsonファイル
+    """Given: 正常なblocked_domains.jsonファイル
     When: _load_blocked_domainsを呼び出す
     Then: ブロックドメインリストが正常に読み込まれる
     """
@@ -225,8 +227,7 @@ def test_load_blocked_domains_success(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_blocked_domains_file_not_found(mock_env_vars):
-    """
-    Given: blocked_domains.jsonが存在しない
+    """Given: blocked_domains.jsonが存在しない
     When: _load_blocked_domainsを呼び出す
     Then: デフォルトの空リストが返される
     """
@@ -244,8 +245,7 @@ def test_load_blocked_domains_file_not_found(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_blocked_domains_invalid_json(mock_env_vars):
-    """
-    Given: 不正なJSON形式のblocked_domains.json
+    """Given: 不正なJSON形式のblocked_domains.json
     When: _load_blocked_domainsを呼び出す
     Then: デフォルトの空リストが返される
     """
@@ -288,8 +288,7 @@ def test_load_blocked_domains_invalid_json(mock_env_vars):
     ],
 )
 def test_is_blocked_domain(mock_env_vars, mock_logger, url, blocked_domains, expected, test_case):
-    """
-    Given: 様々なURL条件
+    """Given: 様々なURL条件
     When: _is_blocked_domainを呼び出す
     Then: 適切な判定結果が返される
     """
@@ -326,8 +325,7 @@ def test_is_blocked_domain(mock_env_vars, mock_logger, url, blocked_domains, exp
 def test_is_http1_required_domain(
     mock_env_vars, mock_logger, url, http1_domains, expected, test_case
 ):
-    """
-    Given: 様々なURL条件
+    """Given: 様々なURL条件
     When: _is_http1_required_domainを呼び出す
     Then: 適切な判定結果が返される
     """
@@ -344,8 +342,7 @@ def test_is_http1_required_domain(
 
 @pytest.mark.unit
 def test_is_http1_required_domain_exception_handling(mock_env_vars, mock_logger):
-    """
-    Given: 不正な状態
+    """Given: 不正な状態
     When: _is_http1_required_domainを呼び出す
     Then: Falseが返される（例外は発生しない）
     """
@@ -366,8 +363,7 @@ def test_is_http1_required_domain_exception_handling(mock_env_vars, mock_logger)
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_success(mock_env_vars, respx_mock):
-    """
-    Given: 正常なHN APIレスポンス
+    """Given: 正常なHN APIレスポンス
     When: _fetch_storyを呼び出す
     Then: Storyオブジェクトが正常に返される
     """
@@ -390,7 +386,7 @@ async def test_fetch_story_success(mock_env_vars, respx_mock):
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(
                 200,
-                text='<html><meta name="description" content="Test description"></html>',  # noqa: E501
+                text='<html><meta name="description" content="Test description"></html>',
             )
         )
 
@@ -408,8 +404,7 @@ async def test_fetch_story_success(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_deleted(mock_env_vars, respx_mock):
-    """
-    Given: 削除済みストーリー（titleなし）
+    """Given: 削除済みストーリー（titleなし）
     When: _fetch_storyを呼び出す
     Then: Noneが返される
     """
@@ -433,8 +428,7 @@ async def test_fetch_story_deleted(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_missing_timestamp(mock_env_vars, respx_mock):
-    """
-    Given: タイムスタンプがないストーリー
+    """Given: タイムスタンプがないストーリー
     When: _fetch_storyを呼び出す
     Then: 現在時刻がcreated_atに設定される
     """
@@ -466,8 +460,7 @@ async def test_fetch_story_missing_timestamp(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_api_error(mock_env_vars, respx_mock):
-    """
-    Given: HN APIがエラーを返す
+    """Given: HN APIがエラーを返す
     When: _fetch_storyを呼び出す
     Then: Noneが返される
     """
@@ -494,8 +487,7 @@ async def test_fetch_story_api_error(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_meta_description(mock_env_vars, respx_mock):
-    """
-    Given: メタディスクリプションを含むHTML
+    """Given: メタディスクリプションを含むHTML
     When: _fetch_story_contentを呼び出す
     Then: メタディスクリプションがstory.textに設定される
     """
@@ -521,8 +513,7 @@ async def test_fetch_story_content_meta_description(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_og_description(mock_env_vars, respx_mock):
-    """
-    Given: Open Graphディスクリプションを含むHTML
+    """Given: Open Graphディスクリプションを含むHTML
     When: _fetch_story_contentを呼び出す
     Then: OGディスクリプションがstory.textに設定される
     """
@@ -548,8 +539,7 @@ async def test_fetch_story_content_og_description(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_paragraphs(mock_env_vars, respx_mock):
-    """
-    Given: 段落を含むHTML（メタディスクリプションなし）
+    """Given: 段落を含むHTML（メタディスクリプションなし）
     When: _fetch_story_contentを呼び出す
     Then: 段落のテキストがstory.textに設定される
     """
@@ -563,7 +553,7 @@ async def test_fetch_story_content_paragraphs(mock_env_vars, respx_mock):
             <p>First paragraph with meaningful content that is longer than 50 characters.</p>
             <p>Second paragraph with even more content to test the extraction logic here.</p>  <!-- noqa: E501 -->
             <p>Third paragraph continues the pattern of providing substantial text content.</p>  <!-- noqa: E501 -->
-        </body></html>"""  # noqa: E501
+        </body></html>"""
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -580,8 +570,7 @@ async def test_fetch_story_content_paragraphs(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_blocked_domain(mock_env_vars):
-    """
-    Given: ブロックされたドメイン
+    """Given: ブロックされたドメイン
     When: _fetch_story_contentを呼び出す
     Then: ブロック警告がstory.textに設定される
     """
@@ -613,8 +602,7 @@ async def test_fetch_story_content_blocked_domain(mock_env_vars):
 async def test_fetch_story_content_http_errors(
     mock_env_vars, mock_logger, status_code, error_message, expected_text
 ):
-    """
-    Given: 各種HTTPエラー（401/403/404）
+    """Given: 各種HTTPエラー（401/403/404）
     When: _fetch_story_contentを呼び出す
     Then: 適切なエラーメッセージがstory.textに設定される
     """
@@ -644,8 +632,7 @@ async def test_fetch_story_content_http_errors(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_timeout(mock_env_vars, respx_mock):
-    """
-    Given: タイムアウトエラー
+    """Given: タイムアウトエラー
     When: _fetch_story_contentを呼び出す
     Then: エラーメッセージがstory.textに設定される
     """
@@ -669,8 +656,7 @@ async def test_fetch_story_content_timeout(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_ssl_error(mock_env_vars, respx_mock):
-    """
-    Given: SSL/TLSエラー
+    """Given: SSL/TLSエラー
     When: _fetch_story_contentを呼び出す
     Then: エラーメッセージがstory.textに設定される
     """
@@ -694,8 +680,7 @@ async def test_fetch_story_content_ssl_error(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_http1_required(mock_env_vars, respx_mock):
-    """
-    Given: HTTP/1.1が必要なドメイン
+    """Given: HTTP/1.1が必要なドメイン
     When: _fetch_story_contentを呼び出す
     Then: force_http1=Trueでリクエストされる
     """
@@ -825,8 +810,7 @@ async def test_get_top_stories_filtering(
     expected_count,
     test_case,
 ):
-    """
-    Given: 様々な条件のストーリー（スコア、テキスト長、ソート順）
+    """Given: 様々な条件のストーリー（スコア、テキスト長、ソート順）
     When: _get_top_storiesを呼び出す
     Then: 適切にフィルタリング・ソートされて返される
     """
@@ -895,8 +879,7 @@ async def test_get_top_stories_filtering(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_add_to_blocked_domains_new_domain(mock_env_vars, tmp_path):
-    """
-    Given: 新しいドメインを追加
+    """Given: 新しいドメインを追加
     When: _add_to_blocked_domainsを呼び出す
     Then: ブロックドメインリストに追加される
     """
@@ -928,8 +911,7 @@ async def test_add_to_blocked_domains_new_domain(mock_env_vars, tmp_path):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_add_to_blocked_domains_duplicate(mock_env_vars, tmp_path):
-    """
-    Given: 既存のドメインを追加
+    """Given: 既存のドメインを追加
     When: _add_to_blocked_domainsを呼び出す
     Then: 重複して追加されない
     """
@@ -963,8 +945,7 @@ async def test_add_to_blocked_domains_duplicate(mock_env_vars, tmp_path):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_update_blocked_domains_from_errors(mock_env_vars, tmp_path):
-    """
-    Given: エラー状態のストーリー
+    """Given: エラー状態のストーリー
     When: _update_blocked_domains_from_errorsを呼び出す
     Then: エラードメインが検出され、ブロックリストに追加される
     """
@@ -1005,8 +986,7 @@ async def test_update_blocked_domains_from_errors(mock_env_vars, tmp_path):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_update_blocked_domains_from_errors_no_errors(mock_env_vars):
-    """
-    Given: エラーなしのストーリー
+    """Given: エラーなしのストーリー
     When: _update_blocked_domains_from_errorsを呼び出す
     Then: ブロックリストは更新されない
     """
@@ -1037,8 +1017,7 @@ async def test_update_blocked_domains_from_errors_no_errors(mock_env_vars):
 
 @pytest.mark.unit
 def test_serialize_stories(mock_env_vars):
-    """
-    Given: ストーリーのリスト
+    """Given: ストーリーのリスト
     When: _serialize_storiesを呼び出す
     Then: シリアライズされた辞書のリストが返される
     """
@@ -1069,8 +1048,7 @@ def test_serialize_stories(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown(mock_env_vars):
-    """
-    Given: 記事のリスト
+    """Given: 記事のリスト
     When: _render_markdownを呼び出す
     Then: マークダウン形式の文字列が返される
     """
@@ -1097,8 +1075,7 @@ def test_render_markdown(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown(mock_env_vars):
-    """
-    Given: マークダウン形式の文字列
+    """Given: マークダウン形式の文字列
     When: _parse_markdownを呼び出す
     Then: 記事のリストが返される
     """
@@ -1128,8 +1105,7 @@ Test summary
 
 @pytest.mark.unit
 def test_story_sort_key(mock_env_vars):
-    """
-    Given: 記事の辞書
+    """Given: 記事の辞書
     When: _story_sort_keyを呼び出す
     Then: ソート用のキー（score, published_at）が返される
     """
@@ -1146,8 +1122,7 @@ def test_story_sort_key(mock_env_vars):
 
 @pytest.mark.unit
 def test_story_sort_key_with_invalid_date(mock_env_vars):
-    """
-    Given: 不正な日付を持つ記事
+    """Given: 不正な日付を持つ記事
     When: _story_sort_keyを呼び出す
     Then: デフォルトの最小日時が返される
     """
@@ -1165,8 +1140,7 @@ def test_story_sort_key_with_invalid_date(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_story(mock_env_vars):
-    """
-    Given: ストーリー
+    """Given: ストーリー
     When: _summarize_storyを呼び出す
     Then: summaryが設定される
     """
@@ -1186,8 +1160,7 @@ async def test_summarize_story(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_story_no_text(mock_env_vars):
-    """
-    Given: テキストがないストーリー
+    """Given: テキストがないストーリー
     When: _summarize_storyを呼び出す
     Then: デフォルトのエラーメッセージが設定される
     """
@@ -1204,8 +1177,7 @@ async def test_summarize_story_no_text(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_story_error(mock_env_vars):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: _summarize_storyを呼び出す
     Then: エラーメッセージが設定される
     """
@@ -1230,8 +1202,7 @@ async def test_summarize_story_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_json(mock_env_vars):
-    """
-    Given: 既存のJSONファイル
+    """Given: 既存のJSONファイル
     When: _load_existing_titlesを呼び出す
     Then: タイトルがDedupTrackerに追加される
     """
@@ -1256,8 +1227,7 @@ async def test_load_existing_titles_from_json(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_markdown(mock_env_vars):
-    """
-    Given: 既存のMarkdownファイル（JSONなし）
+    """Given: 既存のMarkdownファイル（JSONなし）
     When: _load_existing_titlesを呼び出す
     Then: マークダウンからタイトルが抽出される
     """
@@ -1288,8 +1258,7 @@ Some content
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_titles_error(mock_env_vars):
-    """
-    Given: ファイル読み込みでエラー
+    """Given: ファイル読み込みでエラー
     When: _load_existing_titlesを呼び出す
     Then: 空のトラッカーが返される（エラーは無視される）
     """
@@ -1311,8 +1280,7 @@ async def test_load_existing_titles_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_stories_from_json(mock_env_vars):
-    """
-    Given: 既存のJSONファイル
+    """Given: 既存のJSONファイル
     When: _load_existing_storiesを呼び出す
     Then: ストーリーのリストが返される
     """
@@ -1337,8 +1305,7 @@ async def test_load_existing_stories_from_json(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_stories_from_markdown(mock_env_vars):
-    """
-    Given: Markdownファイルのみ（JSONなし）
+    """Given: Markdownファイルのみ（JSONなし）
     When: _load_existing_storiesを呼び出す
     Then: マークダウンからパースされたストーリーが返される
     """
@@ -1374,8 +1341,7 @@ async def test_load_existing_stories_from_markdown(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_stories_no_file(mock_env_vars):
-    """
-    Given: ファイルが存在しない
+    """Given: ファイルが存在しない
     When: _load_existing_storiesを呼び出す
     Then: 空のリストが返される
     """
@@ -1396,8 +1362,7 @@ async def test_load_existing_stories_no_file(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_stories(mock_env_vars):
-    """
-    Given: 複数のストーリー
+    """Given: 複数のストーリー
     When: _summarize_storiesを呼び出す
     Then: 各ストーリーが要約され、ブロックドメイン更新が呼ばれる
     """
@@ -1426,8 +1391,7 @@ async def test_summarize_stories(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_stories_empty(mock_env_vars):
-    """
-    Given: 空のストーリーリスト
+    """Given: 空のストーリーリスト
     When: _summarize_storiesを呼び出す
     Then: 何も処理されない
     """
@@ -1452,8 +1416,7 @@ async def test_summarize_stories_empty(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries(mock_env_vars):
-    """
-    Given: ストーリーのリスト
+    """Given: ストーリーのリスト
     When: _store_summariesを呼び出す
     Then: 保存されたファイルパスのリストが返される
     """
@@ -1490,8 +1453,7 @@ async def test_store_summaries(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_empty(mock_env_vars):
-    """
-    Given: 空のストーリーリスト
+    """Given: 空のストーリーリスト
     When: _store_summariesを呼び出す
     Then: 空のリストが返される
     """
@@ -1511,8 +1473,7 @@ async def test_store_summaries_empty(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_article_element(mock_env_vars, respx_mock):
-    """
-    Given: article要素を含むHTML（メタディスクリプション・段落なし）
+    """Given: article要素を含むHTML（メタディスクリプション・段落なし）
     When: _fetch_story_contentを呼び出す
     Then: article要素からテキストが抽出される
     """
@@ -1522,7 +1483,7 @@ async def test_fetch_story_content_article_element(mock_env_vars, respx_mock):
 
         story = Story(title="Test", score=100, url="https://example.com/test")
 
-        html_content = "<html><body><article>Article content here for testing purposes and extraction.</article></body></html>"  # noqa: E501
+        html_content = "<html><body><article>Article content here for testing purposes and extraction.</article></body></html>"
 
         respx_mock.get("https://example.com/test").mock(
             return_value=httpx.Response(200, text=html_content)
@@ -1539,8 +1500,7 @@ async def test_fetch_story_content_article_element(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_short_paragraphs(mock_env_vars, respx_mock):
-    """
-    Given: 短い段落のみのHTML
+    """Given: 短い段落のみのHTML
     When: _fetch_story_contentを呼び出す
     Then: 最初の段落が使用される
     """
@@ -1568,8 +1528,7 @@ async def test_fetch_story_content_short_paragraphs(mock_env_vars, respx_mock):
 
 @pytest.mark.unit
 def test_render_markdown_with_text_only(mock_env_vars):
-    """
-    Given: summaryなし、textのみの記事
+    """Given: summaryなし、textのみの記事
     When: _render_markdownを呼び出す
     Then: テキストが表示される
     """
@@ -1594,8 +1553,7 @@ def test_render_markdown_with_text_only(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_no_url(mock_env_vars):
-    """
-    Given: URLなしの記事
+    """Given: URLなしの記事
     When: _render_markdownを呼び出す
     Then: リンクなしでタイトルが表示される
     """
@@ -1613,8 +1571,7 @@ def test_render_markdown_no_url(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_title_only(mock_env_vars):
-    """
-    Given: タイトルのみのマークダウン（URLなし）
+    """Given: タイトルのみのマークダウン（URLなし）
     When: _parse_markdownを呼び出す
     Then: タイトルが正しくパースされる
     """
@@ -1639,8 +1596,7 @@ def test_parse_markdown_title_only(mock_env_vars):
 
 @pytest.mark.unit
 def test_story_sort_key_missing_score(mock_env_vars):
-    """
-    Given: スコアがない記事
+    """Given: スコアがない記事
     When: _story_sort_keyを呼び出す
     Then: デフォルトの0が返される
     """
@@ -1657,8 +1613,7 @@ def test_story_sort_key_missing_score(mock_env_vars):
 
 @pytest.mark.unit
 def test_story_sort_key_no_published_at(mock_env_vars):
-    """
-    Given: published_atがない記事
+    """Given: published_atがない記事
     When: _story_sort_keyを呼び出す
     Then: デフォルトの最小日時が返される
     """
@@ -1678,8 +1633,7 @@ def test_story_sort_key_no_published_at(mock_env_vars):
 
 @pytest.mark.unit
 def test_dedup_tracker_with_similar_titles(mock_env_vars):
-    """
-    Given: 重複したタイトル（空白の違いのみ）
+    """Given: 重複したタイトル（空白の違いのみ）
     When: DedupTrackerで重複チェックを行う
     Then: 重複として検出される
     """
@@ -1700,8 +1654,7 @@ def test_dedup_tracker_with_similar_titles(mock_env_vars):
 
 @pytest.mark.unit
 def test_story_date_normalization(mock_env_vars):
-    """
-    Given: タイムゾーン付きの日時
+    """Given: タイムゾーン付きの日時
     When: 日付に変換する
     Then: ローカルタイムゾーンの日付が取得される
     """
@@ -1719,8 +1672,7 @@ def test_story_date_normalization(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_log_fetch_summary(mock_env_vars):
-    """
-    Given: 様々な状態のストーリーリスト
+    """Given: 様々な状態のストーリーリスト
     When: _log_fetch_summaryを呼び出す
     Then: 正しいサマリーがログに記録される
     """
@@ -1778,8 +1730,7 @@ async def test_log_fetch_summary(mock_env_vars):
 
 @pytest.mark.unit
 def test_is_blocked_domain_exception_handling(mock_env_vars):
-    """
-    Given: 不正なURL
+    """Given: 不正なURL
     When: _is_blocked_domainを呼び出す
     Then: Falseが返される（例外は発生しない）
     """
@@ -1796,8 +1747,7 @@ def test_is_blocked_domain_exception_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_invalid_timestamp(mock_env_vars, respx_mock):
-    """
-    Given: 不正なタイムスタンプを持つストーリー
+    """Given: 不正なタイムスタンプを持つストーリー
     When: _fetch_storyを呼び出す
     Then: created_atがNoneに設定され、その後現在時刻が設定される
     """
@@ -1834,8 +1784,7 @@ async def test_fetch_story_invalid_timestamp(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_www_blocked_domain(mock_env_vars):
-    """
-    Given: www.付きのブロックされたドメイン
+    """Given: www.付きのブロックされたドメイン
     When: _fetch_story_contentを呼び出す
     Then: www.が除去されて理由が取得される
     """
@@ -1860,8 +1809,7 @@ async def test_fetch_story_content_www_blocked_domain(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_update_blocked_domains_various_error_reasons(hacker_news_service):
-    """
-    Given: 様々なエラー理由を持つストーリー
+    """Given: 様々なエラー理由を持つストーリー
     When: _update_blocked_domains_from_errorsを呼び出す
     Then: 適切なエラー理由が特定される
     """
@@ -1943,8 +1891,7 @@ async def test_update_blocked_domains_various_error_reasons(hacker_news_service)
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_update_blocked_domains_exception_handling(mock_env_vars):
-    """
-    Given: URLのパースに失敗するストーリー
+    """Given: URLのパースに失敗するストーリー
     When: _update_blocked_domains_from_errorsを呼び出す
     Then: 例外が処理され、処理が続行される
     """
@@ -1984,8 +1931,7 @@ async def test_update_blocked_domains_exception_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_add_to_blocked_domains_file_not_exists(mock_env_vars, tmp_path):
-    """
-    Given: blocked_domains.jsonが存在しない
+    """Given: blocked_domains.jsonが存在しない
     When: _add_to_blocked_domainsを呼び出す
     Then: 新しいファイルが作成される
     """
@@ -2036,8 +1982,7 @@ async def test_add_to_blocked_domains_file_not_exists(mock_env_vars, tmp_path):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_add_to_blocked_domains_exception_handling(mock_env_vars):
-    """
-    Given: ファイル書き込みに失敗する状況
+    """Given: ファイル書き込みに失敗する状況
     When: _add_to_blocked_domainsを呼び出す
     Then: 例外が処理され、エラーログが記録される
     """
@@ -2054,8 +1999,7 @@ async def test_add_to_blocked_domains_exception_handling(mock_env_vars):
 
 @pytest.mark.unit
 def test_run_sync_wrapper(mock_env_vars):
-    """
-    Given: HackerNewsRetrieverインスタンス
+    """Given: HackerNewsRetrieverインスタンス
     When: run()メソッドを呼び出す
     Then: asyncio.runが使用されてcollectが実行される
     """
@@ -2072,8 +2016,7 @@ def test_run_sync_wrapper(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_http_client_initialization(mock_env_vars):
-    """
-    Given: http_clientがNoneの状態
+    """Given: http_clientがNoneの状態
     When: collectメソッドを呼び出す
     Then: setup_http_clientが呼び出される
     """
@@ -2104,8 +2047,7 @@ async def test_collect_http_client_initialization(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_with_long_text_no_summary(mock_env_vars, mock_logger):
-    """
-    Given: 要約がなく、500文字を超える本文がある記事
+    """Given: 要約がなく、500文字を超える本文がある記事
     When: _render_markdownを呼び出す
     Then: 本文が500文字でトリミングされ、省略記号が追加される
 
@@ -2134,8 +2076,7 @@ def test_render_markdown_with_long_text_no_summary(mock_env_vars, mock_logger):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_titles_with_empty_data(mock_env_vars, mock_logger):
-    """
-    Given: 空のJSONデータが存在する
+    """Given: 空のJSONデータが存在する
     When: _load_existing_titlesを呼び出す
     Then: 空のDedupTrackerが返される
 
@@ -2162,8 +2103,7 @@ async def test_load_existing_titles_with_empty_data(mock_env_vars, mock_logger):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_titles_with_items_without_title(mock_env_vars, mock_logger):
-    """
-    Given: titleフィールドがないアイテムを含むJSONデータ
+    """Given: titleフィールドがないアイテムを含むJSONデータ
     When: _load_existing_titlesを呼び出す
     Then: titleがないアイテムはスキップされる
 
@@ -2195,8 +2135,7 @@ async def test_load_existing_titles_with_items_without_title(mock_env_vars, mock
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_top_stories_with_fetch_exception(mock_env_vars, mock_logger):
-    """
-    Given: _fetch_storyが例外を発生させる
+    """Given: _fetch_storyが例外を発生させる
     When: _get_top_storiesを呼び出す
     Then: 例外がキャッチされ、エラーログが記録される
 
@@ -2235,8 +2174,7 @@ async def test_get_top_stories_with_fetch_exception(mock_env_vars, mock_logger):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_top_stories_story_without_created_at(mock_env_vars, mock_logger):
-    """
-    Given: created_atがNoneのストーリー
+    """Given: created_atがNoneのストーリー
     When: _get_top_storiesでフィルタリングする
     Then: created_atがNoneのストーリーはフィルタリングでスキップされる
 
@@ -2274,8 +2212,7 @@ async def test_get_top_stories_story_without_created_at(mock_env_vars, mock_logg
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_update_blocked_domains_url_parse_error(mock_env_vars, mock_logger):
-    """
-    Given: URLパースが失敗するストーリー
+    """Given: URLパースが失敗するストーリー
     When: _update_blocked_domains_from_errorsを呼び出す
     Then: 例外がキャッチされ、デバッグログが記録される
 
@@ -2305,8 +2242,7 @@ async def test_update_blocked_domains_url_parse_error(mock_env_vars, mock_logger
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_story_content_status_200_with_article(mock_env_vars, mock_logger):
-    """
-    Given: HTTPレスポンスが200で、article要素が存在する
+    """Given: HTTPレスポンスが200で、article要素が存在する
     When: _fetch_story_contentを呼び出す
     Then: article要素からテキストが抽出される
 
@@ -2343,8 +2279,7 @@ async def test_fetch_story_content_status_200_with_article(mock_env_vars, mock_l
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_saved_files_logging(mock_env_vars, mock_logger):
-    """
-    Given: collectが正常にファイルを保存する
+    """Given: collectが正常にファイルを保存する
     When: collectメソッドを呼び出す
     Then: 保存完了のログが記録される
 
@@ -2375,8 +2310,7 @@ async def test_collect_with_saved_files_logging(mock_env_vars, mock_logger):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_top_stories_with_duplicate_detection(mock_env_vars, mock_logger):
-    """
-    Given: 重複したタイトルのストーリーが存在する
+    """Given: 重複したタイトルのストーリーが存在する
     When: _get_top_storiesを呼び出す
     Then: 重複はスキップされ、ログが記録される
 
@@ -2418,14 +2352,12 @@ async def test_get_top_stories_with_duplicate_detection(mock_env_vars, mock_logg
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
-    """
-    Given: 異なる日付のストーリーが存在する
+    """Given: 異なる日付のストーリーが存在する
     When: _get_top_storiesを呼び出す
     Then: 日付別にグループ化され、各日の上位記事が選択される
 
     Coverage: Lines 255-259, 265-268, 278 (date grouping and selection logic)
     """
-
     service = HackerNewsRetriever()
     service.http_client = httpx.AsyncClient()
 
@@ -2475,8 +2407,7 @@ async def test_get_top_stories_with_date_grouping(mock_env_vars, mock_logger):
 
 @pytest.mark.unit
 def test_render_markdown_with_text_but_no_summary_short(mock_env_vars, mock_logger):
-    """
-    Given: 要約がなく、500文字以下の本文がある記事
+    """Given: 要約がなく、500文字以下の本文がある記事
     When: _render_markdownを呼び出す
     Then: 本文がそのまま表示され、省略記号は追加されない
 

@@ -81,8 +81,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
         # 非同期関数か同期関数かを判定
         if asyncio.iscoroutinefunction(func):
             return cast(Callable[..., T], async_wrapper)
-        else:
-            return cast(Callable[..., T], sync_wrapper)
+        return cast(Callable[..., T], sync_wrapper)
 
     return decorator
 
@@ -118,6 +117,5 @@ def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
 
     if asyncio.iscoroutinefunction(func):
         return cast(Callable[..., T], async_wrapper)
-    else:
-        # 同期版も同様に実装（省略）
-        return func
+    # 同期版も同様に実装（省略）
+    return func

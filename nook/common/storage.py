@@ -9,30 +9,29 @@ import aiofiles
 
 
 class LocalStorage:
-    """
-    ローカルファイルシステムでのデータ操作を担当するクラス。
+    """ローカルファイルシステムでのデータ操作を担当するクラス。
 
     Parameters
     ----------
     base_dir : str
         ベースディレクトリのパス。
+
     """
 
     def __init__(self, base_dir: str):
-        """
-        LocalStorageを初期化します。
+        """LocalStorageを初期化します。
 
         Parameters
         ----------
         base_dir : str
             ベースディレクトリのパス。
+
         """
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def save_markdown(self, content: str, service_name: str, date: datetime | None = None) -> Path:
-        """
-        Markdownコンテンツを保存します。
+        """Markdownコンテンツを保存します。
 
         Parameters
         ----------
@@ -47,6 +46,7 @@ class LocalStorage:
         -------
         Path
             保存されたファイルのパス。
+
         """
         if date is None:
             date = datetime.now()
@@ -63,8 +63,7 @@ class LocalStorage:
         return file_path
 
     def load_markdown(self, service_name: str, date: datetime | None = None) -> str | None:
-        """
-        Markdownコンテンツを読み込みます。
+        """Markdownコンテンツを読み込みます。
 
         Parameters
         ----------
@@ -77,6 +76,7 @@ class LocalStorage:
         -------
         str or None
             読み込まれたMarkdownコンテンツ。ファイルが存在しない場合はNone。
+
         """
         if date is None:
             date = datetime.now()
@@ -91,8 +91,7 @@ class LocalStorage:
             return f.read()
 
     def list_dates(self, service_name: str) -> list[datetime]:
-        """
-        利用可能な日付の一覧を取得します。
+        """利用可能な日付の一覧を取得します。
 
         Parameters
         ----------
@@ -103,6 +102,7 @@ class LocalStorage:
         -------
         List[datetime]
             利用可能な日付のリスト。
+
         """
         service_dir = self.base_dir / service_name
 
@@ -121,8 +121,7 @@ class LocalStorage:
         return sorted(dates, reverse=True)
 
     async def save(self, data: Any, filename: str) -> Path:
-        """
-        データを非同期で保存します。
+        """データを非同期で保存します。
 
         Parameters
         ----------
@@ -135,6 +134,7 @@ class LocalStorage:
         -------
         Path
             保存されたファイルのパス。
+
         """
         file_path = self.base_dir / filename
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -172,8 +172,7 @@ class LocalStorage:
             old_path.rename(new_path)
 
     def load_json(self, service_name: str, date: datetime | None = None) -> list[Any] | None:
-        """
-        JSONコンテンツを読み込みます。
+        """JSONコンテンツを読み込みます。
 
         Parameters
         ----------
@@ -186,6 +185,7 @@ class LocalStorage:
         -------
         List[Any] or None
             読み込まれたJSONコンテンツ。ファイルが存在しない場合はNone。
+
         """
         if date is None:
             date = datetime.now()

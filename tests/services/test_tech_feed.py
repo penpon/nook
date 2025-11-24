@@ -1,5 +1,4 @@
-"""
-nook/services/tech_feed/tech_feed.py のテスト
+"""nook/services/tech_feed/tech_feed.py のテスト
 
 テスト観点:
 - TechFeedの初期化

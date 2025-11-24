@@ -29,8 +29,7 @@ from nook.common.dedup import (
 
 @pytest.mark.unit
 def test_normalize_basic_title():
-    """
-    Given: 通常のタイトル
+    """Given: 通常のタイトル
     When: normalizeを呼び出す
     Then: 小文字に変換される
     """
@@ -40,8 +39,7 @@ def test_normalize_basic_title():
 
 @pytest.mark.unit
 def test_normalize_empty_string():
-    """
-    Given: 空文字列
+    """Given: 空文字列
     When: normalizeを呼び出す
     Then: 空文字列が返される
     """
@@ -51,8 +49,7 @@ def test_normalize_empty_string():
 
 @pytest.mark.unit
 def test_normalize_whitespace_only():
-    """
-    Given: 空白のみ
+    """Given: 空白のみ
     When: normalizeを呼び出す
     Then: 空文字列が返される
     """
@@ -62,8 +59,7 @@ def test_normalize_whitespace_only():
 
 @pytest.mark.unit
 def test_normalize_none_input():
-    """
-    Given: None入力
+    """Given: None入力
     When: normalizeを呼び出す
     Then: 空文字列が返される
     """
@@ -76,8 +72,7 @@ def test_normalize_none_input():
 
 @pytest.mark.unit
 def test_normalize_fullwidth_to_halfwidth():
-    """
-    Given: 全角英数字
+    """Given: 全角英数字
     When: normalizeを呼び出す
     Then: 半角に変換される
     """
@@ -87,8 +82,7 @@ def test_normalize_fullwidth_to_halfwidth():
 
 @pytest.mark.unit
 def test_normalize_halfwidth_kana():
-    """
-    Given: 半角カナ
+    """Given: 半角カナ
     When: normalizeを呼び出す
     Then: 全角カナに変換される
     """
@@ -99,8 +93,7 @@ def test_normalize_halfwidth_kana():
 
 @pytest.mark.unit
 def test_normalize_composed_characters():
-    """
-    Given: 合成文字（濁点分離）
+    """Given: 合成文字（濁点分離）
     When: normalizeを呼び出す
     Then: 合成される
     """
@@ -111,8 +104,7 @@ def test_normalize_composed_characters():
 
 @pytest.mark.unit
 def test_normalize_variant_forms():
-    """
-    Given: 異体字
+    """Given: 異体字
     When: normalizeを呼び出す
     Then: 統一される
     """
@@ -127,8 +119,7 @@ def test_normalize_variant_forms():
 
 @pytest.mark.unit
 def test_normalize_uppercase_to_lowercase():
-    """
-    Given: 英大文字
+    """Given: 英大文字
     When: normalizeを呼び出す
     Then: 小文字に変換される
     """
@@ -138,8 +129,7 @@ def test_normalize_uppercase_to_lowercase():
 
 @pytest.mark.unit
 def test_normalize_mixed_case():
-    """
-    Given: 混在ケース
+    """Given: 混在ケース
     When: normalizeを呼び出す
     Then: すべて小文字に変換される
     """
@@ -156,8 +146,7 @@ def test_normalize_mixed_case():
 
 @pytest.mark.unit
 def test_normalize_newlines_tabs():
-    """
-    Given: 改行・タブ
+    """Given: 改行・タブ
     When: normalizeを呼び出す
     Then: 空白に変換される
     """
@@ -167,8 +156,7 @@ def test_normalize_newlines_tabs():
 
 @pytest.mark.unit
 def test_normalize_trim_whitespace():
-    """
-    Given: 先頭・末尾の空白
+    """Given: 先頭・末尾の空白
     When: normalizeを呼び出す
     Then: 削除される
     """
@@ -178,8 +166,7 @@ def test_normalize_trim_whitespace():
 
 @pytest.mark.unit
 def test_normalize_fullwidth_space():
-    """
-    Given: 全角空白
+    """Given: 全角空白
     When: normalizeを呼び出す
     Then: 半角空白に変換される
     """
@@ -192,8 +179,7 @@ def test_normalize_fullwidth_space():
 
 @pytest.mark.unit
 def test_normalize_remove_leading_brackets_kakko():
-    """
-    Given: 先頭の【】
+    """Given: 先頭の【】
     When: normalizeを呼び出す
     Then: 除去される
     """
@@ -204,8 +190,7 @@ def test_normalize_remove_leading_brackets_kakko():
 
 @pytest.mark.unit
 def test_normalize_remove_trailing_brackets_kakko():
-    """
-    Given: 末尾の【】
+    """Given: 末尾の【】
     When: normalizeを呼び出す
     Then: 除去される
     """
@@ -216,8 +201,7 @@ def test_normalize_remove_trailing_brackets_kakko():
 
 @pytest.mark.unit
 def test_normalize_remove_leading_quotes_kagikakko():
-    """
-    Given: 先頭の「」
+    """Given: 先頭の「」
     When: normalizeを呼び出す
     Then: 除去される
     """
@@ -228,8 +212,7 @@ def test_normalize_remove_leading_quotes_kagikakko():
 
 @pytest.mark.unit
 def test_normalize_remove_trailing_quotes_kagikakko():
-    """
-    Given: 末尾の「」
+    """Given: 末尾の「」
     When: normalizeを呼び出す
     Then: 除去される
     """
@@ -240,8 +223,7 @@ def test_normalize_remove_trailing_quotes_kagikakko():
 
 @pytest.mark.unit
 def test_normalize_remove_leading_quotes_nijukagikakko():
-    """
-    Given: 先頭の『』
+    """Given: 先頭の『』
     When: normalizeを呼び出す
     Then: 除去される
     """
@@ -252,8 +234,7 @@ def test_normalize_remove_leading_quotes_nijukagikakko():
 
 @pytest.mark.unit
 def test_normalize_remove_trailing_quotes_nijukagikakko():
-    """
-    Given: 末尾の『』
+    """Given: 末尾の『』
     When: normalizeを呼び出す
     Then: 除去される
     """
@@ -264,8 +245,7 @@ def test_normalize_remove_trailing_quotes_nijukagikakko():
 
 @pytest.mark.unit
 def test_normalize_remove_multiple_decorations():
-    """
-    Given: 複数装飾の連続
+    """Given: 複数装飾の連続
     When: normalizeを呼び出す
     Then: すべて除去される
     """
@@ -276,8 +256,7 @@ def test_normalize_remove_multiple_decorations():
 
 @pytest.mark.unit
 def test_normalize_multiple_exclamations():
-    """
-    Given: 連続感嘆符
+    """Given: 連続感嘆符
     When: normalizeを呼び出す
     Then: 1つに圧縮される
     """
@@ -288,8 +267,7 @@ def test_normalize_multiple_exclamations():
 
 @pytest.mark.unit
 def test_normalize_multiple_questions():
-    """
-    Given: 連続疑問符
+    """Given: 連続疑問符
     When: normalizeを呼び出す
     Then: 1つに圧縮される
     """
@@ -300,8 +278,7 @@ def test_normalize_multiple_questions():
 
 @pytest.mark.unit
 def test_normalize_multiple_tildes():
-    """
-    Given: 連続チルダ
+    """Given: 連続チルダ
     When: normalizeを呼び出す
     Then: 1つに圧縮される
     """
@@ -320,8 +297,7 @@ def test_normalize_multiple_tildes():
 
 @pytest.mark.unit
 def test_normalize_mixed_languages():
-    """
-    Given: 英日混在
+    """Given: 英日混在
     When: normalizeを呼び出す
     Then: 正規化される
     """
@@ -332,8 +308,7 @@ def test_normalize_mixed_languages():
 
 @pytest.mark.unit
 def test_normalize_with_emojis():
-    """
-    Given: 絵文字を含む
+    """Given: 絵文字を含む
     When: normalizeを呼び出す
     Then: 絵文字も含めて正規化される
     """
@@ -344,8 +319,7 @@ def test_normalize_with_emojis():
 
 @pytest.mark.unit
 def test_normalize_very_long_title():
-    """
-    Given: 超長文タイトル
+    """Given: 超長文タイトル
     When: normalizeを呼び出す
     Then: 正規化される
     """
@@ -362,8 +336,7 @@ def test_normalize_very_long_title():
 
 @pytest.mark.unit
 def test_are_duplicates_exact_match():
-    """
-    Given: 完全一致のタイトル
+    """Given: 完全一致のタイトル
     When: are_duplicatesを呼び出す
     Then: Trueが返される
     """
@@ -373,8 +346,7 @@ def test_are_duplicates_exact_match():
 
 @pytest.mark.unit
 def test_are_duplicates_case_difference():
-    """
-    Given: 大文字小文字の違いのみ
+    """Given: 大文字小文字の違いのみ
     When: are_duplicatesを呼び出す
     Then: Trueが返される
     """
@@ -384,8 +356,7 @@ def test_are_duplicates_case_difference():
 
 @pytest.mark.unit
 def test_are_duplicates_whitespace_difference():
-    """
-    Given: 空白の違いのみ
+    """Given: 空白の違いのみ
     When: are_duplicatesを呼び出す
     Then: Trueが返される
     """
@@ -402,8 +373,7 @@ def test_are_duplicates_whitespace_difference():
 
 @pytest.mark.unit
 def test_are_duplicates_empty_strings():
-    """
-    Given: 空文字列同士
+    """Given: 空文字列同士
     When: are_duplicatesを呼び出す
     Then: Trueが返される
     """
@@ -413,8 +383,7 @@ def test_are_duplicates_empty_strings():
 
 @pytest.mark.unit
 def test_are_duplicates_one_empty():
-    """
-    Given: 片方が空文字列
+    """Given: 片方が空文字列
     When: are_duplicatesを呼び出す
     Then: Falseが返される
     """
@@ -424,8 +393,7 @@ def test_are_duplicates_one_empty():
 
 @pytest.mark.unit
 def test_are_duplicates_both_none():
-    """
-    Given: None同士
+    """Given: None同士
     When: are_duplicatesを呼び出す
     Then: Trueが返される
     """
@@ -435,8 +403,7 @@ def test_are_duplicates_both_none():
 
 @pytest.mark.unit
 def test_are_duplicates_one_none():
-    """
-    Given: 片方がNone
+    """Given: 片方がNone
     When: are_duplicatesを呼び出す
     Then: Falseが返される
     """
@@ -446,8 +413,7 @@ def test_are_duplicates_one_none():
 
 @pytest.mark.unit
 def test_are_duplicates_complex_japanese():
-    """
-    Given: 複雑な日本語の重複
+    """Given: 複雑な日本語の重複
     When: are_duplicatesを呼び出す
     Then: Trueが返される
     """
@@ -464,8 +430,7 @@ def test_are_duplicates_complex_japanese():
 
 @pytest.mark.unit
 def test_dedup_tracker_init():
-    """
-    Given: DedupTracker初期化
+    """Given: DedupTracker初期化
     When: インスタンス作成
     Then: seen_normalized_titles=set(), title_mapping={}
     """
@@ -479,8 +444,7 @@ def test_dedup_tracker_init():
 
 @pytest.mark.unit
 def test_is_duplicate_new_title():
-    """
-    Given: 新規タイトル
+    """Given: 新規タイトル
     When: is_duplicateを呼び出す
     Then: (False, 正規化タイトル)が返される
     """
@@ -492,8 +456,7 @@ def test_is_duplicate_new_title():
 
 @pytest.mark.unit
 def test_is_duplicate_existing_title():
-    """
-    Given: 既存タイトル（重複）
+    """Given: 既存タイトル（重複）
     When: is_duplicateを呼び出す
     Then: (True, 正規化タイトル)が返される
     """
@@ -506,8 +469,7 @@ def test_is_duplicate_existing_title():
 
 @pytest.mark.unit
 def test_is_duplicate_case_difference():
-    """
-    Given: 大文字小文字違いで重複
+    """Given: 大文字小文字違いで重複
     When: is_duplicateを呼び出す
     Then: (True, 正規化タイトル)が返される
     """
@@ -520,8 +482,7 @@ def test_is_duplicate_case_difference():
 
 @pytest.mark.unit
 def test_is_duplicate_decoration_difference():
-    """
-    Given: 装飾違いで重複
+    """Given: 装飾違いで重複
     When: is_duplicateを呼び出す
     Then: (True, 正規化タイトル)が返される
     """
@@ -534,8 +495,7 @@ def test_is_duplicate_decoration_difference():
 
 @pytest.mark.unit
 def test_is_duplicate_empty_string():
-    """
-    Given: 空文字列
+    """Given: 空文字列
     When: is_duplicateを呼び出す
     Then: (False, "")が返される
     """
@@ -547,8 +507,7 @@ def test_is_duplicate_empty_string():
 
 @pytest.mark.unit
 def test_is_duplicate_none_input():
-    """
-    Given: None入力
+    """Given: None入力
     When: is_duplicateを呼び出す
     Then: (False, "")が返される
     """
@@ -563,8 +522,7 @@ def test_is_duplicate_none_input():
 
 @pytest.mark.unit
 def test_add_new_title():
-    """
-    Given: 新規タイトル
+    """Given: 新規タイトル
     When: addを呼び出す
     Then: 正規化タイトルが返され、setに追加される
     """
@@ -576,8 +534,7 @@ def test_add_new_title():
 
 @pytest.mark.unit
 def test_add_duplicate_title():
-    """
-    Given: 重複タイトル
+    """Given: 重複タイトル
     When: addを呼び出す
     Then: 正規化タイトルが返され、setは変わらず
     """
@@ -591,8 +548,7 @@ def test_add_duplicate_title():
 
 @pytest.mark.unit
 def test_add_updates_title_mapping():
-    """
-    Given: 初回タイトル追加
+    """Given: 初回タイトル追加
     When: addを呼び出す
     Then: title_mappingに記録される
     """
@@ -603,8 +559,7 @@ def test_add_updates_title_mapping():
 
 @pytest.mark.unit
 def test_add_preserves_original_title_mapping():
-    """
-    Given: 同じ正規化タイトルで2回追加
+    """Given: 同じ正規化タイトルで2回追加
     When: addを呼び出す
     Then: 最初の元タイトルが保持される
     """
@@ -625,8 +580,7 @@ def test_add_preserves_original_title_mapping():
 
 @pytest.mark.unit
 def test_get_original_title_nonexistent():
-    """
-    Given: 存在しない正規化タイトル
+    """Given: 存在しない正規化タイトル
     When: get_original_titleを呼び出す
     Then: Noneが返される
     """
@@ -637,8 +591,7 @@ def test_get_original_title_nonexistent():
 
 @pytest.mark.unit
 def test_count_initial_state():
-    """
-    Given: 初期化直後
+    """Given: 初期化直後
     When: countを呼び出す
     Then: 0が返される
     """
@@ -648,8 +601,7 @@ def test_count_initial_state():
 
 @pytest.mark.unit
 def test_count_after_additions():
-    """
-    Given: add()を複数回実行
+    """Given: add()を複数回実行
     When: countを呼び出す
     Then: 追加した重複排除後の数が返される
     """
@@ -662,8 +614,7 @@ def test_count_after_additions():
 
 @pytest.mark.unit
 def test_count_after_duplicate_additions():
-    """
-    Given: 同じタイトルを複数回add
+    """Given: 同じタイトルを複数回add
     When: countを呼び出す
     Then: カウントは増えない
     """
@@ -683,8 +634,7 @@ def test_count_after_duplicate_additions():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_json():
-    """
-    Given: 正常なJSONファイル
+    """Given: 正常なJSONファイル
     When: load_existing_titles_from_storageを呼び出す
     Then: DedupTrackerにタイトルが登録される
     """
@@ -707,8 +657,7 @@ async def test_load_existing_titles_from_json():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_multiple_dates():
-    """
-    Given: 複数target_dates
+    """Given: 複数target_dates
     When: load_existing_titles_from_storageを呼び出す
     Then: すべての日付のJSONが読み込まれる
     """
@@ -717,7 +666,7 @@ async def test_load_existing_titles_multiple_dates():
     async def load_side_effect(filename):
         if "2024-01-15" in filename:
             return json.dumps([{"title": "Article 1"}])
-        elif "2024-01-16" in filename:
+        if "2024-01-16" in filename:
             return json.dumps([{"title": "Article 2"}])
         raise FileNotFoundError()
 
@@ -732,8 +681,7 @@ async def test_load_existing_titles_multiple_dates():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_json_not_found():
-    """
-    Given: JSONファイルが存在しない
+    """Given: JSONファイルが存在しない
     When: load_existing_titles_from_storageを呼び出す
     Then: 空のDedupTrackerが返される
     """
@@ -750,8 +698,7 @@ async def test_load_existing_titles_json_not_found():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_json_decode_error():
-    """
-    Given: 不正なJSON
+    """Given: 不正なJSON
     When: load_existing_titles_from_storageを呼び出す
     Then: JSONDecodeErrorをキャッチ、継続
     """
@@ -769,8 +716,7 @@ async def test_load_existing_titles_json_decode_error():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_empty_json_array():
-    """
-    Given: 空のJSON配列
+    """Given: 空のJSON配列
     When: load_existing_titles_from_storageを呼び出す
     Then: DedupTrackerのカウント=0
     """
@@ -787,8 +733,7 @@ async def test_load_existing_titles_empty_json_array():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_no_title_field():
-    """
-    Given: titleフィールドがない記事
+    """Given: titleフィールドがない記事
     When: load_existing_titles_from_storageを呼び出す
     Then: titleがスキップされる
     """
@@ -810,8 +755,7 @@ async def test_load_existing_titles_no_title_field():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_empty_title():
-    """
-    Given: titleが空文字列
+    """Given: titleが空文字列
     When: load_existing_titles_from_storageを呼び出す
     Then: スキップされる
     """
@@ -836,8 +780,7 @@ async def test_load_existing_titles_empty_title():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_markdown():
-    """
-    Given: Markdown形式の記事
+    """Given: Markdown形式の記事
     When: load_existing_titles_from_storageを呼び出す
     Then: タイトルが抽出されて追加される
     """
@@ -863,8 +806,7 @@ More content.
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_multiple_markdown_entries():
-    """
-    Given: 複数記事のMarkdown
+    """Given: 複数記事のMarkdown
     When: load_existing_titles_from_storageを呼び出す
     Then: すべてのタイトルが抽出される
     """
@@ -886,8 +828,7 @@ async def test_load_existing_titles_multiple_markdown_entries():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_markdown_not_found():
-    """
-    Given: Markdownファイルが存在しない
+    """Given: Markdownファイルが存在しない
     When: load_existing_titles_from_storageを呼び出す
     Then: エラーをキャッチ、継続
     """
@@ -904,8 +845,7 @@ async def test_load_existing_titles_markdown_not_found():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_invalid_markdown_format():
-    """
-    Given: 不正なMarkdown形式（リンクなし）
+    """Given: 不正なMarkdown形式（リンクなし）
     When: load_existing_titles_from_storageを呼び出す
     Then: マッチしない、スキップ
     """
@@ -929,8 +869,7 @@ Some content.
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_json_and_markdown():
-    """
-    Given: JSON + Markdown両方のファイルが存在
+    """Given: JSON + Markdown両方のファイルが存在
     When: load_existing_titles_from_storageを呼び出す
     Then: 両方のタイトルが統合される
     """
@@ -951,8 +890,7 @@ async def test_load_existing_titles_json_and_markdown():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_empty_target_dates():
-    """
-    Given: 空のtarget_dates
+    """Given: 空のtarget_dates
     When: load_existing_titles_from_storageを呼び出す
     Then: 空のDedupTrackerが返される
     """
@@ -967,8 +905,7 @@ async def test_load_existing_titles_empty_target_dates():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_with_logger():
-    """
-    Given: logger引数を渡す
+    """Given: logger引数を渡す
     When: load_existing_titles_from_storageを呼び出す
     Then: ログ出力される
     """
@@ -990,8 +927,7 @@ async def test_load_existing_titles_with_logger():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_without_logger():
-    """
-    Given: logger=None
+    """Given: logger=None
     When: load_existing_titles_from_storageを呼び出す
     Then: エラーなく動作
     """
@@ -1008,8 +944,7 @@ async def test_load_existing_titles_without_logger():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_io_error():
-    """
-    Given: storage.load()が例外を投げる
+    """Given: storage.load()が例外を投げる
     When: load_existing_titles_from_storageを呼び出す
     Then: 例外をキャッチ、継続
     """
@@ -1027,8 +962,7 @@ async def test_load_existing_titles_io_error():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_with_logger_file_not_found():
-    """
-    Given: logger引数ありでFileNotFoundError発生
+    """Given: logger引数ありでFileNotFoundError発生
     When: load_existing_titles_from_storageを呼び出す
     Then: logger.debugが呼ばれる（行226）
     """
@@ -1048,8 +982,7 @@ async def test_load_existing_titles_with_logger_file_not_found():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_with_logger_json_decode_error():
-    """
-    Given: logger引数ありでJSONDecodeError発生
+    """Given: logger引数ありでJSONDecodeError発生
     When: load_existing_titles_from_storageを呼び出す
     Then: logger.warningが呼ばれる（行229）
     """
@@ -1069,8 +1002,7 @@ async def test_load_existing_titles_with_logger_json_decode_error():
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_with_logger_io_error():
-    """
-    Given: logger引数ありでIOError発生
+    """Given: logger引数ありでIOError発生
     When: load_existing_titles_from_storageを呼び出す
     Then: logger.debugが呼ばれる（行232）
     """

@@ -1,5 +1,4 @@
-"""
-nook/common/async_utils.py のテスト
+"""nook/common/async_utils.py のテスト
 
 テスト観点:
 - TaskResult（タスク実行結果クラス）
@@ -31,8 +30,7 @@ from nook.common.async_utils import (
 
 @pytest.mark.unit
 def test_task_result_success():
-    """
-    Given: 成功したタスクの情報
+    """Given: 成功したタスクの情報
     When: TaskResultを初期化
     Then: success=True、結果が設定され、timestampが生成される
     """
@@ -49,8 +47,7 @@ def test_task_result_success():
 
 @pytest.mark.unit
 def test_task_result_failure():
-    """
-    Given: 失敗したタスクの情報
+    """Given: 失敗したタスクの情報
     When: TaskResultを初期化
     Then: success=False、エラーが設定され、timestampが生成される
     """
@@ -76,8 +73,7 @@ def test_task_result_failure():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_all_success():
-    """
-    Given: 全タスクが成功するコルーチンリスト
+    """Given: 全タスクが成功するコルーチンリスト
     When: gather_with_errorsを実行
     Then: 全結果がsuccess=Trueで返される
     """
@@ -101,8 +97,7 @@ async def test_gather_with_errors_all_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_partial_failure():
-    """
-    Given: 一部が失敗するタスクリスト
+    """Given: 一部が失敗するタスクリスト
     When: gather_with_errorsを実行
     Then: 成功と失敗が混在した結果が返される
     """
@@ -130,8 +125,7 @@ async def test_gather_with_errors_partial_failure():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_custom_names():
-    """
-    Given: カスタムtask_namesを指定
+    """Given: カスタムtask_namesを指定
     When: gather_with_errorsを実行
     Then: TaskResultにカスタム名が設定される
     """
@@ -155,8 +149,7 @@ async def test_gather_with_errors_custom_names():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_all_failure():
-    """
-    Given: 全タスクが失敗するコルーチンリスト
+    """Given: 全タスクが失敗するコルーチンリスト
     When: gather_with_errorsを実行
     Then: 全結果がsuccess=Falseで返される
     """
@@ -179,8 +172,7 @@ async def test_gather_with_errors_all_failure():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_invalid_task_names_length():
-    """
-    Given: コルーチン数とtask_names長さが不一致
+    """Given: コルーチン数とtask_names長さが不一致
     When: gather_with_errorsを実行
     Then: ValueErrorが発生
     """
@@ -197,8 +189,7 @@ async def test_gather_with_errors_invalid_task_names_length():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_no_return_exceptions():
-    """
-    Given: return_exceptions=Falseで失敗するタスク
+    """Given: return_exceptions=Falseで失敗するタスク
     When: gather_with_errorsを実行
     Then: 例外が再発生する
     """
@@ -215,8 +206,7 @@ async def test_gather_with_errors_no_return_exceptions():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_empty():
-    """
-    Given: 空のコルーチンリスト
+    """Given: 空のコルーチンリスト
     When: gather_with_errorsを実行
     Then: 空のリストが返される
     """
@@ -230,8 +220,7 @@ async def test_gather_with_errors_empty():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_gather_with_errors_single_task():
-    """
-    Given: 単一のコルーチン
+    """Given: 単一のコルーチン
     When: gather_with_errorsを実行
     Then: 1つのTaskResultが返される
     """
@@ -257,8 +246,7 @@ async def test_gather_with_errors_single_task():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_with_semaphore_concurrency_limit():
-    """
-    Given: max_concurrent=2で5つのタスク
+    """Given: max_concurrent=2で5つのタスク
     When: run_with_semaphoreを実行
     Then: 最大2並行で実行され、全結果が返される
     """
@@ -288,8 +276,7 @@ async def test_run_with_semaphore_concurrency_limit():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_with_semaphore_progress_callback():
-    """
-    Given: progress_callbackを設定
+    """Given: progress_callbackを設定
     When: run_with_semaphoreを実行
     Then: 各タスク完了時にコールバックが呼ばれる
     """
@@ -318,8 +305,7 @@ async def test_run_with_semaphore_progress_callback():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_with_semaphore_all_success():
-    """
-    Given: 3つの成功タスク
+    """Given: 3つの成功タスク
     When: run_with_semaphoreを実行
     Then: 全結果が正常に返却される
     """
@@ -341,8 +327,7 @@ async def test_run_with_semaphore_all_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_with_semaphore_task_failure():
-    """
-    Given: 失敗するタスクを含むリスト
+    """Given: 失敗するタスクを含むリスト
     When: run_with_semaphoreを実行
     Then: 例外が伝播する
     """
@@ -364,8 +349,7 @@ async def test_run_with_semaphore_task_failure():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_with_semaphore_callback_failure():
-    """
-    Given: progress_callbackが例外を発生
+    """Given: progress_callbackが例外を発生
     When: run_with_semaphoreを実行
     Then: タスク実行が例外で失敗する
     """
@@ -387,8 +371,7 @@ async def test_run_with_semaphore_callback_failure():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_with_semaphore_max_concurrent_one():
-    """
-    Given: max_concurrent=1で3つのタスク
+    """Given: max_concurrent=1で3つのタスク
     When: run_with_semaphoreを実行
     Then: 完全に直列実行される
     """
@@ -417,8 +400,7 @@ async def test_run_with_semaphore_max_concurrent_one():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_with_semaphore_empty():
-    """
-    Given: 空のコルーチンリスト
+    """Given: 空のコルーチンリスト
     When: run_with_semaphoreを実行
     Then: 空のリストが返される
     """
@@ -437,8 +419,7 @@ async def test_run_with_semaphore_empty():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_batch_process_multiple_batches():
-    """
-    Given: 250アイテム、batch_size=100
+    """Given: 250アイテム、batch_size=100
     When: batch_processを実行
     Then: 3バッチに分割して処理される
     """
@@ -463,8 +444,7 @@ async def test_batch_process_multiple_batches():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_batch_process_single_batch():
-    """
-    Given: 50アイテム、batch_size=100
+    """Given: 50アイテム、batch_size=100
     When: batch_processを実行
     Then: 1バッチで処理される
     """
@@ -485,8 +465,7 @@ async def test_batch_process_single_batch():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_batch_process_processor_failure():
-    """
-    Given: processorが例外を発生
+    """Given: processorが例外を発生
     When: batch_processを実行
     Then: 例外が伝播する
     """
@@ -504,8 +483,7 @@ async def test_batch_process_processor_failure():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_batch_process_concurrent_limit():
-    """
-    Given: max_concurrent_batches=2で5バッチ
+    """Given: max_concurrent_batches=2で5バッチ
     When: batch_processを実行
     Then: 最大2バッチが並行実行される
     """
@@ -536,8 +514,7 @@ async def test_batch_process_concurrent_limit():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_batch_process_empty():
-    """
-    Given: 空のアイテムリスト
+    """Given: 空のアイテムリスト
     When: batch_processを実行
     Then: 空のリストが返される
     """
@@ -557,8 +534,7 @@ async def test_batch_process_empty():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_batch_process_exact_batch_size():
-    """
-    Given: 100アイテム、batch_size=100
+    """Given: 100アイテム、batch_size=100
     When: batch_processを実行
     Then: ちょうど1バッチで処理される
     """
@@ -584,8 +560,7 @@ async def test_batch_process_exact_batch_size():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_sync_in_thread_success():
-    """
-    Given: 通常の同期関数
+    """Given: 通常の同期関数
     When: run_sync_in_threadを実行
     Then: Futureが返却され、結果が取得できる
     """
@@ -605,8 +580,7 @@ async def test_run_sync_in_thread_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_sync_in_thread_with_args():
-    """
-    Given: 引数とkwargsを持つ同期関数
+    """Given: 引数とkwargsを持つ同期関数
     When: run_sync_in_threadで引数を渡す
     Then: 引数が正しく渡され、結果が返される
     """
@@ -626,8 +600,7 @@ async def test_run_sync_in_thread_with_args():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_sync_in_thread_exception():
-    """
-    Given: 例外を発生する同期関数
+    """Given: 例外を発生する同期関数
     When: run_sync_in_threadを実行
     Then: Futureから例外が取得できる
     """
@@ -647,8 +620,7 @@ async def test_run_sync_in_thread_exception():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_run_sync_in_thread_blocking_operation():
-    """
-    Given: time.sleepを含む同期関数
+    """Given: time.sleepを含む同期関数
     When: run_sync_in_threadを実行
     Then: 非ブロッキングで実行される
     """
@@ -682,8 +654,7 @@ async def test_run_sync_in_thread_blocking_operation():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_init():
-    """
-    Given: max_concurrent=5
+    """Given: max_concurrent=5
     When: AsyncTaskManagerを初期化
     Then: 空の状態で初期化される
     """
@@ -700,8 +671,7 @@ async def test_async_task_manager_init():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_submit_success():
-    """
-    Given: 成功するタスク
+    """Given: 成功するタスク
     When: submitを実行
     Then: タスクIDが返却され、実行が開始される
     """
@@ -723,8 +693,7 @@ async def test_async_task_manager_submit_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_submit_multiple():
-    """
-    Given: 3つのタスク
+    """Given: 3つのタスク
     When: 複数submitを実行
     Then: 全タスクが実行される
     """
@@ -747,8 +716,7 @@ async def test_async_task_manager_submit_multiple():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_for_success():
-    """
-    Given: 完了するタスク
+    """Given: 完了するタスク
     When: wait_forを実行
     Then: 結果が返却される
     """
@@ -771,8 +739,7 @@ async def test_async_task_manager_wait_for_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_all_success():
-    """
-    Given: 複数のタスク
+    """Given: 複数のタスク
     When: wait_allを実行
     Then: results/errors辞書が返却される
     """
@@ -798,8 +765,7 @@ async def test_async_task_manager_wait_all_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_get_status():
-    """
-    Given: 実行中・完了・失敗が混在
+    """Given: 実行中・完了・失敗が混在
     When: get_statusを実行
     Then: 正しいステータスが返却される
     """
@@ -837,8 +803,7 @@ async def test_async_task_manager_get_status():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_submit_duplicate_name():
-    """
-    Given: 既に存在するタスク名
+    """Given: 既に存在するタスク名
     When: 同じ名前でsubmitを実行
     Then: ValueErrorが発生
     """
@@ -859,8 +824,7 @@ async def test_async_task_manager_submit_duplicate_name():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_for_not_found():
-    """
-    Given: 存在しないタスク名
+    """Given: 存在しないタスク名
     When: wait_forを実行
     Then: ValueErrorが発生
     """
@@ -875,8 +839,7 @@ async def test_async_task_manager_wait_for_not_found():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_for_failed_task():
-    """
-    Given: 失敗したタスク
+    """Given: 失敗したタスク
     When: wait_forを実行
     Then: 保存された例外が再発生
     """
@@ -897,8 +860,7 @@ async def test_async_task_manager_wait_for_failed_task():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_for_timeout():
-    """
-    Given: timeout内に完了しないタスク
+    """Given: timeout内に完了しないタスク
     When: wait_forをtimeout指定で実行
     Then: TimeoutErrorが発生
     """
@@ -920,8 +882,7 @@ async def test_async_task_manager_wait_for_timeout():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_task_exception():
-    """
-    Given: タスクが例外を発生
+    """Given: タスクが例外を発生
     When: タスクを実行
     Then: errorsに記録される
     """
@@ -944,8 +905,7 @@ async def test_async_task_manager_task_exception():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_all_partial():
-    """
-    Given: timeout内に一部のみ完了するタスク
+    """Given: timeout内に一部のみ完了するタスク
     When: wait_allをtimeout指定で実行
     Then: 完了分のみresultsに含まれる
     """
@@ -973,8 +933,7 @@ async def test_async_task_manager_wait_all_partial():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_empty():
-    """
-    Given: タスクをsubmitしない
+    """Given: タスクをsubmitしない
     When: wait_allを実行
     Then: 空のresults/errorsが返される
     """
@@ -992,8 +951,7 @@ async def test_async_task_manager_empty():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_for_completed():
-    """
-    Given: 既に完了したタスク
+    """Given: 既に完了したタスク
     When: wait_forを実行
     Then: 即座に結果が返される
     """
@@ -1017,8 +975,7 @@ async def test_async_task_manager_wait_for_completed():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_task_manager_wait_for_failed_completed():
-    """
-    Given: 既に失敗したタスク
+    """Given: 既に失敗したタスク
     When: wait_forを実行
     Then: 即座に例外が発生
     """

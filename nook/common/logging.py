@@ -58,8 +58,7 @@ class JSONFormatter(logging.Formatter):
 def setup_logger(
     name: str, level: str = "INFO", log_dir: str = "logs", use_json: bool = True
 ) -> logging.Logger:
-    """
-    ロガーのセットアップ
+    """ロガーのセットアップ
 
     Parameters
     ----------
@@ -81,6 +80,7 @@ def setup_logger(
     -----
     - コンソール出力: 常にシンプルなテキスト形式（視認性重視）
     - ファイル出力: JSON形式（use_json=True）または標準形式（use_json=False）
+
     """
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level.upper()))

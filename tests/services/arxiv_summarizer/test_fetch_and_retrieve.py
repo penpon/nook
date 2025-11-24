@@ -1,5 +1,4 @@
-"""
-ArxivSummarizer - データ取得・ダウンロード のテスト
+"""ArxivSummarizer - データ取得・ダウンロード のテスト
 
 このファイルは元々 test_arxiv_summarizer.py の一部でしたが、
 保守性向上のため機能別に分割されました。
@@ -31,8 +30,7 @@ from nook.services.arxiv_summarizer.arxiv_summarizer import PaperInfo
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_curated_paper_ids_success(arxiv_service, test_date, respx_mock):
-    """
-    Given: 有効なHugging Faceページ
+    """Given: 有効なHugging Faceページ
     When: _get_curated_paper_idsメソッドを呼び出す
     Then: 論文IDが正常に取得される
     """
@@ -73,8 +71,7 @@ async def test_get_curated_paper_ids_success(arxiv_service, test_date, respx_moc
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_curated_paper_ids_404_error(arxiv_service, test_date, respx_mock):
-    """
-    Given: Hugging FaceページがHTTP 404エラーを返す
+    """Given: Hugging FaceページがHTTP 404エラーを返す
     When: _get_curated_paper_idsメソッドを呼び出す
     Then: Noneが返される
     """
@@ -104,8 +101,7 @@ async def test_get_curated_paper_ids_404_error(arxiv_service, test_date, respx_m
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_curated_paper_ids_redirect(arxiv_service, test_date):
-    """
-    Given: Hugging Faceページがリダイレクトする
+    """Given: Hugging Faceページがリダイレクトする
     When: _get_curated_paper_idsメソッドを呼び出す
     Then: Noneが返される
     """
@@ -131,8 +127,7 @@ async def test_get_curated_paper_ids_redirect(arxiv_service, test_date):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_curated_paper_ids_fallback_to_top_page(arxiv_service, test_date):
-    """
-    Given: 日付ページが空でトップページにフォールバック
+    """Given: 日付ページが空でトップページにフォールバック
     When: _get_curated_paper_idsメソッドを呼び出す
     Then: トップページから論文IDが取得される
     """
@@ -171,8 +166,7 @@ async def test_get_curated_paper_ids_fallback_to_top_page(arxiv_service, test_da
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_curated_paper_ids_empty_result(arxiv_service, test_date):
-    """
-    Given: 全ページが空
+    """Given: 全ページが空
     When: _get_curated_paper_idsメソッドを呼び出す
     Then: 空リストが返される
     """
@@ -205,8 +199,7 @@ async def test_get_curated_paper_ids_empty_result(arxiv_service, test_date):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_curated_paper_ids_with_duplicates(arxiv_service, test_date):
-    """
-    Given: 重複IDを含むHTML
+    """Given: 重複IDを含むHTML
     When: _get_curated_paper_idsメソッドを呼び出す
     Then: 重複が除去される
     """
@@ -251,8 +244,7 @@ async def test_get_curated_paper_ids_with_duplicates(arxiv_service, test_date):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_curated_paper_ids_filters_processed_ids(arxiv_service, test_date):
-    """
-    Given: 既に処理済みのIDが存在
+    """Given: 既に処理済みのIDが存在
     When: _get_curated_paper_idsメソッドを呼び出す
     Then: 処理済みIDが除外される
     """
@@ -306,8 +298,7 @@ async def test_get_curated_paper_ids_filters_processed_ids(arxiv_service, test_d
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_pdf_success(arxiv_service, arxiv_helper):
-    """
-    Given: 有効なPDF URL
+    """Given: 有効なPDF URL
     When: _download_pdf_without_retryメソッドを呼び出す
     Then: PDFが正常にダウンロードされる
     """
@@ -330,8 +321,7 @@ async def test_download_pdf_success(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_pdf_timeout(arxiv_service, arxiv_helper):
-    """
-    Given: PDFダウンロードがタイムアウト
+    """Given: PDFダウンロードがタイムアウト
     When: _download_pdf_without_retryメソッドを呼び出す
     Then: TimeoutException が発生する
     """
@@ -351,8 +341,7 @@ async def test_download_pdf_timeout(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_pdf_404_error(arxiv_service, arxiv_helper):
-    """
-    Given: PDF URLが404エラーを返す
+    """Given: PDF URLが404エラーを返す
     When: _download_pdf_without_retryメソッドを呼び出す
     Then: HTTPStatusError が発生する
     """
@@ -378,8 +367,7 @@ async def test_download_pdf_404_error(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_pdf_500_error(arxiv_service, arxiv_helper):
-    """
-    Given: PDF URLが500エラーを返す
+    """Given: PDF URLが500エラーを返す
     When: _download_pdf_without_retryメソッドを呼び出す
     Then: HTTPStatusError が発生する
     """
@@ -410,8 +398,7 @@ async def test_download_pdf_500_error(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_html_success(arxiv_service, arxiv_helper):
-    """
-    Given: 有効なHTML URL
+    """Given: 有効なHTML URL
     When: _download_html_without_retryメソッドを呼び出す
     Then: HTMLが正常にダウンロードされる
     """
@@ -437,8 +424,7 @@ async def test_download_html_success(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_html_404_returns_empty_string(arxiv_service, arxiv_helper):
-    """
-    Given: HTML URLが404エラーを返す
+    """Given: HTML URLが404エラーを返す
     When: _download_html_without_retryメソッドを呼び出す
     Then: 空文字列が返される（例外は発生しない）
     """
@@ -466,8 +452,7 @@ async def test_download_html_404_returns_empty_string(arxiv_service, arxiv_helpe
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_html_timeout(arxiv_service, arxiv_helper):
-    """
-    Given: HTMLダウンロードがタイムアウト
+    """Given: HTMLダウンロードがタイムアウト
     When: _download_html_without_retryメソッドを呼び出す
     Then: 例外が再発生する
     """
@@ -492,8 +477,7 @@ async def test_download_html_timeout(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_paper_info_success(arxiv_service, mock_arxiv_paper_factory, arxiv_helper):
-    """
-    Given: 有効な論文ID
+    """Given: 有効な論文ID
     When: _retrieve_paper_infoメソッドを呼び出す
     Then: 論文情報が正常に取得される
     """
@@ -543,8 +527,7 @@ async def test_retrieve_paper_info_success(arxiv_service, mock_arxiv_paper_facto
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_paper_info_no_results(arxiv_service, arxiv_helper):
-    """
-    Given: 存在しない論文ID
+    """Given: 存在しない論文ID
     When: _retrieve_paper_infoメソッドを呼び出す
     Then: Noneが返される
     """
@@ -563,8 +546,7 @@ async def test_retrieve_paper_info_no_results(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_paper_info_api_error(arxiv_service, arxiv_helper):
-    """
-    Given: arxiv APIがエラーを返す
+    """Given: arxiv APIがエラーを返す
     When: _retrieve_paper_infoメソッドを呼び出す
     Then: Noneが返される
     """
@@ -584,8 +566,7 @@ async def test_retrieve_paper_info_api_error(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_paper_info_with_fallback_to_abstract(arxiv_service):
-    """
-    Given: 本文抽出が失敗
+    """Given: 本文抽出が失敗
     When: _retrieve_paper_infoメソッドを呼び出す
     Then: アブストラクトが本文として使用される
     """
@@ -634,8 +615,7 @@ async def test_retrieve_paper_info_with_fallback_to_abstract(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_paper_date_success(arxiv_service, arxiv_helper):
-    """
-    Given: 有効な論文ID
+    """Given: 有効な論文ID
     When: _get_paper_dateメソッドを呼び出す
     Then: 公開日が正常に取得される
     """
@@ -659,8 +639,7 @@ async def test_get_paper_date_success(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_paper_date_no_results(arxiv_service, arxiv_helper):
-    """
-    Given: 存在しない論文ID
+    """Given: 存在しない論文ID
     When: _get_paper_dateメソッドを呼び出す
     Then: Noneが返される
     """
@@ -679,8 +658,7 @@ async def test_get_paper_date_no_results(arxiv_service, arxiv_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_paper_date_api_error(arxiv_service, arxiv_helper):
-    """
-    Given: arxiv APIがエラーを返す
+    """Given: arxiv APIがエラーを返す
     When: _get_paper_dateメソッドを呼び出す
     Then: Noneが返される
     """

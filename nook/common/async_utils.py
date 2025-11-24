@@ -139,10 +139,9 @@ class AsyncTaskManager:
         if not task:
             if name in self.results:
                 return self.results[name]
-            elif name in self.errors:
+            if name in self.errors:
                 raise self.errors[name]
-            else:
-                raise ValueError(f"Task {name} not found")
+            raise ValueError(f"Task {name} not found")
 
         try:
             await asyncio.wait_for(task, timeout=timeout)

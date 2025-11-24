@@ -30,8 +30,7 @@ JST = timezone(timedelta(hours=9))
 
 @pytest.mark.unit
 def test_get_entry_value_from_object_with_attribute():
-    """
-    Given: 属性を持つオブジェクトとフィールド名
+    """Given: 属性を持つオブジェクトとフィールド名
     When: _get_entry_valueを呼び出す
     Then: getattr()で値が返される
     """
@@ -43,8 +42,7 @@ def test_get_entry_value_from_object_with_attribute():
 
 @pytest.mark.unit
 def test_get_entry_value_from_dict():
-    """
-    Given: 辞書型のentryとフィールド名
+    """Given: 辞書型のentryとフィールド名
     When: _get_entry_valueを呼び出す
     Then: entry.get()で値が返される
     """
@@ -55,8 +53,7 @@ def test_get_entry_value_from_dict():
 
 @pytest.mark.unit
 def test_get_entry_value_object_without_attribute():
-    """
-    Given: 属性を持たないオブジェクトとフィールド名
+    """Given: 属性を持たないオブジェクトとフィールド名
     When: _get_entry_valueを呼び出す
     Then: Noneが返される
     """
@@ -67,8 +64,7 @@ def test_get_entry_value_object_without_attribute():
 
 @pytest.mark.unit
 def test_get_entry_value_dict_without_key():
-    """
-    Given: キーを持たない辞書とフィールド名
+    """Given: キーを持たない辞書とフィールド名
     When: _get_entry_valueを呼び出す
     Then: Noneが返される
     """
@@ -79,8 +75,7 @@ def test_get_entry_value_dict_without_key():
 
 @pytest.mark.unit
 def test_get_entry_value_none_value():
-    """
-    Given: None値を持つフィールド
+    """Given: None値を持つフィールド
     When: _get_entry_valueを呼び出す
     Then: Noneが返される
     """
@@ -91,8 +86,7 @@ def test_get_entry_value_none_value():
 
 @pytest.mark.unit
 def test_get_entry_value_empty_string():
-    """
-    Given: 空文字列を持つフィールド
+    """Given: 空文字列を持つフィールド
     When: _get_entry_valueを呼び出す
     Then: 空文字列が返される
     """
@@ -108,8 +102,7 @@ def test_get_entry_value_empty_string():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_with_z_suffix():
-    """
-    Given: ISO 8601形式（Z付き）の日付文字列
+    """Given: ISO 8601形式（Z付き）の日付文字列
     When: _parse_iso_datetimeを呼び出す
     Then: UTC→JST変換され、JST timezone-awareのdatetimeが返される
     """
@@ -122,8 +115,7 @@ def test_parse_iso_datetime_with_z_suffix():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_with_timezone_offset():
-    """
-    Given: ISO 8601形式（タイムゾーンオフセット付き）の日付文字列
+    """Given: ISO 8601形式（タイムゾーンオフセット付き）の日付文字列
     When: _parse_iso_datetimeを呼び出す
     Then: UTC→JST変換され、JST timezone-awareのdatetimeが返される
     """
@@ -136,8 +128,7 @@ def test_parse_iso_datetime_with_timezone_offset():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_naive():
-    """
-    Given: ISO 8601形式（タイムゾーンなし）の日付文字列
+    """Given: ISO 8601形式（タイムゾーンなし）の日付文字列
     When: _parse_iso_datetimeを呼び出す
     Then: JST+9時間のJST timezone-awareなdatetimeが返される
     """
@@ -150,8 +141,7 @@ def test_parse_iso_datetime_naive():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_date_only():
-    """
-    Given: 日付のみ（YYYY-MM-DD）の文字列
+    """Given: 日付のみ（YYYY-MM-DD）の文字列
     When: _parse_iso_datetimeを呼び出す
     Then: 00:00:00として解釈され、JST+9時間のJST timezone-awareが返される
     """
@@ -164,8 +154,7 @@ def test_parse_iso_datetime_date_only():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_empty_string():
-    """
-    Given: 空文字列
+    """Given: 空文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -175,8 +164,7 @@ def test_parse_iso_datetime_empty_string():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_whitespace_only():
-    """
-    Given: 空白のみの文字列
+    """Given: 空白のみの文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -186,8 +174,7 @@ def test_parse_iso_datetime_whitespace_only():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_invalid_format():
-    """
-    Given: 不正なISO形式の文字列
+    """Given: 不正なISO形式の文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される（ValueErrorをキャッチ）
     """
@@ -197,8 +184,7 @@ def test_parse_iso_datetime_invalid_format():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_invalid_date_values():
-    """
-    Given: 無効な日付値の文字列
+    """Given: 無効な日付値の文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -208,8 +194,7 @@ def test_parse_iso_datetime_invalid_date_values():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_jst_timezone():
-    """
-    Given: タイムゾーン+09:00（JST）の日付文字列
+    """Given: タイムゾーン+09:00（JST）の日付文字列
     When: _parse_iso_datetimeを呼び出す
     Then: JST timezone-awareなdatetimeが返される
     """
@@ -222,8 +207,7 @@ def test_parse_iso_datetime_jst_timezone():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_negative_timezone():
-    """
-    Given: マイナスタイムゾーンの日付文字列
+    """Given: マイナスタイムゾーンの日付文字列
     When: _parse_iso_datetimeを呼び出す
     Then: UTC変換後+9時間でJST timezone-awareが返される
     """
@@ -236,8 +220,7 @@ def test_parse_iso_datetime_negative_timezone():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_with_microseconds():
-    """
-    Given: マイクロ秒付きISO形式の日付文字列
+    """Given: マイクロ秒付きISO形式の日付文字列
     When: _parse_iso_datetimeを呼び出す
     Then: 正しく解析され、JST timezone-awareが返される
     """
@@ -257,8 +240,7 @@ def test_parse_iso_datetime_with_microseconds():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_published_parsed():
-    """
-    Given: published_parsedフィールドを持つentry
+    """Given: published_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
     Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
@@ -276,8 +258,7 @@ def test_parse_entry_datetime_from_published_parsed():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_updated_parsed():
-    """
-    Given: updated_parsedフィールドを持つentry
+    """Given: updated_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
     Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
@@ -293,8 +274,7 @@ def test_parse_entry_datetime_from_updated_parsed():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_created_parsed():
-    """
-    Given: created_parsedフィールドを持つentry
+    """Given: created_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
     Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
@@ -310,8 +290,7 @@ def test_parse_entry_datetime_from_created_parsed():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_issued_parsed():
-    """
-    Given: issued_parsedフィールドを持つentry
+    """Given: issued_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
     Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
@@ -327,8 +306,7 @@ def test_parse_entry_datetime_from_issued_parsed():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_struct_time_type_error():
-    """
-    Given: 不正なstruct_time値（TypeError発生）
+    """Given: 不正なstruct_time値（TypeError発生）
     When: parse_entry_datetimeを呼び出す
     Then: 次のフィールドにフォールバック
     """
@@ -347,8 +325,7 @@ def test_parse_entry_datetime_struct_time_type_error():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_struct_time_value_error():
-    """
-    Given: 不正なstruct_time値（ValueError発生）
+    """Given: 不正なstruct_time値（ValueError発生）
     When: parse_entry_datetimeを呼び出す
     Then: 次のフィールドにフォールバック
     """
@@ -371,8 +348,7 @@ def test_parse_entry_datetime_struct_time_value_error():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_published_rfc2822():
-    """
-    Given: publishedフィールド（RFC 2822形式）
+    """Given: publishedフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
     Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
@@ -388,8 +364,7 @@ def test_parse_entry_datetime_from_published_rfc2822():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_updated_rfc2822():
-    """
-    Given: updatedフィールド（RFC 2822形式）
+    """Given: updatedフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
     Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
@@ -404,8 +379,7 @@ def test_parse_entry_datetime_from_updated_rfc2822():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_created_rfc2822():
-    """
-    Given: createdフィールド（RFC 2822形式）
+    """Given: createdフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
     Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
@@ -420,8 +394,7 @@ def test_parse_entry_datetime_from_created_rfc2822():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_issued_rfc2822():
-    """
-    Given: issuedフィールド（RFC 2822形式）
+    """Given: issuedフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
     Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
@@ -436,8 +409,7 @@ def test_parse_entry_datetime_from_issued_rfc2822():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_rfc2822_naive():
-    """
-    Given: タイムゾーンなしRFC 2822形式
+    """Given: タイムゾーンなしRFC 2822形式
     When: parse_entry_datetimeを呼び出す
     Then: naive→JST+9時間のJST timezone-awareが返される
     """
@@ -453,8 +425,7 @@ def test_parse_entry_datetime_rfc2822_naive():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_rfc2822_type_error():
-    """
-    Given: parsedate_to_datetimeがTypeError発生
+    """Given: parsedate_to_datetimeがTypeError発生
     When: parse_entry_datetimeを呼び出す
     Then: ISO形式へフォールバック
     """
@@ -467,8 +438,7 @@ def test_parse_entry_datetime_rfc2822_type_error():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_rfc2822_value_error():
-    """
-    Given: parsedate_to_datetimeがValueError発生
+    """Given: parsedate_to_datetimeがValueError発生
     When: parse_entry_datetimeを呼び出す
     Then: ISO形式へフォールバック
     """
@@ -485,8 +455,7 @@ def test_parse_entry_datetime_rfc2822_value_error():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_published_iso():
-    """
-    Given: publishedフィールド（ISO形式）
+    """Given: publishedフィールド（ISO形式）
     When: parse_entry_datetimeを呼び出す
     Then: _parse_iso_datetimeで解析、JST timezone-awareに変換される
     """
@@ -501,8 +470,7 @@ def test_parse_entry_datetime_from_published_iso():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_updated_iso():
-    """
-    Given: updatedフィールド（ISO形式）
+    """Given: updatedフィールド（ISO形式）
     When: parse_entry_datetimeを呼び出す
     Then: _parse_iso_datetimeで解析、JST timezone-awareに変換される
     """
@@ -517,8 +485,7 @@ def test_parse_entry_datetime_from_updated_iso():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_fallback_to_iso():
-    """
-    Given: RFC 2822解析失敗後、ISO形式で成功
+    """Given: RFC 2822解析失敗後、ISO形式で成功
     When: parse_entry_datetimeを呼び出す
     Then: ISO形式で正しく解析され、JST timezone-awareが返される
     """
@@ -537,8 +504,7 @@ def test_parse_entry_datetime_fallback_to_iso():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_all_fields_none():
-    """
-    Given: すべてのフィールドがNone
+    """Given: すべてのフィールドがNone
     When: parse_entry_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -560,8 +526,7 @@ def test_parse_entry_datetime_all_fields_none():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_all_fields_empty_string():
-    """
-    Given: すべてのフィールドが空文字列
+    """Given: すべてのフィールドが空文字列
     When: parse_entry_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -579,8 +544,7 @@ def test_parse_entry_datetime_all_fields_empty_string():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_field_priority():
-    """
-    Given: 複数フィールド存在（優先度確認）
+    """Given: 複数フィールド存在（優先度確認）
     When: parse_entry_datetimeを呼び出す
     Then: published_parsedが優先される
     """
@@ -602,8 +566,7 @@ def test_parse_entry_datetime_field_priority():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_dict_entry():
-    """
-    Given: 辞書型のentry
+    """Given: 辞書型のentry
     When: parse_entry_datetimeを呼び出す
     Then: 正しく解析され、JST timezone-awareが返される
     """
@@ -618,8 +581,7 @@ def test_parse_entry_datetime_dict_entry():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_object_entry():
-    """
-    Given: オブジェクト型のentry
+    """Given: オブジェクト型のentry
     When: parse_entry_datetimeを呼び出す
     Then: 正しく解析され、JST timezone-awareが返される
     """
@@ -635,8 +597,7 @@ def test_parse_entry_datetime_object_entry():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_jst_midnight():
-    """
-    Given: JST深夜0時のエッジケース
+    """Given: JST深夜0時のエッジケース
     When: parse_entry_datetimeを呼び出す
     Then: 正しくJST timezone-awareに変換される
     """
@@ -652,8 +613,7 @@ def test_parse_entry_datetime_jst_midnight():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_utc_midnight():
-    """
-    Given: UTC深夜0時のエッジケース
+    """Given: UTC深夜0時のエッジケース
     When: parse_entry_datetimeを呼び出す
     Then: JST 09:00のJST timezone-awareに変換される
     """
@@ -669,8 +629,7 @@ def test_parse_entry_datetime_utc_midnight():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_dst_timezone():
-    """
-    Given: 夏時間タイムゾーン
+    """Given: 夏時間タイムゾーン
     When: parse_entry_datetimeを呼び出す
     Then: UTC変換後JST timezone-awareが返される
     """
@@ -686,8 +645,7 @@ def test_parse_entry_datetime_dst_timezone():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_year_boundary():
-    """
-    Given: 年末年始の境界
+    """Given: 年末年始の境界
     When: parse_entry_datetimeを呼び出す
     Then: 正しく2025-01-01 08:59:59 JSTのJST timezone-awareが返される
     """

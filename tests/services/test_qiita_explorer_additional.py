@@ -1,5 +1,4 @@
-"""
-nook/services/qiita_explorer/qiita_explorer.py の追加単体テスト
+"""nook/services/qiita_explorer/qiita_explorer.py の追加単体テスト
 
 テスト観点:
 - collect()の内部分岐詳細テスト
@@ -27,8 +26,7 @@ from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_multiple_categories_processing(mock_env_vars):
-    """
-    Given: 複数カテゴリのフィード設定
+    """Given: 複数カテゴリのフィード設定
     When: collectメソッドを呼び出す
     Then: 各カテゴリのフィードが処理される
     """
@@ -76,8 +74,7 @@ async def test_collect_multiple_categories_processing(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_date_filtering_outside_range(mock_env_vars):
-    """
-    Given: 対象日付範囲外のエントリ
+    """Given: 対象日付範囲外のエントリ
     When: collectメソッドを呼び出す
     Then: 範囲外の記事は除外される
     """
@@ -127,8 +124,7 @@ async def test_collect_date_filtering_outside_range(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_storage_save_failure(mock_env_vars):
-    """
-    Given: ストレージ保存が失敗
+    """Given: ストレージ保存が失敗
     When: collectメソッドを呼び出す
     Then: エラーが適切に処理される
     """
@@ -186,8 +182,7 @@ async def test_collect_storage_save_failure(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_feed_parse_exception_continues(mock_env_vars):
-    """
-    Given: フィード解析時に例外発生
+    """Given: フィード解析時に例外発生
     When: collectメソッドを呼び出す
     Then: 例外がログされ、処理が続行される
     """
@@ -238,8 +233,7 @@ async def test_collect_feed_parse_exception_continues(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_http_timeout(mock_env_vars):
-    """
-    Given: HTTP GET時にタイムアウト発生
+    """Given: HTTP GET時にタイムアウト発生
     When: _retrieve_articleを呼び出す
     Then: Noneが返される
     """
@@ -261,8 +255,7 @@ async def test_retrieve_article_http_timeout(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_http_404_error(mock_env_vars):
-    """
-    Given: HTTP GET時に404エラー発生
+    """Given: HTTP GET時に404エラー発生
     When: _retrieve_articleを呼び出す
     Then: Noneが返される
     """
@@ -290,8 +283,7 @@ async def test_retrieve_article_http_404_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_http_500_error(mock_env_vars):
-    """
-    Given: HTTP GET時に500エラー発生
+    """Given: HTTP GET時に500エラー発生
     When: _retrieve_articleを呼び出す
     Then: Noneが返される
     """
@@ -319,8 +311,7 @@ async def test_retrieve_article_http_500_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_empty_html(mock_env_vars):
-    """
-    Given: 空のHTMLが返される
+    """Given: 空のHTMLが返される
     When: _retrieve_articleを呼び出す
     Then: Articleオブジェクトが返される（空のテキスト）
     """
@@ -346,8 +337,7 @@ async def test_retrieve_article_empty_html(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_malformed_html(mock_env_vars):
-    """
-    Given: 不正なHTMLが返される
+    """Given: 不正なHTMLが返される
     When: _retrieve_articleを呼び出す
     Then: Articleオブジェクトが返される（BeautifulSoupは寛容に解析）
     """
@@ -375,8 +365,7 @@ async def test_retrieve_article_malformed_html(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_with_meta_description(mock_env_vars):
-    """
-    Given: メタディスクリプションを含むHTML
+    """Given: メタディスクリプションを含むHTML
     When: _retrieve_articleを呼び出す（entry.summaryなし）
     Then: メタディスクリプションが抽出される
     """
@@ -410,8 +399,7 @@ async def test_retrieve_article_with_meta_description(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_with_paragraphs(mock_env_vars):
-    """
-    Given: 段落を含むHTML（meta descriptionなし）
+    """Given: 段落を含むHTML（meta descriptionなし）
     When: _retrieve_articleを呼び出す（entry.summaryなし）
     Then: 最初の5段落が抽出される
     """
@@ -456,8 +444,7 @@ async def test_retrieve_article_with_paragraphs(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_qiita_likes_count_attribute(mock_env_vars):
-    """
-    Given: entryにqiita_likes_count属性がある
+    """Given: entryにqiita_likes_count属性がある
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -475,8 +462,7 @@ def test_extract_popularity_with_qiita_likes_count_attribute(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_likes_count_attribute(mock_env_vars):
-    """
-    Given: entryにlikes_count属性がある
+    """Given: entryにlikes_count属性がある
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -494,8 +480,7 @@ def test_extract_popularity_with_likes_count_attribute(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_lgtm_attribute(mock_env_vars):
-    """
-    Given: entryにlgtm属性がある
+    """Given: entryにlgtm属性がある
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -513,8 +498,7 @@ def test_extract_popularity_with_lgtm_attribute(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_lgtm_count_attribute(mock_env_vars):
-    """
-    Given: entryにlgtm_count属性がある
+    """Given: entryにlgtm_count属性がある
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -532,8 +516,7 @@ def test_extract_popularity_with_lgtm_count_attribute(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_meta_twitter_data1(mock_env_vars):
-    """
-    Given: metaタグ（twitter:data1）に「150 likes」形式
+    """Given: metaタグ（twitter:data1）に「150 likes」形式
     When: _extract_popularityを呼び出す
     Then: 数値部分が抽出される
     """
@@ -558,8 +541,7 @@ def test_extract_popularity_with_meta_twitter_data1(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_data_lgtm_count(mock_env_vars):
-    """
-    Given: data-lgtm-count属性を持つ要素
+    """Given: data-lgtm-count属性を持つ要素
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -583,8 +565,7 @@ def test_extract_popularity_with_data_lgtm_count(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_data_likes_count(mock_env_vars):
-    """
-    Given: data-likes-count属性を持つ要素
+    """Given: data-likes-count属性を持つ要素
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -608,8 +589,7 @@ def test_extract_popularity_with_data_likes_count(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_data_qiita_lgtm_count(mock_env_vars):
-    """
-    Given: data-qiita-lgtm-count属性を持つ要素
+    """Given: data-qiita-lgtm-count属性を持つ要素
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -633,8 +613,7 @@ def test_extract_popularity_with_data_qiita_lgtm_count(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_js_lgtm_count_class(mock_env_vars):
-    """
-    Given: .js-lgtm-countクラスを持つ要素（LGTMキーワード含む）
+    """Given: .js-lgtm-countクラスを持つ要素（LGTMキーワード含む）
     When: _extract_popularityを呼び出す
     Then: テキストから数値が抽出される
     """
@@ -658,8 +637,7 @@ def test_extract_popularity_with_js_lgtm_count_class(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_it_actions_itemcount_class(mock_env_vars):
-    """
-    Given: .it-Actions_itemCountクラスを持つ要素（いいねキーワード含む）
+    """Given: .it-Actions_itemCountクラスを持つ要素（いいねキーワード含む）
     When: _extract_popularityを呼び出す
     Then: テキストから数値が抽出される
     """
@@ -683,8 +661,7 @@ def test_extract_popularity_with_it_actions_itemcount_class(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_button_likes_text(mock_env_vars):
-    """
-    Given: ボタンに「いいね」を含むテキスト
+    """Given: ボタンに「いいね」を含むテキスト
     When: _extract_popularityを呼び出す
     Then: テキストから数値が抽出される
     """
@@ -708,8 +685,7 @@ def test_extract_popularity_with_button_likes_text(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_span_lgtm_text(mock_env_vars):
-    """
-    Given: spanに「LGTM」を含むテキスト
+    """Given: spanに「LGTM」を含むテキスト
     When: _extract_popularityを呼び出す
     Then: テキストから数値が抽出される
     """
@@ -733,8 +709,7 @@ def test_extract_popularity_with_span_lgtm_text(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_multiple_candidates_returns_max(mock_env_vars):
-    """
-    Given: 複数の候補値が存在
+    """Given: 複数の候補値が存在
     When: _extract_popularityを呼び出す
     Then: 最大値が返される
     """
@@ -761,8 +736,7 @@ def test_extract_popularity_with_multiple_candidates_returns_max(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_with_comma_separated_number(mock_env_vars):
-    """
-    Given: カンマ区切りの数値（「1,234 いいね」）
+    """Given: カンマ区切りの数値（「1,234 いいね」）
     When: _extract_popularityを呼び出す
     Then: カンマを除去して数値が抽出される
     """
@@ -786,8 +760,7 @@ def test_extract_popularity_with_comma_separated_number(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_popularity_entry_as_dict_with_qiita_likes(mock_env_vars):
-    """
-    Given: entryが辞書型でqiita_likes_countキーを持つ
+    """Given: entryが辞書型でqiita_likes_countキーを持つ
     When: _extract_popularityを呼び出す
     Then: その値が返される
     """
@@ -810,8 +783,7 @@ def test_extract_popularity_entry_as_dict_with_qiita_likes(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_existing_json_load_success(mock_env_vars):
-    """
-    Given: 既存記事JSONが正常にロードされる
+    """Given: 既存記事JSONが正常にロードされる
     When: collectメソッドを呼び出す
     Then: 既存記事タイトルと新規記事が正しくマージされる
     """
@@ -872,8 +844,7 @@ async def test_collect_existing_json_load_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_existing_json_malformed(mock_env_vars):
-    """
-    Given: 既存記事JSONが不正な形式
+    """Given: 既存記事JSONが不正な形式
     When: collectメソッドを呼び出す
     Then: json.loads()が失敗し、例外ハンドリングされる
     """
@@ -928,8 +899,7 @@ async def test_collect_existing_json_malformed(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_existing_json_none(mock_env_vars):
-    """
-    Given: storage.load()がNoneを返す
+    """Given: storage.load()がNoneを返す
     When: collectメソッドを呼び出す
     Then: 既存記事タイトルセットが空になる
     """
@@ -984,8 +954,7 @@ async def test_collect_existing_json_none(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_existing_json_missing_title(mock_env_vars):
-    """
-    Given: 既存記事JSONのarticleにtitleフィールドがない
+    """Given: 既存記事JSONのarticleにtitleフィールドがない
     When: collectメソッドを呼び出す
     Then: article.get("title", "")で空文字列が使用される
     """
@@ -1046,8 +1015,7 @@ async def test_collect_existing_json_missing_title(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_existing_json_exception(mock_env_vars):
-    """
-    Given: storage.load()が例外を投げる
+    """Given: storage.load()が例外を投げる
     When: collectメソッドを呼び出す
     Then: 例外がキャッチされ、デバッグログが出力される
     """
@@ -1109,8 +1077,7 @@ async def test_collect_existing_json_exception(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_explicit_target_dates_covers_l138_157(mock_env_vars):
-    """
-    Given: 明示的なtarget_datesを指定
+    """Given: 明示的なtarget_datesを指定
     When: collectメソッドを呼び出す
     Then: L138-157のforループが実行され、記事が処理される
     """
@@ -1168,8 +1135,7 @@ async def test_collect_with_explicit_target_dates_covers_l138_157(mock_env_vars)
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_retrieve_article_returns_article(mock_env_vars):
-    """
-    Given: _retrieve_article()が正常にArticleを返す
+    """Given: _retrieve_article()が正常にArticleを返す
     When: collectメソッドを呼び出す
     Then: 記事が処理される
     """
@@ -1221,8 +1187,7 @@ async def test_collect_retrieve_article_returns_article(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_retrieve_article_returns_none(mock_env_vars):
-    """
-    Given: _retrieve_article()がNoneを返す
+    """Given: _retrieve_article()がNoneを返す
     When: collectメソッドを呼び出す
     Then: 記事がスキップされる
     """
@@ -1265,8 +1230,7 @@ async def test_collect_retrieve_article_returns_none(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_duplicate_detection_skips(mock_env_vars):
-    """
-    Given: 重複記事が検出される
+    """Given: 重複記事が検出される
     When: collectメソッドを呼び出す
     Then: 重複記事がスキップされる
     """
@@ -1317,8 +1281,7 @@ async def test_collect_duplicate_detection_skips(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_date_range_filter_excludes(mock_env_vars):
-    """
-    Given: 日付範囲外の記事
+    """Given: 日付範囲外の記事
     When: collectメソッドを呼び出す
     Then: 日付範囲外の記事が除外される
     """
@@ -1368,8 +1331,7 @@ async def test_collect_date_range_filter_excludes(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_successful_article_appended(mock_env_vars):
-    """
-    Given: 記事が全てのチェックを通過
+    """Given: 記事が全てのチェックを通過
     When: collectメソッドを呼び出す
     Then: 記事がcandidate_articlesに追加され、保存される
     """

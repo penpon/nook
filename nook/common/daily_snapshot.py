@@ -16,7 +16,6 @@ Record = dict[str, Any]
 
 def _parse_record_date(value: object) -> date | None:
     """Attempt to parse a record's published date component."""
-
     if isinstance(value, datetime):
         local_dt = normalize_datetime_to_local(value)
         return local_dt.date() if local_dt else None
@@ -36,7 +35,6 @@ def group_records_by_date(
     records: Iterable[Record], *, default_date: date
 ) -> Mapping[date, list[Record]]:
     """Group serialized article records by their published date."""
-
     grouped: dict[date, list[Record]] = defaultdict(list)
 
     for record in records:
@@ -60,15 +58,14 @@ async def store_daily_snapshots(
     reverse: bool = True,
     logger: Logger | None = None,
 ) -> list[tuple[str, str]]:
-    """
-    Persist grouped records into per-day JSON and Markdown snapshots.
+    """Persist grouped records into per-day JSON and Markdown snapshots.
 
     Returns
     -------
     list[tuple[str, str]]
         保存されたファイルパスのリスト [(json_path, md_path), ...]
-    """
 
+    """
     saved_files: list[tuple[str, str]] = []
 
     for record_date, records in sorted(records_by_date.items()):
