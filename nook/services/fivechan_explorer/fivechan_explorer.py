@@ -14,7 +14,6 @@ from nook.common.date_utils import (
     target_dates_set,
 )
 from nook.common.dedup import DedupTracker
-from nook.common.gpt_client import GPTClient
 from nook.common.logging_utils import (
     log_article_counts,
     log_no_new_articles,
@@ -24,7 +23,6 @@ from nook.common.logging_utils import (
     log_summarization_start,
     log_summary_candidates,
 )
-from nook.common.storage import LocalStorage
 
 # 定数: スレッドあたりの最大投稿取得数
 # メモリ効率とパフォーマンスのバランスを保つため、大規模スレッドでも制限を設ける
@@ -106,12 +104,8 @@ class FiveChanExplorer(BaseService):
 
     TOTAL_LIMIT = 15  # 1日あたりの最大スレッド数
 
-    def __init__(
-        self,
-        storage: LocalStorage | None = None,
-        gpt_client: GPTClient | None = None,
-    ):
-        super().__init__(storage=storage, gpt_client=gpt_client)
+    def __init__(self):
+        super().__init__(service_name="fivechan_explorer")
         self.target_boards = self._load_boards_config()
         self.dedup_tracker = DedupTracker()
         self.http_client = None
