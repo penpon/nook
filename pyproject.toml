@@ -35,11 +35,15 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-cov>=6.0.0",
     "pytest-timeout>=2.3.0",
-    "pytest-xdist>=3.3.0",
+    "pytest-xdist>=3.6.0",
     "ruff>=0.6.0",
+    "pip-audit>=2.7.0",
+    "mypy>=1.13.0",
+    "pandas-stubs>=2.0.0",
+    "poethepoet>=0.38.0",
+    "pre-commit>=4.5.0",
     # Security
     "bandit>=1.7.0",
-    "pip-audit>=2.7.0",
     "httpx>=0.24.0",
     "respx>=0.20.0",
 ]
@@ -49,7 +53,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-asyncio_mode = "auto"
+asyncio_mode = "strict"
 addopts = [
     "-v",
     "--strict-markers",
@@ -58,6 +62,7 @@ addopts = [
     "--ignore=nook/frontend",
     "--ignore=node_modules",
     "-ra",
+    "-n=auto",
 ]
 markers = [
     "unit: ユニットテスト（外部依存をモック化）",
@@ -81,16 +86,26 @@ target-version = "py310"
 [tool.ruff.lint]
 exclude = [".venv"]
 select = [
-    "B",  # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "E",  # pycodestyle errors
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "D",     # pydocstyle
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "UP",    # pyupgrade
+    "S",     # flake8-bandit (セキュリティチェック)
+    "ARG",   # flake8-unused-arguments
+    "PTH",   # flake8-use-pathlib
+    "SIM",   # flake8-simplify
+    "RET",   # flake8-return
+    "TRY",   # tryceratops
+    "ASYNC", # flake8-async
+    "RUF",   # Ruff固有のルール
+    "PD",    # pandas-vet
     "G",
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "UP",  # pyupgrade
     "EXE",
-    "SIM1",
     # Not included in flake8
     "LOG",
     "NPY",
@@ -120,12 +135,8 @@ select = [
     "PT025",
     "PT026",
     "PYI",
-    "RUF008", # mutable dataclass default
-    "RUF015", # access first ele in constant time
-    "RUF016", # type error non-integer index
-    "RUF017",
-    "TRY200", # TODO: migrate from deprecated alias
-    "TRY302",
+    "B904",    # raise from (TRY200の新名称)
+    "TRY203",  # raise within try (TRY302の新名称)
 ]
 ignore = [
     "E501", # line too long (handled by ruff format)
@@ -139,6 +150,52 @@ ignore = [
     "SIM102", # nested if statements (sometimes clearer)
     "SIM108", # ternary operator (readability preference)
     "SIM118", # key in dict vs key in dict.keys() (explicit is sometimes clearer)
+    # Docstring rules (日本語docstring対応 & 既存コードスタイル)
+    "D100",  # Missing docstring in public module
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "D107",  # Missing docstring in __init__
+    "D205",  # 1 blank line required between summary line and description
+    "D400",  # First line should end with a period
+    "D401",  # First line should be in imperative mood
+    "D415",  # First line should end with punctuation
+    "D417",  # Missing argument descriptions in docstring
+    # Exception handling (既存のエラーハンドリングパターン)
+    "TRY003", # Avoid specifying long messages outside exception class
+    "TRY201", # Use raise without specifying exception name
+    "TRY300", # Consider moving statement to else block
+    "TRY301", # Abstract raise to inner function
+    "TRY400", # Use logging.exception instead of logging.error
+    # Return statements
+    "RET504", # Unnecessary assignment before return
+    # Simplification
+    "SIM211", # Use not ... instead of False if ... else True
+    # Type annotations
+    "RUF012", # Mutable class attributes should use ClassVar
+    "RUF013", # PEP 484 prohibits implicit Optional
+    # Naming
+    "N818",  # Exception name should end with Error suffix
+    # Security (intentional patterns)
+    "S104",  # Possible binding to all interfaces (dev server)
+    "S110",  # try-except-pass (intentional in some cases)
+    "S311",  # Standard pseudo-random generators (non-cryptographic use)
+    # Async
+    "ASYNC210", # Async functions calling blocking methods (intentional)
+    "ASYNC230", # Async functions opening files with blocking methods
+    # Pathlib (既存コードとの互換性)
+    "PTH100", # os.path.abspath should use Path.resolve
+    "PTH103", # os.makedirs should use Path.mkdir
+    "PTH110", # os.path.exists should use Path.exists
+    "PTH118", # os.path.join should use Path with / operator
+    "PTH120", # os.path.dirname should use Path.parent
+    "PTH123", # open() should use Path.open
+    # General
+    "EXE001", # Shebang present but file not executable
+    # 全角記号
+    "RUF001", # 全角記号(コメント)
+    "RUF002", # 全角記号(docstring)
+    "RUF003", # 全角記号(コメント)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -147,6 +204,26 @@ ignore = [
     "E402",  # Module level import not at top of file (tests need sys.path setup)
     "E721",  # Type comparison with == (acceptable in tests)
     "B017",  # Blind exception assertions (acceptable in tests)
+    "S101",  # Use of assert (required in tests)
+    "S105",  # Possible hardcoded password (test credentials)
+    "S106",  # Possible hardcoded password argument (test credentials)
+    "S108",  # Insecure temp file usage (acceptable in tests)
+    "D100",  # Missing docstring in public module
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "D205",  # 1 blank line required between summary line and description
+    "D400",  # First line should end with a period
+    "D415",  # First line should end with punctuation
+    "ARG001", # Unused function argument (fixtures)
+    "ARG002", # Unused method argument
+    "ARG005", # Unused lambda argument
+    "PTH",   # flake8-use-pathlib (tests often use os.path)
+    "TRY",   # tryceratops (test exception handling differs)
+    "ASYNC", # flake8-async (test async patterns differ)
+    "PD",    # pandas-vet (test data patterns differ)
+    "RUF059", # Unpacked variable never used (intentional in tests)
 ]
 "tests/conftest.py" = [
     "E501",  # Line too long (HTML/test data strings)
@@ -154,6 +231,17 @@ ignore = [
 ]
 "nook/services/run_services*.py" = [
     "E402",  # Module level import not at top of file (needs sys.path setup)
+    "ARG001", # Unused function argument (signal handler)
+]
+"**/debug_auth.py" = [
+    "D100",  # Missing docstring in public module
+    "EXE001", # Shebang present but file not executable
+]
+"nook/services/**/" = [
+    "ARG002", # Unused method argument (storage_dir, entry)
+]
+"nook/common/**/*.py" = [
+    "ARG002", # Unused method argument (service_name, kwargs)
 ]
 
 [tool.ruff.format]
@@ -188,3 +276,43 @@ exclude_lines = [
     'self\.logger\.info\(',
     'self\.logger\.debug\(',
 ]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = false
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+no_implicit_optional = true
+
+# 既存コードへの影響を最小化（緩い設定）
+disallow_untyped_defs = false
+disallow_any_generics = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+
+# サードパーティライブラリの型スタブが無い場合は無視
+ignore_missing_imports = true
+
+# 除外するディレクトリ
+exclude = [
+    "^tests/",
+    "^build/",
+    "^.venv/",
+    "^nook/frontend/",
+    "^task.*-.*-test/",
+]
+
+[tool.poe.tasks]
+format = "uv run ruff format ."
+lint = "uv run ruff check --fix ."
+type-check = "uv run mypy ."
+test = "uv run pytest -n auto tests/ -v"
+coverage = "uv run pytest -n auto --cov=nook --cov-report=term"
+audit = "uv run pip-audit"
+
+check = ["format", "lint", "type-check"]
+quality-check = ["check", "test", "coverage", "audit"]
