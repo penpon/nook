@@ -40,12 +40,11 @@ class ServiceErrorHandler:
                         response_body = getattr(e.response, "text", None)
 
                         raise APIException(
-                            f"{api_name} API error: {str(e)}",
+                            f"{api_name} API error: {e!s}",
                             status_code=status_code,
                             response_body=response_body,
                         ) from e
-                    else:
-                        raise APIException(f"{api_name} API error: {str(e)}") from e
+                    raise APIException(f"{api_name} API error: {e!s}") from e
 
             return wrapper
 
@@ -70,7 +69,7 @@ class ServiceErrorHandler:
                         },
                     )
 
-                    raise ServiceException(f"Failed to {operation}: {str(e)}") from e
+                    raise ServiceException(f"Failed to {operation}: {e!s}") from e
 
             return wrapper
 

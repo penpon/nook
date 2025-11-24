@@ -16,8 +16,7 @@ router = APIRouter()
 
 @router.get("/weather", response_model=WeatherResponse)
 async def get_weather_data() -> WeatherResponse:
-    """
-    天気データを取得します。
+    """天気データを取得します。
 
     Returns
     -------
@@ -28,6 +27,7 @@ async def get_weather_data() -> WeatherResponse:
     ------
     HTTPException
         天気データの取得に失敗した場合。
+
     """
     try:
         # OpenWeatherMap APIを使用して天気データを取得
@@ -59,9 +59,9 @@ async def get_weather_data() -> WeatherResponse:
         raise HTTPException(status_code=504, detail="Weather service request timed out") from e
     except requests.exceptions.RequestException as e:
         raise HTTPException(
-            status_code=502, detail=f"Weather service connection error: {str(e)}"
+            status_code=502, detail=f"Weather service connection error: {e!s}"
         ) from e
     except (KeyError, ValueError) as e:
-        raise HTTPException(status_code=500, detail=f"Error parsing weather data: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"Error parsing weather data: {e!s}") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching weather data: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"Error fetching weather data: {e!s}") from e

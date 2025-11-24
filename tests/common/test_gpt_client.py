@@ -1,5 +1,4 @@
-"""
-nook/common/gpt_client.py のテスト
+"""nook/common/gpt_client.py のテスト
 
 テスト観点:
 - 初期化処理（API key取得、モデル設定）
@@ -24,8 +23,7 @@ from nook.common.gpt_client import GPTClient
 
 @pytest.mark.unit
 def test_init_with_explicit_api_key(monkeypatch):
-    """
-    Given: API keyとモデル名を明示的に指定
+    """Given: API keyとモデル名を明示的に指定
     When: GPTClientを初期化
     Then: 指定したAPI keyとモデル名が設定される
     """
@@ -38,8 +36,7 @@ def test_init_with_explicit_api_key(monkeypatch):
 
 @pytest.mark.unit
 def test_init_from_env_api_key(monkeypatch):
-    """
-    Given: 環境変数OPENAI_API_KEYが設定されている
+    """Given: 環境変数OPENAI_API_KEYが設定されている
     When: API keyを指定せずにGPTClientを初期化
     Then: 環境変数からAPI keyが取得される
     """
@@ -51,8 +48,7 @@ def test_init_from_env_api_key(monkeypatch):
 
 @pytest.mark.unit
 def test_init_with_explicit_model(monkeypatch):
-    """
-    Given: モデル名を明示的に指定
+    """Given: モデル名を明示的に指定
     When: GPTClientを初期化
     Then: 指定したモデル名が設定される
     """
@@ -63,8 +59,7 @@ def test_init_with_explicit_model(monkeypatch):
 
 @pytest.mark.unit
 def test_init_model_from_env(monkeypatch):
-    """
-    Given: 環境変数OPENAI_MODELが設定されている
+    """Given: 環境変数OPENAI_MODELが設定されている
     When: モデル名を指定せずにGPTClientを初期化
     Then: 環境変数からモデル名が取得される
     """
@@ -76,8 +71,7 @@ def test_init_model_from_env(monkeypatch):
 
 @pytest.mark.unit
 def test_init_model_default_value(monkeypatch):
-    """
-    Given: モデル名未指定・環境変数もなし
+    """Given: モデル名未指定・環境変数もなし
     When: GPTClientを初期化
     Then: デフォルト値"gpt-5-nano"が設定される
     """
@@ -89,8 +83,7 @@ def test_init_model_default_value(monkeypatch):
 
 @pytest.mark.unit
 def test_init_no_api_key_raises_error(monkeypatch):
-    """
-    Given: API keyが指定されず、環境変数も未設定
+    """Given: API keyが指定されず、環境変数も未設定
     When: GPTClientを初期化しようとする
     Then: ValueErrorが発生する
     """
@@ -101,8 +94,7 @@ def test_init_no_api_key_raises_error(monkeypatch):
 
 @pytest.mark.unit
 def test_init_empty_api_key_raises_error(monkeypatch):
-    """
-    Given: 空文字列のAPI keyを指定
+    """Given: 空文字列のAPI keyを指定
     When: GPTClientを初期化しようとする
     Then: ValueErrorが発生する
     """
@@ -113,8 +105,7 @@ def test_init_empty_api_key_raises_error(monkeypatch):
 
 @pytest.mark.unit
 def test_init_empty_model_uses_default(monkeypatch):
-    """
-    Given: 空文字列のモデル名を指定（環境変数もなし）
+    """Given: 空文字列のモデル名を指定（環境変数もなし）
     When: GPTClientを初期化
     Then: デフォルト値"gpt-5-nano"が設定される
     """
@@ -127,8 +118,7 @@ def test_init_empty_model_uses_default(monkeypatch):
 
 @pytest.mark.unit
 def test_init_tiktoken_encoding_success(monkeypatch):
-    """
-    Given: 正常な環境
+    """Given: 正常な環境
     When: GPTClientを初期化
     Then: tiktokenのencodingが正常に取得される
     """
@@ -139,8 +129,7 @@ def test_init_tiktoken_encoding_success(monkeypatch):
 
 @pytest.mark.unit
 def test_init_tiktoken_fallback_to_cl100k_base(monkeypatch):
-    """
-    Given: tiktoken.encoding_for_modelがKeyErrorを発生
+    """Given: tiktoken.encoding_for_modelがKeyErrorを発生
     When: GPTClientを初期化
     Then: cl100k_baseエンコーダーにフォールバックする
     """
@@ -152,8 +141,7 @@ def test_init_tiktoken_fallback_to_cl100k_base(monkeypatch):
 
 @pytest.mark.unit
 def test_init_openai_client_created(monkeypatch):
-    """
-    Given: 正常なAPI key
+    """Given: 正常なAPI key
     When: GPTClientを初期化
     Then: OpenAI clientインスタンスが作成される
     """
@@ -164,8 +152,7 @@ def test_init_openai_client_created(monkeypatch):
 
 @pytest.mark.unit
 def test_init_none_api_key_no_env(monkeypatch):
-    """
-    Given: API keyにNoneを明示指定・環境変数なし
+    """Given: API keyにNoneを明示指定・環境変数なし
     When: GPTClientを初期化しようとする
     Then: ValueErrorが発生する
     """
@@ -181,8 +168,7 @@ def test_init_none_api_key_no_env(monkeypatch):
 
 @pytest.mark.unit
 def test_count_tokens_normal_text(monkeypatch):
-    """
-    Given: 通常の英語テキスト
+    """Given: 通常の英語テキスト
     When: _count_tokensを呼び出す
     Then: 正の整数が返される
     """
@@ -195,8 +181,7 @@ def test_count_tokens_normal_text(monkeypatch):
 
 @pytest.mark.unit
 def test_count_tokens_empty_string(monkeypatch):
-    """
-    Given: 空文字列
+    """Given: 空文字列
     When: _count_tokensを呼び出す
     Then: 0が返される
     """
@@ -208,8 +193,7 @@ def test_count_tokens_empty_string(monkeypatch):
 
 @pytest.mark.unit
 def test_count_tokens_japanese_text(monkeypatch):
-    """
-    Given: 日本語テキスト
+    """Given: 日本語テキスト
     When: _count_tokensを呼び出す
     Then: 正の整数が返される
     """
@@ -222,8 +206,7 @@ def test_count_tokens_japanese_text(monkeypatch):
 
 @pytest.mark.unit
 def test_count_tokens_long_text(monkeypatch):
-    """
-    Given: 長文テキスト（10000文字）
+    """Given: 長文テキスト（10000文字）
     When: _count_tokensを呼び出す
     Then: 正の整数が返される
     """
@@ -237,8 +220,7 @@ def test_count_tokens_long_text(monkeypatch):
 
 @pytest.mark.unit
 def test_count_tokens_special_characters(monkeypatch):
-    """
-    Given: 特殊文字を含むテキスト
+    """Given: 特殊文字を含むテキスト
     When: _count_tokensを呼び出す
     Then: 正の整数が返される
     """
@@ -251,8 +233,7 @@ def test_count_tokens_special_characters(monkeypatch):
 
 @pytest.mark.unit
 def test_count_tokens_encoding_error_returns_zero(monkeypatch):
-    """
-    Given: encoding.encodeがExceptionを発生
+    """Given: encoding.encodeがExceptionを発生
     When: _count_tokensを呼び出す
     Then: 0が返される
     """
@@ -265,8 +246,7 @@ def test_count_tokens_encoding_error_returns_zero(monkeypatch):
 
 @pytest.mark.unit
 def test_count_tokens_unicode_emoji(monkeypatch):
-    """
-    Given: Unicode絵文字を含むテキスト
+    """Given: Unicode絵文字を含むテキスト
     When: _count_tokensを呼び出す
     Then: 正の整数が返される
     """
@@ -284,8 +264,7 @@ def test_count_tokens_unicode_emoji(monkeypatch):
 
 @pytest.mark.unit
 def test_calculate_cost_normal(monkeypatch):
-    """
-    Given: 入力トークン1000、出力トークン500
+    """Given: 入力トークン1000、出力トークン500
     When: _calculate_costを呼び出す
     Then: 正しいコスト（0.0006）が返される
     """
@@ -298,8 +277,7 @@ def test_calculate_cost_normal(monkeypatch):
 
 @pytest.mark.unit
 def test_calculate_cost_zero_input_tokens(monkeypatch):
-    """
-    Given: 入力トークン0、出力トークン500
+    """Given: 入力トークン0、出力トークン500
     When: _calculate_costを呼び出す
     Then: 出力トークン分のみのコストが返される
     """
@@ -312,8 +290,7 @@ def test_calculate_cost_zero_input_tokens(monkeypatch):
 
 @pytest.mark.unit
 def test_calculate_cost_zero_output_tokens(monkeypatch):
-    """
-    Given: 入力トークン1000、出力トークン0
+    """Given: 入力トークン1000、出力トークン0
     When: _calculate_costを呼び出す
     Then: 入力トークン分のみのコストが返される
     """
@@ -326,8 +303,7 @@ def test_calculate_cost_zero_output_tokens(monkeypatch):
 
 @pytest.mark.unit
 def test_calculate_cost_both_zero(monkeypatch):
-    """
-    Given: 入力トークン0、出力トークン0
+    """Given: 入力トークン0、出力トークン0
     When: _calculate_costを呼び出す
     Then: 0.0が返される
     """
@@ -339,8 +315,7 @@ def test_calculate_cost_both_zero(monkeypatch):
 
 @pytest.mark.unit
 def test_calculate_cost_large_numbers(monkeypatch):
-    """
-    Given: 巨大なトークン数（入力10M、出力5M）
+    """Given: 巨大なトークン数（入力10M、出力5M）
     When: _calculate_costを呼び出す
     Then: 正しいコストが返される
     """
@@ -353,8 +328,7 @@ def test_calculate_cost_large_numbers(monkeypatch):
 
 @pytest.mark.unit
 def test_calculate_cost_decimal_precision(monkeypatch):
-    """
-    Given: 小数点以下の精度が必要なトークン数
+    """Given: 小数点以下の精度が必要なトークン数
     When: _calculate_costを呼び出す
     Then: 小数点以下の精度が保たれる
     """
@@ -373,8 +347,7 @@ def test_calculate_cost_decimal_precision(monkeypatch):
 
 @pytest.mark.unit
 def test_is_gpt5_model_lowercase(monkeypatch):
-    """
-    Given: モデル名が"gpt-5-turbo"（小文字）
+    """Given: モデル名が"gpt-5-turbo"（小文字）
     When: _is_gpt5_modelを呼び出す
     Then: Trueが返される
     """
@@ -385,8 +358,7 @@ def test_is_gpt5_model_lowercase(monkeypatch):
 
 @pytest.mark.unit
 def test_is_gpt5_model_uppercase(monkeypatch):
-    """
-    Given: モデル名が"GPT-5-PREVIEW"（大文字）
+    """Given: モデル名が"GPT-5-PREVIEW"（大文字）
     When: _is_gpt5_modelを呼び出す
     Then: Trueが返される
     """
@@ -397,8 +369,7 @@ def test_is_gpt5_model_uppercase(monkeypatch):
 
 @pytest.mark.unit
 def test_is_gpt5_model_gpt41_false(monkeypatch):
-    """
-    Given: モデル名が"gpt-4.1-nano"
+    """Given: モデル名が"gpt-4.1-nano"
     When: _is_gpt5_modelを呼び出す
     Then: Falseが返される
     """
@@ -409,8 +380,7 @@ def test_is_gpt5_model_gpt41_false(monkeypatch):
 
 @pytest.mark.unit
 def test_is_gpt5_model_gpt4o_false(monkeypatch):
-    """
-    Given: モデル名が"gpt-4o-mini"
+    """Given: モデル名が"gpt-4o-mini"
     When: _is_gpt5_modelを呼び出す
     Then: Falseが返される
     """
@@ -426,8 +396,7 @@ def test_is_gpt5_model_gpt4o_false(monkeypatch):
 
 @pytest.mark.unit
 def test_get_calling_service_not_in_services(monkeypatch):
-    """
-    Given: services/配下でない場所からの呼び出し
+    """Given: services/配下でない場所からの呼び出し
     When: _get_calling_serviceを呼び出す
     Then: "unknown"が返される
     """
@@ -440,8 +409,7 @@ def test_get_calling_service_not_in_services(monkeypatch):
 
 @pytest.mark.unit
 def test_get_calling_service_inspect_error(monkeypatch):
-    """
-    Given: inspect.currentframe()がExceptionを発生
+    """Given: inspect.currentframe()がExceptionを発生
     When: _get_calling_serviceを呼び出す
     Then: "unknown"が返される
     """
@@ -459,8 +427,7 @@ def test_get_calling_service_inspect_error(monkeypatch):
 
 @pytest.mark.unit
 def test_messages_to_responses_input_normal(monkeypatch):
-    """
-    Given: 正常なメッセージリスト
+    """Given: 正常なメッセージリスト
     When: _messages_to_responses_inputを呼び出す
     Then: Responses API形式に変換される
     """
@@ -476,8 +443,7 @@ def test_messages_to_responses_input_normal(monkeypatch):
 
 @pytest.mark.unit
 def test_messages_to_responses_input_with_system(monkeypatch):
-    """
-    Given: systemメッセージを含むメッセージリスト
+    """Given: systemメッセージを含むメッセージリスト
     When: _messages_to_responses_inputを呼び出す
     Then: 両方のメッセージが変換される
     """
@@ -495,8 +461,7 @@ def test_messages_to_responses_input_with_system(monkeypatch):
 
 @pytest.mark.unit
 def test_messages_to_responses_input_empty_list(monkeypatch):
-    """
-    Given: 空のメッセージリスト
+    """Given: 空のメッセージリスト
     When: _messages_to_responses_inputを呼び出す
     Then: 空リストが返される
     """
@@ -508,8 +473,7 @@ def test_messages_to_responses_input_empty_list(monkeypatch):
 
 @pytest.mark.unit
 def test_messages_to_responses_input_no_role(monkeypatch):
-    """
-    Given: roleキーがないメッセージ
+    """Given: roleキーがないメッセージ
     When: _messages_to_responses_inputを呼び出す
     Then: デフォルトで"user"が設定される
     """
@@ -522,8 +486,7 @@ def test_messages_to_responses_input_no_role(monkeypatch):
 
 @pytest.mark.unit
 def test_messages_to_responses_input_no_content(monkeypatch):
-    """
-    Given: contentキーがないメッセージ
+    """Given: contentキーがないメッセージ
     When: _messages_to_responses_inputを呼び出す
     Then: 空文字列""が設定される
     """
@@ -536,8 +499,7 @@ def test_messages_to_responses_input_no_content(monkeypatch):
 
 @pytest.mark.unit
 def test_messages_to_responses_input_multiple(monkeypatch):
-    """
-    Given: 複数のメッセージリスト
+    """Given: 複数のメッセージリスト
     When: _messages_to_responses_inputを呼び出す
     Then: 全て正しく変換される
     """
@@ -560,8 +522,7 @@ def test_messages_to_responses_input_multiple(monkeypatch):
 
 @pytest.mark.unit
 def test_extract_text_output_text_attribute(monkeypatch):
-    """
-    Given: respにoutput_text属性がある
+    """Given: respにoutput_text属性がある
     When: _extract_text_from_responseを呼び出す
     Then: output_textの値が返される
     """
@@ -575,8 +536,7 @@ def test_extract_text_output_text_attribute(monkeypatch):
 
 @pytest.mark.unit
 def test_extract_text_empty_output_text(monkeypatch):
-    """
-    Given: output_textが空文字列
+    """Given: output_textが空文字列
     When: _extract_text_from_responseを呼び出す
     Then: 辞書から走査して抽出を試みる
     """
@@ -593,8 +553,7 @@ def test_extract_text_empty_output_text(monkeypatch):
 
 @pytest.mark.unit
 def test_extract_text_via_model_dump(monkeypatch):
-    """
-    Given: output_textがNoneでmodel_dumpで辞書取得可能
+    """Given: output_textがNoneでmodel_dumpで辞書取得可能
     When: _extract_text_from_responseを呼び出す
     Then: 辞書から走査してテキストが抽出される
     """
@@ -611,8 +570,7 @@ def test_extract_text_via_model_dump(monkeypatch):
 
 @pytest.mark.unit
 def test_extract_text_no_text_found(monkeypatch):
-    """
-    Given: レスポンスにテキスト要素が見つからない
+    """Given: レスポンスにテキスト要素が見つからない
     When: _extract_text_from_responseを呼び出す
     Then: 空文字列""が返される
     """
@@ -632,8 +590,7 @@ def test_extract_text_no_text_found(monkeypatch):
 
 @pytest.mark.unit
 def test_generate_content_gpt5_basic(monkeypatch):
-    """
-    Given: gpt-5モデルでプロンプト指定
+    """Given: gpt-5モデルでプロンプト指定
     When: generate_contentを呼び出す
     Then: GPT-5 Responses APIでテキストが生成される
     """
@@ -659,8 +616,7 @@ def test_generate_content_gpt5_basic(monkeypatch):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_generate_async_gpt5_basic(monkeypatch):
-    """
-    Given: gpt-5モデルでプロンプト指定
+    """Given: gpt-5モデルでプロンプト指定
     When: generate_asyncを呼び出す
     Then: 非同期でGPT-5がテキストを生成する
     """
@@ -685,8 +641,7 @@ async def test_generate_async_gpt5_basic(monkeypatch):
 
 @pytest.mark.unit
 def test_create_chat_without_system(monkeypatch):
-    """
-    Given: system_instructionなし
+    """Given: system_instructionなし
     When: create_chatを呼び出す
     Then: 空のmessagesリストを持つ辞書が返される
     """
@@ -699,8 +654,7 @@ def test_create_chat_without_system(monkeypatch):
 
 @pytest.mark.unit
 def test_create_chat_with_system(monkeypatch):
-    """
-    Given: system_instructionを指定
+    """Given: system_instructionを指定
     When: create_chatを呼び出す
     Then: systemメッセージを含む辞書が返される
     """
@@ -714,8 +668,7 @@ def test_create_chat_with_system(monkeypatch):
 
 @pytest.mark.unit
 def test_create_chat_return_structure(monkeypatch):
-    """
-    Given: デフォルト引数
+    """Given: デフォルト引数
     When: create_chatを呼び出す
     Then: {"messages": [...]}の形式が返される
     """
@@ -734,8 +687,7 @@ def test_create_chat_return_structure(monkeypatch):
 
 @pytest.mark.unit
 def test_send_message_gpt5_basic(monkeypatch):
-    """
-    Given: gpt-5でチャットセッションとメッセージ
+    """Given: gpt-5でチャットセッションとメッセージ
     When: send_messageを呼び出す
     Then: GPT-5がAIの応答を返す
     """
@@ -756,8 +708,7 @@ def test_send_message_gpt5_basic(monkeypatch):
 
 @pytest.mark.unit
 def test_send_message_gpt5_history_updated(monkeypatch):
-    """
-    Given: gpt-5でチャットセッションにメッセージを送信
+    """Given: gpt-5でチャットセッションにメッセージを送信
     When: send_messageを呼び出す
     Then: user/assistantメッセージが履歴に追加される
     """
@@ -785,8 +736,7 @@ def test_send_message_gpt5_history_updated(monkeypatch):
 
 @pytest.mark.unit
 def test_chat_with_search_gpt5_basic(monkeypatch):
-    """
-    Given: gpt-5でメッセージとコンテキスト
+    """Given: gpt-5でメッセージとコンテキスト
     When: chat_with_searchを呼び出す
     Then: GPT-5がAIの応答を返す
     """
@@ -805,8 +755,7 @@ def test_chat_with_search_gpt5_basic(monkeypatch):
 
 @pytest.mark.unit
 def test_chat_with_search_gpt5_with_history(monkeypatch):
-    """
-    Given: gpt-5でchat_historyを含むメッセージ
+    """Given: gpt-5でchat_historyを含むメッセージ
     When: chat_with_searchを呼び出す
     Then: 履歴を含めて処理される
     """
@@ -834,8 +783,7 @@ def test_chat_with_search_gpt5_with_history(monkeypatch):
 
 @pytest.mark.unit
 def test_chat_gpt5_basic(monkeypatch):
-    """
-    Given: gpt-5でメッセージリスト
+    """Given: gpt-5でメッセージリスト
     When: chatを呼び出す
     Then: GPT-5がAIの応答を返す
     """
@@ -856,8 +804,7 @@ def test_chat_gpt5_basic(monkeypatch):
 
 @pytest.mark.unit
 def test_chat_gpt5_with_system(monkeypatch):
-    """
-    Given: gpt-5でsystemメッセージ付きメッセージリスト
+    """Given: gpt-5でsystemメッセージ付きメッセージリスト
     When: chatを呼び出す
     Then: systemメッセージを含めて処理される
     """
@@ -878,8 +825,7 @@ def test_chat_gpt5_with_system(monkeypatch):
 
 @pytest.mark.unit
 def test_chat_gpt5_multiple_messages(monkeypatch):
-    """
-    Given: gpt-5で複数ターンのメッセージリスト
+    """Given: gpt-5で複数ターンのメッセージリスト
     When: chatを呼び出す
     Then: 複数メッセージで処理される
     """
@@ -909,8 +855,7 @@ def test_chat_gpt5_multiple_messages(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_first_attempt_success(monkeypatch):
-    """
-    Given: GPT-5モデルで1回目のAPI呼び出しが成功
+    """Given: GPT-5モデルで1回目のAPI呼び出しが成功
     When: _call_gpt5を呼び出す
     Then: 1回のAPI呼び出しで完了する
     """
@@ -928,8 +873,7 @@ def test_call_gpt5_first_attempt_success(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_continuation_success(monkeypatch):
-    """
-    Given: 1回目のoutput_textが空、2回目で成功
+    """Given: 1回目のoutput_textが空、2回目で成功
     When: _call_gpt5を呼び出す
     Then: previous_response_idで継続生成される
     """
@@ -955,8 +899,7 @@ def test_call_gpt5_continuation_success(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_chat_first_success(monkeypatch):
-    """
-    Given: GPT-5チャット形式で1回目が成功
+    """Given: GPT-5チャット形式で1回目が成功
     When: _call_gpt5_chatを呼び出す
     Then: 1回のAPI呼び出しで完了する
     """
@@ -976,8 +919,7 @@ def test_call_gpt5_chat_first_success(monkeypatch):
 
 @pytest.mark.unit
 def test_extract_text_via_dict_attribute(monkeypatch):
-    """
-    Given: model_dump/dictメソッドがなく__dict__属性を使用
+    """Given: model_dump/dictメソッドがなく__dict__属性を使用
     When: _extract_text_from_responseを呼び出す
     Then: __dict__から走査してテキストが抽出される
     """
@@ -997,8 +939,7 @@ def test_extract_text_via_dict_attribute(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_all_attempts_fail(monkeypatch):
-    """
-    Given: 3回ともoutput_textが空
+    """Given: 3回ともoutput_textが空
     When: _call_gpt5を呼び出す
     Then: 空文字列が返される（エラーなし）
     """
@@ -1024,8 +965,7 @@ def test_call_gpt5_all_attempts_fail(monkeypatch):
 
 @pytest.mark.unit
 def test_init_none_model_with_no_env(monkeypatch):
-    """
-    Given: modelにNoneを指定、環境変数もなし
+    """Given: modelにNoneを指定、環境変数もなし
     When: GPTClientを初期化
     Then: デフォルト値"gpt-5-nano"が設定される
     """
@@ -1037,8 +977,7 @@ def test_init_none_model_with_no_env(monkeypatch):
 
 @pytest.mark.unit
 def test_extract_text_dict_access_exception(monkeypatch):
-    """
-    Given: __dict__アクセスが例外を発生するレスポンス
+    """Given: __dict__アクセスが例外を発生するレスポンス
     When: _extract_text_from_responseを呼び出す
     Then: 空文字列が返される
     """
@@ -1059,8 +998,7 @@ def test_extract_text_dict_access_exception(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_with_prev_id(monkeypatch):
-    """
-    Given: 1回目が空、2回目でprevious_response_idを使用
+    """Given: 1回目が空、2回目でprevious_response_idを使用
     When: _call_gpt5を呼び出す
     Then: previous_response_idで継続生成される
     """
@@ -1088,8 +1026,7 @@ def test_call_gpt5_with_prev_id(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_chat_with_prev_id(monkeypatch):
-    """
-    Given: 1回目が空、2回目でprevious_response_idを使用
+    """Given: 1回目が空、2回目でprevious_response_idを使用
     When: _call_gpt5_chatを呼び出す
     Then: previous_response_idで継続生成される
     """
@@ -1118,8 +1055,7 @@ def test_call_gpt5_chat_with_prev_id(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_with_system_instruction(monkeypatch):
-    """
-    Given: system_instructionを指定
+    """Given: system_instructionを指定
     When: _call_gpt5を呼び出す
     Then: instructionsパラメータが設定される
     """
@@ -1140,8 +1076,7 @@ def test_call_gpt5_with_system_instruction(monkeypatch):
 
 @pytest.mark.unit
 def test_call_gpt5_chat_with_system_instruction(monkeypatch):
-    """
-    Given: system_instructionを指定
+    """Given: system_instructionを指定
     When: _call_gpt5_chatを呼び出す
     Then: instructionsパラメータが設定される
     """
@@ -1164,8 +1099,7 @@ def test_call_gpt5_chat_with_system_instruction(monkeypatch):
 
 @pytest.mark.unit
 def test_get_calling_service_from_services_directory(monkeypatch):
-    """
-    Given: services/reddit_explorer/からの呼び出しをシミュレート
+    """Given: services/reddit_explorer/からの呼び出しをシミュレート
     When: _get_calling_serviceを呼び出す
     Then: "reddit_explorer"が返される
     """
@@ -1188,8 +1122,7 @@ def test_get_calling_service_from_services_directory(monkeypatch):
 
 @pytest.mark.unit
 def test_get_calling_service_special_cases(monkeypatch):
-    """
-    Given: run_services.pyや__pycache__からの呼び出し
+    """Given: run_services.pyや__pycache__からの呼び出し
     When: _get_calling_serviceを呼び出す
     Then: それらをスキップして次のフレームをチェックする
     """
@@ -1216,8 +1149,7 @@ def test_get_calling_service_special_cases(monkeypatch):
 
 @pytest.mark.unit
 def test_get_calling_service_pycache_skip(monkeypatch):
-    """
-    Given: __pycache__ディレクトリからの呼び出し
+    """Given: __pycache__ディレクトリからの呼び出し
     When: _get_calling_serviceを呼び出す
     Then: __で始まるディレクトリをスキップする
     """
@@ -1245,8 +1177,7 @@ def test_get_calling_service_pycache_skip(monkeypatch):
 
 @pytest.mark.unit
 def test_get_calling_service_py_file_skip(monkeypatch):
-    """
-    Given: .pyで終わるサービス名（ファイル名が直接services/直下）
+    """Given: .pyで終わるサービス名（ファイル名が直接services/直下）
     When: _get_calling_serviceを呼び出す
     Then: .pyで終わるものをスキップする
     """

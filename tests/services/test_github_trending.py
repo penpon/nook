@@ -1,5 +1,4 @@
-"""
-nook/services/github_trending/github_trending.py のテスト
+"""nook/services/github_trending/github_trending.py のテスト
 
 テスト観点:
 - GithubTrendingの初期化
@@ -29,8 +28,7 @@ from nook.services.github_trending.github_trending import GithubTrending, Reposi
 
 @pytest.mark.unit
 def test_init_with_default_storage_dir(mock_env_vars):
-    """
-    Given: デフォルトのstorage_dir
+    """Given: デフォルトのstorage_dir
     When: GithubTrendingを初期化
     Then: インスタンスが正常に作成される
     """
@@ -44,8 +42,7 @@ def test_init_with_default_storage_dir(mock_env_vars):
 
 @pytest.mark.unit
 def test_init_loads_languages_config(mock_env_vars):
-    """
-    Given: 言語設定ファイルが存在
+    """Given: 言語設定ファイルが存在
     When: GithubTrendingを初期化
     Then: 言語設定が正常に読み込まれる
     """
@@ -64,8 +61,7 @@ def test_init_loads_languages_config(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_success_with_trending_repos(mock_env_vars):
-    """
-    Given: 有効なGitHubトレンドHTML
+    """Given: 有効なGitHubトレンドHTML
     When: collectメソッドを呼び出す
     Then: リポジトリが正常に取得・保存される
     """
@@ -112,8 +108,7 @@ async def test_collect_success_with_trending_repos(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_multiple_languages(mock_env_vars):
-    """
-    Given: 複数の言語のリポジトリ
+    """Given: 複数の言語のリポジトリ
     When: collectメソッドを呼び出す
     Then: 全ての言語が処理される
     """
@@ -147,8 +142,7 @@ async def test_collect_with_multiple_languages(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_target_dates(mock_env_vars):
-    """
-    Given: 特定の日付を指定
+    """Given: 特定の日付を指定
     When: collectメソッドを呼び出す
     Then: 指定した日付のデータが取得される
     """
@@ -180,8 +174,7 @@ async def test_collect_with_target_dates(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_limit_parameter(mock_env_vars):
-    """
-    Given: limit パラメータを指定
+    """Given: limit パラメータを指定
     When: collectメソッドを呼び出す
     Then: 指定した件数まで取得される
     """
@@ -216,8 +209,7 @@ async def test_collect_with_limit_parameter(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_network_error(mock_env_vars):
-    """
-    Given: ネットワークエラーが発生
+    """Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
     Then: エラーがログされ、例外が発生する
     """
@@ -244,8 +236,7 @@ async def test_collect_network_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_invalid_html(mock_env_vars):
-    """
-    Given: 不正なHTML
+    """Given: 不正なHTML
     When: collectメソッドを呼び出す
     Then: エラーがログされ、空リストが返される
     """
@@ -274,8 +265,7 @@ async def test_collect_invalid_html(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_gpt_api_error(mock_env_vars):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: collectメソッドを呼び出す
     Then: エラーが適切に処理される
     """
@@ -317,8 +307,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_empty_html(mock_env_vars):
-    """
-    Given: 空のHTML
+    """Given: 空のHTML
     When: collectメソッドを呼び出す
     Then: 空リストが返される
     """
@@ -347,8 +336,7 @@ async def test_collect_with_empty_html(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_none_target_dates(mock_env_vars):
-    """
-    Given: target_datesがNone
+    """Given: target_datesがNone
     When: collectメソッドを呼び出す
     Then: デフォルトの日付が使用される
     """
@@ -382,8 +370,7 @@ async def test_collect_with_none_target_dates(mock_env_vars):
 
 @pytest.mark.unit
 def test_repository_creation():
-    """
-    Given: リポジトリ情報
+    """Given: リポジトリ情報
     When: Repositoryオブジェクトを作成
     Then: 正しくインスタンス化される
     """
@@ -402,8 +389,7 @@ def test_repository_creation():
 
 @pytest.mark.unit
 def test_repository_with_none_description():
-    """
-    Given: 説明がNone
+    """Given: 説明がNone
     When: Repositoryオブジェクトを作成
     Then: Noneが許容される
     """
@@ -419,8 +405,7 @@ def test_repository_with_none_description():
 
 @pytest.mark.unit
 def test_repository_with_zero_stars():
-    """
-    Given: スター数が0
+    """Given: スター数が0
     When: Repositoryオブジェクトを作成
     Then: 0が許容される
     """
@@ -442,8 +427,7 @@ def test_repository_with_zero_stars():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_repositories_success(mock_env_vars):
-    """
-    Given: 有効なHTMLレスポンス
+    """Given: 有効なHTMLレスポンス
     When: _retrieve_repositoriesを呼び出す
     Then: リポジトリリストが返される
     """
@@ -475,8 +459,7 @@ async def test_retrieve_repositories_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_repositories_with_limit(mock_env_vars):
-    """
-    Given: limitを超えるリポジトリが存在
+    """Given: limitを超えるリポジトリが存在
     When: _retrieve_repositoriesを呼び出す
     Then: limit件数まで取得される
     """
@@ -516,8 +499,7 @@ async def test_retrieve_repositories_with_limit(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_repositories_deduplication(mock_env_vars):
-    """
-    Given: 重複するリポジトリ名
+    """Given: 重複するリポジトリ名
     When: _retrieve_repositoriesを呼び出す
     Then: 重複が除外される
     """
@@ -554,8 +536,7 @@ async def test_retrieve_repositories_deduplication(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_repositories_success(mock_env_vars):
-    """
-    Given: リポジトリリスト
+    """Given: リポジトリリスト
     When: _translate_repositoriesを呼び出す
     Then: 説明が翻訳される
     """
@@ -581,8 +562,7 @@ async def test_translate_repositories_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_repositories_with_progress_callback(mock_env_vars):
-    """
-    Given: 進捗コールバックを指定
+    """Given: 進捗コールバックを指定
     When: _translate_repositoriesを呼び出す
     Then: コールバックが呼ばれる
     """
@@ -613,8 +593,7 @@ async def test_translate_repositories_with_progress_callback(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_repositories_error_handling(mock_env_vars):
-    """
-    Given: 翻訳中にエラーが発生
+    """Given: 翻訳中にエラーが発生
     When: _translate_repositoriesを呼び出す
     Then: エラーがログされ、処理が継続される
     """
@@ -645,8 +624,7 @@ async def test_translate_repositories_error_handling(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_for_date_success(mock_env_vars):
-    """
-    Given: リポジトリリストと日付
+    """Given: リポジトリリストと日付
     When: _store_summaries_for_dateを呼び出す
     Then: ファイルが保存される
     """
@@ -697,8 +675,7 @@ async def test_store_summaries_for_date_success(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_success(mock_env_vars):
-    """
-    Given: リポジトリレコード
+    """Given: リポジトリレコード
     When: _render_markdownを呼び出す
     Then: Markdown形式のテキストが返される
     """
@@ -728,8 +705,7 @@ def test_render_markdown_success(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_success(mock_env_vars):
-    """
-    Given: Markdown形式のテキスト
+    """Given: Markdown形式のテキスト
     When: _parse_markdownを呼び出す
     Then: リポジトリレコードが返される
     """
@@ -765,8 +741,7 @@ Test description
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_full_workflow_collect_and_save(mock_env_vars):
-    """
-    Given: 完全なワークフロー
+    """Given: 完全なワークフロー
     When: collect→save→cleanupを実行
     Then: 全フローが正常に動作
     """
@@ -817,8 +792,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_existing_repositories(mock_env_vars):
-    """
-    Given: 既存のリポジトリが存在
+    """Given: 既存のリポジトリが存在
     When: collectメソッドを呼び出す
     Then: 重複が除外される
     """
@@ -855,8 +829,7 @@ async def test_collect_with_existing_repositories(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_multiple_dates(mock_env_vars):
-    """
-    Given: 複数の日付を指定
+    """Given: 複数の日付を指定
     When: collectメソッドを呼び出す
     Then: 各日付のデータが処理される
     """
@@ -892,8 +865,7 @@ async def test_collect_with_multiple_dates(mock_env_vars):
 
 @pytest.mark.unit
 def test_repository_sort_key(mock_env_vars):
-    """
-    Given: リポジトリレコード
+    """Given: リポジトリレコード
     When: _repository_sort_keyを呼び出す
     Then: ソートキーが返される
     """
@@ -915,8 +887,7 @@ def test_repository_sort_key(mock_env_vars):
 
 @pytest.mark.unit
 def test_serialize_repositories(mock_env_vars):
-    """
-    Given: リポジトリリスト
+    """Given: リポジトリリスト
     When: _serialize_repositoriesを呼び出す
     Then: 辞書のリストが返される
     """
@@ -947,8 +918,7 @@ def test_serialize_repositories(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_initializes_http_client(mock_env_vars):
-    """
-    Given: HTTPクライアントが未初期化
+    """Given: HTTPクライアントが未初期化
     When: collectメソッドを呼び出す
     Then: HTTPクライアントが初期化される
     """
@@ -987,8 +957,7 @@ async def test_collect_initializes_http_client(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_respects_rate_limit(mock_env_vars):
-    """
-    Given: 複数の言語を処理
+    """Given: 複数の言語を処理
     When: collectメソッドを呼び出す
     Then: レート制限が適用される
     """
@@ -1023,8 +992,7 @@ async def test_collect_respects_rate_limit(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_existing_repositories_success(mock_env_vars):
-    """
-    Given: 既存のMarkdownファイルが存在
+    """Given: 既存のMarkdownファイルが存在
     When: _load_existing_repositoriesを呼び出す
     Then: リポジトリ名がDedupTrackerに追加される
     """
@@ -1064,8 +1032,7 @@ Another description
 
 @pytest.mark.unit
 def test_load_existing_repositories_file_not_exists(mock_env_vars):
-    """
-    Given: 既存のMarkdownファイルが存在しない
+    """Given: 既存のMarkdownファイルが存在しない
     When: _load_existing_repositoriesを呼び出す
     Then: 空のDedupTrackerが返される
     """
@@ -1081,8 +1048,7 @@ def test_load_existing_repositories_file_not_exists(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_existing_repositories_read_error(mock_env_vars):
-    """
-    Given: Markdownファイルの読み込みでエラー
+    """Given: Markdownファイルの読み込みでエラー
     When: _load_existing_repositoriesを呼び出す
     Then: 空のDedupTrackerが返される（エラーログ出力）
     """
@@ -1102,8 +1068,7 @@ def test_load_existing_repositories_read_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_repositories_by_date_with_json_dict(mock_env_vars):
-    """
-    Given: JSON形式（dict）の既存データ
+    """Given: JSON形式（dict）の既存データ
     When: _load_existing_repositories_by_dateを呼び出す
     Then: フラット化されたリポジトリリストが返される
     """
@@ -1130,8 +1095,7 @@ async def test_load_existing_repositories_by_date_with_json_dict(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_repositories_by_date_with_json_list(mock_env_vars):
-    """
-    Given: JSON形式（list）の既存データ
+    """Given: JSON形式（list）の既存データ
     When: _load_existing_repositories_by_dateを呼び出す
     Then: そのままリストが返される
     """
@@ -1153,8 +1117,7 @@ async def test_load_existing_repositories_by_date_with_json_list(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_repositories_by_date_with_markdown(mock_env_vars):
-    """
-    Given: JSONが存在せず、Markdownのみ
+    """Given: JSONが存在せず、Markdownのみ
     When: _load_existing_repositories_by_dateを呼び出す
     Then: Markdownから解析されたリポジトリリストが返される
     """
@@ -1183,8 +1146,7 @@ async def test_load_existing_repositories_by_date_with_markdown(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_repositories_by_date_no_data(mock_env_vars):
-    """
-    Given: JSONもMarkdownも存在しない
+    """Given: JSONもMarkdownも存在しない
     When: _load_existing_repositories_by_dateを呼び出す
     Then: 空のリストが返される
     """
@@ -1202,8 +1164,7 @@ async def test_load_existing_repositories_by_date_no_data(mock_env_vars):
 
 @pytest.mark.unit
 def test_repository_sort_key_with_invalid_date(mock_env_vars):
-    """
-    Given: 無効な日付フォーマットのリポジトリデータ
+    """Given: 無効な日付フォーマットのリポジトリデータ
     When: _repository_sort_keyを呼び出す
     Then: datetime.minが使用される
     """
@@ -1219,8 +1180,7 @@ def test_repository_sort_key_with_invalid_date(mock_env_vars):
 
 @pytest.mark.unit
 def test_repository_sort_key_with_no_published_at(mock_env_vars):
-    """
-    Given: published_atがないリポジトリデータ
+    """Given: published_atがないリポジトリデータ
     When: _repository_sort_keyを呼び出す
     Then: datetime.minが使用される
     """
@@ -1237,8 +1197,7 @@ def test_repository_sort_key_with_no_published_at(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_empty_repositories(mock_env_vars):
-    """
-    Given: 空のリポジトリリスト
+    """Given: 空のリポジトリリスト
     When: _store_summariesを呼び出す
     Then: 空のリストが返される
     """
@@ -1253,8 +1212,7 @@ async def test_store_summaries_empty_repositories(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_for_date_empty_repositories(mock_env_vars):
-    """
-    Given: 空のリポジトリリスト
+    """Given: 空のリポジトリリスト
     When: _store_summaries_for_dateを呼び出す
     Then: ValueErrorが発生
     """
@@ -1268,8 +1226,7 @@ async def test_store_summaries_for_date_empty_repositories(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_for_date_save_failure(mock_env_vars):
-    """
-    Given: 保存処理が失敗
+    """Given: 保存処理が失敗
     When: _store_summaries_for_dateを呼び出す
     Then: ValueErrorが発生
     """
@@ -1307,8 +1264,7 @@ async def test_store_summaries_for_date_save_failure(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_with_empty_language_group(mock_env_vars):
-    """
-    Given: 空のリポジトリグループを含むデータ
+    """Given: 空のリポジトリグループを含むデータ
     When: _render_markdownを呼び出す
     Then: 空のグループはスキップされる
     """
@@ -1333,8 +1289,7 @@ def test_render_markdown_with_empty_language_group(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_specific_languages_config(mock_env_vars):
-    """
-    Given: specific言語が設定されている
+    """Given: specific言語が設定されている
     When: collectメソッドを呼び出す
     Then: general と specific の両方が取得される
     """
@@ -1377,8 +1332,7 @@ async def test_collect_with_specific_languages_config(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_existing_repo_read_error(mock_env_vars):
-    """
-    Given: 既存リポジトリの読み込みでエラー
+    """Given: 既存リポジトリの読み込みでエラー
     When: collectメソッドを呼び出す
     Then: エラーログが出力され、処理は継続される
     """

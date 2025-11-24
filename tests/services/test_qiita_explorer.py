@@ -1,5 +1,4 @@
-"""
-nook/services/qiita_explorer/qiita_explorer.py のテスト
+"""nook/services/qiita_explorer/qiita_explorer.py のテスト
 
 テスト観点:
 - QiitaExplorerの初期化

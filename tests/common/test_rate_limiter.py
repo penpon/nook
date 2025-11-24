@@ -23,8 +23,7 @@ from nook.common.rate_limiter import RateLimitedHTTPClient, RateLimiter
 
 @pytest.mark.unit
 def test_rate_limiter_init_default_burst():
-    """
-    Given: rate=10のみ指定
+    """Given: rate=10のみ指定
     When: RateLimiterを初期化
     Then: burst=rate=10, allowance=10.0となる
     """
@@ -37,8 +36,7 @@ def test_rate_limiter_init_default_burst():
 
 @pytest.mark.unit
 def test_rate_limiter_init_custom_burst():
-    """
-    Given: rate=10, burst=20
+    """Given: rate=10, burst=20
     When: RateLimiterを初期化
     Then: burst=20, allowance=20.0となる
     """
@@ -50,8 +48,7 @@ def test_rate_limiter_init_custom_burst():
 
 @pytest.mark.unit
 def test_rate_limiter_init_custom_per():
-    """
-    Given: rate=60, per=timedelta(minutes=1)
+    """Given: rate=60, per=timedelta(minutes=1)
     When: RateLimiterを初期化
     Then: 60req/分のレート制限となる
     """
@@ -62,8 +59,7 @@ def test_rate_limiter_init_custom_per():
 
 @pytest.mark.unit
 def test_rate_limiter_init_minimum_rate():
-    """
-    Given: rate=1（最小レート）
+    """Given: rate=1（最小レート）
     When: RateLimiterを初期化
     Then: 正常に初期化される
     """
@@ -74,8 +70,7 @@ def test_rate_limiter_init_minimum_rate():
 
 @pytest.mark.unit
 def test_rate_limiter_init_large_rate():
-    """
-    Given: rate=1000（大きなレート）
+    """Given: rate=1000（大きなレート）
     When: RateLimiterを初期化
     Then: 正常に初期化される
     """
@@ -92,8 +87,7 @@ def test_rate_limiter_init_large_rate():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limiter_acquire_sufficient_tokens():
-    """
-    Given: allowance=10のRateLimiter
+    """Given: allowance=10のRateLimiter
     When: tokens=1でacquire
     Then: 即座に返り、allowance=9となる
     """
@@ -114,8 +108,7 @@ async def test_rate_limiter_acquire_sufficient_tokens():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limiter_acquire_insufficient_tokens():
-    """
-    Given: allowance=5のRateLimiter
+    """Given: allowance=5のRateLimiter
     When: tokens=10でacquire
     Then: 待機してからトークン取得
     """
@@ -147,8 +140,7 @@ async def test_rate_limiter_acquire_insufficient_tokens():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limiter_acquire_exact_allowance():
-    """
-    Given: allowance=10のRateLimiter
+    """Given: allowance=10のRateLimiter
     When: tokens=10（ちょうどallowance分）でacquire
     Then: 即座に返る
     """
@@ -169,8 +161,7 @@ async def test_rate_limiter_acquire_exact_allowance():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limiter_acquire_allowance_plus_one():
-    """
-    Given: allowance=10のRateLimiter
+    """Given: allowance=10のRateLimiter
     When: tokens=11（allowance+1）でacquire
     Then: 待機が発生する
     """
@@ -198,8 +189,7 @@ async def test_rate_limiter_acquire_allowance_plus_one():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limiter_acquire_zero_tokens():
-    """
-    Given: RateLimiter
+    """Given: RateLimiter
     When: tokens=0でacquire
     Then: 即座に返る（エッジケース）
     """
@@ -220,8 +210,7 @@ async def test_rate_limiter_acquire_zero_tokens():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limiter_acquire_token_recovery():
-    """
-    Given: RateLimiter
+    """Given: RateLimiter
     When: 時間経過でトークンが回復する
     Then: allowanceが増加する
     """
@@ -244,8 +233,7 @@ async def test_rate_limiter_acquire_token_recovery():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limiter_acquire_burst_limit():
-    """
-    Given: burst=10のRateLimiter
+    """Given: burst=10のRateLimiter
     When: 回復したトークンがburstを超える
     Then: burstで制限される
     """
@@ -271,8 +259,7 @@ async def test_rate_limiter_acquire_burst_limit():
 
 @pytest.mark.unit
 def test_rate_limited_http_client_init_default():
-    """
-    Given: configなし
+    """Given: configなし
     When: RateLimitedHTTPClientを初期化
     Then: default_rate_limit=60/分となる
     """
@@ -284,8 +271,7 @@ def test_rate_limited_http_client_init_default():
 
 @pytest.mark.unit
 def test_rate_limited_http_client_init_custom_rate_limit():
-    """
-    Given: カスタムdefault_rate_limit
+    """Given: カスタムdefault_rate_limit
     When: RateLimitedHTTPClientを初期化
     Then: カスタム値が設定される
     """
@@ -301,8 +287,7 @@ def test_rate_limited_http_client_init_custom_rate_limit():
 
 @pytest.mark.unit
 def test_add_domain_rate_limit_new_domain():
-    """
-    Given: RateLimitedHTTPClient
+    """Given: RateLimitedHTTPClient
     When: 新規ドメインのレート制限を追加
     Then: domain_rate_limitsに追加される
     """
@@ -315,8 +300,7 @@ def test_add_domain_rate_limit_new_domain():
 
 @pytest.mark.unit
 def test_add_domain_rate_limit_overwrite():
-    """
-    Given: 既存ドメインのレート制限あり
+    """Given: 既存ドメインのレート制限あり
     When: 同一ドメインを再度追加
     Then: 新しい設定で上書きされる
     """
@@ -329,8 +313,7 @@ def test_add_domain_rate_limit_overwrite():
 
 @pytest.mark.unit
 def test_add_domain_rate_limit_custom_per_and_burst():
-    """
-    Given: RateLimitedHTTPClient
+    """Given: RateLimitedHTTPClient
     When: per, burst付きでドメインレート制限を追加
     Then: 正しく設定される
     """
@@ -350,8 +333,7 @@ def test_add_domain_rate_limit_custom_per_and_burst():
 
 @pytest.mark.unit
 def test_get_domain_http_url():
-    """
-    Given: http URL
+    """Given: http URL
     When: _get_domainを呼び出す
     Then: ドメイン名が返る
     """
@@ -362,8 +344,7 @@ def test_get_domain_http_url():
 
 @pytest.mark.unit
 def test_get_domain_https_url():
-    """
-    Given: https URL
+    """Given: https URL
     When: _get_domainを呼び出す
     Then: ドメイン名が返る
     """
@@ -374,8 +355,7 @@ def test_get_domain_https_url():
 
 @pytest.mark.unit
 def test_get_domain_with_port():
-    """
-    Given: ポート付きURL
+    """Given: ポート付きURL
     When: _get_domainを呼び出す
     Then: ドメイン名:ポートが返る
     """
@@ -386,8 +366,7 @@ def test_get_domain_with_port():
 
 @pytest.mark.unit
 def test_get_domain_invalid_url():
-    """
-    Given: 不正なURL
+    """Given: 不正なURL
     When: _get_domainを呼び出す
     Then: 空文字列が返る（urllibの動作）
     """
@@ -404,8 +383,7 @@ def test_get_domain_invalid_url():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_http_client_get_default_rate_limit():
-    """
-    Given: 未登録ドメイン
+    """Given: 未登録ドメイン
     When: getリクエスト
     Then: default_rate_limitが適用される
     """
@@ -433,8 +411,7 @@ async def test_http_client_get_default_rate_limit():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_http_client_get_domain_specific_rate_limit():
-    """
-    Given: 登録済みドメイン
+    """Given: 登録済みドメイン
     When: getリクエスト
     Then: ドメイン専用レート制限が適用される
     """
@@ -452,8 +429,7 @@ async def test_http_client_get_domain_specific_rate_limit():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_http_client_post_rate_limit():
-    """
-    Given: RateLimitedHTTPClient
+    """Given: RateLimitedHTTPClient
     When: postリクエスト
     Then: レート制限が適用される
     """
@@ -470,8 +446,7 @@ async def test_http_client_post_rate_limit():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_http_client_multiple_requests_rate_limited():
-    """
-    Given: レート制限付きクライアント
+    """Given: レート制限付きクライアント
     When: 短時間に複数リクエスト
     Then: レート制限が順守される
     """
@@ -493,8 +468,7 @@ async def test_http_client_multiple_requests_rate_limited():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_acquire_rate_limit_selects_correct_limiter():
-    """
-    Given: ドメイン別レート制限設定済み
+    """Given: ドメイン別レート制限設定済み
     When: _acquire_rate_limitを呼び出す
     Then: 正しいlimiterが選択される
     """
@@ -510,8 +484,7 @@ async def test_acquire_rate_limit_selects_correct_limiter():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_acquire_rate_limit_uses_default_for_unknown_domain():
-    """
-    Given: 未登録ドメイン
+    """Given: 未登録ドメイン
     When: _acquire_rate_limitを呼び出す
     Then: default_rate_limitが使用される
     """

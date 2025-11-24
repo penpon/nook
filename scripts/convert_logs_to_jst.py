@@ -9,9 +9,7 @@ from datetime import UTC, datetime, timedelta, timezone
 JST = timezone(timedelta(hours=9))
 
 # タイムスタンプのパターン
-pattern = re.compile(
-    r"^(.*?\s+\|\s+)(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)Z(\s+.*)$"
-)
+pattern = re.compile(r"^(.*?\s+\|\s+)(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)Z(\s+.*)$")
 
 for line in sys.stdin:
     match = pattern.match(line)
@@ -27,9 +25,7 @@ for line in sys.stdin:
         jst_time = utc_time.astimezone(JST)
 
         # 新しい形式で出力
-        print(
-            f"{prefix}{jst_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]} JST{suffix.rstrip()}"
-        )
+        print(f"{prefix}{jst_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]} JST{suffix.rstrip()}")
     else:
         # タイムスタンプがない行はそのまま出力
         print(line, end="")

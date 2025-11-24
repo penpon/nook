@@ -23,8 +23,7 @@ from nook.common.error_metrics import ErrorMetrics, error_metrics
 
 @pytest.mark.unit
 def test_error_metrics_init_default():
-    """
-    Given: デフォルトパラメータ
+    """Given: デフォルトパラメータ
     When: ErrorMetricsを初期化
     Then: window_minutes=60となる
     """
@@ -35,8 +34,7 @@ def test_error_metrics_init_default():
 
 @pytest.mark.unit
 def test_error_metrics_init_custom_window():
-    """
-    Given: window_minutes=30
+    """Given: window_minutes=30
     When: ErrorMetricsを初期化
     Then: 30分ウィンドウとなる
     """
@@ -46,8 +44,7 @@ def test_error_metrics_init_custom_window():
 
 @pytest.mark.unit
 def test_error_metrics_init_minimum_window():
-    """
-    Given: window_minutes=1（最小）
+    """Given: window_minutes=1（最小）
     When: ErrorMetricsを初期化
     Then: 正常に初期化される
     """
@@ -57,8 +54,7 @@ def test_error_metrics_init_minimum_window():
 
 @pytest.mark.unit
 def test_error_metrics_init_large_window():
-    """
-    Given: window_minutes=1440（24時間）
+    """Given: window_minutes=1440（24時間）
     When: ErrorMetricsを初期化
     Then: 正常に初期化される
     """
@@ -73,8 +69,7 @@ def test_error_metrics_init_large_window():
 
 @pytest.mark.unit
 def test_record_error_first_error():
-    """
-    Given: 初期状態のErrorMetrics
+    """Given: 初期状態のErrorMetrics
     When: 初回エラーを記録
     Then: エラーが記録される
     """
@@ -93,8 +88,7 @@ def test_record_error_first_error():
 
 @pytest.mark.unit
 def test_record_error_multiple_same_type():
-    """
-    Given: ErrorMetrics
+    """Given: ErrorMetrics
     When: 同じerror_typeを複数回記録
     Then: リストに追加される
     """
@@ -112,8 +106,7 @@ def test_record_error_multiple_same_type():
 
 @pytest.mark.unit
 def test_record_error_different_types():
-    """
-    Given: ErrorMetrics
+    """Given: ErrorMetrics
     When: 異なるerror_typeを記録
     Then: 各タイプで管理される
     """
@@ -134,8 +127,7 @@ def test_record_error_different_types():
 
 @pytest.mark.unit
 def test_record_error_auto_cleanup_old_errors():
-    """
-    Given: window_minutes=60のErrorMetrics
+    """Given: window_minutes=60のErrorMetrics
     When: ウィンドウ外のエラーを記録後、新しいエラーを記録
     Then: 古いエラーが自動削除される
     """
@@ -160,8 +152,7 @@ def test_record_error_auto_cleanup_old_errors():
 
 @pytest.mark.unit
 def test_record_error_within_window():
-    """
-    Given: window_minutes=60のErrorMetrics
+    """Given: window_minutes=60のErrorMetrics
     When: ウィンドウ内のエラーを記録
     Then: 全て保持される
     """
@@ -184,8 +175,7 @@ def test_record_error_within_window():
 
 @pytest.mark.unit
 def test_record_error_boundary_exactly_cutoff():
-    """
-    Given: ErrorMetrics
+    """Given: ErrorMetrics
     When: ちょうどcutoff時刻のエラー
     Then: 削除される
     """
@@ -215,8 +205,7 @@ def test_record_error_boundary_exactly_cutoff():
 
 @pytest.mark.unit
 def test_get_error_stats_with_errors():
-    """
-    Given: エラーが記録されているErrorMetrics
+    """Given: エラーが記録されているErrorMetrics
     When: get_error_statsを呼び出す
     Then: 統計dictが返る
     """
@@ -240,8 +229,7 @@ def test_get_error_stats_with_errors():
 
 @pytest.mark.unit
 def test_get_error_stats_no_errors():
-    """
-    Given: エラーが記録されていないErrorMetrics
+    """Given: エラーが記録されていないErrorMetrics
     When: get_error_statsを呼び出す
     Then: 空のdictが返る
     """
@@ -252,8 +240,7 @@ def test_get_error_stats_no_errors():
 
 @pytest.mark.unit
 def test_get_error_stats_multiple_types():
-    """
-    Given: 複数タイプのエラーが記録されている
+    """Given: 複数タイプのエラーが記録されている
     When: get_error_statsを呼び出す
     Then: 各タイプの統計が含まれる
     """
@@ -274,8 +261,7 @@ def test_get_error_stats_multiple_types():
 
 @pytest.mark.unit
 def test_get_error_stats_count_calculation():
-    """
-    Given: N個のエラーが記録されている
+    """Given: N個のエラーが記録されている
     When: get_error_statsを呼び出す
     Then: count=Nとなる
     """
@@ -294,8 +280,7 @@ def test_get_error_stats_count_calculation():
 
 @pytest.mark.unit
 def test_get_error_stats_rate_calculation():
-    """
-    Given: 60分で60エラー
+    """Given: 60分で60エラー
     When: get_error_statsを呼び出す
     Then: rate_per_minute=1.0となる
     """
@@ -314,8 +299,7 @@ def test_get_error_stats_rate_calculation():
 
 @pytest.mark.unit
 def test_get_error_stats_first_last_occurrence():
-    """
-    Given: 複数エラーが記録されている
+    """Given: 複数エラーが記録されている
     When: get_error_statsを呼び出す
     Then: first/last_occurrenceがISO形式で返る
     """
@@ -339,8 +323,7 @@ def test_get_error_stats_first_last_occurrence():
 
 @pytest.mark.unit
 def test_get_error_stats_old_errors_excluded():
-    """
-    Given: ウィンドウ外の古いエラーのみ
+    """Given: ウィンドウ外の古いエラーのみ
     When: get_error_statsを呼び出す
     Then: 空のdictが返る
     """
@@ -369,8 +352,7 @@ def test_get_error_stats_old_errors_excluded():
 
 @pytest.mark.unit
 def test_get_error_report_with_errors():
-    """
-    Given: エラーが記録されている
+    """Given: エラーが記録されている
     When: get_error_reportを呼び出す
     Then: フォーマット済みレポート文字列が返る
     """
@@ -390,8 +372,7 @@ def test_get_error_report_with_errors():
 
 @pytest.mark.unit
 def test_get_error_report_no_errors():
-    """
-    Given: エラーなし
+    """Given: エラーなし
     When: get_error_reportを呼び出す
     Then: "No errors in the last N minutes"が返る
     """
@@ -402,8 +383,7 @@ def test_get_error_report_no_errors():
 
 @pytest.mark.unit
 def test_get_error_report_header():
-    """
-    Given: エラーあり
+    """Given: エラーあり
     When: get_error_reportを呼び出す
     Then: ヘッダー行が含まれる
     """
@@ -422,8 +402,7 @@ def test_get_error_report_header():
 
 @pytest.mark.unit
 def test_get_error_report_content():
-    """
-    Given: エラーあり
+    """Given: エラーあり
     When: get_error_reportを呼び出す
     Then: Error Type, Count, Rate, First, Lastが含まれる
     """
@@ -445,8 +424,7 @@ def test_get_error_report_content():
 
 @pytest.mark.unit
 def test_get_error_report_rate_format():
-    """
-    Given: エラーあり
+    """Given: エラーあり
     When: get_error_reportを呼び出す
     Then: Rateが小数点2桁で表示される
     """
@@ -467,8 +445,7 @@ def test_get_error_report_rate_format():
 
 @pytest.mark.unit
 def test_get_error_report_sorted_by_count():
-    """
-    Given: 複数タイプのエラー
+    """Given: 複数タイプのエラー
     When: get_error_reportを呼び出す
     Then: count降順でソートされる
     """
@@ -501,8 +478,7 @@ def test_get_error_report_sorted_by_count():
 
 @pytest.mark.unit
 def test_global_error_metrics_exists():
-    """
-    Given: モジュールインポート
+    """Given: モジュールインポート
     When: error_metricsにアクセス
     Then: ErrorMetricsインスタンスが存在する
     """
@@ -517,8 +493,7 @@ def test_global_error_metrics_exists():
 
 @pytest.mark.unit
 def test_record_error_thread_safe():
-    """
-    Given: ErrorMetrics
+    """Given: ErrorMetrics
     When: 複数スレッドから同時に記録
     Then: データ競合が発生しない
     """
@@ -543,8 +518,7 @@ def test_record_error_thread_safe():
 
 @pytest.mark.unit
 def test_get_error_stats_thread_safe():
-    """
-    Given: エラーが記録されているErrorMetrics
+    """Given: エラーが記録されているErrorMetrics
     When: 複数スレッドから同時に取得
     Then: 一貫性のあるデータが返る
     """

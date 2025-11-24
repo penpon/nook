@@ -33,8 +33,7 @@ from nook.common.logging_utils import (
 
 @dataclass
 class Story:
-    """
-    Hacker News記事情報。
+    """Hacker News記事情報。
 
     Parameters
     ----------
@@ -46,6 +45,7 @@ class Story:
         URL。
     text : str | None
         本文。
+
     """
 
     title: str
@@ -65,23 +65,23 @@ MAX_STORY_LIMIT = 15  # 保存する記事数の上限
 
 
 class HackerNewsRetriever(BaseService):
-    """
-    Hacker Newsの記事を収集するクラス。
+    """Hacker Newsの記事を収集するクラス。
 
     Parameters
     ----------
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     def __init__(self, storage_dir: str = "data"):
-        """
-        HackerNewsRetrieverを初期化します。
+        """HackerNewsRetrieverを初期化します。
 
         Parameters
         ----------
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+
         """
         super().__init__("hacker_news")
         self.base_url = "https://hacker-news.firebaseio.com/v0"
@@ -94,8 +94,7 @@ class HackerNewsRetriever(BaseService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        Hacker Newsの記事を収集して保存します。
+        """Hacker Newsの記事を収集して保存します。
 
         Parameters
         ----------
@@ -108,6 +107,7 @@ class HackerNewsRetriever(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         limit = min(limit, MAX_STORY_LIMIT)
         effective_target_dates = target_dates or target_dates_set(1)
@@ -170,8 +170,7 @@ class HackerNewsRetriever(BaseService):
         dedup_tracker: DedupTracker,
         target_dates: list[date],
     ) -> list[Story]:
-        """
-        トップ記事を取得します。
+        """トップ記事を取得します。
 
         Parameters
         ----------
@@ -182,6 +181,7 @@ class HackerNewsRetriever(BaseService):
         -------
         List[Story]
             取得した記事のリスト。
+
         """
         # 1. topstoriesから多めに記事IDを取得（100件）
         response = await self.http_client.get(f"{self.base_url}/topstories.json")
@@ -584,13 +584,13 @@ class HackerNewsRetriever(BaseService):
             self.logger.error(f"ブロックドメインリストの更新に失敗しました: {e}")
 
     async def _summarize_story(self, story: Story) -> None:
-        """
-        Hacker News記事を要約します。
+        """Hacker News記事を要約します。
 
         Parameters
         ----------
         story : Story
             要約する記事。
+
         """
         if not story.text:
             story.summary = "本文情報がないため要約できません。"
@@ -626,7 +626,7 @@ class HackerNewsRetriever(BaseService):
             story.summary = summary
             await self.rate_limit()  # API呼び出し後のレート制限
         except Exception as e:
-            story.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+            story.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
         self, stories: list[Story], target_dates: list[date]

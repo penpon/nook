@@ -23,8 +23,7 @@ from nook.common.logging import JSONFormatter, SimpleConsoleFormatter, setup_log
 
 @pytest.mark.unit
 def test_simple_console_formatter_normal_message():
-    """
-    Given: 通常のLogRecord
+    """Given: 通常のLogRecord
     When: formatを呼び出す
     Then: メッセージのみが返る
     """
@@ -45,8 +44,7 @@ def test_simple_console_formatter_normal_message():
 
 @pytest.mark.unit
 def test_simple_console_formatter_empty_message():
-    """
-    Given: 空メッセージのLogRecord
+    """Given: 空メッセージのLogRecord
     When: formatを呼び出す
     Then: 空文字列が返る
     """
@@ -67,8 +65,7 @@ def test_simple_console_formatter_empty_message():
 
 @pytest.mark.unit
 def test_simple_console_formatter_long_message():
-    """
-    Given: 1000文字のメッセージ
+    """Given: 1000文字のメッセージ
     When: formatを呼び出す
     Then: 全文字列が返る
     """
@@ -95,8 +92,7 @@ def test_simple_console_formatter_long_message():
 
 @pytest.mark.unit
 def test_json_formatter_basic_fields():
-    """
-    Given: 基本的なLogRecord
+    """Given: 基本的なLogRecord
     When: formatを呼び出す
     Then: 必須フィールドを含むJSON文字列が返る
     """
@@ -127,8 +123,7 @@ def test_json_formatter_basic_fields():
 
 @pytest.mark.unit
 def test_json_formatter_with_exception():
-    """
-    Given: exc_info付きLogRecord
+    """Given: exc_info付きLogRecord
     When: formatを呼び出す
     Then: exceptionフィールドが含まれる
     """
@@ -160,8 +155,7 @@ def test_json_formatter_with_exception():
 
 @pytest.mark.unit
 def test_json_formatter_with_custom_fields():
-    """
-    Given: extraパラメータ付きLogRecord
+    """Given: extraパラメータ付きLogRecord
     When: formatを呼び出す
     Then: カスタムフィールドが含まれる
     """
@@ -190,8 +184,7 @@ def test_json_formatter_with_custom_fields():
 
 @pytest.mark.unit
 def test_json_formatter_non_ascii_message():
-    """
-    Given: 日本語メッセージのLogRecord
+    """Given: 日本語メッセージのLogRecord
     When: formatを呼び出す
     Then: ensure_ascii=FalseでUTF-8エンコードされる
     """
@@ -216,8 +209,7 @@ def test_json_formatter_non_ascii_message():
 
 @pytest.mark.unit
 def test_json_formatter_excludes_standard_fields():
-    """
-    Given: LogRecord
+    """Given: LogRecord
     When: formatを呼び出す
     Then: 除外リストのフィールドは含まれない
     """
@@ -252,8 +244,7 @@ def test_json_formatter_excludes_standard_fields():
 
 @pytest.mark.unit
 def test_setup_logger_default_settings():
-    """
-    Given: デフォルト設定
+    """Given: デフォルト設定
     When: setup_loggerを呼び出す
     Then: INFO、JSON、logs/test.logとなる
     """
@@ -267,8 +258,7 @@ def test_setup_logger_default_settings():
 
 @pytest.mark.unit
 def test_setup_logger_custom_level():
-    """
-    Given: level="DEBUG"
+    """Given: level="DEBUG"
     When: setup_loggerを呼び出す
     Then: DEBUGレベルが設定される
     """
@@ -279,8 +269,7 @@ def test_setup_logger_custom_level():
 
 @pytest.mark.unit
 def test_setup_logger_custom_directory():
-    """
-    Given: log_dir="custom_logs"
+    """Given: log_dir="custom_logs"
     When: setup_loggerを呼び出す
     Then: custom_logs/test_logger.logが作成される
     """
@@ -294,8 +283,7 @@ def test_setup_logger_custom_directory():
 
 @pytest.mark.unit
 def test_setup_logger_use_json_false():
-    """
-    Given: use_json=False
+    """Given: use_json=False
     When: setup_loggerを呼び出す
     Then: ファイルハンドラーが標準フォーマット
     """
@@ -310,8 +298,7 @@ def test_setup_logger_use_json_false():
 
 @pytest.mark.unit
 def test_setup_logger_use_json_true():
-    """
-    Given: use_json=True
+    """Given: use_json=True
     When: setup_loggerを呼び出す
     Then: ファイルハンドラーがJSONフォーマット
     """
@@ -326,8 +313,7 @@ def test_setup_logger_use_json_true():
 
 @pytest.mark.unit
 def test_setup_logger_console_handler():
-    """
-    Given: 任意の設定
+    """Given: 任意の設定
     When: setup_loggerを呼び出す
     Then: StreamHandlerが追加される
     """
@@ -346,8 +332,7 @@ def test_setup_logger_console_handler():
 
 @pytest.mark.unit
 def test_setup_logger_clears_existing_handlers():
-    """
-    Given: 既存ハンドラーあり
+    """Given: 既存ハンドラーあり
     When: setup_loggerを呼び出す
     Then: 既存ハンドラーが削除される
     """
@@ -363,8 +348,7 @@ def test_setup_logger_clears_existing_handlers():
 
 @pytest.mark.unit
 def test_setup_logger_creates_directory():
-    """
-    Given: ディレクトリ不存在
+    """Given: ディレクトリ不存在
     When: setup_loggerを呼び出す
     Then: ディレクトリが作成される
     """
@@ -379,8 +363,7 @@ def test_setup_logger_creates_directory():
 
 @pytest.mark.unit
 def test_setup_logger_directory_already_exists():
-    """
-    Given: ディレクトリ既存
+    """Given: ディレクトリ既存
     When: setup_loggerを呼び出す
     Then: エラーなし
     """
@@ -393,8 +376,7 @@ def test_setup_logger_directory_already_exists():
 
 @pytest.mark.unit
 def test_setup_logger_invalid_level():
-    """
-    Given: level="INVALID"
+    """Given: level="INVALID"
     When: setup_loggerを呼び出す
     Then: AttributeErrorが発生
     """
@@ -404,8 +386,7 @@ def test_setup_logger_invalid_level():
 
 @pytest.mark.unit
 def test_setup_logger_all_levels():
-    """
-    Given: 各ログレベル
+    """Given: 各ログレベル
     When: setup_loggerを呼び出す
     Then: 全レベルが設定可能
     """
@@ -419,8 +400,7 @@ def test_setup_logger_all_levels():
 
 @pytest.mark.unit
 def test_setup_logger_file_handler_rotation():
-    """
-    Given: デフォルト設定
+    """Given: デフォルト設定
     When: setup_loggerを呼び出す
     Then: RotatingFileHandlerでmaxBytes=10MB, backupCount=5
     """
@@ -434,8 +414,7 @@ def test_setup_logger_file_handler_rotation():
 
 @pytest.mark.unit
 def test_setup_logger_file_handler_encoding():
-    """
-    Given: デフォルト設定
+    """Given: デフォルト設定
     When: setup_loggerを呼び出す
     Then: エンコーディングがutf-8
     """
@@ -448,8 +427,7 @@ def test_setup_logger_file_handler_encoding():
 
 @pytest.mark.unit
 def test_setup_logger_log_file_created():
-    """
-    Given: name="test", log_dir="logs"
+    """Given: name="test", log_dir="logs"
     When: setup_loggerを呼び出す
     Then: logs/test.logが作成される
     """

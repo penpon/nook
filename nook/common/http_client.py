@@ -156,9 +156,8 @@ class AsyncHTTPClient:
                 return await self.get(
                     url, headers=headers, params=params, force_http1=True, **kwargs
                 )
-            else:
-                logger.error(f"Stream error for {url}: {e}")
-                raise APIException(f"Stream error: {str(e)}") from e
+            logger.error(f"Stream error for {url}: {e}")
+            raise APIException(f"Stream error: {e!s}") from e
 
         except httpx.HTTPStatusError as e:
             # 422エラーの場合はHTTP/1.1でフォールバック
@@ -188,7 +187,7 @@ class AsyncHTTPClient:
 
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {e}")
-            raise APIException(f"Request failed: {str(e)}") from e
+            raise APIException(f"Request failed: {e!s}") from e
 
     @handle_errors(retries=3, delay=1.0, backoff=2.0)
     async def post(
@@ -223,7 +222,7 @@ class AsyncHTTPClient:
 
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {e}")
-            raise APIException(f"Request failed: {str(e)}") from e
+            raise APIException(f"Request failed: {e!s}") from e
 
     async def get_json(self, url: str, **kwargs) -> dict[str, Any]:
         """JSONレスポンスを取得"""

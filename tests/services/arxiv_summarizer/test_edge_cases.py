@@ -1,5 +1,4 @@
-"""
-ArxivSummarizer - エッジケース・境界値テスト
+"""ArxivSummarizer - エッジケース・境界値テスト
 
 このファイルはエッジケース、境界値、コーナーケースを網羅的にテストします。
 
@@ -43,8 +42,7 @@ import pytest
 def test_is_valid_body_line_boundary_length(
     arxiv_service, arxiv_helper, text_length, expected_valid
 ):
-    """
-    境界値テスト: 本文行の長さ
+    """境界値テスト: 本文行の長さ
 
     Given: 様々な長さの文字列
     When: _is_valid_body_lineメソッドを呼び出す
@@ -94,8 +92,7 @@ def test_is_valid_body_line_boundary_length(
     ],
 )
 def test_paper_sort_key_date_boundaries(arxiv_service, year, month, day, is_valid):
-    """
-    境界値テスト: 日付の範囲
+    """境界値テスト: 日付の範囲
 
     Given: 様々な境界値の日付
     When: _paper_sort_keyメソッドを呼び出す
@@ -139,8 +136,7 @@ def test_paper_sort_key_date_boundaries(arxiv_service, year, month, day, is_vali
     ],
 )
 def test_edge_case_none_and_empty(arxiv_service, input_value, method_name):
-    """
-    エッジケース: Noneと空文字列の処理
+    """エッジケース: Noneと空文字列の処理
 
     Given: Noneまたは空文字列
     When: 各メソッドを呼び出す
@@ -196,8 +192,7 @@ def test_edge_case_none_and_empty(arxiv_service, input_value, method_name):
 def test_edge_case_unicode_and_special_chars(
     arxiv_service, arxiv_helper, special_text, description
 ):
-    """
-    エッジケース: Unicode・特殊文字の処理
+    """エッジケース: Unicode・特殊文字の処理
 
     Given: 様々なUnicode文字・特殊文字
     When: _is_valid_body_lineメソッドを呼び出す
@@ -220,8 +215,7 @@ def test_edge_case_unicode_and_special_chars(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_corner_case_empty_list_operations(arxiv_service):
-    """
-    コーナーケース: 空リストの処理
+    """コーナーケース: 空リストの処理
 
     Given: 空の論文リスト
     When: _serialize_papersメソッドを呼び出す
@@ -240,8 +234,7 @@ async def test_corner_case_empty_list_operations(arxiv_service):
 
 @pytest.mark.unit
 def test_corner_case_parse_markdown_malformed_input(arxiv_service):
-    """
-    コーナーケース: 不正な形式のMarkdown
+    """コーナーケース: 不正な形式のMarkdown
 
     Given: 様々な不正な形式のMarkdown
     When: _parse_markdownメソッドを呼び出す
@@ -272,8 +265,7 @@ def test_corner_case_parse_markdown_malformed_input(arxiv_service):
 @pytest.mark.memory
 @pytest.mark.skipif(True, reason="Memory profiling not configured - example test")
 def test_memory_large_text_extraction(arxiv_service):
-    """
-    メモリテスト: 大きなテキスト抽出
+    """メモリテスト: 大きなテキスト抽出
 
     Given: 非常に大きなテキスト（10MB）
     When: _is_valid_body_lineで処理
@@ -281,7 +273,6 @@ def test_memory_large_text_extraction(arxiv_service):
 
     Note: このテストはmemory_profilerまたはtracemalloc使用
     """
-
     # Given: 10MBのテキスト
     large_text = "a" * (10 * 1024 * 1024) + "."
 

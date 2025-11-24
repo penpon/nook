@@ -1,5 +1,4 @@
-"""
-nook/common/storage.py のテスト
+"""nook/common/storage.py のテスト
 
 テスト観点:
 - LocalStorageの初期化
@@ -34,8 +33,7 @@ from nook.common.storage import LocalStorage
 
 @pytest.mark.unit
 def test_init_creates_new_directory(tmp_path):
-    """
-    Given: 存在しないディレクトリパス
+    """Given: 存在しないディレクトリパス
     When: LocalStorageを初期化
     Then: ディレクトリが作成され、base_dirが設定される
     """
@@ -49,8 +47,7 @@ def test_init_creates_new_directory(tmp_path):
 
 @pytest.mark.unit
 def test_init_uses_existing_directory(tmp_path):
-    """
-    Given: 既存のディレクトリパス
+    """Given: 既存のディレクトリパス
     When: LocalStorageを初期化
     Then: エラーなくインスタンス作成、既存ディレクトリはそのまま
     """
@@ -65,8 +62,7 @@ def test_init_uses_existing_directory(tmp_path):
 
 @pytest.mark.unit
 def test_init_creates_nested_directories(tmp_path):
-    """
-    Given: ネストしたディレクトリパス
+    """Given: ネストしたディレクトリパス
     When: LocalStorageを初期化
     Then: parents=Trueで全階層作成される
     """
@@ -80,8 +76,7 @@ def test_init_creates_nested_directories(tmp_path):
 
 @pytest.mark.unit
 def test_init_with_relative_path(tmp_path, monkeypatch):
-    """
-    Given: 相対パス
+    """Given: 相対パス
     When: LocalStorageを初期化
     Then: 相対パスからPathオブジェクトが作成される
     """
@@ -95,8 +90,7 @@ def test_init_with_relative_path(tmp_path, monkeypatch):
 
 @pytest.mark.unit
 def test_init_permission_error():
-    """
-    Given: 書き込み権限のないパス
+    """Given: 書き込み権限のないパス
     When: LocalStorageを初期化
     Then: OSError/PermissionError発生
     """
@@ -114,8 +108,7 @@ def test_init_permission_error():
 
 @pytest.mark.unit
 def test_save_markdown_without_date(tmp_path):
-    """
-    Given: content, service_name, date=None
+    """Given: content, service_name, date=None
     When: save_markdownを呼び出す
     Then: 現在日付でファイル保存、Pathが返される
     """
@@ -135,8 +128,7 @@ def test_save_markdown_without_date(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_with_date(tmp_path):
-    """
-    Given: content, service_name, 指定日付
+    """Given: content, service_name, 指定日付
     When: save_markdownを呼び出す
     Then: 指定日付でファイル保存
     """
@@ -155,8 +147,7 @@ def test_save_markdown_with_date(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_empty_content(tmp_path):
-    """
-    Given: 空文字列のcontent
+    """Given: 空文字列のcontent
     When: save_markdownを呼び出す
     Then: 空ファイルが作成される
     """
@@ -172,8 +163,7 @@ def test_save_markdown_empty_content(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_large_content(tmp_path):
-    """
-    Given: 10MB以上のcontent
+    """Given: 10MB以上のcontent
     When: save_markdownを呼び出す
     Then: 正常に保存される
     """
@@ -190,8 +180,7 @@ def test_save_markdown_large_content(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_unicode_content(tmp_path):
-    """
-    Given: Unicode文字を含むcontent
+    """Given: Unicode文字を含むcontent
     When: save_markdownを呼び出す
     Then: UTF-8で正しく保存される
     """
@@ -208,8 +197,7 @@ def test_save_markdown_unicode_content(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_special_chars_service_name(tmp_path):
-    """
-    Given: 特殊文字を含むservice_name
+    """Given: 特殊文字を含むservice_name
     When: save_markdownを呼び出す
     Then: ディレクトリ作成・保存成功
     """
@@ -225,8 +213,7 @@ def test_save_markdown_special_chars_service_name(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_overwrite(tmp_path):
-    """
-    Given: 同じdate/service_nameで2回保存
+    """Given: 同じdate/service_nameで2回保存
     When: save_markdownを呼び出す
     Then: 上書き成功、新しいcontentが保存される
     """
@@ -246,8 +233,7 @@ def test_save_markdown_overwrite(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_permission_error(tmp_path):
-    """
-    Given: ファイル書き込み権限エラー
+    """Given: ファイル書き込み権限エラー
     When: save_markdownを呼び出す
     Then: PermissionError伝播
     """
@@ -262,8 +248,7 @@ def test_save_markdown_permission_error(tmp_path):
 
 @pytest.mark.unit
 def test_save_markdown_disk_full_error(tmp_path):
-    """
-    Given: ディスク容量不足
+    """Given: ディスク容量不足
     When: save_markdownを呼び出す
     Then: OSError伝播
     """
@@ -283,8 +268,7 @@ def test_save_markdown_disk_full_error(tmp_path):
 
 @pytest.mark.unit
 def test_load_markdown_existing_file_without_date(tmp_path):
-    """
-    Given: 現在日付のファイルが存在
+    """Given: 現在日付のファイルが存在
     When: load_markdownを呼び出す（date=None）
     Then: ファイル内容が文字列で返される
     """
@@ -303,8 +287,7 @@ def test_load_markdown_existing_file_without_date(tmp_path):
 
 @pytest.mark.unit
 def test_load_markdown_existing_file_with_date(tmp_path):
-    """
-    Given: 指定日付のファイルが存在
+    """Given: 指定日付のファイルが存在
     When: load_markdownを呼び出す（date指定）
     Then: ファイル内容が返される
     """
@@ -324,8 +307,7 @@ def test_load_markdown_existing_file_with_date(tmp_path):
 
 @pytest.mark.unit
 def test_load_markdown_nonexistent_file(tmp_path):
-    """
-    Given: ファイルが存在しない
+    """Given: ファイルが存在しない
     When: load_markdownを呼び出す
     Then: Noneが返される
     """
@@ -339,8 +321,7 @@ def test_load_markdown_nonexistent_file(tmp_path):
 
 @pytest.mark.unit
 def test_load_markdown_empty_file(tmp_path):
-    """
-    Given: 存在するが中身が空のファイル
+    """Given: 存在するが中身が空のファイル
     When: load_markdownを呼び出す
     Then: 空文字列""が返される
     """
@@ -358,8 +339,7 @@ def test_load_markdown_empty_file(tmp_path):
 
 @pytest.mark.unit
 def test_load_markdown_unicode_content(tmp_path):
-    """
-    Given: 日本語・絵文字を含むファイル
+    """Given: 日本語・絵文字を含むファイル
     When: load_markdownを呼び出す
     Then: UTF-8で正しく読み込まれる
     """
@@ -378,8 +358,7 @@ def test_load_markdown_unicode_content(tmp_path):
 
 @pytest.mark.unit
 def test_load_markdown_permission_error(tmp_path):
-    """
-    Given: ファイル読み込み権限エラー
+    """Given: ファイル読み込み権限エラー
     When: load_markdownを呼び出す
     Then: PermissionError伝播
     """
@@ -404,8 +383,7 @@ def test_load_markdown_permission_error(tmp_path):
 
 @pytest.mark.unit
 def test_list_dates_multiple_files(tmp_path):
-    """
-    Given: 複数のMarkdownファイル
+    """Given: 複数のMarkdownファイル
     When: list_datesを呼び出す
     Then: 日付リストが降順でソートされて返される
     """
@@ -431,8 +409,7 @@ def test_list_dates_multiple_files(tmp_path):
 
 @pytest.mark.unit
 def test_list_dates_single_file(tmp_path):
-    """
-    Given: ファイルが1つ
+    """Given: ファイルが1つ
     When: list_datesを呼び出す
     Then: 1要素のリストが返される
     """
@@ -450,8 +427,7 @@ def test_list_dates_single_file(tmp_path):
 
 @pytest.mark.unit
 def test_list_dates_no_files(tmp_path):
-    """
-    Given: .mdファイルなし
+    """Given: .mdファイルなし
     When: list_datesを呼び出す
     Then: 空リスト[]が返される
     """
@@ -468,8 +444,7 @@ def test_list_dates_no_files(tmp_path):
 
 @pytest.mark.unit
 def test_list_dates_service_dir_not_exists(tmp_path):
-    """
-    Given: サービスディレクトリが存在しない
+    """Given: サービスディレクトリが存在しない
     When: list_datesを呼び出す
     Then: 空リスト[]が返される
     """
@@ -483,8 +458,7 @@ def test_list_dates_service_dir_not_exists(tmp_path):
 
 @pytest.mark.unit
 def test_list_dates_invalid_filenames_ignored(tmp_path):
-    """
-    Given: 不正な形式のファイル名が混在
+    """Given: 不正な形式のファイル名が混在
     When: list_datesを呼び出す
     Then: 正常な日付形式のみパースされ返される
     """
@@ -511,8 +485,7 @@ def test_list_dates_invalid_filenames_ignored(tmp_path):
 
 @pytest.mark.unit
 def test_list_dates_non_md_files_ignored(tmp_path):
-    """
-    Given: .md以外のファイルが混在
+    """Given: .md以外のファイルが混在
     When: list_datesを呼び出す
     Then: .mdファイルのみが対象
     """
@@ -538,8 +511,7 @@ def test_list_dates_non_md_files_ignored(tmp_path):
 
 @pytest.mark.unit
 def test_list_dates_sorted_descending(tmp_path):
-    """
-    Given: 順不同の日付ファイル複数
+    """Given: 順不同の日付ファイル複数
     When: list_datesを呼び出す
     Then: 降順（新しい順）でソートされる
     """
@@ -576,8 +548,7 @@ def test_list_dates_sorted_descending(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_json_data(tmp_path):
-    """
-    Given: JSON形式のデータ
+    """Given: JSON形式のデータ
     When: saveを呼び出す
     Then: JSONファイルが保存され、Pathが返される
     """
@@ -600,8 +571,7 @@ async def test_save_json_data(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_text_data(tmp_path):
-    """
-    Given: テキストデータ
+    """Given: テキストデータ
     When: saveを呼び出す
     Then: テキストファイルが保存される
     """
@@ -620,8 +590,7 @@ async def test_save_text_data(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_empty_dict(tmp_path):
-    """
-    Given: 空の辞書
+    """Given: 空の辞書
     When: saveを呼び出す
     Then: 空のJSON "{}"が保存される
     """
@@ -640,8 +609,7 @@ async def test_save_empty_dict(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_empty_list(tmp_path):
-    """
-    Given: 空のリスト
+    """Given: 空のリスト
     When: saveを呼び出す
     Then: 空のJSON "[]"が保存される
     """
@@ -660,8 +628,7 @@ async def test_save_empty_list(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_nested_json(tmp_path):
-    """
-    Given: 深くネストしたdict/list
+    """Given: 深くネストしたdict/list
     When: saveを呼び出す
     Then: 正しくシリアライズされて保存
     """
@@ -680,8 +647,7 @@ async def test_save_nested_json(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_with_subdirectory(tmp_path):
-    """
-    Given: サブディレクトリ付きファイル名
+    """Given: サブディレクトリ付きファイル名
     When: saveを呼び出す
     Then: サブディレクトリも作成される
     """
@@ -700,8 +666,7 @@ async def test_save_with_subdirectory(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_json_unicode(tmp_path):
-    """
-    Given: Unicode文字を含むJSONデータ
+    """Given: Unicode文字を含むJSONデータ
     When: saveを呼び出す
     Then: ensure_ascii=Falseで正しく保存
     """
@@ -721,8 +686,7 @@ async def test_save_json_unicode(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_non_serializable_object(tmp_path):
-    """
-    Given: 非シリアライズ可能オブジェクト
+    """Given: 非シリアライズ可能オブジェクト
     When: saveを呼び出す
     Then: TypeError発生
     """
@@ -741,8 +705,7 @@ async def test_save_non_serializable_object(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_async_io_error(tmp_path):
-    """
-    Given: ファイル書き込みIOエラー
+    """Given: ファイル書き込みIOエラー
     When: saveを呼び出す
     Then: OSError伝播
     """
@@ -761,8 +724,7 @@ async def test_save_async_io_error(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_save_large_json_data(tmp_path):
-    """
-    Given: 10MB以上のdata
+    """Given: 10MB以上のdata
     When: saveを呼び出す
     Then: 正常に保存される
     """
@@ -787,8 +749,7 @@ async def test_save_large_json_data(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_load_existing_file(tmp_path):
-    """
-    Given: 既存のファイル
+    """Given: 既存のファイル
     When: loadを呼び出す
     Then: ファイル内容が文字列で返される
     """
@@ -808,8 +769,7 @@ async def test_load_existing_file(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_load_nonexistent_file(tmp_path):
-    """
-    Given: 存在しないファイル名
+    """Given: 存在しないファイル名
     When: loadを呼び出す
     Then: Noneが返される
     """
@@ -824,8 +784,7 @@ async def test_load_nonexistent_file(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_load_empty_file(tmp_path):
-    """
-    Given: 空のファイル
+    """Given: 空のファイル
     When: loadを呼び出す
     Then: 空文字列""が返される
     """
@@ -844,8 +803,7 @@ async def test_load_empty_file(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_load_unicode_file(tmp_path):
-    """
-    Given: UTF-8エンコードファイル
+    """Given: UTF-8エンコードファイル
     When: loadを呼び出す
     Then: 正しく読み込まれる
     """
@@ -865,8 +823,7 @@ async def test_load_unicode_file(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_load_async_io_error(tmp_path):
-    """
-    Given: ファイル読み込みIOエラー
+    """Given: ファイル読み込みIOエラー
     When: loadを呼び出す
     Then: OSError伝播
     """
@@ -892,8 +849,7 @@ async def test_load_async_io_error(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_exists_file_present(tmp_path):
-    """
-    Given: 既存のファイル名
+    """Given: 既存のファイル名
     When: existsを呼び出す
     Then: Trueが返される
     """
@@ -912,8 +868,7 @@ async def test_exists_file_present(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_exists_file_absent(tmp_path):
-    """
-    Given: 存在しないファイル名
+    """Given: 存在しないファイル名
     When: existsを呼び出す
     Then: Falseが返される
     """
@@ -928,8 +883,7 @@ async def test_exists_file_absent(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_exists_directory(tmp_path):
-    """
-    Given: ディレクトリパス
+    """Given: ディレクトリパス
     When: existsを呼び出す
     Then: Trueが返される（ディレクトリもPath.exists()でTrue）
     """
@@ -952,8 +906,7 @@ async def test_exists_directory(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_rename_existing_file(tmp_path):
-    """
-    Given: 既存ファイルを新しい名前に
+    """Given: 既存ファイルを新しい名前に
     When: renameを呼び出す
     Then: ファイル名が変更される
     """
@@ -977,8 +930,7 @@ async def test_rename_existing_file(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_rename_nonexistent_file(tmp_path):
-    """
-    Given: 存在しないファイル名
+    """Given: 存在しないファイル名
     When: renameを呼び出す
     Then: 何も起こらない（エラーなし）
     """
@@ -995,8 +947,7 @@ async def test_rename_nonexistent_file(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_rename_overwrite_existing(tmp_path):
-    """
-    Given: 既存ファイルを既存の名前に
+    """Given: 既存ファイルを既存の名前に
     When: renameを呼び出す
     Then: 上書きされる
     """
@@ -1020,8 +971,7 @@ async def test_rename_overwrite_existing(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_rename_move_across_subdirs(tmp_path):
-    """
-    Given: サブディレクトリ間の移動
+    """Given: サブディレクトリ間の移動
     When: renameを呼び出す
     Then: ファイルが移動される
     """
@@ -1052,8 +1002,7 @@ async def test_rename_move_across_subdirs(tmp_path):
 
 @pytest.mark.unit
 def test_load_json_existing_file_without_date(tmp_path):
-    """
-    Given: 現在日付のJSONファイル
+    """Given: 現在日付のJSONファイル
     When: load_jsonを呼び出す（date=None）
     Then: リスト/辞書が返される
     """
@@ -1077,8 +1026,7 @@ def test_load_json_existing_file_without_date(tmp_path):
 
 @pytest.mark.unit
 def test_load_json_existing_file_with_date(tmp_path):
-    """
-    Given: 指定日付のJSONファイル
+    """Given: 指定日付のJSONファイル
     When: load_jsonを呼び出す（date指定）
     Then: JSONデータが返される
     """
@@ -1102,8 +1050,7 @@ def test_load_json_existing_file_with_date(tmp_path):
 
 @pytest.mark.unit
 def test_load_json_nonexistent_file(tmp_path):
-    """
-    Given: ファイルが存在しない
+    """Given: ファイルが存在しない
     When: load_jsonを呼び出す
     Then: Noneが返される
     """
@@ -1117,8 +1064,7 @@ def test_load_json_nonexistent_file(tmp_path):
 
 @pytest.mark.unit
 def test_load_json_empty_file(tmp_path):
-    """
-    Given: 内容が空のファイル
+    """Given: 内容が空のファイル
     When: load_jsonを呼び出す
     Then: JSONDecodeError発生
     """
@@ -1138,8 +1084,7 @@ def test_load_json_empty_file(tmp_path):
 
 @pytest.mark.unit
 def test_load_json_invalid_format(tmp_path):
-    """
-    Given: 壊れたJSON
+    """Given: 壊れたJSON
     When: load_jsonを呼び出す
     Then: JSONDecodeError発生
     """
@@ -1160,8 +1105,7 @@ def test_load_json_invalid_format(tmp_path):
 
 @pytest.mark.unit
 def test_load_json_unicode_content(tmp_path):
-    """
-    Given: Unicode文字を含むJSON
+    """Given: Unicode文字を含むJSON
     When: load_jsonを呼び出す
     Then: 正しくパースされる
     """
@@ -1185,8 +1129,7 @@ def test_load_json_unicode_content(tmp_path):
 
 @pytest.mark.unit
 def test_load_json_nested_structure(tmp_path):
-    """
-    Given: 深くネストしたJSON
+    """Given: 深くネストしたJSON
     When: load_jsonを呼び出す
     Then: 正しくパースされる
     """

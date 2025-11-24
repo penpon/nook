@@ -1,5 +1,4 @@
-"""
-nook/common/base_service.py のテスト
+"""nook/common/base_service.py のテスト
 
 テスト観点:
 - BaseServiceの初期化
@@ -55,8 +54,7 @@ class CustomCleanupService(BaseService):
 
 @pytest.mark.unit
 def test_init_with_service_name_only():
-    """
-    Given: 有効なservice_name
+    """Given: 有効なservice_name
     When: BaseServiceを初期化
     Then: インスタンスが正常に作成される
     """
@@ -72,8 +70,7 @@ def test_init_with_service_name_only():
 
 @pytest.mark.unit
 def test_init_with_explicit_config():
-    """
-    Given: configを明示的に指定
+    """Given: configを明示的に指定
     When: BaseServiceを初期化
     Then: 指定したconfigが使用される
     """
@@ -88,8 +85,7 @@ def test_init_with_explicit_config():
 
 @pytest.mark.unit
 def test_init_with_none_config():
-    """
-    Given: config=None
+    """Given: config=None
     When: BaseServiceを初期化
     Then: デフォルトBaseConfig()が使用される
     """
@@ -101,8 +97,7 @@ def test_init_with_none_config():
 
 @pytest.mark.unit
 def test_init_storage_created():
-    """
-    Given: service_name="test"
+    """Given: service_name="test"
     When: BaseServiceを初期化
     Then: storage.base_dirが"data/test"になる
     """
@@ -116,8 +111,7 @@ def test_init_storage_created():
 
 @pytest.mark.unit
 def test_init_gpt_client_created():
-    """
-    Given: service_name="test"
+    """Given: service_name="test"
     When: BaseServiceを初期化
     Then: gpt_clientがGPTClientインスタンスである
     """
@@ -129,8 +123,7 @@ def test_init_gpt_client_created():
 
 @pytest.mark.unit
 def test_init_logger_created():
-    """
-    Given: service_name="test"
+    """Given: service_name="test"
     When: BaseServiceを初期化
     Then: loggerが正しく設定される
     """
@@ -144,8 +137,7 @@ def test_init_logger_created():
 
 @pytest.mark.unit
 def test_init_request_delay_set():
-    """
-    Given: config.REQUEST_DELAY=2.0
+    """Given: config.REQUEST_DELAY=2.0
     When: BaseServiceを初期化
     Then: self.request_delay==2.0
     """
@@ -159,8 +151,7 @@ def test_init_request_delay_set():
 
 @pytest.mark.unit
 def test_init_http_client_none():
-    """
-    Given: 初期化時
+    """Given: 初期化時
     When: BaseServiceを初期化
     Then: self.http_client is None
     """
@@ -172,8 +163,7 @@ def test_init_http_client_none():
 
 @pytest.mark.unit
 def test_init_empty_service_name():
-    """
-    Given: service_name=""
+    """Given: service_name=""
     When: BaseServiceを初期化
     Then: エラーなく初期化（storageパスは"data"）
     """
@@ -187,8 +177,7 @@ def test_init_empty_service_name():
 
 @pytest.mark.unit
 def test_init_special_chars_service_name():
-    """
-    Given: service_name="test-service_123"
+    """Given: service_name="test-service_123"
     When: BaseServiceを初期化
     Then: エラーなく初期化
     """
@@ -205,8 +194,7 @@ def test_init_special_chars_service_name():
 
 @pytest.mark.unit
 def test_collect_abstract_method_cannot_instantiate():
-    """
-    Given: BaseServiceを直接インスタンス化しようとする
+    """Given: BaseServiceを直接インスタンス化しようとする
     When: BaseService()を呼び出す
     Then: TypeErrorが発生する
     """
@@ -217,8 +205,7 @@ def test_collect_abstract_method_cannot_instantiate():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_concrete_implementation():
-    """
-    Given: ConcreteService.collect()
+    """Given: ConcreteService.collect()
     When: collectを呼び出す
     Then: サブクラスのcollect実装が呼ばれる
     """
@@ -237,8 +224,7 @@ async def test_collect_concrete_implementation():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_normal():
-    """
-    Given: data={"key":"value"}, filename="test.json"
+    """Given: data={"key":"value"}, filename="test.json"
     When: save_dataを呼び出す
     Then: storage.saveが呼ばれ、Pathが返される
     """
@@ -255,8 +241,7 @@ async def test_save_data_normal():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_empty_dict():
-    """
-    Given: data={}, filename="empty.json"
+    """Given: data={}, filename="empty.json"
     When: save_dataを呼び出す
     Then: 空JSONが保存される
     """
@@ -273,8 +258,7 @@ async def test_save_data_empty_dict():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_empty_list():
-    """
-    Given: data=[], filename="empty.json"
+    """Given: data=[], filename="empty.json"
     When: save_dataを呼び出す
     Then: 空配列が保存される
     """
@@ -291,8 +275,7 @@ async def test_save_data_empty_list():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_text():
-    """
-    Given: data="text content", filename="test.txt"
+    """Given: data="text content", filename="test.txt"
     When: save_dataを呼び出す
     Then: テキストが保存される
     """
@@ -309,8 +292,7 @@ async def test_save_data_text():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_storage_error():
-    """
-    Given: storage.saveがOSErrorをraise
+    """Given: storage.saveがOSErrorをraise
     When: save_dataを呼び出す
     Then: ログ出力後、例外が再raiseされる
     """
@@ -325,8 +307,7 @@ async def test_save_data_storage_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_permission_error():
-    """
-    Given: storage.saveがPermissionErrorをraise
+    """Given: storage.saveがPermissionErrorをraise
     When: save_dataを呼び出す
     Then: ログ出力後、例外が再raiseされる
     """
@@ -341,8 +322,7 @@ async def test_save_data_permission_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_large_data():
-    """
-    Given: data=10MBのデータ
+    """Given: data=10MBのデータ
     When: save_dataを呼び出す
     Then: 正常に保存される
     """
@@ -359,8 +339,7 @@ async def test_save_data_large_data():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_none_data():
-    """
-    Given: data=None
+    """Given: data=None
     When: save_dataを呼び出す
     Then: storage.saveの動作に依存（エラーの可能性）
     """
@@ -382,8 +361,7 @@ async def test_save_data_none_data():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_markdown_normal():
-    """
-    Given: content="# Title", filename="test.md"
+    """Given: content="# Title", filename="test.md"
     When: save_markdownを呼び出す
     Then: save_dataが呼ばれ、Pathが返される
     """
@@ -400,8 +378,7 @@ async def test_save_markdown_normal():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_markdown_empty():
-    """
-    Given: content="", filename="empty.md"
+    """Given: content="", filename="empty.md"
     When: save_markdownを呼び出す
     Then: 空ファイルが保存される
     """
@@ -418,8 +395,7 @@ async def test_save_markdown_empty():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_markdown_unicode():
-    """
-    Given: content="日本語😀", filename="test.md"
+    """Given: content="日本語😀", filename="test.md"
     When: save_markdownを呼び出す
     Then: UTF-8で保存される
     """
@@ -436,8 +412,7 @@ async def test_save_markdown_unicode():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_markdown_save_data_error():
-    """
-    Given: save_dataがExceptionをraise
+    """Given: save_dataがExceptionをraise
     When: save_markdownを呼び出す
     Then: 例外が伝播される
     """
@@ -457,8 +432,7 @@ async def test_save_markdown_save_data_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_fetch_with_retry_not_implemented():
-    """
-    Given: fetch_with_retry("http://example.com")
+    """Given: fetch_with_retry("http://example.com")
     When: メソッドを呼び出す
     Then: RetryExceptionが発生する（NotImplementedErrorがリトライされた後）
     """
@@ -473,8 +447,7 @@ async def test_fetch_with_retry_not_implemented():
 
 @pytest.mark.unit
 def test_fetch_with_retry_decorator_applied():
-    """
-    Given: fetch_with_retryメソッド
+    """Given: fetch_with_retryメソッド
     When: デコレータが適用されているか確認
     Then: @handle_errorsデコレータが適用されている
     """
@@ -493,8 +466,7 @@ def test_fetch_with_retry_decorator_applied():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limit_default_delay():
-    """
-    Given: request_delay=1.0（デフォルト）
+    """Given: request_delay=1.0（デフォルト）
     When: rate_limitを呼び出す
     Then: 1秒待機する
     """
@@ -511,8 +483,7 @@ async def test_rate_limit_default_delay():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limit_custom_delay():
-    """
-    Given: request_delay=0.5
+    """Given: request_delay=0.5
     When: rate_limitを呼び出す
     Then: 0.5秒待機する
     """
@@ -528,8 +499,7 @@ async def test_rate_limit_custom_delay():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limit_min_delay():
-    """
-    Given: request_delay=0.1（境界値）
+    """Given: request_delay=0.1（境界値）
     When: rate_limitを呼び出す
     Then: 0.1秒待機する
     """
@@ -545,8 +515,7 @@ async def test_rate_limit_min_delay():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_rate_limit_max_delay():
-    """
-    Given: request_delay=10.0（境界値）
+    """Given: request_delay=10.0（境界値）
     When: rate_limitを呼び出す
     Then: 10秒待機する
     """
@@ -566,8 +535,7 @@ async def test_rate_limit_max_delay():
 
 @pytest.mark.unit
 def test_get_config_path_normal():
-    """
-    Given: filename="config.yaml"
+    """Given: filename="config.yaml"
     When: get_config_pathを呼び出す
     Then: Path("nook/services/test/config.yaml")が返される
     """
@@ -581,8 +549,7 @@ def test_get_config_path_normal():
 
 @pytest.mark.unit
 def test_get_config_path_with_subdir():
-    """
-    Given: filename="subdir/config.yaml"
+    """Given: filename="subdir/config.yaml"
     When: get_config_pathを呼び出す
     Then: 正しいPathが返される
     """
@@ -596,8 +563,7 @@ def test_get_config_path_with_subdir():
 
 @pytest.mark.unit
 def test_get_config_path_empty_filename():
-    """
-    Given: filename=""
+    """Given: filename=""
     When: get_config_pathを呼び出す
     Then: Path("nook/services/test/")が返される
     """
@@ -617,8 +583,7 @@ def test_get_config_path_empty_filename():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_json_normal():
-    """
-    Given: data={"key":"value"}, filename="test.json"
+    """Given: data={"key":"value"}, filename="test.json"
     When: save_jsonを呼び出す
     Then: storage.saveが呼ばれ、Pathが返される
     """
@@ -635,8 +600,7 @@ async def test_save_json_normal():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_json_empty():
-    """
-    Given: data={}, filename="empty.json"
+    """Given: data={}, filename="empty.json"
     When: save_jsonを呼び出す
     Then: 空JSONが保存される
     """
@@ -653,8 +617,7 @@ async def test_save_json_empty():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_json_nested():
-    """
-    Given: data={"a":{"b":"c"}}, filename="nested.json"
+    """Given: data={"a":{"b":"c"}}, filename="nested.json"
     When: save_jsonを呼び出す
     Then: 正常に保存される
     """
@@ -671,8 +634,7 @@ async def test_save_json_nested():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_json_storage_error():
-    """
-    Given: storage.saveがExceptionをraise
+    """Given: storage.saveがExceptionをraise
     When: save_jsonを呼び出す
     Then: 例外が伝播される
     """
@@ -692,8 +654,7 @@ async def test_save_json_storage_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_json_existing_file():
-    """
-    Given: 有効なJSONファイル
+    """Given: 有効なJSONファイル
     When: load_jsonを呼び出す
     Then: JSONデータがパースされて返される
     """
@@ -710,8 +671,7 @@ async def test_load_json_existing_file():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_json_nonexistent_file():
-    """
-    Given: storage.loadがNone返却
+    """Given: storage.loadがNone返却
     When: load_jsonを呼び出す
     Then: Noneが返される
     """
@@ -727,8 +687,7 @@ async def test_load_json_nonexistent_file():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_json_empty_file():
-    """
-    Given: content=""
+    """Given: content=""
     When: load_jsonを呼び出す
     Then: Noneが返される（contentがFalsyなので）
     """
@@ -744,8 +703,7 @@ async def test_load_json_empty_file():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_json_invalid_json():
-    """
-    Given: content="{invalid}"
+    """Given: content="{invalid}"
     When: load_jsonを呼び出す
     Then: json.JSONDecodeErrorが発生
     """
@@ -760,8 +718,7 @@ async def test_load_json_invalid_json():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_json_storage_error():
-    """
-    Given: storage.loadがExceptionをraise
+    """Given: storage.loadがExceptionをraise
     When: load_jsonを呼び出す
     Then: 例外が伝播される
     """
@@ -776,8 +733,7 @@ async def test_load_json_storage_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_json_unicode():
-    """
-    Given: content='{"msg":"日本語"}'
+    """Given: content='{"msg":"日本語"}'
     When: load_jsonを呼び出す
     Then: 正しくパースされる
     """
@@ -798,8 +754,7 @@ async def test_load_json_unicode():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_with_backup_first_time():
-    """
-    Given: 既存ファイルなし
+    """Given: 既存ファイルなし
     When: save_with_backupを呼び出す
     Then: バックアップなしで保存される
     """
@@ -817,8 +772,7 @@ async def test_save_with_backup_first_time():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_with_backup_second_time():
-    """
-    Given: 既存ファイルあり
+    """Given: 既存ファイルあり
     When: save_with_backupを呼び出す
     Then: filename.1が作成され、新データ保存
     """
@@ -839,8 +793,7 @@ async def test_save_with_backup_second_time():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_with_backup_rotation():
-    """
-    Given: keep_backups=3で4回保存
+    """Given: keep_backups=3で4回保存
     When: save_with_backupを呼び出す
     Then: .1, .2, .3のみ保持、.4は作られない
     """
@@ -866,8 +819,7 @@ async def test_save_with_backup_rotation():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_with_backup_keep_one():
-    """
-    Given: keep_backups=1
+    """Given: keep_backups=1
     When: save_with_backupを呼び出す
     Then: バックアップなし、上書きのみ
     """
@@ -887,8 +839,7 @@ async def test_save_with_backup_keep_one():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_with_backup_exists_error():
-    """
-    Given: storage.existsがExceptionをraise
+    """Given: storage.existsがExceptionをraise
     When: save_with_backupを呼び出す
     Then: 例外が伝播される
     """
@@ -903,8 +854,7 @@ async def test_save_with_backup_exists_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_with_backup_rename_error():
-    """
-    Given: storage.renameがExceptionをraise
+    """Given: storage.renameがExceptionをraise
     When: save_with_backupを呼び出す
     Then: 例外が伝播される
     """
@@ -920,8 +870,7 @@ async def test_save_with_backup_rename_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_with_backup_save_error():
-    """
-    Given: save_dataがExceptionをraise
+    """Given: save_dataがExceptionをraise
     When: save_with_backupを呼び出す
     Then: 例外が伝播される
     """
@@ -942,8 +891,7 @@ async def test_save_with_backup_save_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_setup_http_client_first_time():
-    """
-    Given: http_client=None
+    """Given: http_client=None
     When: setup_http_clientを呼び出す
     Then: get_http_client()が呼ばれ、http_clientが設定される
     """
@@ -963,8 +911,7 @@ async def test_setup_http_client_first_time():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_setup_http_client_already_set():
-    """
-    Given: http_client is not None
+    """Given: http_client is not None
     When: setup_http_clientを呼び出す
     Then: get_http_client()は呼ばれない
     """
@@ -984,8 +931,7 @@ async def test_setup_http_client_already_set():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_setup_http_client_get_client_error():
-    """
-    Given: get_http_client()がExceptionをraise
+    """Given: get_http_client()がExceptionをraise
     When: setup_http_clientを呼び出す
     Then: 例外が伝播される
     """
@@ -1007,8 +953,7 @@ async def test_setup_http_client_get_client_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_cleanup_default_implementation():
-    """
-    Given: cleanup()
+    """Given: cleanup()
     When: メソッドを呼び出す
     Then: エラーなく完了
     """
@@ -1022,8 +967,7 @@ async def test_cleanup_default_implementation():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_cleanup_override():
-    """
-    Given: カスタムcleanup実装
+    """Given: カスタムcleanup実装
     When: cleanupを呼び出す
     Then: カスタム処理が実行される
     """
@@ -1043,8 +987,7 @@ async def test_cleanup_override():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_initialize_calls_setup_http_client():
-    """
-    Given: initialize()
+    """Given: initialize()
     When: メソッドを呼び出す
     Then: setup_http_client()が呼ばれる
     """
@@ -1060,8 +1003,7 @@ async def test_initialize_calls_setup_http_client():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_initialize_setup_error():
-    """
-    Given: setup_http_client()がExceptionをraise
+    """Given: setup_http_client()がExceptionをraise
     When: initializeを呼び出す
     Then: 例外が伝播される
     """
@@ -1083,8 +1025,7 @@ async def test_initialize_setup_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_full_lifecycle():
-    """
-    Given: 完全なライフサイクル
+    """Given: 完全なライフサイクル
     When: initialize→collect→save→cleanupを実行
     Then: 全フローが正常に動作
     """
@@ -1114,8 +1055,7 @@ async def test_full_lifecycle():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_multiple_instances():
-    """
-    Given: 複数BaseServiceインスタンス
+    """Given: 複数BaseServiceインスタンス
     When: 各インスタンスを操作
     Then: 各インスタンスが独立動作
     """

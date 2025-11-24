@@ -10,8 +10,7 @@ load_dotenv()
 
 
 def main():
-    """
-    APIサーバーを起動します。
+    """APIサーバーを起動します。
     コマンドライン引数でホストとポートを指定できます。
     """
     parser = argparse.ArgumentParser(description="Nook APIサーバーを起動します")

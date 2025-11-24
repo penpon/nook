@@ -58,8 +58,7 @@ SOURCE_MAPPING = {
 async def get_content(
     source: str, date: str | None = None, response: Response = None
 ) -> ContentResponse:
-    """
-    特定のソースのコンテンツを取得します。
+    """特定のソースのコンテンツを取得します。
 
     Parameters
     ----------
@@ -77,6 +76,7 @@ async def get_content(
     ------
     HTTPException
         ソースが無効な場合や、コンテンツが見つからない場合。
+
     """
     if source not in SOURCE_MAPPING and source != "all":
         raise HTTPException(status_code=404, detail=f"Source '{source}' not found")
@@ -225,17 +225,15 @@ async def get_content(
                 status_code=404,
                 detail="No content available. Please run the services first.",
             )
-        else:
-            # 最新の利用可能な日付のコンテンツを取得
-            latest_date = max(available_dates)
-            return await get_content(source, latest_date.strftime("%Y-%m-%d"))
+        # 最新の利用可能な日付のコンテンツを取得
+        latest_date = max(available_dates)
+        return await get_content(source, latest_date.strftime("%Y-%m-%d"))
 
     return ContentResponse(items=items)
 
 
 def _get_source_display_name(source: str) -> str:
-    """
-    ソースの表示名を取得します。
+    """ソースの表示名を取得します。
 
     Parameters
     ----------
@@ -246,6 +244,7 @@ def _get_source_display_name(source: str) -> str:
     -------
     str
         表示名
+
     """
     source_names = {
         "reddit": "Reddit",

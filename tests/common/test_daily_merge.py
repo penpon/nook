@@ -20,8 +20,7 @@ from nook.common.daily_merge import merge_grouped_records, merge_records
 
 @pytest.mark.unit
 def test_merge_records_incoming_only():
-    """
-    Given: existing=[], incoming=[1,2,3]
+    """Given: existing=[], incoming=[1,2,3]
     When: merge_recordsを呼び出す
     Then: [1,2,3]が返る
     """
@@ -31,8 +30,7 @@ def test_merge_records_incoming_only():
 
 @pytest.mark.unit
 def test_merge_records_existing_only():
-    """
-    Given: existing=[1,2,3], incoming=[]
+    """Given: existing=[1,2,3], incoming=[]
     When: merge_recordsを呼び出す
     Then: [1,2,3]が返る
     """
@@ -42,8 +40,7 @@ def test_merge_records_existing_only():
 
 @pytest.mark.unit
 def test_merge_records_no_duplicates():
-    """
-    Given: 異なるキーのデータ
+    """Given: 異なるキーのデータ
     When: merge_recordsを呼び出す
     Then: 全データが含まれる
     """
@@ -59,8 +56,7 @@ def test_merge_records_no_duplicates():
 
 @pytest.mark.unit
 def test_merge_records_with_duplicates():
-    """
-    Given: 同一キーあり
+    """Given: 同一キーあり
     When: merge_recordsを呼び出す
     Then: 新規データで上書きされる
     """
@@ -75,8 +71,7 @@ def test_merge_records_with_duplicates():
 
 @pytest.mark.unit
 def test_merge_records_empty_both():
-    """
-    Given: existing=[], incoming=[]
+    """Given: existing=[], incoming=[]
     When: merge_recordsを呼び出す
     Then: []が返る
     """
@@ -91,8 +86,7 @@ def test_merge_records_empty_both():
 
 @pytest.mark.unit
 def test_merge_records_no_sort_key():
-    """
-    Given: sort_key=None
+    """Given: sort_key=None
     When: merge_recordsを呼び出す
     Then: 挿入順（既存→新規）で返る
     """
@@ -107,8 +101,7 @@ def test_merge_records_no_sort_key():
 
 @pytest.mark.unit
 def test_merge_records_with_sort_key_descending():
-    """
-    Given: sort_key指定、reverse=True
+    """Given: sort_key指定、reverse=True
     When: merge_recordsを呼び出す
     Then: 降順でソートされる
     """
@@ -123,8 +116,7 @@ def test_merge_records_with_sort_key_descending():
 
 @pytest.mark.unit
 def test_merge_records_with_sort_key_ascending():
-    """
-    Given: sort_key指定、reverse=False
+    """Given: sort_key指定、reverse=False
     When: merge_recordsを呼び出す
     Then: 昇順でソートされる
     """
@@ -150,8 +142,7 @@ def test_merge_records_with_sort_key_ascending():
 
 @pytest.mark.unit
 def test_merge_records_no_limit():
-    """
-    Given: limit=None
+    """Given: limit=None
     When: merge_recordsを呼び出す
     Then: 全データが返る
     """
@@ -165,8 +156,7 @@ def test_merge_records_no_limit():
 
 @pytest.mark.unit
 def test_merge_records_with_limit():
-    """
-    Given: limit=10
+    """Given: limit=10
     When: merge_recordsを呼び出す
     Then: 最大10件が返る
     """
@@ -180,8 +170,7 @@ def test_merge_records_with_limit():
 
 @pytest.mark.unit
 def test_merge_records_limit_larger_than_data():
-    """
-    Given: limit > データ数
+    """Given: limit > データ数
     When: merge_recordsを呼び出す
     Then: 全データが返る
     """
@@ -195,8 +184,7 @@ def test_merge_records_limit_larger_than_data():
 
 @pytest.mark.unit
 def test_merge_records_limit_zero():
-    """
-    Given: limit=0
+    """Given: limit=0
     When: merge_recordsを呼び出す
     Then: []が返る
     """
@@ -210,8 +198,7 @@ def test_merge_records_limit_zero():
 
 @pytest.mark.unit
 def test_merge_records_limit_one():
-    """
-    Given: limit=1
+    """Given: limit=1
     When: merge_recordsを呼び出す
     Then: 1件のみ返る
     """
@@ -232,8 +219,7 @@ def test_merge_records_limit_one():
 
 @pytest.mark.unit
 def test_merge_records_exact_limit():
-    """
-    Given: データ数=limit
+    """Given: データ数=limit
     When: merge_recordsを呼び出す
     Then: limit件が返る
     """
@@ -247,8 +233,7 @@ def test_merge_records_exact_limit():
 
 @pytest.mark.unit
 def test_merge_records_limit_plus_one():
-    """
-    Given: データ数=limit+1
+    """Given: データ数=limit+1
     When: merge_recordsを呼び出す
     Then: limit件が返る（1件切り捨て）
     """
@@ -267,8 +252,7 @@ def test_merge_records_limit_plus_one():
 
 @pytest.mark.unit
 def test_merge_records_all_duplicates():
-    """
-    Given: existing=incoming（全て重複）
+    """Given: existing=incoming（全て重複）
     When: merge_recordsを呼び出す
     Then: incomingのデータが残る
     """
@@ -283,8 +267,7 @@ def test_merge_records_all_duplicates():
 
 @pytest.mark.unit
 def test_merge_records_partial_duplicates():
-    """
-    Given: 一部同一キー
+    """Given: 一部同一キー
     When: merge_recordsを呼び出す
     Then: 新規で上書き、他は追加
     """
@@ -302,8 +285,7 @@ def test_merge_records_partial_duplicates():
 
 @pytest.mark.unit
 def test_merge_records_duplicates_in_existing():
-    """
-    Given: existing内に重複キー
+    """Given: existing内に重複キー
     When: merge_recordsを呼び出す
     Then: 最後のものが保持される
     """
@@ -327,8 +309,7 @@ def test_merge_records_duplicates_in_existing():
 
 @pytest.mark.unit
 def test_merge_records_dict_type():
-    """
-    Given: dict型の要素
+    """Given: dict型の要素
     When: merge_recordsを呼び出す
     Then: 正常動作
     """
@@ -342,8 +323,7 @@ def test_merge_records_dict_type():
 
 @pytest.mark.unit
 def test_merge_records_string_type():
-    """
-    Given: 文字列リスト
+    """Given: 文字列リスト
     When: merge_recordsを呼び出す
     Then: 正常動作
     """
@@ -357,8 +337,7 @@ def test_merge_records_string_type():
 
 @pytest.mark.unit
 def test_merge_records_complex_key():
-    """
-    Given: 複雑なkey関数（タプル返す）
+    """Given: 複雑なkey関数（タプル返す）
     When: merge_recordsを呼び出す
     Then: 正常動作
     """
@@ -377,8 +356,7 @@ def test_merge_records_complex_key():
 
 @pytest.mark.unit
 def test_merge_grouped_records_incoming_only():
-    """
-    Given: existing=None, incoming={"group1": [1,2,3]}
+    """Given: existing=None, incoming={"group1": [1,2,3]}
     When: merge_grouped_recordsを呼び出す
     Then: incomingが返る
     """
@@ -392,8 +370,7 @@ def test_merge_grouped_records_incoming_only():
 
 @pytest.mark.unit
 def test_merge_grouped_records_existing_empty():
-    """
-    Given: existing={}, incoming={"group1": [1,2,3]}
+    """Given: existing={}, incoming={"group1": [1,2,3]}
     When: merge_grouped_recordsを呼び出す
     Then: incomingが返る
     """
@@ -408,8 +385,7 @@ def test_merge_grouped_records_existing_empty():
 
 @pytest.mark.unit
 def test_merge_grouped_records_no_overlap():
-    """
-    Given: 異なるグループ
+    """Given: 異なるグループ
     When: merge_grouped_recordsを呼び出す
     Then: 全グループが含まれる
     """
@@ -424,8 +400,7 @@ def test_merge_grouped_records_no_overlap():
 
 @pytest.mark.unit
 def test_merge_grouped_records_same_group():
-    """
-    Given: 同一グループキー
+    """Given: 同一グループキー
     When: merge_grouped_recordsを呼び出す
     Then: merge_recordsでマージされる
     """
@@ -440,8 +415,7 @@ def test_merge_grouped_records_same_group():
 
 @pytest.mark.unit
 def test_merge_grouped_records_existing_group_preserved():
-    """
-    Given: incomingにないグループ
+    """Given: incomingにないグループ
     When: merge_grouped_recordsを呼び出す
     Then: existingのまま保持される
     """
@@ -463,8 +437,7 @@ def test_merge_grouped_records_existing_group_preserved():
 
 @pytest.mark.unit
 def test_merge_grouped_records_with_sort_key():
-    """
-    Given: sort_key指定
+    """Given: sort_key指定
     When: merge_grouped_recordsを呼び出す
     Then: 各グループでソートされる
     """
@@ -481,8 +454,7 @@ def test_merge_grouped_records_with_sort_key():
 
 @pytest.mark.unit
 def test_merge_grouped_records_with_limit_per_group():
-    """
-    Given: limit_per_group=1
+    """Given: limit_per_group=1
     When: merge_grouped_recordsを呼び出す
     Then: 各グループで1件に制限される
     """
@@ -503,8 +475,7 @@ def test_merge_grouped_records_with_limit_per_group():
 
 @pytest.mark.unit
 def test_merge_grouped_records_with_reverse_false():
-    """
-    Given: reverse=False
+    """Given: reverse=False
     When: merge_grouped_recordsを呼び出す
     Then: 各グループで昇順
     """
@@ -530,8 +501,7 @@ def test_merge_grouped_records_with_reverse_false():
 
 @pytest.mark.unit
 def test_merge_grouped_records_multiple_groups():
-    """
-    Given: existing: A,B / incoming: B,C
+    """Given: existing: A,B / incoming: B,C
     When: merge_grouped_recordsを呼び出す
     Then: A,B,C全て含む
     """
@@ -548,8 +518,7 @@ def test_merge_grouped_records_multiple_groups():
 
 @pytest.mark.unit
 def test_merge_grouped_records_empty_group():
-    """
-    Given: incoming={"group": []}（空グループ）
+    """Given: incoming={"group": []}（空グループ）
     When: merge_grouped_recordsを呼び出す
     Then: 空リストが保持される
     """
@@ -563,8 +532,7 @@ def test_merge_grouped_records_empty_group():
 
 @pytest.mark.unit
 def test_merge_grouped_records_limit_per_group_zero():
-    """
-    Given: limit_per_group=0
+    """Given: limit_per_group=0
     When: merge_grouped_recordsを呼び出す
     Then: 各グループが0件
     """
@@ -578,8 +546,7 @@ def test_merge_grouped_records_limit_per_group_zero():
 
 @pytest.mark.unit
 def test_merge_grouped_records_ten_groups():
-    """
-    Given: 10グループ
+    """Given: 10グループ
     When: merge_grouped_recordsを呼び出す
     Then: 全て処理される
     """

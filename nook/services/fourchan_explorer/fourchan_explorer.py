@@ -32,8 +32,7 @@ from nook.common.storage import LocalStorage
 
 @dataclass
 class Thread:
-    """
-    4chanスレッド情報。
+    """4chanスレッド情報。
 
     Parameters
     ----------
@@ -49,6 +48,7 @@ class Thread:
         投稿リスト。
     timestamp : int
         作成タイムスタンプ。
+
     """
 
     thread_id: int
@@ -62,20 +62,19 @@ class Thread:
 
 
 class FourChanExplorer(BaseService):
-    """
-    4chanからAI関連スレッドを収集するクラス。
+    """4chanからAI関連スレッドを収集するクラス。
 
     Parameters
     ----------
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     TOTAL_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data", test_mode: bool = False):
-        """
-        FourChanExplorerを初期化します。
+        """FourChanExplorerを初期化します。
 
         Parameters
         ----------
@@ -83,6 +82,7 @@ class FourChanExplorer(BaseService):
             ストレージディレクトリのパス。
         test_mode : bool, default=False
             テストモードの場合は遅延を短縮します。
+
         """
         super().__init__("fourchan_explorer")
         self.http_client = None  # setup_http_clientで初期化
@@ -122,13 +122,13 @@ class FourChanExplorer(BaseService):
         self.request_delay = 0.1 if test_mode else 1  # 秒
 
     def _load_boards(self) -> list[str]:
-        """
-        対象となるボードの設定を読み込みます。
+        """対象となるボードの設定を読み込みます。
 
         Returns
         -------
         List[str]
             ボードIDのリスト
+
         """
         script_dir = Path(__file__).parent
         boards_file = script_dir / "boards.toml"
@@ -161,13 +161,13 @@ class FourChanExplorer(BaseService):
             return ["g", "sci", "biz", "pol"]
 
     def run(self, thread_limit: int | None = None) -> None:
-        """
-        4chanからAI関連スレッドを収集して保存します。
+        """4chanからAI関連スレッドを収集して保存します。
 
         Parameters
         ----------
         thread_limit : Optional[int], default=None
             各ボードから取得するスレッド数。Noneの場合は制限なし。
+
         """
         asyncio.run(self.collect(thread_limit))
 
@@ -177,8 +177,7 @@ class FourChanExplorer(BaseService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        4chanからAI関連スレッドを収集して保存します（非同期版）。
+        """4chanからAI関連スレッドを収集して保存します（非同期版）。
 
         Parameters
         ----------
@@ -189,6 +188,7 @@ class FourChanExplorer(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         total_limit = self.TOTAL_LIMIT
         effective_target_dates = target_dates or target_dates_set(1)
@@ -225,7 +225,7 @@ class FourChanExplorer(BaseService):
                     await asyncio.sleep(self.request_delay)
 
                 except Exception as e:
-                    self.logger.error(f"Error processing board /{board}/: {str(e)}")
+                    self.logger.error(f"Error processing board /{board}/: {e!s}")
 
             self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
 
@@ -299,8 +299,7 @@ class FourChanExplorer(BaseService):
         dedup_tracker: DedupTracker,
         target_dates: list[date],
     ) -> list[Thread]:
-        """
-        特定のボードからAI関連スレッドを取得します。
+        """特定のボードからAI関連スレッドを取得します。
 
         Parameters
         ----------
@@ -315,6 +314,7 @@ class FourChanExplorer(BaseService):
         -------
         List[Thread]
             取得したスレッドのリスト。
+
         """
         # カタログの取得（すべてのスレッドのリスト）
         catalog_url = f"https://a.4cdn.org/{board}/catalog.json"
@@ -458,8 +458,7 @@ class FourChanExplorer(BaseService):
         return ai_threads
 
     async def _retrieve_thread_posts(self, board: str, thread_id: int) -> list[dict[str, Any]]:
-        """
-        スレッドの投稿を取得します。
+        """スレッドの投稿を取得します。
 
         Parameters
         ----------
@@ -472,6 +471,7 @@ class FourChanExplorer(BaseService):
         -------
         List[Dict[str, Any]]
             投稿のリスト。
+
         """
         thread_url = f"https://a.4cdn.org/{board}/thread/{thread_id}.json"
         try:
@@ -484,7 +484,7 @@ class FourChanExplorer(BaseService):
 
             return posts
         except Exception as e:
-            self.logger.error(f"スレッドの取得に失敗しました: {str(e)}")
+            self.logger.error(f"スレッドの取得に失敗しました: {e!s}")
             return []
 
     def _load_existing_titles(self) -> DedupTracker:
@@ -533,13 +533,13 @@ class FourChanExplorer(BaseService):
         return sorted_threads[:limit]
 
     async def _summarize_thread(self, thread: Thread) -> None:
-        """
-        スレッドを要約します。
+        """スレッドを要約します。
 
         Parameters
         ----------
         thread : Thread
             要約するスレッド。
+
         """
         # スレッドのコンテンツを抽出（最初の投稿と、最も反応のある投稿を含む）
         thread_content = ""
@@ -595,8 +595,8 @@ class FourChanExplorer(BaseService):
             )
             thread.summary = summary
         except Exception as e:
-            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
-            thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+            self.logger.error(f"要約の生成中にエラーが発生しました: {e!s}")
+            thread.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
         self, threads: list[Thread], target_dates: list[date]

@@ -33,8 +33,7 @@ from nook.common.logging_utils import (
 
 @dataclass
 class RedditPost:
-    """
-    Reddit投稿情報。
+    """Reddit投稿情報。
 
     Parameters
     ----------
@@ -54,6 +53,7 @@ class RedditPost:
         投稿へのパーマリンク。
     thumbnail : str
         サムネイルURL。
+
     """
 
     type: Literal["image", "gallery", "video", "poll", "crosspost", "text", "link"]
@@ -71,8 +71,7 @@ class RedditPost:
 
 
 class RedditExplorer(BaseService):
-    """
-    Redditの人気投稿を収集・要約するクラス。
+    """Redditの人気投稿を収集・要約するクラス。
 
     Parameters
     ----------
@@ -84,6 +83,7 @@ class RedditExplorer(BaseService):
         Reddit APIのユーザーエージェント。指定しない場合は環境変数から取得。
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     def __init__(
@@ -93,8 +93,7 @@ class RedditExplorer(BaseService):
         user_agent: str | None = None,
         storage_dir: str = "data",
     ):
-        """
-        RedditExplorerを初期化します。
+        """RedditExplorerを初期化します。
 
         Parameters
         ----------
@@ -106,6 +105,7 @@ class RedditExplorer(BaseService):
             Reddit APIのユーザーエージェント。指定しない場合は環境変数から取得。
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+
         """
         super().__init__("reddit_explorer")
 
@@ -131,13 +131,13 @@ class RedditExplorer(BaseService):
             self.subreddits_config = tomllib.load(f)
 
     def run(self, limit: int | None = None) -> None:
-        """
-        Redditの人気投稿を収集・要約して保存します。
+        """Redditの人気投稿を収集・要約して保存します。
 
         Parameters
         ----------
         limit : Optional[int], default=None
             各サブレディットから取得する投稿数。Noneの場合は制限なし。
+
         """
         asyncio.run(self.collect(limit))
 
@@ -147,8 +147,7 @@ class RedditExplorer(BaseService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        Redditの人気投稿を収集・要約して保存します（非同期版）。
+        """Redditの人気投稿を収集・要約して保存します（非同期版）。
 
         Parameters
         ----------
@@ -159,6 +158,7 @@ class RedditExplorer(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         effective_target_dates = target_dates or target_dates_set(1)
 
@@ -207,7 +207,7 @@ class RedditExplorer(BaseService):
 
                         except Exception as e:
                             self.logger.error(
-                                f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"
+                                f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {e!s}"
                             )
 
                 self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
@@ -293,8 +293,7 @@ class RedditExplorer(BaseService):
         dedup_tracker: DedupTracker,
         target_dates: list[date],
     ) -> tuple[list[RedditPost], int]:
-        """
-        サブレディットの人気投稿を取得します。
+        """サブレディットの人気投稿を取得します。
 
         Parameters
         ----------
@@ -311,6 +310,7 @@ class RedditExplorer(BaseService):
         -------
         tuple[List[RedditPost], int]
             取得した投稿のリストと、本来取得できた件数のタプル。
+
         """
         subreddit = await self.reddit.subreddit(subreddit_name)
         posts = []
@@ -385,8 +385,7 @@ class RedditExplorer(BaseService):
         return posts, total_found
 
     async def _translate_to_japanese(self, text: str) -> str:
-        """
-        テキストを日本語に翻訳します。
+        """テキストを日本語に翻訳します。
 
         Parameters
         ----------
@@ -397,6 +396,7 @@ class RedditExplorer(BaseService):
         -------
         str
             翻訳されたテキスト。
+
         """
         if not text:
             return ""
@@ -410,14 +410,13 @@ class RedditExplorer(BaseService):
 
             return translated_text
         except Exception as e:
-            self.logger.error(f"Error translating text: {str(e)}")
+            self.logger.error(f"Error translating text: {e!s}")
             return text  # 翻訳に失敗した場合は原文を返す
 
     async def _retrieve_top_comments_of_post(
         self, post: RedditPost, limit: int = 5
     ) -> list[dict[str, str | int]]:
-        """
-        投稿のトップコメントを取得します。
+        """投稿のトップコメントを取得します。
 
         Parameters
         ----------
@@ -430,6 +429,7 @@ class RedditExplorer(BaseService):
         -------
         List[Dict[str, str | int]]
             取得したコメントのリスト。
+
         """
         submission = await self.reddit.submission(id=post.id)
 
@@ -453,13 +453,13 @@ class RedditExplorer(BaseService):
         return comments
 
     async def _summarize_reddit_post(self, post: RedditPost) -> None:
-        """
-        Reddit投稿を要約します。
+        """Reddit投稿を要約します。
 
         Parameters
         ----------
         post : RedditPost
             要約する投稿。
+
         """
         prompt = f"""
         以下のReddit投稿を要約してください。
@@ -493,8 +493,8 @@ class RedditExplorer(BaseService):
             )
             post.summary = summary
         except Exception as e:
-            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
-            post.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+            self.logger.error(f"要約の生成中にエラーが発生しました: {e!s}")
+            post.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
         self,

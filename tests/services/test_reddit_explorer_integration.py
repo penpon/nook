@@ -1,5 +1,4 @@
-"""
-Reddit Explorer統合テスト
+"""Reddit Explorer統合テスト
 
 テスト観点:
 - データ取得 → GPT要約 → Storage保存の全体フロー
@@ -29,8 +28,7 @@ from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, Reddit
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars):
-    """
-    Given: RedditExplorerサービスインスタンスと適切にモックされた外部依存
+    """Given: RedditExplorerサービスインスタンスと適切にモックされた外部依存
     When: collect()を実行
     Then: データ取得 → GPT要約 → Storage保存の全体フローが成功する
     """
@@ -101,8 +99,7 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env_vars):
-    """
-    Given: ネットワークエラーが発生する状況
+    """Given: ネットワークエラーが発生する状況
     When: collect()を実行
     Then: 適切なエラーハンドリングがされ、空の結果が返る
     """
@@ -144,8 +141,7 @@ async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env_vars):
-    """
-    Given: GPT APIエラーが発生する状況
+    """Given: GPT APIエラーが発生する状況
     When: collect()を実行
     Then: フォールバック処理が動作し、要約にエラーメッセージが設定される
     """

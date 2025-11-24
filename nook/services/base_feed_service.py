@@ -17,8 +17,7 @@ from nook.common.feed_utils import parse_entry_datetime
 
 @dataclass
 class Article:
-    """
-    フィード記事の共通データクラス。
+    """フィード記事の共通データクラス。
 
     Parameters
     ----------
@@ -34,6 +33,7 @@ class Article:
         BeautifulSoupオブジェクト。
     category : str | None
         カテゴリ。
+
     """
 
     feed_name: str
@@ -48,8 +48,7 @@ class Article:
 
 
 class BaseFeedService(BaseService):
-    """
-    RSSフィードベースのサービスの共通基底クラス。
+    """RSSフィードベースのサービスの共通基底クラス。
 
     このクラスは、RSSフィード取得、記事の重複チェック、要約生成、保存処理などの
     共通ロジックを提供します。
@@ -65,8 +64,7 @@ class BaseFeedService(BaseService):
     TOTAL_LIMIT = 15
 
     async def _get_all_existing_dates(self) -> set[date]:
-        """
-        既存のJSONファイルの日付をすべて取得します。
+        """既存のJSONファイルの日付をすべて取得します。
 
         これにより、全ての既存記事を重複チェック対象にできます。
         （バグ修正：effective_target_datesだけでなく、全既存ファイルを対象にする）
@@ -75,6 +73,7 @@ class BaseFeedService(BaseService):
         -------
         set[date]
             既存のJSONファイルに対応する日付のセット。
+
         """
         existing_dates = set()
         storage_dir = Path(self.storage.base_dir)
@@ -97,8 +96,7 @@ class BaseFeedService(BaseService):
         target_dates: list[date],
         limit: int | None = None,
     ) -> list[dict]:
-        """
-        エントリを日付とリミットでフィルタリングします。
+        """エントリを日付とリミットでフィルタリングします。
 
         Parameters
         ----------
@@ -113,6 +111,7 @@ class BaseFeedService(BaseService):
         -------
         list[dict]
             フィルタリングされたエントリのリスト。
+
         """
         recent_entries = []
 
@@ -134,8 +133,7 @@ class BaseFeedService(BaseService):
         return recent_entries[:limit]
 
     def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
-        """
-        記事を日付ごとにグループ化します。
+        """記事を日付ごとにグループ化します。
 
         Parameters
         ----------
@@ -146,6 +144,7 @@ class BaseFeedService(BaseService):
         -------
         dict[str, list[Article]]
             日付をキー、記事リストを値とする辞書。
+
         """
         by_date: dict[str, list[Article]] = {}
         default_date = datetime.now().strftime("%Y-%m-%d")
@@ -162,8 +161,7 @@ class BaseFeedService(BaseService):
         return by_date
 
     def _serialize_articles(self, articles: list[Article]) -> list[dict]:
-        """
-        記事をdict形式にシリアライズします。
+        """記事をdict形式にシリアライズします。
 
         Parameters
         ----------
@@ -174,6 +172,7 @@ class BaseFeedService(BaseService):
         -------
         list[dict]
             シリアライズされた記事のリスト。
+
         """
         records: list[dict] = []
         for article in articles:
@@ -194,8 +193,7 @@ class BaseFeedService(BaseService):
         return records
 
     async def _load_existing_articles(self, target_date: datetime) -> list[dict]:
-        """
-        既存の記事を日付から読み込みます。
+        """既存の記事を日付から読み込みます。
 
         Parameters
         ----------
@@ -206,6 +204,7 @@ class BaseFeedService(BaseService):
         -------
         list[dict]
             既存記事のリスト。
+
         """
         date_str = target_date.strftime("%Y-%m-%d")
         filename_json = f"{date_str}.json"
@@ -222,8 +221,7 @@ class BaseFeedService(BaseService):
         return self._parse_markdown(markdown)
 
     def _article_sort_key(self, item: dict) -> tuple[float, datetime]:
-        """
-        記事のソートキーを生成します（人気スコア、公開日時の順）。
+        """記事のソートキーを生成します（人気スコア、公開日時の順）。
 
         Parameters
         ----------
@@ -234,6 +232,7 @@ class BaseFeedService(BaseService):
         -------
         tuple[float, datetime]
             ソートキー（人気スコア、公開日時）。
+
         """
         popularity = float(item.get("popularity_score", 0.0) or 0.0)
         published_raw = item.get("published_at")
@@ -247,8 +246,7 @@ class BaseFeedService(BaseService):
         return (popularity, published)
 
     def _safe_parse_int(self, value) -> int | None:
-        """
-        さまざまな値から整数を抽出します。
+        """さまざまな値から整数を抽出します。
 
         Parameters
         ----------
@@ -259,6 +257,7 @@ class BaseFeedService(BaseService):
         -------
         int | None
             抽出された整数。失敗した場合はNone。
+
         """
         if value is None:
             return None
@@ -274,8 +273,7 @@ class BaseFeedService(BaseService):
         return None
 
     def _parse_markdown(self, markdown: str) -> list[dict]:
-        """
-        Markdownファイルから記事情報を抽出します。
+        """Markdownファイルから記事情報を抽出します。
 
         Parameters
         ----------
@@ -286,6 +284,7 @@ class BaseFeedService(BaseService):
         -------
         list[dict]
             抽出された記事のリスト。
+
         """
         result: list[dict] = []
         category_pattern = re.compile(r"^##\s+(.+)$", re.MULTILINE)
@@ -319,8 +318,7 @@ class BaseFeedService(BaseService):
         return result
 
     def _select_top_articles(self, articles: list[Article]) -> list[Article]:
-        """
-        人気スコア順に記事をソートし、上位のみ返します。
+        """人気スコア順に記事をソートし、上位のみ返します。
 
         Parameters
         ----------
@@ -331,6 +329,7 @@ class BaseFeedService(BaseService):
         -------
         list[Article]
             上位N件の記事。
+
         """
         if not articles:
             return []
@@ -363,8 +362,7 @@ class BaseFeedService(BaseService):
     async def _store_summaries_for_date(
         self, articles: list[Article], date_str: str
     ) -> tuple[str, str]:
-        """
-        単一日付の記事をJSONとMarkdownファイルに保存します（ログ改善版）。
+        """単一日付の記事をJSONとMarkdownファイルに保存します（ログ改善版）。
 
         Parameters
         ----------
@@ -377,6 +375,7 @@ class BaseFeedService(BaseService):
         -------
         tuple[str, str]
             保存されたファイルパスの組み合わせ (json_path, md_path)
+
         """
         if not articles:
             return ("", "")
@@ -412,8 +411,7 @@ class BaseFeedService(BaseService):
         return (str(json_path), str(md_path))
 
     def _render_markdown(self, records: list[dict], today: datetime) -> str:
-        """
-        記事をMarkdown形式でレンダリングします。
+        """記事をMarkdown形式でレンダリングします。
 
         Parameters
         ----------
@@ -426,6 +424,7 @@ class BaseFeedService(BaseService):
         -------
         str
             Markdownコンテンツ。
+
         """
         content = f"# {self._get_markdown_header()} ({today.strftime('%Y-%m-%d')})\n\n"
         grouped: dict[str, list[dict]] = {}
@@ -445,13 +444,13 @@ class BaseFeedService(BaseService):
         return content
 
     async def _summarize_article(self, article: Article) -> None:
-        """
-        記事を要約します。
+        """記事を要約します。
 
         Parameters
         ----------
         article : Article
             要約する記事。
+
         """
         prompt = self._get_summary_prompt_template(article)
         system_instruction = self._get_summary_system_instruction()
@@ -465,8 +464,8 @@ class BaseFeedService(BaseService):
             )
             article.summary = summary
         except Exception as e:
-            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
-            article.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+            self.logger.error(f"要約の生成中にエラーが発生しました: {e!s}")
+            article.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     # ========================================
     # 抽象メソッド（サブクラスで実装必須）
@@ -474,8 +473,7 @@ class BaseFeedService(BaseService):
 
     @abstractmethod
     def _extract_popularity(self, entry, soup: BeautifulSoup) -> float:
-        """
-        記事の人気スコアを抽出します（サービス固有）。
+        """記事の人気スコアを抽出します（サービス固有）。
 
         Parameters
         ----------
@@ -488,37 +486,37 @@ class BaseFeedService(BaseService):
         -------
         float
             人気スコア。
+
         """
         pass
 
     @abstractmethod
     def _get_markdown_header(self) -> str:
-        """
-        Markdownファイルのヘッダーテキストを返します（サービス固有）。
+        """Markdownファイルのヘッダーテキストを返します（サービス固有）。
 
         Returns
         -------
         str
             ヘッダーテキスト（例: "Zenn記事", "Qiita記事"）。
+
         """
         pass
 
     @abstractmethod
     def _get_summary_system_instruction(self) -> str:
-        """
-        要約生成用のシステムインストラクションを返します（サービス固有）。
+        """要約生成用のシステムインストラクションを返します（サービス固有）。
 
         Returns
         -------
         str
             システムインストラクション。
+
         """
         pass
 
     @abstractmethod
     def _get_summary_prompt_template(self, article: Article) -> str:
-        """
-        要約生成用のプロンプトテンプレートを返します（サービス固有）。
+        """要約生成用のプロンプトテンプレートを返します（サービス固有）。
 
         Parameters
         ----------
@@ -529,12 +527,12 @@ class BaseFeedService(BaseService):
         -------
         str
             プロンプト。
+
         """
         pass
 
     def _needs_japanese_check(self) -> bool:
-        """
-        日本語判定が必要かどうかを返します。
+        """日本語判定が必要かどうかを返します。
 
         デフォルトはFalse（日本語サイト前提）。
         business_feed, tech_feedなどはTrueにオーバーライド。
@@ -543,12 +541,12 @@ class BaseFeedService(BaseService):
         -------
         bool
             True: 日本語判定を実施, False: 不要
+
         """
         return False
 
     def _detect_japanese_content(self, soup, title, entry) -> bool:
-        """
-        記事が日本語であるかどうかを判定します。
+        """記事が日本語であるかどうかを判定します。
 
         Parameters
         ----------
@@ -563,6 +561,7 @@ class BaseFeedService(BaseService):
         -------
         bool
             日本語記事であればTrue、そうでなければFalse。
+
         """
         # 方法1: HTMLのlang属性をチェック
         html_tag = soup.find("html")

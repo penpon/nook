@@ -1,5 +1,4 @@
-"""
-nook/services/hacker_news/hacker_news.py の統合テスト
+"""nook/services/hacker_news/hacker_news.py の統合テスト
 
 Hacker Newsサービスのエンドツーエンド動作を検証する統合テストスイート。
 データ取得→GPT要約→Storage保存の全体フローとエラーハンドリングをテストします。
@@ -67,8 +66,7 @@ def create_mock_http_response(text: str = TEST_STORY_TEXT, status_code: int = 20
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars):
-    """
-    Given: HackerNewsRetrieverサービスインスタンス
+    """Given: HackerNewsRetrieverサービスインスタンス
     When: collect()メソッドを実行
     Then: データ取得 → GPT要約 → Storage保存の全体フローが成功する
     """
@@ -165,8 +163,7 @@ async def test_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars):
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_network_failure_hacker_news(tmp_path, mock_env_vars):
-    """
-    Given: ネットワークエラーが発生する状況
+    """Given: ネットワークエラーが発生する状況
     When: collect()メソッドを実行
     Then: RetryExceptionが発生する（retry decoratorによる3回のリトライ後）
     """
@@ -201,8 +198,7 @@ async def test_error_handling_network_failure_hacker_news(tmp_path, mock_env_var
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_vars):
-    """
-    Given: GPT APIエラーが発生する状況
+    """Given: GPT APIエラーが発生する状況
     When: collect()メソッドを実行
     Then: フォールバック処理が動作し、要約なしでもデータが保存される（データ保存は必須）
     """

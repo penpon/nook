@@ -1,5 +1,4 @@
-"""
-nook/services/fourchan_explorer/fourchan_explorer.py のテスト
+"""nook/services/fourchan_explorer/fourchan_explorer.py のテスト
 
 テスト観点:
 - FourChanExplorerの初期化
@@ -50,8 +49,7 @@ def get_jst_date_from_utc(utc_dt: datetime) -> date:
 
 @pytest.mark.unit
 def test_init_with_default_storage_dir(fourchan_service):
-    """
-    Given: デフォルトのstorage_dir
+    """Given: デフォルトのstorage_dir
     When: FourChanExplorerを初期化
     Then: インスタンスが正常に作成される
     """
@@ -66,8 +64,7 @@ def test_init_with_default_storage_dir(fourchan_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_success(mock_env_vars):
-    """
-    Given: 有効な掲示板データ
+    """Given: 有効な掲示板データ
     When: collectメソッドを呼び出す
     Then: データが正常に取得・保存される
     """
@@ -106,8 +103,7 @@ async def test_collect_success(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_network_error(mock_env_vars):
-    """
-    Given: ネットワークエラーが発生
+    """Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
     Then: エラーがログされるが、例外は発生しない
     """
@@ -130,8 +126,7 @@ async def test_collect_network_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_gpt_api_error(mock_env_vars):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: collectメソッドを呼び出す
     Then: エラーが適切に処理される
     """
@@ -165,8 +160,7 @@ async def test_collect_gpt_api_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_full_workflow_collect_and_save(mock_env_vars):
-    """
-    Given: 完全なワークフロー
+    """Given: 完全なワークフロー
     When: collect→save→cleanupを実行
     Then: 全フローが正常に動作
     """
@@ -206,8 +200,7 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_boards_success(mock_env_vars):
-    """
-    Given: デフォルトまたは有効なboards.toml
+    """Given: デフォルトまたは有効なboards.toml
     When: _load_boards()を呼び出す
     Then: ボードリストが正しく読み込まれる
     """
@@ -226,8 +219,7 @@ def test_load_boards_success(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_boards_file_not_found(mock_env_vars):
-    """
-    Given: boards.tomlが存在しない
+    """Given: boards.tomlが存在しない
     When: _load_boards()を呼び出す
     Then: デフォルトのボードリストが返される
     """
@@ -246,8 +238,7 @@ def test_load_boards_file_not_found(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_boards_invalid_toml(mock_env_vars, tmp_path):
-    """
-    Given: 不正な形式のboards.toml
+    """Given: 不正な形式のboards.toml
     When: _load_boards()を呼び出す
     Then: デフォルトのボードリストが返される
     """
@@ -280,8 +271,7 @@ def test_load_boards_invalid_toml(mock_env_vars, tmp_path):
 
 @pytest.mark.unit
 def test_calculate_popularity_with_all_fields(mock_env_vars):
-    """
-    Given: すべてのフィールドが存在するメタデータ
+    """Given: すべてのフィールドが存在するメタデータ
     When: _calculate_popularity()を呼び出す
     Then: 正しい人気スコアが計算される
     """
@@ -308,8 +298,7 @@ def test_calculate_popularity_with_all_fields(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_with_none_values(mock_env_vars):
-    """
-    Given: Noneを含むメタデータ
+    """Given: Noneを含むメタデータ
     When: _calculate_popularity()を呼び出す
     Then: 0として扱われ、エラーが発生しない
     """
@@ -334,8 +323,7 @@ def test_calculate_popularity_with_none_values(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_with_missing_fields(mock_env_vars):
-    """
-    Given: フィールドが欠損したメタデータ
+    """Given: フィールドが欠損したメタデータ
     When: _calculate_popularity()を呼び出す
     Then: 0として扱われ、エラーが発生しない
     """
@@ -355,8 +343,7 @@ def test_calculate_popularity_with_missing_fields(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_with_recent_thread(mock_env_vars):
-    """
-    Given: 最近更新されたスレッド
+    """Given: 最近更新されたスレッド
     When: _calculate_popularity()を呼び出す
     Then: recency_bonusが高くなる
     """
@@ -392,8 +379,7 @@ def test_calculate_popularity_with_recent_thread(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_thread_id_from_standard_url(mock_env_vars):
-    """
-    Given: 標準的な4chan URLパターン
+    """Given: 標準的な4chan URLパターン
     When: _extract_thread_id_from_url()を呼び出す
     Then: 正しくスレッドIDが抽出される
     """
@@ -410,8 +396,7 @@ def test_extract_thread_id_from_standard_url(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_thread_id_with_query_params(mock_env_vars):
-    """
-    Given: クエリパラメータ付きURL
+    """Given: クエリパラメータ付きURL
     When: _extract_thread_id_from_url()を呼び出す
     Then: 正しくスレッドIDが抽出される
     """
@@ -428,8 +413,7 @@ def test_extract_thread_id_with_query_params(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_thread_id_from_empty_url(mock_env_vars):
-    """
-    Given: 空のURL
+    """Given: 空のURL
     When: _extract_thread_id_from_url()を呼び出す
     Then: 0が返される
     """
@@ -445,8 +429,7 @@ def test_extract_thread_id_from_empty_url(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_thread_id_from_invalid_url(mock_env_vars):
-    """
-    Given: スレッドIDを含まない不正なURL
+    """Given: スレッドIDを含まない不正なURL
     When: _extract_thread_id_from_url()を呼び出す
     Then: 0が返される
     """
@@ -469,8 +452,7 @@ def test_extract_thread_id_from_invalid_url(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_thread_posts_success(mock_env_vars, respx_mock):
-    """
-    Given: 有効なスレッド詳細API
+    """Given: 有効なスレッド詳細API
     When: _retrieve_thread_posts()を呼び出す
     Then: 投稿リストが正しく返される
     """
@@ -504,8 +486,7 @@ async def test_retrieve_thread_posts_success(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_thread_posts_http_error(mock_env_vars, respx_mock):
-    """
-    Given: HTTPエラーが発生
+    """Given: HTTPエラーが発生
     When: _retrieve_thread_posts()を呼び出す
     Then: 空リストが返される
     """
@@ -526,8 +507,7 @@ async def test_retrieve_thread_posts_http_error(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_thread_posts_timeout(mock_env_vars, respx_mock):
-    """
-    Given: タイムアウトが発生
+    """Given: タイムアウトが発生
     When: _retrieve_thread_posts()を呼び出す
     Then: 空リストが返される
     """
@@ -550,8 +530,7 @@ async def test_retrieve_thread_posts_timeout(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_thread_posts_invalid_json(mock_env_vars, respx_mock):
-    """
-    Given: 不正なJSON
+    """Given: 不正なJSON
     When: _retrieve_thread_posts()を呼び出す
     Then: 空リストが返される
     """
@@ -574,8 +553,7 @@ async def test_retrieve_thread_posts_invalid_json(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_thread_posts_missing_posts_key(mock_env_vars, respx_mock):
-    """
-    Given: postsキーが存在しないJSON
+    """Given: postsキーが存在しないJSON
     When: _retrieve_thread_posts()を呼び出す
     Then: 空リストが返される
     """
@@ -603,8 +581,7 @@ async def test_retrieve_thread_posts_missing_posts_key(mock_env_vars, respx_mock
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
-    """
-    Given: 有効なcatalog.json
+    """Given: 有効なcatalog.json
     When: _retrieve_ai_threads()を呼び出す
     Then: AI関連スレッドが正しく抽出される
     """
@@ -671,8 +648,7 @@ async def test_retrieve_ai_threads_success(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
-    """
-    Given: 複数のAI関連スレッド
+    """Given: 複数のAI関連スレッド
     When: limitを指定して_retrieve_ai_threads()を呼び出す
     Then: 指定した数だけスレッドが返される
     """
@@ -727,8 +703,7 @@ async def test_retrieve_ai_threads_with_limit(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
-    """
-    Given: AI関連でないスレッドを含むcatalog
+    """Given: AI関連でないスレッドを含むcatalog
     When: _retrieve_ai_threads()を呼び出す
     Then: AI関連スレッドのみが返される
     """
@@ -788,8 +763,7 @@ async def test_retrieve_ai_threads_filters_non_ai(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_http_error(mock_env_vars, respx_mock):
-    """
-    Given: catalog API がHTTPエラーを返す
+    """Given: catalog API がHTTPエラーを返す
     When: _retrieve_ai_threads()を呼び出す
     Then: RetryException が発生する
     """
@@ -819,8 +793,7 @@ async def test_retrieve_ai_threads_http_error(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
-    """
-    Given: 重複したタイトルのスレッド
+    """Given: 重複したタイトルのスレッド
     When: _retrieve_ai_threads()を呼び出す
     Then: 重複がスキップされる
     """
@@ -883,8 +856,7 @@ async def test_retrieve_ai_threads_skips_duplicates(mock_env_vars, respx_mock):
 
 @pytest.mark.unit
 def test_serialize_threads(mock_env_vars, thread_factory):
-    """
-    Given: Threadオブジェクトのリスト
+    """Given: Threadオブジェクトのリスト
     When: _serialize_threads()を呼び出す
     Then: 正しくdictに変換される
     """
@@ -926,8 +898,7 @@ def test_serialize_threads(mock_env_vars, thread_factory):
 
 @pytest.mark.unit
 def test_render_markdown(mock_env_vars):
-    """
-    Given: スレッドレコードのリスト
+    """Given: スレッドレコードのリスト
     When: _render_markdown()を呼び出す
     Then: 正しいMarkdownが生成される
     """
@@ -965,8 +936,7 @@ def test_render_markdown(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown(mock_env_vars):
-    """
-    Given: Markdown形式のスレッドデータ
+    """Given: Markdown形式のスレッドデータ
     When: _parse_markdown()を呼び出す
     Then: 正しくdictに変換される
     """
@@ -1002,8 +972,7 @@ This is a test summary.
 
 @pytest.mark.unit
 def test_parse_markdown_empty(mock_env_vars):
-    """
-    Given: 空のMarkdown
+    """Given: 空のMarkdown
     When: _parse_markdown()を呼び出す
     Then: 空リストが返される
     """
@@ -1025,8 +994,7 @@ def test_parse_markdown_empty(mock_env_vars):
 
 @pytest.mark.unit
 def test_thread_sort_key(mock_env_vars):
-    """
-    Given: スレッドレコード
+    """Given: スレッドレコード
     When: _thread_sort_key()を呼び出す
     Then: (popularity_score, datetime)のタプルが返される
     """
@@ -1050,8 +1018,7 @@ def test_thread_sort_key(mock_env_vars):
 
 @pytest.mark.unit
 def test_thread_sort_key_missing_fields(mock_env_vars):
-    """
-    Given: フィールドが欠損したレコード
+    """Given: フィールドが欠損したレコード
     When: _thread_sort_key()を呼び出す
     Then: デフォルト値が使用される
     """
@@ -1072,8 +1039,7 @@ def test_thread_sort_key_missing_fields(mock_env_vars):
 
 @pytest.mark.unit
 def test_thread_sort_key_with_timestamp_fallback(mock_env_vars):
-    """
-    Given: published_atがなくtimestampのみのレコード
+    """Given: published_atがなくtimestampのみのレコード
     When: _thread_sort_key()を呼び出す
     Then: timestampから日時が計算される
     """
@@ -1093,8 +1059,7 @@ def test_thread_sort_key_with_timestamp_fallback(mock_env_vars):
 
 @pytest.mark.unit
 def test_thread_sort_key_with_invalid_timestamp(mock_env_vars):
-    """
-    Given: 不正なtimestampのレコード
+    """Given: 不正なtimestampのレコード
     When: _thread_sort_key()を呼び出す
     Then: datetime.minが使用される
     """
@@ -1120,8 +1085,7 @@ def test_thread_sort_key_with_invalid_timestamp(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_thread_success(fourchan_service, thread_factory):
-    """
-    Given: 有効なスレッドオブジェクト
+    """Given: 有効なスレッドオブジェクト
     When: _summarize_thread()を呼び出す
     Then: 要約が正常に生成される
     """
@@ -1175,8 +1139,7 @@ async def test_summarize_thread_success(fourchan_service, thread_factory):
 async def test_summarize_thread_html_tag_removal(
     fourchan_service, thread_factory, posts, expected_summary, tags_to_check
 ):
-    """
-    Given: HTMLタグを含む投稿（パラメータ化）
+    """Given: HTMLタグを含む投稿（パラメータ化）
     When: _summarize_thread()を呼び出す
     Then: HTMLタグが除去されて要約が生成される
     """
@@ -1199,8 +1162,7 @@ async def test_summarize_thread_html_tag_removal(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_thread_empty_posts(fourchan_service, thread_factory):
-    """
-    Given: 空の投稿リスト
+    """Given: 空の投稿リスト
     When: _summarize_thread()を呼び出す
     Then: エラーなく処理される
     """
@@ -1217,8 +1179,7 @@ async def test_summarize_thread_empty_posts(fourchan_service, thread_factory):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_thread_gpt_error(mock_env_vars):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: _summarize_thread()を呼び出す
     Then: エラーメッセージが要約に設定される
     """
@@ -1250,8 +1211,7 @@ async def test_summarize_thread_gpt_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_thread_with_many_replies(mock_env_vars):
-    """
-    Given: 多数の返信があるスレッド
+    """Given: 多数の返信があるスレッド
     When: _summarize_thread()を呼び出す
     Then: 最大5件の返信のみが処理される
     """
@@ -1295,8 +1255,7 @@ async def test_summarize_thread_with_many_replies(mock_env_vars):
 
 @pytest.mark.unit
 def test_select_top_threads_within_limit(mock_env_vars):
-    """
-    Given: limit以下のスレッド数
+    """Given: limit以下のスレッド数
     When: _select_top_threads()を呼び出す
     Then: すべてのスレッドが返される
     """
@@ -1328,8 +1287,7 @@ def test_select_top_threads_within_limit(mock_env_vars):
 
 @pytest.mark.unit
 def test_select_top_threads_exceeds_limit(mock_env_vars):
-    """
-    Given: limitを超えるスレッド数
+    """Given: limitを超えるスレッド数
     When: _select_top_threads()を呼び出す
     Then: 人気スコアの高い順にlimit件が返される
     """
@@ -1364,8 +1322,7 @@ def test_select_top_threads_exceeds_limit(mock_env_vars):
 
 @pytest.mark.unit
 def test_select_top_threads_empty_list(mock_env_vars):
-    """
-    Given: 空のスレッドリスト
+    """Given: 空のスレッドリスト
     When: _select_top_threads()を呼び出す
     Then: 空のリストが返される
     """
@@ -1381,8 +1338,7 @@ def test_select_top_threads_empty_list(mock_env_vars):
 
 @pytest.mark.unit
 def test_select_top_threads_with_same_score(mock_env_vars):
-    """
-    Given: 同じ人気スコアのスレッド
+    """Given: 同じ人気スコアのスレッド
     When: _select_top_threads()を呼び出す
     Then: タイムスタンプで二次ソートされる
     """
@@ -1430,8 +1386,7 @@ def test_select_top_threads_with_same_score(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_existing_titles_with_valid_markdown(mock_env_vars):
-    """
-    Given: 有効なMarkdownファイル
+    """Given: 有効なMarkdownファイル
     When: _load_existing_titles()を呼び出す
     Then: タイトルが正しく抽出される
     """
@@ -1476,8 +1431,7 @@ Test summary 2
 
 @pytest.mark.unit
 def test_load_existing_titles_empty_markdown(mock_env_vars):
-    """
-    Given: 空のMarkdownファイル
+    """Given: 空のMarkdownファイル
     When: _load_existing_titles()を呼び出す
     Then: 空のTrackerが返される
     """
@@ -1495,8 +1449,7 @@ def test_load_existing_titles_empty_markdown(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_existing_titles_with_error(mock_env_vars):
-    """
-    Given: Markdownの読み込みでエラーが発生
+    """Given: Markdownの読み込みでエラーが発生
     When: _load_existing_titles()を呼び出す
     Then: 空のTrackerが返される
     """
@@ -1523,8 +1476,7 @@ def test_load_existing_titles_with_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_threads_from_json(mock_env_vars):
-    """
-    Given: 有効なJSONファイル
+    """Given: 有効なJSONファイル
     When: _load_existing_threads()を呼び出す
     Then: スレッドデータが正しく読み込まれる
     """
@@ -1559,8 +1511,7 @@ async def test_load_existing_threads_from_json(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_threads_from_markdown(mock_env_vars):
-    """
-    Given: JSONがなくMarkdownファイルのみ
+    """Given: JSONがなくMarkdownファイルのみ
     When: _load_existing_threads()を呼び出す
     Then: Markdownからスレッドデータが読み込まれる
     """
@@ -1599,8 +1550,7 @@ Test summary
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_threads_no_data(mock_env_vars):
-    """
-    Given: JSONもMarkdownも存在しない
+    """Given: JSONもMarkdownも存在しない
     When: _load_existing_threads()を呼び出す
     Then: 空のリストが返される
     """
@@ -1624,8 +1574,7 @@ async def test_load_existing_threads_no_data(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_threads_list_format(mock_env_vars):
-    """
-    Given: リスト形式のJSONデータ
+    """Given: リスト形式のJSONデータ
     When: _load_existing_threads()を呼び出す
     Then: そのまま返される
     """
@@ -1660,8 +1609,7 @@ async def test_load_existing_threads_list_format(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_catalog_invalid_json(mock_env_vars, respx_mock):
-    """
-    Given: catalog.jsonが不正なJSON
+    """Given: catalog.jsonが不正なJSON
     When: _retrieve_ai_threads()を呼び出す
     Then: 例外が発生する
     """
@@ -1690,8 +1638,7 @@ async def test_retrieve_ai_threads_catalog_invalid_json(mock_env_vars, respx_moc
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_catalog_timeout(mock_env_vars, respx_mock):
-    """
-    Given: catalog.jsonのリクエストがタイムアウト
+    """Given: catalog.jsonのリクエストがタイムアウト
     When: _retrieve_ai_threads()を呼び出す
     Then: RetryExceptionが発生する（リトライ後）
     """
@@ -1723,8 +1670,7 @@ async def test_retrieve_ai_threads_catalog_timeout(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_empty_catalog(mock_env_vars, respx_mock):
-    """
-    Given: 空のcatalog.json
+    """Given: 空のcatalog.json
     When: _retrieve_ai_threads()を呼び出す
     Then: 空のリストが返される
     """
@@ -1753,8 +1699,7 @@ async def test_retrieve_ai_threads_empty_catalog(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
-    """
-    Given: subjectフィールドがないスレッド
+    """Given: subjectフィールドがないスレッド
     When: _retrieve_ai_threads()を呼び出す
     Then: デフォルトタイトルが使用される
     """
@@ -1805,8 +1750,7 @@ async def test_retrieve_ai_threads_missing_subject(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
-    """
-    Given: HTMLタグを含むコメント
+    """Given: HTMLタグを含むコメント
     When: _retrieve_ai_threads()を呼び出す
     Then: HTMLタグが除去されてキーワードマッチングされる
     """
@@ -1861,8 +1805,7 @@ async def test_retrieve_ai_threads_html_in_comment(mock_env_vars, respx_mock):
 
 @pytest.mark.unit
 def test_parse_markdown_multiple_boards(mock_env_vars):
-    """
-    Given: 複数のボードを含むMarkdown
+    """Given: 複数のボードを含むMarkdown
     When: _parse_markdown()を呼び出す
     Then: すべてのボードのスレッドが抽出される
     """
@@ -1907,8 +1850,7 @@ Summary 2
 
 @pytest.mark.unit
 def test_parse_markdown_missing_summary(mock_env_vars):
-    """
-    Given: 要約がないMarkdown
+    """Given: 要約がないMarkdown
     When: _parse_markdown()を呼び出す
     Then: 空の要約として処理される
     """
@@ -1938,8 +1880,7 @@ def test_parse_markdown_missing_summary(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_malformed(mock_env_vars):
-    """
-    Given: 不正な形式のMarkdown
+    """Given: 不正な形式のMarkdown
     When: _parse_markdown()を呼び出す
     Then: 可能な限り解析される
     """
@@ -1963,8 +1904,7 @@ Some random text
 
 @pytest.mark.unit
 def test_render_markdown_with_missing_fields(mock_env_vars):
-    """
-    Given: フィールドが欠損したレコード
+    """Given: フィールドが欠損したレコード
     When: _render_markdown()を呼び出す
     Then: デフォルト値が使用される
     """
@@ -1995,8 +1935,7 @@ def test_render_markdown_with_missing_fields(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_with_invalid_timestamp(mock_env_vars):
-    """
-    Given: 不正なタイムスタンプ
+    """Given: 不正なタイムスタンプ
     When: _calculate_popularity()を呼び出す
     Then: recency_bonusが0になるがエラーは発生しない
     """
@@ -2021,8 +1960,7 @@ def test_calculate_popularity_with_invalid_timestamp(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_with_future_timestamp(mock_env_vars):
-    """
-    Given: 未来のタイムスタンプ
+    """Given: 未来のタイムスタンプ
     When: _calculate_popularity()を呼び出す
     Then: 計算は正常に行われる
     """
@@ -2050,8 +1988,7 @@ def test_calculate_popularity_with_future_timestamp(mock_env_vars):
 
 @pytest.mark.unit
 def test_calculate_popularity_zero_values(mock_env_vars):
-    """
-    Given: すべてのフィールドが0
+    """Given: すべてのフィールドが0
     When: _calculate_popularity()を呼び出す
     Then: 0.0が返される
     """
@@ -2080,8 +2017,7 @@ def test_calculate_popularity_zero_values(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_empty_list(mock_env_vars):
-    """
-    Given: 空のスレッドリスト
+    """Given: 空のスレッドリスト
     When: _store_summaries()を呼び出す
     Then: 空のリストが返される
     """
@@ -2098,8 +2034,7 @@ async def test_store_summaries_empty_list(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_with_threads(mock_env_vars):
-    """
-    Given: 有効なスレッドリスト
+    """Given: 有効なスレッドリスト
     When: _store_summaries()を呼び出す
     Then: store_daily_snapshotsが呼ばれて結果が返される
     """
@@ -2153,8 +2088,7 @@ async def test_store_summaries_with_threads(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_date_filtering(mock_env_vars, respx_mock):
-    """
-    Given: 日付範囲外のスレッド
+    """Given: 日付範囲外のスレッド
     When: _retrieve_ai_threads()を呼び出す
     Then: 日付範囲外のスレッドがスキップされる
     """
@@ -2207,8 +2141,7 @@ async def test_retrieve_ai_threads_date_filtering(mock_env_vars, respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_within_date_range(mock_env_vars, respx_mock):
-    """
-    Given: 日付範囲内のスレッド
+    """Given: 日付範囲内のスレッド
     When: _retrieve_ai_threads()を呼び出す
     Then: スレッドが正常に取得される
     """
@@ -2266,8 +2199,7 @@ async def test_retrieve_ai_threads_within_date_range(mock_env_vars, respx_mock):
 
 @pytest.mark.unit
 def test_serialize_threads_with_various_fields(mock_env_vars):
-    """
-    Given: 様々なフィールドを持つスレッド
+    """Given: 様々なフィールドを持つスレッド
     When: _serialize_threads()を呼び出す
     Then: すべてのフィールドが正しくシリアライズされる
     """
@@ -2308,8 +2240,7 @@ def test_serialize_threads_with_various_fields(mock_env_vars):
 
 @pytest.mark.unit
 def test_serialize_threads_empty_summary(mock_env_vars):
-    """
-    Given: 要約が空のスレッド
+    """Given: 要約が空のスレッド
     When: _serialize_threads()を呼び出す
     Then: 空の要約でシリアライズされる
     """
@@ -2347,8 +2278,7 @@ def test_serialize_threads_empty_summary(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_empty_records(mock_env_vars):
-    """
-    Given: 空のレコードリスト
+    """Given: 空のレコードリスト
     When: _render_markdown()を呼び出す
     Then: ヘッダーのみのMarkdownが生成される
     """
@@ -2367,8 +2297,7 @@ def test_render_markdown_empty_records(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_multiple_boards(mock_env_vars):
-    """
-    Given: 複数のボードのレコード
+    """Given: 複数のボードのレコード
     When: _render_markdown()を呼び出す
     Then: ボードごとにグループ化されたMarkdownが生成される
     """
@@ -2414,12 +2343,10 @@ def test_render_markdown_multiple_boards(mock_env_vars):
 
 @pytest.mark.unit
 def test_load_boards_with_disabled_boards(mock_env_vars):
-    """
-    Given: enabled=falseのボードを含むboards.toml
+    """Given: enabled=falseのボードを含むboards.toml
     When: _load_boards()を呼び出す
     Then: enabledなボードのみが返される
     """
-
     with patch("nook.common.base_service.setup_logger"):
         from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
 
@@ -2464,8 +2391,7 @@ name = "Science"
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_thread_posts_failure(mock_env_vars, respx_mock):
-    """
-    Given: スレッドの投稿取得が失敗する
+    """Given: スレッドの投稿取得が失敗する
     When: _retrieve_ai_threads()を呼び出す
     Then: そのスレッドがスキップされる
     """
@@ -2517,8 +2443,7 @@ async def test_retrieve_ai_threads_thread_posts_failure(mock_env_vars, respx_moc
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_no_valid_timestamps(mock_env_vars, respx_mock):
-    """
-    Given: タイムスタンプがないスレッド
+    """Given: タイムスタンプがないスレッド
     When: _retrieve_ai_threads()を呼び出す
     Then: スレッドが適切に処理される
     """
@@ -2575,8 +2500,7 @@ async def test_retrieve_ai_threads_no_valid_timestamps(mock_env_vars, respx_mock
 
 @pytest.mark.unit
 def test_init_with_storage_path_not_ending_with_service_name(mock_env_vars):
-    """
-    Given: storage_dirがサービス名で終わっていない
+    """Given: storage_dirがサービス名で終わっていない
     When: FourChanExplorerを初期化
     Then: storage_pathにサービス名が追加される
     """
@@ -2591,8 +2515,7 @@ def test_init_with_storage_path_not_ending_with_service_name(mock_env_vars):
 
 @pytest.mark.unit
 def test_init_with_storage_path_already_ending_with_service_name(mock_env_vars):
-    """
-    Given: storage_dirが既にサービス名で終わっている
+    """Given: storage_dirが既にサービス名で終わっている
     When: FourChanExplorerを初期化
     Then: storage_pathはそのまま使用される
     """
@@ -2613,8 +2536,7 @@ def test_init_with_storage_path_already_ending_with_service_name(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_thread_with_empty_op_text(fourchan_service):
-    """
-    Given: OPのcomフィールドが空文字
+    """Given: OPのcomフィールドが空文字
     When: _summarize_thread()を呼び出す
     Then: OPのテキストがスキップされる
     """
@@ -2653,8 +2575,7 @@ async def test_summarize_thread_with_empty_op_text(fourchan_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_thread_with_empty_reply_text(fourchan_service):
-    """
-    Given: 返信のcomフィールドが空文字
+    """Given: 返信のcomフィールドが空文字
     When: _summarize_thread()を呼び出す
     Then: 空の返信がスキップされる
     """
@@ -2701,8 +2622,7 @@ async def test_summarize_thread_with_empty_reply_text(fourchan_service):
 
 @pytest.mark.unit
 def test_thread_sort_key_with_invalid_published_format(mock_env_vars):
-    """
-    Given: published_atが不正なフォーマット
+    """Given: published_atが不正なフォーマット
     When: _thread_sort_key()を呼び出す
     Then: datetime.minが使用される
     """
@@ -2729,8 +2649,7 @@ def test_thread_sort_key_with_invalid_published_format(mock_env_vars):
 
 @pytest.mark.unit
 def test_extract_thread_id_with_non_standard_url(mock_env_vars):
-    """
-    Given: 非標準のURL形式（/thread/がない）
+    """Given: 非標準のURL形式（/thread/がない）
     When: _extract_thread_id_from_url()を呼び出す
     Then: 最後の数字部分が抽出される
     """
@@ -2753,8 +2672,7 @@ def test_extract_thread_id_with_non_standard_url(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_with_invalid_published_at(mock_env_vars):
-    """
-    Given: published_atが不正なフォーマットのスレッド
+    """Given: published_atが不正なフォーマットのスレッド
     When: _render_markdown()を呼び出す
     Then: timestampフィールドにフォールバックする
     """
@@ -2792,8 +2710,7 @@ def test_render_markdown_with_invalid_published_at(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_without_timestamp(mock_env_vars):
-    """
-    Given: timestampが0のMarkdownテキスト
+    """Given: timestampが0のMarkdownテキスト
     When: _parse_markdown()を呼び出す
     Then: published_atフィールドが含まれない
     """
@@ -2831,8 +2748,7 @@ Test summary
 
 @pytest.mark.unit
 def test_run_method_calls_collect(mock_env_vars):
-    """
-    Given: FourChanExplorerインスタンス
+    """Given: FourChanExplorerインスタンス
     When: run()を呼び出す
     Then: collect()が呼び出される
     """

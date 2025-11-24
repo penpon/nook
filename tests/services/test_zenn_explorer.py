@@ -1,5 +1,4 @@
-"""
-nook/services/zenn_explorer/zenn_explorer.py のテスト
+"""nook/services/zenn_explorer/zenn_explorer.py のテスト
 
 テスト観点:
 - ZennExplorerの初期化
