@@ -1,5 +1,4 @@
-"""
-nook/services/fivechan_explorer/fivechan_explorer.py の統合テスト (セキュリティ観点)
+"""nook/services/fivechan_explorer/fivechan_explorer.py の統合テスト (セキュリティ観点)
 
 テスト観点:
 - XSS攻撃シミュレーション (悪意あるスクリプト含むレスポンス)
@@ -35,8 +34,7 @@ MAX_MEMORY_USAGE_BYTES = MAX_MEMORY_USAGE_MB * 1024 * 1024
 @pytest.mark.security
 @pytest.mark.asyncio
 async def test_xss_prevention_fivechan_explorer(mock_env_vars):
-    """
-    Given: <script>タグを含む悪意のあるスレッドタイトルとコンテンツ
+    """Given: <script>タグを含む悪意のあるスレッドタイトルとコンテンツ
     When: collect()メソッドでデータ取得→GPT要約→Storage保存の全体フローを実行
     Then: XSS攻撃が適切に処理され、データが安全に保存される
 
@@ -129,8 +127,7 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
 @pytest.mark.security
 @pytest.mark.asyncio
 async def test_dos_protection_fivechan_explorer(mock_env_vars):
-    """
-    Given: 10MBの巨大なレスポンス（DoS攻撃シミュレーション）
+    """Given: 10MBの巨大なレスポンス（DoS攻撃シミュレーション）
     When: collect()メソッドでデータ取得を実行
     Then: メモリオーバーフローせずに処理または適切に拒否される
 
@@ -214,8 +211,7 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
 @pytest.mark.security
 @pytest.mark.asyncio
 async def test_data_sanitization_fivechan_explorer(mock_env_vars):
-    """
-    Given: HTMLエスケープが必要な文字 (<, >, &, ", ') を含むデータ
+    """Given: HTMLエスケープが必要な文字 (<, >, &, ", ') を含むデータ
     When: collect()メソッドでデータ取得→GPT要約→Storage保存の全体フローを実行
     Then: データが適切に保存され、構造が保たれる
 

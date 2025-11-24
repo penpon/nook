@@ -1,8 +1,9 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import cloudscraper
 import httpx
@@ -192,7 +193,7 @@ class FiveChanExplorer(BaseService):
         base_delay = min(2**retry_count, 300)
         return base_delay
 
-    async def _get_with_retry(self, url: str, max_retries: int = 3, **kwargs) -> any:
+    async def _get_with_retry(self, url: str, max_retries: int = 3, **kwargs) -> Any:
         """リトライ機能付きHTTP GETリクエスト。
 
         Parameters
@@ -214,6 +215,8 @@ class FiveChanExplorer(BaseService):
                 headers = self.browser_headers.copy()
                 headers["User-Agent"] = self._get_random_user_agent()
 
+                if not self.http_client:
+                    return None
                 response = await self.http_client.get(url, headers=headers, **kwargs)
 
                 # 成功レスポンス（200番台）の場合は返す
@@ -224,9 +227,9 @@ class FiveChanExplorer(BaseService):
                 if response.status_code == 429:
                     retry_after = response.headers.get("Retry-After")
                     if retry_after:
-                        wait_time = int(retry_after)
+                        wait_time = int(float(retry_after))
                     else:
-                        wait_time = self._calculate_backoff_delay(attempt)
+                        wait_time = int(self._calculate_backoff_delay(attempt))
 
                     self.logger.warning(f"レート制限検知 (429): {wait_time}秒待機します")
                     await asyncio.sleep(wait_time)
@@ -235,7 +238,7 @@ class FiveChanExplorer(BaseService):
                 # サーバーエラー（503等）の場合
                 if response.status_code >= 500:
                     if attempt < max_retries:
-                        wait_time = self._calculate_backoff_delay(attempt)
+                        wait_time = int(self._calculate_backoff_delay(attempt))
                         self.logger.warning(
                             f"サーバーエラー ({response.status_code}): {wait_time}秒後にリトライします"
                         )
@@ -250,7 +253,7 @@ class FiveChanExplorer(BaseService):
                 if attempt == max_retries:
                     raise e
 
-                wait_time = self._calculate_backoff_delay(attempt)
+                wait_time = int(self._calculate_backoff_delay(attempt))
                 self.logger.warning(f"リクエストエラー: {e}, {wait_time}秒後にリトライします")
                 await asyncio.sleep(wait_time)
 
@@ -278,12 +281,13 @@ class FiveChanExplorer(BaseService):
             log_processing_start(self.logger, "5chan AI関連スレッド")
 
             # 対象日付の正規化
-            effective_target_dates = target_dates_set(target_dates)
+            effective_target_dates = set(target_dates) if target_dates else target_dates_set(1)
 
             # 既存タイトルを読み込み
-            existing_titles = set()
+            existing_titles: set[str] = set()
             for target_date in effective_target_dates:
-                existing_records = await self._load_existing_threads(target_date)
+                target_datetime = datetime.combine(target_date, datetime.min.time())
+                existing_records = await self._load_existing_threads(target_datetime)
                 existing_titles.update(r.get("title", "") for r in existing_records)
 
             self.logger.info(f"🔍 既存タイトル数: {len(existing_titles)}件")
@@ -310,8 +314,8 @@ class FiveChanExplorer(BaseService):
 
                         # 日付フィルタリング
                         thread_timestamp = int(thread_data["timestamp"])
-                        thread_date = datetime.fromtimestamp(thread_timestamp).date()
-                        if not is_within_target_dates(thread_date, effective_target_dates):
+                        thread_datetime = datetime.fromtimestamp(thread_timestamp)
+                        if not is_within_target_dates(thread_datetime, effective_target_dates):
                             continue
 
                         # スレッド詳細を取得
@@ -382,7 +386,10 @@ class FiveChanExplorer(BaseService):
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
             if selected_threads:
-                saved_files = await self._store_summaries(selected_threads, effective_target_dates)
+                # スレッドを保存
+                saved_files = await self._store_summaries(
+                    all_threads, sorted(effective_target_dates)
+                )
 
                 # 処理完了メッセージ
                 if saved_files:
@@ -438,7 +445,7 @@ class FiveChanExplorer(BaseService):
         self.logger.info(f"板 {board_id} のサーバー: {server} (静的設定)")
         return server
 
-    async def _get_with_403_tolerance(self, url: str, board_id: str) -> any:
+    async def _get_with_403_tolerance(self, url: str, board_id: str) -> Any:
         """403エラー耐性HTTP GETリクエスト - think harderの結果
         複数のUser-Agent、ヘッダー戦略、間隔調整を試行
 
@@ -455,7 +462,7 @@ class FiveChanExplorer(BaseService):
             HTTPレスポンス（成功時のみ、失敗時はNone）
 
         """
-        strategies = [
+        strategies: list[dict[str, dict[str, str] | float]] = [
             # 戦略1: 標準的なブラウザヘッダー
             {
                 "headers": {
@@ -485,9 +492,14 @@ class FiveChanExplorer(BaseService):
 
         for idx, strategy in enumerate(strategies, 1):
             try:
+                headers = strategy["headers"]
+                if not isinstance(headers, dict):
+                    continue
+                if not self.http_client:
+                    return None
                 response = await self.http_client.get(
                     url,
-                    headers=strategy["headers"],
+                    headers=headers,
                     timeout=10.0,
                     follow_redirects=True,
                 )
@@ -498,16 +510,22 @@ class FiveChanExplorer(BaseService):
 
                 if response.status_code == 403:
                     self.logger.warning(f"   ✗ 戦略{idx}で403エラー: {board_id}, 次の戦略を試行...")
-                    await asyncio.sleep(strategy["wait"])
+                    wait_time = strategy["wait"]
+                    if isinstance(wait_time, (int, float)):
+                        await asyncio.sleep(wait_time)
                     continue
 
                 # その他のエラー
                 self.logger.warning(f"   ✗ 戦略{idx}でエラー ({response.status_code}): {board_id}")
-                await asyncio.sleep(strategy["wait"])
+                wait_time = strategy["wait"]
+                if isinstance(wait_time, (int, float)):
+                    await asyncio.sleep(wait_time)
 
             except Exception as e:
                 self.logger.warning(f"   ✗ 戦略{idx}で例外: {board_id} - {e}")
-                await asyncio.sleep(strategy["wait"])
+                wait_time = strategy["wait"]
+                if isinstance(wait_time, (int, float)):
+                    await asyncio.sleep(wait_time)
 
         self.logger.error(f"   ✗ 全戦略失敗: {board_id}")
         return None
@@ -745,7 +763,7 @@ class FiveChanExplorer(BaseService):
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
         records: list[dict] = []
         for thread in threads:
-            published = datetime.fromtimestamp(thread.timestamp, tz=UTC)
+            published = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
             records.append(
                 {
                     "thread_id": thread.thread_id,
@@ -787,16 +805,16 @@ class FiveChanExplorer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
             timestamp = item.get("timestamp")
             if timestamp:
                 try:
-                    published = datetime.fromtimestamp(int(timestamp), tz=UTC)
+                    published = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
                 except Exception:
-                    published = datetime.min.replace(tzinfo=UTC)
+                    published = datetime.min.replace(tzinfo=timezone.utc)
             else:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         return (popularity, published)
 
     def _render_markdown(self, records: list[dict], today: datetime) -> str:
@@ -873,7 +891,7 @@ class FiveChanExplorer(BaseService):
                 }
 
                 if published:
-                    record["published_at"] = published.replace(tzinfo=UTC).isoformat()
+                    record["published_at"] = published.replace(tzinfo=timezone.utc).isoformat()
                     record["timestamp"] = int(published.timestamp())
 
                 records.append(record)

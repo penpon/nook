@@ -2,8 +2,9 @@
 
 import asyncio
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from io import BytesIO
 
 import arxiv
@@ -268,6 +269,8 @@ class ArxivSummarizer(BaseService):
         # Upvote順で並んでいる日付ページから論文IDを抽出
         page_url = f"https://huggingface.co/papers/date/{snapshot_date:%Y-%m-%d}"
         try:
+            if not self.http_client:
+                return None
             response = await self.http_client.get(page_url)
             response.raise_for_status()
 
@@ -287,6 +290,10 @@ class ArxivSummarizer(BaseService):
                     continue
 
                 href = link.get("href", "")
+                if isinstance(href, list):
+                    href = href[0] if href else ""
+                if not isinstance(href, str):
+                    continue
                 paper_id_match = re.search(r"/papers/(\d+\.\d+)", href)
                 if not paper_id_match:
                     continue
@@ -327,12 +334,19 @@ class ArxivSummarizer(BaseService):
         # フォールバック: 旧来のトップページから取得
         if not paper_ids:
             fallback_url = "https://huggingface.co/papers"
-            response = await self.http_client.get(fallback_url)
-            soup = BeautifulSoup(response.text, "html.parser")
+            if self.http_client:
+                response = await self.http_client.get(fallback_url)
+                soup = BeautifulSoup(response.text, "html.parser")
+            else:
+                return []
 
             paper_links = soup.select("a[href^='/papers/']")
             for link in paper_links:
                 href = link.get("href", "")
+                if isinstance(href, list):
+                    href = href[0] if href else ""
+                if not isinstance(href, str):
+                    continue
                 paper_id_match = re.search(r"/papers/(\d+\.\d+)", href)
                 if not paper_id_match:
                     continue
@@ -381,7 +395,7 @@ class ArxivSummarizer(BaseService):
         return [line.strip() for line in content.split("\n") if line.strip()]
 
     async def _save_processed_ids_by_date(
-        self, paper_ids: list[str], target_dates: list[date]
+        self, paper_ids: list[str], target_dates: Iterable[date]
     ) -> None:
         """処理済みの論文IDを日付ごとに保存します。
 
@@ -401,7 +415,7 @@ class ArxivSummarizer(BaseService):
         paper_dates = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 日付ごとにIDをグループ化
-        ids_by_date = {}
+        ids_by_date: dict[str, list[str]] = {}
         for paper_id, paper_date in zip(paper_ids, paper_dates, strict=True):
             if isinstance(paper_date, date):
                 date_str = paper_date.strftime("%Y-%m-%d")
@@ -530,9 +544,9 @@ class ArxivSummarizer(BaseService):
             published_at = getattr(paper, "published", None)
             if isinstance(published_at, datetime):
                 if published_at.tzinfo is None:
-                    published_at = published_at.replace(tzinfo=UTC)
+                    published_at = published_at.replace(tzinfo=timezone.utc)
             else:
-                published_at = datetime.now(UTC)
+                published_at = datetime.now(timezone.utc)
 
             return PaperInfo(
                 title=title,
@@ -874,7 +888,7 @@ class ArxivSummarizer(BaseService):
         self,
         papers: list[PaperInfo],
         limit: int,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> list[tuple[str, str]]:
         """要約を保存します。
 
@@ -913,7 +927,7 @@ class ArxivSummarizer(BaseService):
     def _serialize_papers(self, papers: list[PaperInfo]) -> list[dict]:
         records: list[dict] = []
         for paper in papers:
-            published = paper.published_at or datetime.now(UTC)
+            published = paper.published_at or datetime.now(timezone.utc)
             records.append(
                 {
                     "title": paper.title,
@@ -946,9 +960,9 @@ class ArxivSummarizer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            published = datetime.min.replace(tzinfo=UTC)
+            published = datetime.min.replace(tzinfo=timezone.utc)
         return (0, published)
 
     def _render_markdown(self, records: list[dict], today: datetime) -> str:

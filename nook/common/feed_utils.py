@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 from collections.abc import Iterable
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -56,7 +56,7 @@ def _parse_iso_datetime(value: str) -> datetime | None:
     # Convert to JST timezone-aware datetime
     if parsed.tzinfo is None:
         # Treat naive datetime as UTC, then convert to JST
-        return parsed.replace(tzinfo=UTC).astimezone(_jst_timezone())
+        return parsed.replace(tzinfo=timezone.utc).astimezone(_jst_timezone())
 
     # Already has timezone, convert to JST
     return parsed.astimezone(_jst_timezone())
@@ -73,8 +73,8 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         except (TypeError, ValueError):
             continue
 
-        # Convert UTC timestamp to JST timezone-aware datetime
-        return datetime.fromtimestamp(timestamp, tz=UTC).astimezone(_jst_timezone())
+        # Convert timezone.utc timestamp to JST timezone-aware datetime
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc).astimezone(_jst_timezone())
 
     for field in _STRING_FIELDS:
         value = _get_entry_value(entry, field)
@@ -91,8 +91,8 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         if parsed:
             # Convert to JST timezone-aware datetime
             if parsed.tzinfo is None:
-                # Treat naive datetime as UTC, then convert to JST
-                return parsed.replace(tzinfo=UTC).astimezone(_jst_timezone())
+                # Treat naive datetime as timezone.utc, then convert to JST
+                return parsed.replace(tzinfo=timezone.utc).astimezone(_jst_timezone())
             # Already has timezone, convert to JST
             return parsed.astimezone(_jst_timezone())
 

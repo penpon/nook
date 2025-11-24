@@ -5,6 +5,7 @@
 import asyncio
 import signal
 import sys
+from collections.abc import Iterable
 from datetime import date, datetime
 
 from dotenv import load_dotenv
@@ -62,7 +63,7 @@ class ServiceRunnerTest:
         service_name: str,
         service,
         days: int = 1,
-        target_dates: set[date] | None = None,
+        target_dates: Iterable[date] | None = None,
     ):
         """同期サービスを非同期で実行（テスト用：1件制限）"""
         # days パラメータを使用するサービスの場合、対象期間を表示

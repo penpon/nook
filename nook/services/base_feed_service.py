@@ -3,6 +3,7 @@
 import re
 from abc import abstractmethod
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from pathlib import Path
@@ -93,7 +94,7 @@ class BaseFeedService(BaseService):
     def _filter_entries(
         self,
         entries: list[dict],
-        target_dates: list[date],
+        target_dates: Iterable[date],
         limit: int | None = None,
     ) -> list[dict]:
         """エントリを日付とリミットでフィルタリングします。
@@ -102,7 +103,7 @@ class BaseFeedService(BaseService):
         ----------
         entries : list[dict]
             エントリのリスト。
-        target_dates : list[date]
+        target_dates : Iterable[date]
             対象日付のリスト。
         limit : int | None
             取得する記事数。Noneの場合は全て取得。

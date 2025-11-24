@@ -10,7 +10,7 @@ except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10
 
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -358,7 +358,7 @@ class RedditExplorer(BaseService):
             )
 
             created_at = (
-                datetime.fromtimestamp(submission.created_utc, tz=UTC)
+                datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
                 if hasattr(submission, "created_utc")
                 else None
             )
@@ -526,7 +526,7 @@ class RedditExplorer(BaseService):
     def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:
         records: list[dict] = []
         for category, subreddit, post in posts:
-            created_at = post.created_at or datetime.now(UTC)
+            created_at = post.created_at or datetime.now(timezone.utc)
             records.append(
                 {
                     "id": post.id,
@@ -574,9 +574,9 @@ class RedditExplorer(BaseService):
             try:
                 created = datetime.fromisoformat(created_raw)
             except ValueError:
-                created = datetime.min.replace(tzinfo=UTC)
+                created = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            created = datetime.min.replace(tzinfo=UTC)
+            created = datetime.min.replace(tzinfo=timezone.utc)
         return (popularity, created)
 
     def _extract_post_id_from_permalink(self, permalink: str) -> str:

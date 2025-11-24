@@ -1,5 +1,4 @@
-"""
-Reddit Explorer 統合テスト
+"""Reddit Explorer 統合テスト
 
 テスト観点:
 - データ取得→GPT要約→Storage保存の全体フロー
@@ -35,8 +34,7 @@ MAX_MEMORY_USAGE_MB = 50
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars):
-    """
-    Given: RedditExplorerサービスインスタンス
+    """Given: RedditExplorerサービスインスタンス
     When: collect()を実行
     Then: データ取得 → GPT要約 → Storage保存の全体フローが成功
     """
@@ -79,7 +77,7 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
     mock_submission.comments = mock_comments_obj
 
     async def mock_hot_generator(*args, **kwargs):
-        """async generatorのモック"""
+        """Async generatorのモック"""
         yield mock_submission
 
     mock_subreddit = Mock()
@@ -117,8 +115,7 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env_vars):
-    """
-    Given: ネットワークエラーが発生する状況
+    """Given: ネットワークエラーが発生する状況
     When: collect()を実行
     Then: 適切なエラーハンドリングがされる
     """
@@ -145,8 +142,7 @@ async def test_error_handling_network_failure_reddit_explorer(tmp_path, mock_env
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env_vars):
-    """
-    Given: GPT APIエラーが発生する状況
+    """Given: GPT APIエラーが発生する状況
     When: collect()を実行
     Then: フォールバック処理が動作
     """
@@ -188,7 +184,7 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
     mock_submission.comments = mock_comments_obj
 
     async def mock_hot_generator(*args, **kwargs):
-        """async generatorのモック"""
+        """Async generatorのモック"""
         yield mock_submission
 
     mock_subreddit = Mock()
@@ -225,8 +221,7 @@ async def test_error_handling_gpt_api_failure_reddit_explorer(tmp_path, mock_env
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_empty_data_handling_reddit_explorer(tmp_path, mock_env_vars):
-    """
-    Given: サブレディットが空（投稿が0件）
+    """Given: サブレディットが空（投稿が0件）
     When: collect()を実行
     Then: エラーなく処理され、空のリストが返される
     """
@@ -262,8 +257,7 @@ async def test_empty_data_handling_reddit_explorer(tmp_path, mock_env_vars):
 @pytest.mark.performance
 @pytest.mark.asyncio
 async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars):
-    """
-    Given: 大量データ（100件の投稿）を処理する
+    """Given: 大量データ（100件の投稿）を処理する
     When: collect()を実行
     Then: メモリ使用量が50MB以内
     """
@@ -349,8 +343,7 @@ async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_retry_mechanism_reddit_explorer(tmp_path, mock_env_vars):
-    """
-    Given: 最初の呼び出しでタイムアウト、2回目で成功する状況
+    """Given: 最初の呼び出しでタイムアウト、2回目で成功する状況
     When: collect()を実行
     Then: リトライメカニズムが動作し、最終的に成功
     """

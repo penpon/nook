@@ -276,7 +276,7 @@ class BusinessFeed(BaseFeedService):
         try:
             # URLを取得
             url = entry.link if hasattr(entry, "link") else None
-            if not url:
+            if not url or not self.http_client:
                 return None
 
             # タイトルを取得
@@ -303,7 +303,11 @@ class BusinessFeed(BaseFeedService):
                 # メタディスクリプションを取得
                 meta_desc = soup.find("meta", attrs={"name": "description"})
                 if meta_desc and meta_desc.get("content"):
-                    text = meta_desc.get("content")
+                    content = meta_desc.get("content")
+                    if isinstance(content, str):
+                        text = content
+                    elif isinstance(content, list):
+                        text = " ".join(content)
                 else:
                     # 本文の最初の段落を取得
                     paragraphs = soup.find_all("p")
@@ -384,8 +388,16 @@ class BusinessFeed(BaseFeedService):
 
         # 2. data属性を持つ要素
         for element in soup.select("[data-reaction-count], [data-like-count]"):
-            value = element.get("data-reaction-count") or element.get("data-like-count")
-            parsed = self._safe_parse_int(value)
+            val_reaction = element.get("data-reaction-count")
+            val_like = element.get("data-like-count")
+            attr_value = (
+                val_reaction
+                if isinstance(val_reaction, str)
+                else val_like
+                if isinstance(val_like, str)
+                else None
+            )
+            parsed = self._safe_parse_int(attr_value)
             if parsed is not None:
                 candidates.append(parsed)
 

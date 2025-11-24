@@ -46,6 +46,8 @@ dev = [
     "bandit>=1.7.0",
     "httpx>=0.24.0",
     "respx>=0.20.0",
+    "types-aiofiles>=25.1.0.20251011",
+    "types-requests>=2.32.4.20250913",
 ]
 
 [tool.pytest.ini_options]
