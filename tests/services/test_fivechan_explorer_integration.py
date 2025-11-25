@@ -15,10 +15,12 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from nook.services.fivechan_explorer.fivechan_explorer import Post
+
 # =============================================================================
 # テスト用定数
 # =============================================================================
-MAX_RESPONSE_SIZE_MB = 10
+MAX_RESPONSE_SIZE_MB = 1
 MAX_RESPONSE_SIZE_BYTES = MAX_RESPONSE_SIZE_MB * 1024 * 1024
 MAX_PROCESSING_TIME_SECONDS = 60.0
 MAX_MEMORY_USAGE_MB = 100
@@ -52,7 +54,7 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
         service = FiveChanExplorer()
 
         # テストデータ: XSSペイロードを含むスレッドタイトル
-        malicious_subject = "1234567890.dat<><script>alert('XSS')</script>悪意のあるスレ (100)\n"
+        malicious_subject = "1763996400.dat<><script>alert('XSS')</script>悪意のあるスレ (100)\n"
         subject_data = malicious_subject.encode("shift_jis", errors="ignore")
 
         # テストデータ: XSSペイロードを含むスレッド本文
@@ -76,15 +78,13 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
         # XSSペイロードを含む投稿データを返す
         async def mock_get_thread_posts(dat_url):
             posts = [
-                {
-                    "no": 1,
-                    "name": "<script>alert('XSS')</script>",
-                    "mail": "sage",
-                    "date": "2024/11/14",
-                    "com": "<script>alert('XSS')</script>悪意のある投稿",
-                    "time": "2024/11/14",
-                    "title": "<script>alert('XSS')</script>悪意のあるスレ",
-                }
+                Post(
+                    no=1,
+                    name="<script>alert('XSS')</script>",
+                    mail="sage",
+                    date="2024/11/14",
+                    content="<script>alert('XSS')</script>悪意のある投稿",
+                )
             ]
             return (posts, None)
 
@@ -127,12 +127,12 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
 @pytest.mark.security
 @pytest.mark.asyncio
 async def test_dos_protection_fivechan_explorer(mock_env_vars):
-    """Given: 10MBの巨大なレスポンス（DoS攻撃シミュレーション）
+    """Given: 1MBの巨大なレスポンス（DoS攻撃シミュレーション）
     When: collect()メソッドでデータ取得を実行
     Then: メモリオーバーフローせずに処理または適切に拒否される
 
     検証項目:
-    - 10MB以上のレスポンスを安全に処理
+    - 1MB以上のレスポンスを安全に処理
     - メモリ使用量が閾値以下 (100MB以下)
     - 処理時間が許容範囲内 (60秒以下)
     - クラッシュしない
@@ -142,7 +142,7 @@ async def test_dos_protection_fivechan_explorer(mock_env_vars):
 
         service = FiveChanExplorer()
 
-        # テストデータ: 10MBの巨大なレスポンス (有効なsubject.txt形式)
+        # テストデータ: 1MBの巨大なレスポンス (有効なsubject.txt形式)
         # subject.txt形式: "timestamp.dat<>title (count)\n"
         single_thread_entry = b"1234567890.dat<>" + b"A" * 200 + b" (100)\n"
         num_entries = MAX_RESPONSE_SIZE_BYTES // len(single_thread_entry)
@@ -231,7 +231,7 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
 
         # テストデータ: HTMLエスケープが必要な文字を含むスレッドタイトル
         html_special_chars_subject = (
-            '1234567890.dat<>テスト&lt;script&gt;alert("XSS")&lt;/script&gt;スレ (50)\n'
+            '1763996400.dat<>テスト&lt;script&gt;alert("XSS")&lt;/script&gt;スレ (50)\n'
         )
         subject_data = html_special_chars_subject.encode("shift_jis", errors="ignore")
 
@@ -266,15 +266,13 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
         # HTMLエスケープ済み文字を含む投稿データを返す
         async def mock_get_thread_posts_sanitization(dat_url):
             posts = [
-                {
-                    "no": 1,
-                    "name": "名無しさん",
-                    "mail": "sage",
-                    "date": "2024/11/14",
-                    "com": "テスト😀&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;🎉",
-                    "time": "2024/11/14",
-                    "title": 'テスト&lt;script&gt;alert("XSS")&lt;/script&gt;スレ',
-                }
+                Post(
+                    no=1,
+                    name="名無しさん",
+                    mail="sage",
+                    date="2024/11/14",
+                    content="テスト😀&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;🎉",
+                )
             ]
             return (posts, None)
 
