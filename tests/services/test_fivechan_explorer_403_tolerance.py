@@ -30,9 +30,7 @@ async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
 
     # Verify
     assert result is not None
@@ -62,9 +60,7 @@ async def test_get_with_403_tolerance_success_after_retry(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
 
     # Verify
     assert result is not None
@@ -89,9 +85,7 @@ async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
 
     # Verify
     assert result is None
@@ -120,9 +114,7 @@ async def test_get_with_403_tolerance_exception_handling(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
 
     # Verify
     assert result is not None
@@ -141,9 +133,7 @@ async def test_get_with_403_tolerance_no_http_client(tmp_path):
     service.http_client = None
 
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
 
     # Verify
     assert result is None

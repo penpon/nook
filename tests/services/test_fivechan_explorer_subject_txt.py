@@ -22,10 +22,7 @@ async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path):
     service = FiveChanExplorer(storage_dir=str(tmp_path))
 
     # subject.txt形式のデータ(Shift_JISでエンコード)
-    subject_txt_unicode = (
-        "1577836800.dat<>【AI】ChatGPT (100)\n"
-        "1577836900.dat<>機械学習 (50)\n"
-    )
+    subject_txt_unicode = "1577836800.dat<>【AI】ChatGPT (100)\n1577836900.dat<>機械学習 (50)\n"
     subject_txt_content = subject_txt_unicode.encode("shift_jis")
 
     mock_response = Mock()

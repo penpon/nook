@@ -35,9 +35,7 @@ async def test_get_thread_posts_from_dat_parse_valid_dat(tmp_path):
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert error is None
@@ -70,9 +68,7 @@ async def test_get_thread_posts_from_dat_handle_decoding_errors_shift_jis(tmp_pa
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert error is None
@@ -101,9 +97,7 @@ async def test_get_thread_posts_from_dat_handle_decoding_errors_cp932(tmp_path):
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert error is None
@@ -134,9 +128,7 @@ async def test_get_thread_posts_from_dat_handle_max_posts_limit(tmp_path):
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert error is None
@@ -160,9 +152,7 @@ async def test_get_thread_posts_from_dat_handle_http_error(tmp_path):
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert posts == []
@@ -183,9 +173,7 @@ async def test_get_thread_posts_from_dat_handle_network_exception(tmp_path):
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert posts == []
@@ -210,9 +198,7 @@ async def test_get_thread_posts_from_dat_handle_empty_dat(tmp_path):
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert posts == []
@@ -230,9 +216,7 @@ async def test_get_thread_posts_from_dat_handle_malformed_dat(tmp_path):
 
     # 正常な行と不正な行の混在
     dat_content = (
-        "名無し<><>2020/01/01<>正常な投稿<>\n"
-        "不正な行\n"
-        "名無し2<><>2020/01/01<>正常な投稿2<>\n"
+        "名無し<><>2020/01/01<>正常な投稿<>\n不正な行\n名無し2<><>2020/01/01<>正常な投稿2<>\n"
     )
 
     mock_response = Mock()
@@ -244,9 +228,7 @@ async def test_get_thread_posts_from_dat_handle_malformed_dat(tmp_path):
 
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
 
     # Verify
     assert error is None
