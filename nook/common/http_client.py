@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class AsyncHTTPClient:
     """非同期HTTPクライアント with connection pooling"""
 
-    def __init__(self, config: BaseConfig = None):
+    def __init__(self, config: BaseConfig | None = None):
         self.config = config or BaseConfig()
         self.timeout = httpx.Timeout(
             timeout=self.config.REQUEST_TIMEOUT,
@@ -126,12 +126,16 @@ class AsyncHTTPClient:
             if not self._http1_client:
                 await self._start_http1_client()
             client = self._http1_client
+            if client is None:
+                raise RuntimeError("HTTP client not initialized")
             logger.debug(f"GET {url} (forced HTTP/1.1)", extra={"params": params})
         else:
             # 通常のHTTP/2クライアントを使用
             if not self._client:
                 await self.start()
             client = self._client
+            if client is None:
+                raise RuntimeError("HTTP client not initialized")
             logger.debug(f"GET {url}", extra={"params": params})
 
         try:
@@ -194,13 +198,15 @@ class AsyncHTTPClient:
         self,
         url: str,
         json: dict[str, Any] | None = None,
-        data: dict[str, Any] | bytes | None = None,
+        data: Any = None,
         headers: dict[str, str] | None = None,
         **kwargs,
     ) -> httpx.Response:
         """POST リクエスト"""
         if not self._client:
             await self.start()
+        if self._client is None:
+            raise RuntimeError("HTTP client not initialized")
 
         logger.debug(f"POST {url}")
 
@@ -294,6 +300,8 @@ class AsyncHTTPClient:
         """ファイルをダウンロード"""
         if not self._client:
             await self.start()
+        if self._client is None:
+            raise RuntimeError("HTTP client not initialized")
 
         async with self._client.stream("GET", url) as response:
             response.raise_for_status()

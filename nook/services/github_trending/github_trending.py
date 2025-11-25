@@ -7,8 +7,9 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -237,6 +238,8 @@ class GithubTrending(BaseService):
             url += f"/{language}"
 
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
 
@@ -417,7 +420,7 @@ class GithubTrending(BaseService):
         self,
         repositories_by_language: list[tuple[str, list[Repository]]],
         limit_per_language: int | None,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> list[tuple[str, str]]:
         """リポジトリ情報を保存します。
 
@@ -462,7 +465,7 @@ class GithubTrending(BaseService):
         default_date: date,
     ) -> list[dict[str, Any]]:
         serialized: list[dict[str, Any]] = []
-        base_dt = datetime.combine(default_date, time.min, tzinfo=UTC)
+        base_dt = datetime.combine(default_date, time.min, tzinfo=timezone.utc)
         now_iso = base_dt.isoformat()
         for language, repositories in repositories_by_language:
             for repo in repositories:
@@ -506,9 +509,9 @@ class GithubTrending(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            published = datetime.min.replace(tzinfo=UTC)
+            published = datetime.min.replace(tzinfo=timezone.utc)
         return (stars, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:

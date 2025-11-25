@@ -13,7 +13,9 @@ T = TypeVar("T")
 class TaskResult:
     """タスク実行結果"""
 
-    def __init__(self, name: str, success: bool, result: Any = None, error: Exception = None):
+    def __init__(
+        self, name: str, success: bool, result: Any = None, error: Exception | None = None
+    ):
         self.name = name
         self.success = success
         self.result = result

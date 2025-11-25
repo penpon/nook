@@ -53,10 +53,11 @@ except RetryError as e:
     # 内部のエラーを取得
     if e.last_attempt.failed:
         inner_error = e.last_attempt.exception()
-        print(f"Inner error: {type(inner_error).__name__}: {inner_error}")
-        if hasattr(inner_error, "response"):
-            print(f"Response status: {inner_error.response.status_code}")
-            print(f"Response body: {inner_error.response.text}")
+        if inner_error:
+            print(f"Inner error: {type(inner_error).__name__}: {inner_error}")
+            if hasattr(inner_error, "response"):
+                print(f"Response status: {inner_error.response.status_code}")
+                print(f"Response body: {inner_error.response.text}")
 except Exception as e:
     print(f"Error: {type(e).__name__}: {e}")
     import traceback

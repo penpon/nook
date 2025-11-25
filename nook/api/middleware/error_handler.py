@@ -125,7 +125,7 @@ def create_error_response(
     error_type: str,
     message: str,
     error_id: str,
-    details: dict[str, Any] = None,
+    details: dict[str, Any] | None = None,
 ) -> JSONResponse:
     """標準化されたエラーレスポンスを作成"""
     content = {

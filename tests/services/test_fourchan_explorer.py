@@ -48,7 +48,8 @@ def get_jst_date_from_utc(utc_dt: datetime) -> date:
 
 
 @pytest.mark.unit
-def test_init_with_default_storage_dir(fourchan_service):
+@pytest.mark.asyncio
+async def test_init_with_default_storage_dir(fourchan_service):
     """Given: デフォルトのstorage_dir
     When: FourChanExplorerを初期化
     Then: インスタンスが正常に作成される
@@ -199,7 +200,8 @@ async def test_full_workflow_collect_and_save(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_load_boards_success(mock_env_vars):
+@pytest.mark.asyncio
+async def test_load_boards_success(mock_env_vars):
     """Given: デフォルトまたは有効なboards.toml
     When: _load_boards()を呼び出す
     Then: ボードリストが正しく読み込まれる
@@ -218,7 +220,8 @@ def test_load_boards_success(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_load_boards_file_not_found(mock_env_vars):
+@pytest.mark.asyncio
+async def test_load_boards_file_not_found(mock_env_vars):
     """Given: boards.tomlが存在しない
     When: _load_boards()を呼び出す
     Then: デフォルトのボードリストが返される
@@ -237,7 +240,8 @@ def test_load_boards_file_not_found(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_load_boards_invalid_toml(mock_env_vars, tmp_path):
+@pytest.mark.asyncio
+async def test_load_boards_invalid_toml(mock_env_vars, tmp_path):
     """Given: 不正な形式のboards.toml
     When: _load_boards()を呼び出す
     Then: デフォルトのボードリストが返される
@@ -270,7 +274,8 @@ def test_load_boards_invalid_toml(mock_env_vars, tmp_path):
 
 
 @pytest.mark.unit
-def test_calculate_popularity_with_all_fields(mock_env_vars):
+@pytest.mark.asyncio
+async def test_calculate_popularity_with_all_fields(mock_env_vars):
     """Given: すべてのフィールドが存在するメタデータ
     When: _calculate_popularity()を呼び出す
     Then: 正しい人気スコアが計算される
@@ -297,7 +302,8 @@ def test_calculate_popularity_with_all_fields(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_calculate_popularity_with_none_values(mock_env_vars):
+@pytest.mark.asyncio
+async def test_calculate_popularity_with_none_values(mock_env_vars):
     """Given: Noneを含むメタデータ
     When: _calculate_popularity()を呼び出す
     Then: 0として扱われ、エラーが発生しない
@@ -322,7 +328,8 @@ def test_calculate_popularity_with_none_values(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_calculate_popularity_with_missing_fields(mock_env_vars):
+@pytest.mark.asyncio
+async def test_calculate_popularity_with_missing_fields(mock_env_vars):
     """Given: フィールドが欠損したメタデータ
     When: _calculate_popularity()を呼び出す
     Then: 0として扱われ、エラーが発生しない
@@ -342,7 +349,8 @@ def test_calculate_popularity_with_missing_fields(mock_env_vars):
 
 
 @pytest.mark.unit
-def test_calculate_popularity_with_recent_thread(mock_env_vars):
+@pytest.mark.asyncio
+async def test_calculate_popularity_with_recent_thread(mock_env_vars):
     """Given: 最近更新されたスレッド
     When: _calculate_popularity()を呼び出す
     Then: recency_bonusが高くなる

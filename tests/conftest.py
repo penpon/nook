@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
+import pytest_asyncio
 import respx
 
 # プロジェクトルートをPythonパスに追加
@@ -882,7 +883,7 @@ def hacker_news_service(mock_logger):
         return service
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def fourchan_service(mock_logger, mock_env_vars):
     """FourChanExplorerのフィクスチャ"""
     with patch("nook.common.base_service.setup_logger", return_value=mock_logger):

@@ -66,7 +66,7 @@ class RateLimitedHTTPClient(AsyncHTTPClient):
 
     def __init__(
         self,
-        config: BaseConfig = None,
+        config: BaseConfig | None = None,
         default_rate_limit: RateLimiter | None = None,
     ):
         super().__init__(config)

@@ -1,5 +1,4 @@
-"""
-Hacker News統合テスト
+"""Hacker News統合テスト
 
 このファイルには、Hacker Newsサービスの統合テストが含まれています。
 データ取得→GPT要約→Storage保存の全体フローをテストします。
@@ -44,8 +43,7 @@ def get_today_timestamp() -> int:
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars):
-    """
-    Given: Hacker Newsサービスインスタンス
+    """Given: Hacker Newsサービスインスタンス
     When: collect()を実行
     Then: データ取得 → GPT要約 → Storage保存の全体フローが成功
     """
@@ -126,8 +124,7 @@ async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars)
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_network_failure_hacker_news(tmp_path, mock_env_vars):
-    """
-    Given: ネットワークエラーが発生する状況
+    """Given: ネットワークエラーが発生する状況
     When: collect()を実行
     Then: 適切なエラーハンドリングがされる（リトライ後にRetryException発生）
     """
@@ -150,8 +147,7 @@ async def test_error_handling_network_failure_hacker_news(tmp_path, mock_env_var
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_vars):
-    """
-    Given: GPT APIエラーが発生する状況
+    """Given: GPT APIエラーが発生する状況
     When: collect()を実行
     Then: フォールバック処理が動作（エラーメッセージ付きでデータは保存される）
     """
@@ -194,9 +190,9 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
         async def mock_get_side_effect(url, **kwargs):
             if "topstories.json" in url:
                 return mock_topstories_response
-            elif "/item/12345.json" in url:
+            if "/item/12345.json" in url:
                 return mock_story_response_1
-            elif "/item/12346.json" in url:
+            if "/item/12346.json" in url:
                 return mock_story_response_2
             raise ValueError(f"Unexpected URL: {url}")
 
@@ -223,8 +219,7 @@ async def test_error_handling_gpt_api_failure_hacker_news(tmp_path, mock_env_var
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_empty_data_handling_hacker_news(tmp_path, mock_env_vars):
-    """
-    Given: トップストーリーが空の場合
+    """Given: トップストーリーが空の場合
     When: collect()を実行
     Then: 空のリストが返され、エラーなく処理が完了する
     """
@@ -250,8 +245,7 @@ async def test_empty_data_handling_hacker_news(tmp_path, mock_env_vars):
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_pagination_handling_hacker_news(tmp_path, mock_env_vars):
-    """
-    Given: 複数ページのストーリーが存在する場合
+    """Given: 複数ページのストーリーが存在する場合
     When: collect()を実行
     Then: 指定されたlimit数までのストーリーが正しく取得される
     """
@@ -272,7 +266,7 @@ async def test_pagination_handling_hacker_news(tmp_path, mock_env_vars):
         mock_topstories_response.json.return_value = story_ids
 
         # ストーリー詳細のモック（各ストーリーにユニークなタイトル）
-        def create_story_response(story_id):
+        def create_story_response(story_id: int) -> Mock:
             mock_response = Mock()
             mock_response.json.return_value = {
                 "title": f"Test Pagination Story {story_id}",
@@ -309,8 +303,7 @@ async def test_pagination_handling_hacker_news(tmp_path, mock_env_vars):
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_rate_limit_handling_hacker_news(tmp_path, mock_env_vars):
-    """
-    Given: レート制限エラー（429）が発生する状況
+    """Given: レート制限エラー（429）が発生する状況
     When: collect()を実行
     Then: リトライが実行され、最終的にRetryExceptionが返される
     """

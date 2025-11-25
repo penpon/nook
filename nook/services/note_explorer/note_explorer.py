@@ -288,7 +288,7 @@ class NoteExplorer(BaseFeedService):
         try:
             # URLを取得
             url = entry.link if hasattr(entry, "link") else None
-            if not url:
+            if not url or not self.http_client:
                 return None
 
             # タイトルを取得
@@ -310,7 +310,11 @@ class NoteExplorer(BaseFeedService):
                 # メタディスクリプションを取得
                 meta_desc = soup.find("meta", attrs={"name": "description"})
                 if meta_desc and meta_desc.get("content"):
-                    text = meta_desc.get("content")
+                    content = meta_desc.get("content")
+                    if isinstance(content, str):
+                        text = content
+                    elif isinstance(content, list):
+                        text = " ".join(content)
                 else:
                     # 本文の最初の段落を取得
                     paragraphs = soup.find_all("p")

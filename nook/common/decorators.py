@@ -18,14 +18,13 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs) -> T:
             logger = logging.getLogger(func.__module__)
-            last_exception = None
+            last_exception: Exception | None = None
 
             for attempt in range(retries):
                 try:
-                    result = await func(*args, **kwargs)
-                    if attempt > 0:
-                        logger.info(f"Function {func.__name__} succeeded after {attempt} retries")
-                    return result
+                    if asyncio.iscoroutinefunction(func):
+                        return await func(*args, **kwargs)
+                    return func(*args, **kwargs)
 
                 except Exception as e:
                     last_exception = e
@@ -48,7 +47,9 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                         logger.error(f"Function {func.__name__} failed after {retries} attempts")
                         raise RetryException(f"Failed after {retries} attempts: {e}") from e
 
-            raise last_exception
+            if last_exception:
+                raise last_exception
+            raise RetryException("Failed with no exception captured")
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs) -> T:
@@ -76,7 +77,9 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                         logger.error(f"Function {func.__name__} failed after {retries} attempts")
                         raise RetryException(f"Failed after {retries} attempts: {e}") from e
 
-            raise last_exception
+            if last_exception:
+                raise last_exception
+            raise RetryException("Failed with no exception captured")
 
         # 非同期関数か同期関数かを判定
         if asyncio.iscoroutinefunction(func):
@@ -95,7 +98,10 @@ def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
         start_time = datetime.now()
 
         try:
-            result = await func(*args, **kwargs)
+            if asyncio.iscoroutinefunction(func):
+                result = await func(*args, **kwargs)
+            else:
+                result = func(*args, **kwargs)
             execution_time = (datetime.now() - start_time).total_seconds()
 
             logger.info(

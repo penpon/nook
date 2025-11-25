@@ -4,8 +4,9 @@ import asyncio
 import json
 import os
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -123,7 +124,7 @@ class HackerNewsRetriever(BaseService):
         dedup_tracker = await self._load_existing_titles()
 
         stories = await self._get_top_stories(limit, dedup_tracker, effective_target_dates)
-        saved_files = await self._store_summaries(stories, effective_target_dates)
+        saved_files = await self._store_summaries(stories, sorted(effective_target_dates))
 
         # 処理完了メッセージ
         if saved_files:
@@ -184,6 +185,8 @@ class HackerNewsRetriever(BaseService):
 
         """
         # 1. topstoriesから多めに記事IDを取得（100件）
+        if self.http_client is None:
+            raise RuntimeError("HTTP client not initialized")
         response = await self.http_client.get(f"{self.base_url}/topstories.json")
         story_ids = response.json()
         if FETCH_LIMIT is not None:
@@ -207,24 +210,22 @@ class HackerNewsRetriever(BaseService):
         # 4. フィルタリング処理を追加
         filtered_stories = []
         for story in all_stories:
-            if story.created_at:
-                story_date = normalize_datetime_to_local(story.created_at).date()
+            # スコアフィルタリング
+            if story.score < SCORE_THRESHOLD:
+                continue
 
-                # スコアフィルタリング
-                if story.score < SCORE_THRESHOLD:
-                    continue
+            # テキスト長フィルタリング
+            text_content = story.text or ""
+            text_length = len(text_content)
 
-                # テキスト長フィルタリング
-                text_content = story.text or ""
-                text_length = len(text_content)
+            if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
+                continue
 
-                if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
-                    continue
+            # 日付でフィルタリング
+            if story.created_at and not is_within_target_dates(story.created_at, target_dates):
+                continue
 
-                if not is_within_target_dates(story.created_at, target_dates):
-                    continue
-
-                filtered_stories.append(story)
+            filtered_stories.append(story)
 
         # 5. スコアで降順ソート
         filtered_stories.sort(key=lambda story: story.score, reverse=True)
@@ -245,14 +246,13 @@ class HackerNewsRetriever(BaseService):
             unique_stories.append(story)
 
         # 6. 各日独立で最大15件ずつ選択
-        # 日付別に記事をグループ化
-        stories_by_date = {}
+        # 日付ごとにグループ化
+        stories_by_date: dict[date, list[Story]] = {}
         for story in unique_stories:
-            if story.created_at:
-                story_date = normalize_datetime_to_local(story.created_at).date()
-                if story_date not in stories_by_date:
-                    stories_by_date[story_date] = []
-                stories_by_date[story_date].append(story)
+            created_at = story.created_at
+            if created_at:
+                story_date = normalize_datetime_to_local(created_at).date()
+                stories_by_date.setdefault(story_date, []).append(story)
 
         # 各日独立で上位15件を選択して結合
         selected_stories = []
@@ -358,10 +358,12 @@ class HackerNewsRetriever(BaseService):
     async def _fetch_story(self, story_id: int) -> Story | None:
         """個別のストーリーを取得"""
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(f"{self.base_url}/item/{story_id}.json")
             item = response.json()
 
-            if "title" not in item:
+            if not item or "title" not in item:
                 return None
 
             story = Story(
@@ -374,11 +376,11 @@ class HackerNewsRetriever(BaseService):
             timestamp = item.get("time")
             if timestamp is not None:
                 try:
-                    story.created_at = datetime.fromtimestamp(int(timestamp), tz=UTC)
+                    story.created_at = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
                 except Exception:
                     story.created_at = None
             if story.created_at is None:
-                story.created_at = datetime.now(UTC)
+                story.created_at = datetime.now(timezone.utc)
 
             # URLがある場合は記事の内容を取得
             if story.url and not story.text:
@@ -392,22 +394,31 @@ class HackerNewsRetriever(BaseService):
     async def _fetch_story_content(self, story: Story) -> None:
         """記事の内容を取得"""
         # ブロックされたドメインをチェック
-        if self._is_blocked_domain(story.url):
+        if story.url and self._is_blocked_domain(story.url):
             domain = urlparse(story.url).netloc.lower()
             if domain.startswith("www."):
                 domain = domain[4:]
 
-            reason = self.blocked_domains.get("reasons", {}).get(domain, "アクセス制限")
+            reason_dict = self.blocked_domains.get("reasons", {})
+            if isinstance(reason_dict, dict):
+                reason = reason_dict.get(domain, "アクセス制限")
+            else:
+                reason = "アクセス制限"
             story.text = f"このサイト（{domain}）は{reason}のためブロックされています。"
             self.logger.debug(f"ブロックされたドメインをスキップ: {story.url} - {reason}")
             return
 
         # HTTP/1.1が必要なドメインをチェック
+        if not story.url:
+            return
+
         force_http1 = self._is_http1_required_domain(story.url)
         if force_http1:
             self.logger.info(f"Using HTTP/1.1 for {story.url} (required domain)")
 
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(story.url, force_http1=force_http1)
 
             if response.status_code == 200:
@@ -420,7 +431,9 @@ class HackerNewsRetriever(BaseService):
                     meta_desc = soup.find("meta", attrs={"property": "og:description"})
 
                 if meta_desc and meta_desc.get("content"):
-                    story.text = meta_desc.get("content")
+                    content = meta_desc.get("content")
+                    if isinstance(content, str):
+                        story.text = content
                 else:
                     # 本文の最初の段落を取得（より多くの段落を試す）
                     paragraphs = soup.find_all("p")
@@ -521,19 +534,20 @@ class HackerNewsRetriever(BaseService):
                         continue
 
                     # エラー理由を特定
-                    if "522" in story.text or "Server error" in story.text:
+                    story_text = story.text or ""
+                    if "522" in story_text or "Server error" in story_text:
                         reason = "522 - Server error"
-                    elif "429" in story.text:
+                    elif "429" in story_text:
                         reason = "429 - Too Many Requests"
-                    elif "403" in story.text:
+                    elif "403" in story_text:
                         reason = "403 - Access denied"
-                    elif "404" in story.text:
+                    elif "404" in story_text:
                         reason = "404 - Not found"
-                    elif "timeout" in story.text.lower():
+                    elif "timeout" in story_text.lower():
                         reason = "Timeout error"
-                    elif "SSL" in story.text or "handshake" in story.text:
+                    elif "SSL" in story_text or "handshake" in story_text:
                         reason = "SSL/TLS error"
-                    elif "Request error" in story.text:
+                    elif "Request error" in story_text:
                         reason = "Request error"
                     else:
                         reason = "Connection error"
@@ -629,7 +643,7 @@ class HackerNewsRetriever(BaseService):
             story.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
-        self, stories: list[Story], target_dates: list[date]
+        self, stories: list[Story], target_dates: Iterable[date]
     ) -> list[tuple[str, str]]:
         """記事情報を日付別に保存します。"""
         if not stories:
@@ -657,7 +671,7 @@ class HackerNewsRetriever(BaseService):
     def _serialize_stories(self, stories: list[Story]) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
         for story in stories:
-            created = story.created_at or datetime.now(UTC)
+            created = story.created_at or datetime.now(timezone.utc)
             records.append(
                 {
                     "title": story.title,
@@ -690,9 +704,9 @@ class HackerNewsRetriever(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            published = datetime.min.replace(tzinfo=UTC)
+            published = datetime.min.replace(tzinfo=timezone.utc)
         return (score, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:

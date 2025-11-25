@@ -6,6 +6,8 @@
 .CLAUDE.md
 .spec-workflow
 .pre-commit-config.yaml
+task3-hackernews-integration-test
+task5-fivechan-explorer-integration-test
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/
