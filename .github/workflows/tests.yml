@@ -45,7 +45,7 @@ jobs:
         uv run poe format
         uv run poe lint
         uv run poe type-check
-        uv run pytest tests/ -n auto --dist loadscope -v -m "not integration" --cov=modules --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
+        uv run pytest tests/ -n auto --dist loadscope -v -m "not integration" --cov=nook --cov-report=xml --cov-report=term-missing --timeout=300 --tb=short
         uv run poe audit
         echo ""
         echo "✅ すべての品質チェックが成功しました"
@@ -56,9 +56,9 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
 
-        if ! git diff --quiet modules/ tests/; then
+        if ! git diff --quiet nook/ tests/; then
           echo "📝 フォーマット変更を検出しました。自動コミットします..."
-          git add modules/ tests/
+          git add nook/ tests/
           git commit -m "style: Ruffによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
           git push
           echo "✅ フォーマット変更をコミット＆プッシュしました"
