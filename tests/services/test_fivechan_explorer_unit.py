@@ -9,20 +9,14 @@ Integration testではカバーしきれない詳細なエラーハンドリン�
 - _get_thread_posts_from_dat: .datファイルから投稿を取得
 """
 
-import asyncio
-from datetime import date
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 
 from nook.services.fivechan_explorer.fivechan_explorer import (
     FiveChanExplorer,
-    Post,
-    Thread,
 )
-
 
 # =============================================================================
 # テスト対象: _get_with_403_tolerance
@@ -37,20 +31,18 @@ async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = b"test content"
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.return_value = mock_response
     service.http_client = mock_http_client
-    
+
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
-    
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
+
     # Verify
     assert result is not None
     assert result.status_code == 200
@@ -65,24 +57,22 @@ async def test_get_with_403_tolerance_success_after_retry(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # 最初は403、2回目は200
     mock_response_403 = Mock()
     mock_response_403.status_code = 403
-    
+
     mock_response_200 = Mock()
     mock_response_200.status_code = 200
     mock_response_200.content = b"test content"
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.side_effect = [mock_response_403, mock_response_200]
     service.http_client = mock_http_client
-    
+
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
-    
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
+
     # Verify
     assert result is not None
     assert result.status_code == 200
@@ -97,19 +87,17 @@ async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response_403 = Mock()
     mock_response_403.status_code = 403
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.return_value = mock_response_403
     service.http_client = mock_http_client
-    
+
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
-    
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
+
     # Verify
     assert result is None
     assert mock_http_client.get.call_count == 3  # 3つの戦略すべて試行
@@ -123,11 +111,11 @@ async def test_get_with_403_tolerance_exception_handling(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response_200 = Mock()
     mock_response_200.status_code = 200
     mock_response_200.content = b"test content"
-    
+
     mock_http_client = AsyncMock()
     # 最初は例外、2回目は成功
     mock_http_client.get.side_effect = [
@@ -135,12 +123,10 @@ async def test_get_with_403_tolerance_exception_handling(tmp_path):
         mock_response_200,
     ]
     service.http_client = mock_http_client
-    
+
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
-    
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
+
     # Verify
     assert result is not None
     assert result.status_code == 200
@@ -156,12 +142,10 @@ async def test_get_with_403_tolerance_no_http_client(tmp_path):
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
     service.http_client = None
-    
+
     # Execute
-    result = await service._get_with_403_tolerance(
-        "https://example.com/test", "test_board"
-    )
-    
+    result = await service._get_with_403_tolerance("https://example.com/test", "test_board")
+
     # Verify
     assert result is None
 
@@ -179,27 +163,24 @@ async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # subject.txt形式のデータ（Shift_JISでエンコード）
-    subject_txt_unicode = (
-        "1577836800.dat<>【AI】ChatGPT (100)\n"
-        "1577836900.dat<>機械学習 (50)\n"
-    )
+    subject_txt_unicode = "1577836800.dat<>【AI】ChatGPT (100)\n1577836900.dat<>機械学習 (50)\n"
     subject_txt_content = subject_txt_unicode.encode("shift_jis")
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = subject_txt_content
-    
+
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock()
     mock_client.get.return_value = mock_response
-    
+
     with patch("httpx.AsyncClient", return_value=mock_client):
         # Execute
         result = await service._get_subject_txt_data("ai")
-    
+
     # Verify
     assert len(result) == 2
     assert result[0]["timestamp"] == "1577836800"
@@ -217,23 +198,23 @@ async def test_get_subject_txt_data_handle_decoding_errors_shift_jis(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # Shift_JISでエンコード
     subject_txt_content = "1577836800.dat<>テストスレッド (10)\n".encode("shift_jis")
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = subject_txt_content
-    
+
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock()
     mock_client.get.return_value = mock_response
-    
+
     with patch("httpx.AsyncClient", return_value=mock_client):
         # Execute
         result = await service._get_subject_txt_data("ai")
-    
+
     # Verify
     assert len(result) == 1
     assert result[0]["timestamp"] == "1577836800"
@@ -248,23 +229,23 @@ async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # CP932特有の文字を含むデータ（①など）
     subject_txt_content = "1577836800.dat<>①テストスレッド (10)\n".encode("cp932")
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = subject_txt_content
-    
+
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock()
     mock_client.get.return_value = mock_response
-    
+
     with patch("httpx.AsyncClient", return_value=mock_client):
         # Execute
         result = await service._get_subject_txt_data("ai")
-    
+
     # Verify
     assert len(result) == 1
     assert result[0]["timestamp"] == "1577836800"
@@ -278,20 +259,20 @@ async def test_get_subject_txt_data_handle_empty_data(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = b""
-    
+
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock()
     mock_client.get.return_value = mock_response
-    
+
     with patch("httpx.AsyncClient", return_value=mock_client):
         # Execute
         result = await service._get_subject_txt_data("ai")
-    
+
     # Verify
     assert result == []
 
@@ -304,7 +285,7 @@ async def test_get_subject_txt_data_handle_malformed_data(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # 正常な行と不正な行の混在
     subject_txt_content = (
         b"1577836800.dat<>Valid Thread (10)\n"
@@ -312,20 +293,20 @@ async def test_get_subject_txt_data_handle_malformed_data(tmp_path):
         b"1577836900.dat<>Another Valid (20)\n"
         b"no_angle_brackets.dat\n"
     )
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = subject_txt_content
-    
+
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock()
     mock_client.get.return_value = mock_response
-    
+
     with patch("httpx.AsyncClient", return_value=mock_client):
         # Execute
         result = await service._get_subject_txt_data("ai")
-    
+
     # Verify
     assert len(result) == 2  # 不正な行2つはスキップされる
     assert result[0]["timestamp"] == "1577836800"
@@ -340,16 +321,16 @@ async def test_get_subject_txt_data_network_error_all_servers_fail(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock()
     mock_client.get.side_effect = httpx.RequestError("Network error", request=Mock())
-    
+
     with patch("httpx.AsyncClient", return_value=mock_client):
         # Execute
         result = await service._get_subject_txt_data("ai")
-    
+
     # Verify
     assert result == []
 
@@ -362,24 +343,24 @@ async def test_get_subject_txt_data_404_error(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response_404 = Mock()
     mock_response_404.status_code = 404
-    
+
     mock_response_200 = Mock()
     mock_response_200.status_code = 200
     mock_response_200.content = b"1577836800.dat<>Test Thread (10)\n"
-    
+
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock()
     # 最初のサーバーは404、2番目のサーバーは成功
     mock_client.get.side_effect = [mock_response_404, mock_response_200]
-    
+
     with patch("httpx.AsyncClient", return_value=mock_client):
         # Execute
         result = await service._get_subject_txt_data("ai")
-    
+
     # Verify
     assert len(result) == 1
     assert result[0]["timestamp"] == "1577836800"
@@ -398,26 +379,24 @@ async def test_get_thread_posts_from_dat_parse_valid_dat(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # .dat形式: name<>mail<>date<>content<>title
     dat_content = (
         "名無しさん<>sage<>2020/01/01(水) 12:34:56<>これはテスト投稿です<>\n"
         "テスターB<><>2020/01/01(水) 12:35:00<>返信テストです<>\n"
     )
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = dat_content.encode("shift_jis")
-    
+
     mock_scraper = Mock()
     mock_scraper.get.return_value = mock_response
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert error is None
     assert len(posts) == 2
@@ -437,22 +416,20 @@ async def test_get_thread_posts_from_dat_handle_decoding_errors_shift_jis(tmp_pa
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     dat_content = "名無し<><>2020/01/01<>テスト<>\n"
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = dat_content.encode("shift_jis")
-    
+
     mock_scraper = Mock()
     mock_scraper.get.return_value = mock_response
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert error is None
     assert len(posts) == 1
@@ -467,23 +444,21 @@ async def test_get_thread_posts_from_dat_handle_decoding_errors_cp932(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # CP932特有の文字
     dat_content = "名無し<><>2020/01/01<>①テスト<>\n"
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = dat_content.encode("cp932")
-    
+
     mock_scraper = Mock()
     mock_scraper.get.return_value = mock_response
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert error is None
     assert len(posts) == 1
@@ -497,26 +472,24 @@ async def test_get_thread_posts_from_dat_handle_max_posts_limit(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # MAX_POSTS_PER_THREADは10なので、15件の投稿を作成
     lines = []
     for i in range(15):
         lines.append(f"名無し{i}<><>2020/01/01<>投稿{i}<>\n")
     dat_content = "".join(lines)
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = dat_content.encode("shift_jis")
-    
+
     mock_scraper = Mock()
     mock_scraper.get.return_value = mock_response
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert error is None
     assert len(posts) == 10  # MAX_POSTS_PER_THREADまで制限される
@@ -530,19 +503,17 @@ async def test_get_thread_posts_from_dat_handle_http_error(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response = Mock()
     mock_response.status_code = 404
-    
+
     mock_scraper = Mock()
     mock_scraper.get.return_value = mock_response
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert posts == []
     assert error == "HTTP 404"
@@ -556,16 +527,14 @@ async def test_get_thread_posts_from_dat_handle_network_exception(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_scraper = Mock()
     mock_scraper.get.side_effect = Exception("Network timeout")
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert posts == []
     assert "Network timeout" in error
@@ -579,20 +548,18 @@ async def test_get_thread_posts_from_dat_handle_empty_dat(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = b""
-    
+
     mock_scraper = Mock()
     mock_scraper.get.return_value = mock_response
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert posts == []
     assert error is None
@@ -606,27 +573,23 @@ async def test_get_thread_posts_from_dat_handle_malformed_dat(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # 正常な行と不正な行の混在
     dat_content = (
-        "名無し<><>2020/01/01<>正常な投稿<>\n"
-        "不正な行\n"
-        "名無し2<><>2020/01/01<>正常な投稿2<>\n"
+        "名無し<><>2020/01/01<>正常な投稿<>\n不正な行\n名無し2<><>2020/01/01<>正常な投稿2<>\n"
     )
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = dat_content.encode("shift_jis")
-    
+
     mock_scraper = Mock()
     mock_scraper.get.return_value = mock_response
-    
+
     with patch("cloudscraper.create_scraper", return_value=mock_scraper):
         # Execute
-        posts, error = await service._get_thread_posts_from_dat(
-            "https://example.com/test.dat"
-        )
-    
+        posts, error = await service._get_thread_posts_from_dat("https://example.com/test.dat")
+
     # Verify
     assert error is None
     assert len(posts) == 2  # 不正な行はスキップされる
@@ -647,18 +610,18 @@ async def test_get_with_retry_success_on_first_attempt(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.content = b"test content"
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.return_value = mock_response
     service.http_client = mock_http_client
-    
+
     # Execute
     result = await service._get_with_retry("https://example.com/test")
-    
+
     # Verify
     assert result is not None
     assert result.status_code == 200
@@ -673,21 +636,21 @@ async def test_get_with_retry_success_after_500_error(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response_500 = Mock()
     mock_response_500.status_code = 500
-    
+
     mock_response_200 = Mock()
     mock_response_200.status_code = 200
     mock_response_200.content = b"test content"
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.side_effect = [mock_response_500, mock_response_200]
     service.http_client = mock_http_client
-    
+
     # Execute
     result = await service._get_with_retry("https://example.com/test", max_retries=3)
-    
+
     # Verify
     assert result is not None
     assert result.status_code == 200
@@ -702,21 +665,21 @@ async def test_get_with_retry_rate_limit_429(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response_429 = Mock()
     mock_response_429.status_code = 429
     mock_response_429.headers = {"Retry-After": "1"}
-    
+
     mock_response_200 = Mock()
     mock_response_200.status_code = 200
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.side_effect = [mock_response_429, mock_response_200]
     service.http_client = mock_http_client
-    
+
     # Execute
     result = await service._get_with_retry("https://example.com/test")
-    
+
     # Verify
     assert result is not None
     assert result.status_code == 200
@@ -731,17 +694,17 @@ async def test_get_with_retry_exhaustion_of_retries(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response_500 = Mock()
     mock_response_500.status_code = 500
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.return_value = mock_response_500
     service.http_client = mock_http_client
-    
+
     # Execute
     result = await service._get_with_retry("https://example.com/test", max_retries=2)
-    
+
     # Verify
     assert result is not None
     assert result.status_code == 500
@@ -756,20 +719,20 @@ async def test_get_with_retry_exception_handling(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     mock_response_200 = Mock()
     mock_response_200.status_code = 200
-    
+
     mock_http_client = AsyncMock()
     mock_http_client.get.side_effect = [
         httpx.RequestError("Network error", request=Mock()),
         mock_response_200,
     ]
     service.http_client = mock_http_client
-    
+
     # Execute
     result = await service._get_with_retry("https://example.com/test")
-    
+
     # Verify
     assert result is not None
     assert result.status_code == 200
@@ -784,10 +747,10 @@ async def test_get_with_retry_no_http_client(tmp_path):
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
     service.http_client = None
-    
+
     # Execute
     result = await service._get_with_retry("https://example.com/test")
-    
+
     # Verify
     assert result is None
 
@@ -804,7 +767,7 @@ def test_calculate_backoff_delay(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # Execute & Verify
     assert service._calculate_backoff_delay(0) == 1  # 2^0
     assert service._calculate_backoff_delay(1) == 2  # 2^1
@@ -820,10 +783,10 @@ def test_get_random_user_agent(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # Execute
     user_agent = service._get_random_user_agent()
-    
+
     # Verify
     assert user_agent in service.user_agents
     assert isinstance(user_agent, str)
@@ -837,10 +800,10 @@ def test_build_board_url(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # Execute
     url = service._build_board_url("ai", "krsw.5ch.net")
-    
+
     # Verify
     assert url == "https://krsw.5ch.net/ai/"
 
@@ -852,10 +815,10 @@ def test_get_board_server_known_board(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # Execute
     server = service._get_board_server("ai")
-    
+
     # Verify
     assert server == "krsw.5ch.net"  # boards.tomlの設定値
 
@@ -867,9 +830,9 @@ def test_get_board_server_unknown_board(tmp_path):
     """
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
-    
+
     # Execute
     server = service._get_board_server("unknown_board_xyz")
-    
+
     # Verify
     assert server == "mevius.5ch.net"  # デフォルト値
