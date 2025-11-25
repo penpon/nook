@@ -54,7 +54,26 @@ MAX_MEMORY_USAGE_BYTES = MAX_MEMORY_USAGE_MB * 1024 * 1024
 
 
 def create_test_thread(thread_id: str = TEST_THREAD_ID, **kwargs) -> Thread:
-    """テスト用のThreadオブジェクトを作成"""
+    """テスト用のThreadオブジェクトを作成するヘルパー関数。
+
+    Args:
+        thread_id (str): スレッドID（デフォルト: TEST_THREAD_ID）。
+        **kwargs: Threadの追加属性。利用可能なキーは以下の通り:
+            - title (str): スレッドタイトル（デフォルト: TEST_THREAD_TITLE）。
+            - url (str): スレッドURL（デフォルト: 5chのスレURL）。
+            - board (str): 板ID（デフォルト: TEST_BOARD_ID）。
+            - timestamp (int): UNIXタイムスタンプ（デフォルト: TEST_THREAD_TIMESTAMP）。
+            - popularity_score (float): 人気スコア（デフォルト: 0.75）。
+            - posts (list[dict]): 投稿リスト（デフォルト: 1件のテスト投稿）。
+            - summary (str): スレッド要約（デフォルト: 空文字）。
+
+    Returns:
+        Thread: テスト用のThreadオブジェクト。
+
+    Raises:
+        なし
+
+    """
     default_posts = [
         Post(
             no=1,
