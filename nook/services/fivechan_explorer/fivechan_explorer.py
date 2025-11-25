@@ -105,8 +105,13 @@ class FiveChanExplorer(BaseService):
 
     TOTAL_LIMIT = 15  # 1日あたりの最大スレッド数
 
-    def __init__(self):
+    def __init__(self, storage_dir: str | None = None):
         super().__init__(service_name="fivechan_explorer")
+        if storage_dir:
+            from nook.common.storage import LocalStorage
+
+            self.storage = LocalStorage(storage_dir)
+
         self.target_boards = self._load_boards_config()
         self.dedup_tracker = DedupTracker()
         self.http_client = None
