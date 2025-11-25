@@ -1,5 +1,4 @@
-"""
-nook/services/note_explorer/note_explorer.py のテスト
+"""nook/services/note_explorer/note_explorer.py のテスト
 
 テスト観点:
 - NoteExplorerの初期化
@@ -1485,7 +1484,7 @@ async def test_collect_with_duplicate_article(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_article_with_paragraphs_only(mock_env_vars):
-    """meta descriptionがなくparagraphsから本文を取得するテスト（L316-318）"""
+    """Meta descriptionがなくparagraphsから本文を取得するテスト（L316-318）"""
     with patch("nook.common.base_service.setup_logger"):
         service = NoteExplorer()
         service.http_client = AsyncMock()

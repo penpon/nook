@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
+import pytest_asyncio
 import respx
 
 # プロジェクトルートをPythonパスに追加
@@ -223,7 +224,7 @@ def mock_github_trending_html():
         </article>
     </body>
     </html>
-    """  # noqa: E501
+    """
     # fmt: on
 
 
@@ -243,7 +244,7 @@ def mock_github_api(respx_mock, mock_github_trending_html):
 
 @pytest.fixture
 def mock_arxiv_entry_xml():
-    """arxiv APIレスポンスのモックXML"""
+    """Arxiv APIレスポンスのモックXML"""
     return """<?xml version="1.0" encoding="UTF-8"?>
     <feed xmlns="http://www.w3.org/2005/Atom">
         <entry>
@@ -263,7 +264,7 @@ def mock_arxiv_entry_xml():
 
 @pytest.fixture
 def mock_arxiv_api(respx_mock, mock_arxiv_entry_xml):
-    """arxiv APIエンドポイントのモック"""
+    """Arxiv APIエンドポイントのモック"""
     respx_mock.get(url__regex=r"http://export\.arxiv\.org/api/query.*").mock(
         return_value=httpx.Response(
             200, text=mock_arxiv_entry_xml, headers={"Content-Type": "application/xml"}
@@ -468,7 +469,7 @@ def mock_4chan_catalog():
                 {
                     "no": 123456,
                     "sub": "AI Discussion Thread",
-                    "com": "Let's talk about artificial intelligence and machine learning",  # noqa: E501
+                    "com": "Let's talk about artificial intelligence and machine learning",
                     "replies": 50,
                     "images": 10,
                     "bumps": 45,
@@ -502,7 +503,7 @@ def mock_4chan_thread():
 @pytest.fixture
 def mock_5chan_subject_txt():
     """5chan subject.txtモック（Shift_JIS形式）"""
-    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"  # noqa: E501
+    return "1234567890.dat<>AI・人工知能について語るスレ (100)\n9876543210.dat<>機械学習の最新動向 (50)\n"
 
 
 @pytest.fixture
@@ -511,7 +512,7 @@ def mock_5chan_dat():
     # fmt: off
     return """名無しさん<>sage<>2024/11/14(木) 12:00:00.00 ID:test1234<>AIについて語りましょう<>
 名無しさん<>sage<>2024/11/14(木) 12:01:00.00 ID:test5678<>機械学習は面白い<>
-"""  # noqa: E501
+"""
     # fmt: on
 
 
@@ -716,8 +717,7 @@ def mock_arxiv_paper_factory():
 
 
 class ArxivTestHelper:
-    """
-    arXivテスト用のヘルパークラス
+    """arXivテスト用のヘルパークラス
 
     テスト定数とモック作成メソッドを提供し、テストコードの重複を削減します。
 
@@ -767,6 +767,7 @@ Summary 1
 
         Returns:
             AsyncMock: コンテキストマネージャーとして使用可能なモック
+
         """
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value = mock_client
@@ -782,6 +783,7 @@ Summary 1
 
         Returns:
             Mock: HTTPレスポンスモック
+
         """
         mock_response = Mock()
         mock_response.content = content
@@ -797,6 +799,7 @@ Summary 1
 
         Returns:
             Mock: HTTPレスポンスモック
+
         """
         mock_response = Mock()
         mock_response.text = text
@@ -812,6 +815,7 @@ Summary 1
 
         Returns:
             Mock: arxiv.Clientモック
+
         """
         if results is None:
             results = []
@@ -879,7 +883,7 @@ def hacker_news_service(mock_logger):
         return service
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def fourchan_service(mock_logger, mock_env_vars):
     """FourChanExplorerのフィクスチャ"""
     with patch("nook.common.base_service.setup_logger", return_value=mock_logger):

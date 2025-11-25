@@ -8,7 +8,6 @@ from datetime import date, datetime, timedelta, timezone
 
 def _local_timezone() -> timezone:
     """Return JST (Japan Standard Time) timezone."""
-
     return timezone(timedelta(hours=9))  # JST = UTC+9
 
 
@@ -22,8 +21,8 @@ def compute_target_dates(days: int | None = None, *, base_date: date | None = No
     base_date:
         The most recent date (typically "today") to include. Defaults to the
         current JST date.
-    """
 
+    """
     normalized_days = max(1, days or 1)
     start = base_date or datetime.now(_local_timezone()).date()
 
@@ -32,13 +31,11 @@ def compute_target_dates(days: int | None = None, *, base_date: date | None = No
 
 def target_dates_set(days: int | None = None, *, base_date: date | None = None) -> set[date]:
     """Convenience wrapper that returns the target dates as a ``set``."""
-
     return set(compute_target_dates(days, base_date=base_date))
 
 
 def normalize_datetime_to_local(dt: datetime | None) -> datetime | None:
     """Convert ``dt`` to JST timezone, assuming UTC for naive values."""
-
     if dt is None:
         return None
 
@@ -51,7 +48,6 @@ def normalize_datetime_to_local(dt: datetime | None) -> datetime | None:
 
 def is_within_target_dates(dt: datetime | None, target_dates: Iterable[date]) -> bool:
     """Return ``True`` when ``dt`` falls on one of ``target_dates`` in JST time."""
-
     normalized = normalize_datetime_to_local(dt)
     if normalized is None:
         return False

@@ -31,26 +31,26 @@ from nook.services.base_feed_service import Article, BaseFeedService
 
 
 class BusinessFeed(BaseFeedService):
-    """
-    ビジネスニュースのRSSフィードを監視・収集・要約するクラス。
+    """ビジネスニュースのRSSフィードを監視・収集・要約するクラス。
 
     Parameters
     ----------
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     TOTAL_LIMIT = 15
     SUMMARY_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data"):
-        """
-        BusinessFeedを初期化します。
+        """BusinessFeedを初期化します。
 
         Parameters
         ----------
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+
         """
         super().__init__("business_feed")
         self.http_client = None  # setup_http_clientで初期化
@@ -61,8 +61,7 @@ class BusinessFeed(BaseFeedService):
             self.feed_config = tomllib.load(f)
 
     def run(self, days: int = 1, limit: int | None = None) -> None:
-        """
-        ビジネスニュースのRSSフィードを監視・収集・要約して保存します。
+        """ビジネスニュースのRSSフィードを監視・収集・要約して保存します。
 
         Parameters
         ----------
@@ -70,6 +69,7 @@ class BusinessFeed(BaseFeedService):
             何日前までの記事を取得するか。
         limit : Optional[int], default=None
             各フィードから取得する記事数。Noneの場合は制限なし。
+
         """
         asyncio.run(self.collect(days, limit))
 
@@ -80,8 +80,7 @@ class BusinessFeed(BaseFeedService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        ビジネスニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
+        """ビジネスニュースのRSSフィードを監視・収集・要約して保存します（非同期版）。
 
         Parameters
         ----------
@@ -94,6 +93,7 @@ class BusinessFeed(BaseFeedService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -158,7 +158,7 @@ class BusinessFeed(BaseFeedService):
 
                     except Exception as e:
                         self.logger.error(
-                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
+                            f"フィード {feed_url} の処理中にエラーが発生しました: {e!s}"
                         )
 
             # 日付ごとにグループ化
@@ -230,8 +230,7 @@ class BusinessFeed(BaseFeedService):
     def _select_top_articles(
         self, articles: list[Article], limit: int | None = None
     ) -> list[Article]:
-        """
-        記事を人気スコアでソートし、上位N件を選択します。
+        """記事を人気スコアでソートし、上位N件を選択します。
 
         Parameters
         ----------
@@ -244,6 +243,7 @@ class BusinessFeed(BaseFeedService):
         -------
         list[Article]
             選択された記事リスト
+
         """
         if not articles:
             return []
@@ -256,8 +256,7 @@ class BusinessFeed(BaseFeedService):
         return sorted_articles[:selection_limit]
 
     async def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Article | None:
-        """
-        記事を取得します（日本語判定含む）。
+        """記事を取得します（日本語判定含む）。
 
         Parameters
         ----------
@@ -272,11 +271,12 @@ class BusinessFeed(BaseFeedService):
         -------
         Article or None
             取得した記事。取得に失敗した場合はNone。
+
         """
         try:
             # URLを取得
             url = entry.link if hasattr(entry, "link") else None
-            if not url:
+            if not url or not self.http_client:
                 return None
 
             # タイトルを取得
@@ -303,7 +303,11 @@ class BusinessFeed(BaseFeedService):
                 # メタディスクリプションを取得
                 meta_desc = soup.find("meta", attrs={"name": "description"})
                 if meta_desc and meta_desc.get("content"):
-                    text = meta_desc.get("content")
+                    content = meta_desc.get("content")
+                    if isinstance(content, str):
+                        text = content
+                    elif isinstance(content, list):
+                        text = " ".join(content)
                 else:
                     # 本文の最初の段落を取得
                     paragraphs = soup.find_all("p")
@@ -326,7 +330,7 @@ class BusinessFeed(BaseFeedService):
 
         except Exception as e:
             self.logger.error(
-                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
+                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {e!s}"
             )
             return None
 
@@ -384,8 +388,16 @@ class BusinessFeed(BaseFeedService):
 
         # 2. data属性を持つ要素
         for element in soup.select("[data-reaction-count], [data-like-count]"):
-            value = element.get("data-reaction-count") or element.get("data-like-count")
-            parsed = self._safe_parse_int(value)
+            val_reaction = element.get("data-reaction-count")
+            val_like = element.get("data-like-count")
+            attr_value = (
+                val_reaction
+                if isinstance(val_reaction, str)
+                else val_like
+                if isinstance(val_like, str)
+                else None
+            )
+            parsed = self._safe_parse_int(attr_value)
             if parsed is not None:
                 candidates.append(parsed)
 

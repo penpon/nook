@@ -13,7 +13,9 @@ T = TypeVar("T")
 class TaskResult:
     """タスク実行結果"""
 
-    def __init__(self, name: str, success: bool, result: Any = None, error: Exception = None):
+    def __init__(
+        self, name: str, success: bool, result: Any = None, error: Exception | None = None
+    ):
         self.name = name
         self.success = success
         self.result = result
@@ -139,10 +141,9 @@ class AsyncTaskManager:
         if not task:
             if name in self.results:
                 return self.results[name]
-            elif name in self.errors:
+            if name in self.errors:
                 raise self.errors[name]
-            else:
-                raise ValueError(f"Task {name} not found")
+            raise ValueError(f"Task {name} not found")
 
         try:
             await asyncio.wait_for(task, timeout=timeout)

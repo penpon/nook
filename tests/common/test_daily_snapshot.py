@@ -122,8 +122,7 @@ async def test_store_daily_snapshots_merges_and_saves(tmp_path):
 
 
 def test_parse_record_date_invalid_iso_string():
-    """
-    Given: 無効なISO形式文字列
+    """Given: 無効なISO形式文字列
     When: _parse_record_dateを呼び出す（group_records_by_date経由）
     Then: ValueErrorが発生してNoneを返す
     """
@@ -144,8 +143,7 @@ def test_parse_record_date_invalid_iso_string():
 
 @pytest.mark.asyncio
 async def test_store_daily_snapshots_with_logger(tmp_path):
-    """
-    Given: loggerを渡してstore_daily_snapshotsを実行
+    """Given: loggerを渡してstore_daily_snapshotsを実行
     When: 処理が実行される
     Then: logger.infoが呼び出される
     """

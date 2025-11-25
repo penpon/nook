@@ -8,8 +8,9 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -32,8 +33,7 @@ from nook.common.storage import LocalStorage
 
 @dataclass
 class Thread:
-    """
-    4chanスレッド情報。
+    """4chanスレッド情報。
 
     Parameters
     ----------
@@ -49,6 +49,7 @@ class Thread:
         投稿リスト。
     timestamp : int
         作成タイムスタンプ。
+
     """
 
     thread_id: int
@@ -62,20 +63,19 @@ class Thread:
 
 
 class FourChanExplorer(BaseService):
-    """
-    4chanからAI関連スレッドを収集するクラス。
+    """4chanからAI関連スレッドを収集するクラス。
 
     Parameters
     ----------
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     TOTAL_LIMIT = 15
 
     def __init__(self, storage_dir: str = "data", test_mode: bool = False):
-        """
-        FourChanExplorerを初期化します。
+        """FourChanExplorerを初期化します。
 
         Parameters
         ----------
@@ -83,6 +83,7 @@ class FourChanExplorer(BaseService):
             ストレージディレクトリのパス。
         test_mode : bool, default=False
             テストモードの場合は遅延を短縮します。
+
         """
         super().__init__("fourchan_explorer")
         self.http_client = None  # setup_http_clientで初期化
@@ -122,13 +123,13 @@ class FourChanExplorer(BaseService):
         self.request_delay = 0.1 if test_mode else 1  # 秒
 
     def _load_boards(self) -> list[str]:
-        """
-        対象となるボードの設定を読み込みます。
+        """対象となるボードの設定を読み込みます。
 
         Returns
         -------
         List[str]
             ボードIDのリスト
+
         """
         script_dir = Path(__file__).parent
         boards_file = script_dir / "boards.toml"
@@ -161,13 +162,13 @@ class FourChanExplorer(BaseService):
             return ["g", "sci", "biz", "pol"]
 
     def run(self, thread_limit: int | None = None) -> None:
-        """
-        4chanからAI関連スレッドを収集して保存します。
+        """4chanからAI関連スレッドを収集して保存します。
 
         Parameters
         ----------
         thread_limit : Optional[int], default=None
             各ボードから取得するスレッド数。Noneの場合は制限なし。
+
         """
         asyncio.run(self.collect(thread_limit))
 
@@ -177,8 +178,7 @@ class FourChanExplorer(BaseService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        4chanからAI関連スレッドを収集して保存します（非同期版）。
+        """4chanからAI関連スレッドを収集して保存します（非同期版）。
 
         Parameters
         ----------
@@ -189,6 +189,7 @@ class FourChanExplorer(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         total_limit = self.TOTAL_LIMIT
         effective_target_dates = target_dates or target_dates_set(1)
@@ -225,12 +226,12 @@ class FourChanExplorer(BaseService):
                     await asyncio.sleep(self.request_delay)
 
                 except Exception as e:
-                    self.logger.error(f"Error processing board /{board}/: {str(e)}")
+                    self.logger.error(f"Error processing board /{board}/: {e!s}")
 
             self.logger.info(f"合計 {len(candidate_threads)} 件のスレッド候補を取得しました")
 
             # 日付ごとにグループ化して各日独立で上位15件を選択
-            threads_by_date = {}
+            threads_by_date: dict[date, list[Thread]] = {}
             for thread in candidate_threads:
                 thread_date = datetime.fromtimestamp(thread.timestamp).date()
                 if thread_date not in threads_by_date:
@@ -297,10 +298,9 @@ class FourChanExplorer(BaseService):
         board: str,
         limit: int | None,
         dedup_tracker: DedupTracker,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> list[Thread]:
-        """
-        特定のボードからAI関連スレッドを取得します。
+        """特定のボードからAI関連スレッドを取得します。
 
         Parameters
         ----------
@@ -315,9 +315,12 @@ class FourChanExplorer(BaseService):
         -------
         List[Thread]
             取得したスレッドのリスト。
+
         """
         # カタログの取得（すべてのスレッドのリスト）
         catalog_url = f"https://a.4cdn.org/{board}/catalog.json"
+        if self.http_client is None:
+            raise RuntimeError("HTTP client not initialized")
         response = await self.http_client.get(catalog_url)
         catalog_data = response.json()
 
@@ -342,7 +345,7 @@ class FourChanExplorer(BaseService):
                     thread_id = thread.get("no")
                     timestamp_raw = thread.get("time")
                     thread_created = (
-                        datetime.fromtimestamp(int(timestamp_raw), tz=UTC)
+                        datetime.fromtimestamp(int(timestamp_raw), tz=timezone.utc)
                         if timestamp_raw
                         else None
                     )
@@ -361,7 +364,7 @@ class FourChanExplorer(BaseService):
 
                     last_modified_raw = thread.get("last_modified")
                     last_modified_dt = (
-                        datetime.fromtimestamp(int(last_modified_raw), tz=UTC)
+                        datetime.fromtimestamp(int(last_modified_raw), tz=timezone.utc)
                         if last_modified_raw
                         else thread_created
                     )
@@ -390,7 +393,7 @@ class FourChanExplorer(BaseService):
 
                     latest_post_ts = max(
                         (
-                            int(post.get("time"))
+                            int(post.get("time") or 0)
                             for post in thread_data
                             if post.get("time") is not None
                         ),
@@ -398,7 +401,7 @@ class FourChanExplorer(BaseService):
                     )
 
                     latest_post_at = (
-                        datetime.fromtimestamp(latest_post_ts, tz=UTC)
+                        datetime.fromtimestamp(latest_post_ts, tz=timezone.utc)
                         if latest_post_ts is not None
                         else None
                     )
@@ -415,8 +418,8 @@ class FourChanExplorer(BaseService):
 
                     if effective_dt is not None:
                         if effective_dt.tzinfo is None:
-                            effective_dt = effective_dt.replace(tzinfo=UTC)
-                        effective_utc = effective_dt.astimezone(UTC)
+                            effective_dt = effective_dt.replace(tzinfo=timezone.utc)
+                        effective_utc = effective_dt.astimezone(timezone.utc)
                         timestamp_value = int(effective_utc.timestamp())
                     else:
                         # これは355行目の検証により理論的には発生しないが、防御的に処理
@@ -458,8 +461,7 @@ class FourChanExplorer(BaseService):
         return ai_threads
 
     async def _retrieve_thread_posts(self, board: str, thread_id: int) -> list[dict[str, Any]]:
-        """
-        スレッドの投稿を取得します。
+        """スレッドの投稿を取得します。
 
         Parameters
         ----------
@@ -472,9 +474,12 @@ class FourChanExplorer(BaseService):
         -------
         List[Dict[str, Any]]
             投稿のリスト。
+
         """
         thread_url = f"https://a.4cdn.org/{board}/thread/{thread_id}.json"
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(thread_url)
             thread_data = response.json()
             posts = thread_data.get("posts", [])
@@ -484,7 +489,7 @@ class FourChanExplorer(BaseService):
 
             return posts
         except Exception as e:
-            self.logger.error(f"スレッドの取得に失敗しました: {str(e)}")
+            self.logger.error(f"スレッドの取得に失敗しました: {e!s}")
             return []
 
     def _load_existing_titles(self) -> DedupTracker:
@@ -533,13 +538,13 @@ class FourChanExplorer(BaseService):
         return sorted_threads[:limit]
 
     async def _summarize_thread(self, thread: Thread) -> None:
-        """
-        スレッドを要約します。
+        """スレッドを要約します。
 
         Parameters
         ----------
         thread : Thread
             要約するスレッド。
+
         """
         # スレッドのコンテンツを抽出（最初の投稿と、最も反応のある投稿を含む）
         thread_content = ""
@@ -595,11 +600,11 @@ class FourChanExplorer(BaseService):
             )
             thread.summary = summary
         except Exception as e:
-            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
-            thread.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+            self.logger.error(f"要約の生成中にエラーが発生しました: {e!s}")
+            thread.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
-        self, threads: list[Thread], target_dates: list[date]
+        self, threads: list[Thread], target_dates: Iterable[date]
     ) -> list[tuple[str, str]]:
         if not threads:
             self.logger.info("保存するスレッドがありません")
@@ -626,7 +631,7 @@ class FourChanExplorer(BaseService):
     def _serialize_threads(self, threads: list[Thread]) -> list[dict]:
         records: list[dict] = []
         for thread in threads:
-            published = datetime.fromtimestamp(thread.timestamp, tz=UTC)
+            published = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
             records.append(
                 {
                     "thread_id": thread.thread_id,
@@ -667,16 +672,16 @@ class FourChanExplorer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
             timestamp = item.get("timestamp")
             if timestamp:
                 try:
-                    published = datetime.fromtimestamp(int(timestamp), tz=UTC)
+                    published = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
                 except Exception:
-                    published = datetime.min.replace(tzinfo=UTC)
+                    published = datetime.min.replace(tzinfo=timezone.utc)
             else:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         return (popularity, published)
 
     def _extract_thread_id_from_url(self, url: str) -> int:
@@ -755,7 +760,9 @@ class FourChanExplorer(BaseService):
                 }
 
                 if timestamp:
-                    record["published_at"] = datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
+                    record["published_at"] = datetime.fromtimestamp(
+                        timestamp, tz=timezone.utc
+                    ).isoformat()
 
                 records.append(record)
 

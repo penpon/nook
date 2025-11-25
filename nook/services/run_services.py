@@ -1,11 +1,11 @@
-"""
-Nookの各サービスを非同期で実行するスクリプト。
+"""Nookの各サービスを非同期で実行するスクリプト。
 情報を並行収集し、ローカルストレージに保存します。
 """
 
 import asyncio
 import signal
 import sys
+from collections.abc import Iterable
 from datetime import date, datetime
 
 from dotenv import load_dotenv
@@ -64,7 +64,7 @@ class ServiceRunner:
         service_name: str,
         service,
         days: int = 1,
-        target_dates: set[date] | None = None,
+        target_dates: Iterable[date] | None = None,
     ):
         """同期サービスを非同期で実行"""
         # days パラメータを使用するサービスの場合、対象期間を表示
@@ -239,7 +239,7 @@ def run_service_sync(service_name: str):
             runner.sync_services[service_name].run()
             print(f"{service_name}の実行が完了しました。")
         except Exception as e:
-            print(f"{service_name}の実行中にエラーが発生しました: {str(e)}")
+            print(f"{service_name}の実行中にエラーが発生しました: {e!s}")
     else:
         print(f"サービス '{service_name}' が見つかりません。")
 

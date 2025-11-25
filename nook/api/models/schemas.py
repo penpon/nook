@@ -1,5 +1,4 @@
-"""
-APIスキーマ。
+"""APIスキーマ。
 APIリクエストとレスポンスのデータモデルを定義します。
 """
 
@@ -7,21 +6,20 @@ from pydantic import BaseModel, Field
 
 
 class ContentRequest(BaseModel):
-    """
-    コンテンツリクエスト。
+    """コンテンツリクエスト。
 
     Parameters
     ----------
     date : str, optional
         取得する日付（YYYY-MM-DD形式）。
+
     """
 
     date: str | None = Field(None, description="取得する日付（YYYY-MM-DD形式）")
 
 
 class ContentItem(BaseModel):
-    """
-    コンテンツ項目。
+    """コンテンツ項目。
 
     Parameters
     ----------
@@ -33,6 +31,7 @@ class ContentItem(BaseModel):
         関連URL。
     source : str
         ソース（reddit, hackernews, github, techfeed, paper）。
+
     """
 
     title: str = Field(..., description="タイトル")
@@ -42,21 +41,20 @@ class ContentItem(BaseModel):
 
 
 class ContentResponse(BaseModel):
-    """
-    コンテンツレスポンス。
+    """コンテンツレスポンス。
 
     Parameters
     ----------
     items : List[ContentItem]
         コンテンツ項目のリスト。
+
     """
 
     items: list[ContentItem] = Field(..., description="コンテンツ項目のリスト")
 
 
 class WeatherResponse(BaseModel):
-    """
-    天気レスポンス。
+    """天気レスポンス。
 
     Parameters
     ----------
@@ -64,6 +62,7 @@ class WeatherResponse(BaseModel):
         気温（摂氏）。
     icon : str
         天気アイコン。
+
     """
 
     temperature: float = Field(..., description="気温（摂氏）")

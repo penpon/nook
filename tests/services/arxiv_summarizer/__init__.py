@@ -1,5 +1,4 @@
-"""
-ArxivSummarizer テストパッケージ
+"""ArxivSummarizer テストパッケージ
 
 このパッケージには、ArxivSummarizerの全テストが含まれています。
 

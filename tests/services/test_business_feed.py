@@ -1113,17 +1113,20 @@ async def test_collect_complete_workflow_with_article_save(mock_env_vars):
             mock_feed.feed.title = "Test Business Feed"
 
             # 2つの記事エントリを作成
+            # published_parsedはUTCとして扱われ、parse_entry_datetimeで+9hしてJST変換される
+            # 2024-11-13 15:00 UTC → 2024-11-14 00:00 JST (target_date内)
+            # 2024-11-13 16:00 UTC → 2024-11-14 01:00 JST (target_date内)
             entry1 = Mock()
             entry1.title = "日本語ビジネス記事1"
             entry1.link = "https://example.com/article1"
             entry1.summary = "ビジネス記事1の説明"
-            entry1.published_parsed = (2024, 11, 14, 10, 0, 0, 0, 0, 0)
+            entry1.published_parsed = (2024, 11, 13, 15, 0, 0, 0, 0, 0)
 
             entry2 = Mock()
             entry2.title = "日本語ビジネス記事2"
             entry2.link = "https://example.com/article2"
             entry2.summary = "ビジネス記事2の説明"
-            entry2.published_parsed = (2024, 11, 14, 11, 0, 0, 0, 0, 0)
+            entry2.published_parsed = (2024, 11, 13, 16, 0, 0, 0, 0, 0)
 
             mock_feed.entries = [entry1, entry2]
             mock_parse.return_value = mock_feed
@@ -1185,11 +1188,12 @@ async def test_collect_detects_duplicate_after_article_creation(mock_env_vars):
             mock_feed.feed.title = "Test Feed"
 
             # 重複記事エントリ
+            # 2024-11-13 15:00 UTC → 2024-11-14 00:00 JST (target_date内)
             entry = Mock()
             entry.title = "重複する日本語記事"
             entry.link = "https://example.com/duplicate"
             entry.summary = "重複記事の説明"
-            entry.published_parsed = (2024, 11, 14, 10, 0, 0, 0, 0, 0)
+            entry.published_parsed = (2024, 11, 13, 15, 0, 0, 0, 0, 0)
 
             mock_feed.entries = [entry]
             mock_parse.return_value = mock_feed
@@ -1238,11 +1242,12 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
             mock_feed = Mock()
             mock_feed.feed.title = "Test Feed"
 
+            # 2024-11-13 15:00 UTC → 2024-11-14 00:00 JST (target_date内)
             entry = Mock()
             entry.title = "新規日本語記事"
             entry.link = "https://example.com/new"
             entry.summary = "新規記事の説明"
-            entry.published_parsed = (2024, 11, 14, 10, 0, 0, 0, 0, 0)
+            entry.published_parsed = (2024, 11, 13, 15, 0, 0, 0, 0, 0)
 
             mock_feed.entries = [entry]
             mock_parse.return_value = mock_feed

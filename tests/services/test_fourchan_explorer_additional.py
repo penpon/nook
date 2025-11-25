@@ -1,5 +1,4 @@
-"""
-Additional tests for fourchan_explorer coverage improvement
+"""Additional tests for fourchan_explorer coverage improvement
 Task 6: Coverage improvement from 67.07% to 75%+
 """
 
@@ -43,8 +42,7 @@ def create_thread_response(posts_data: list[dict]) -> Mock:
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_none_http_client():
-    """
-    Given: http_clientがNone
+    """Given: http_clientがNone
     When: collectメソッドを呼び出す
     Then: setup_http_clientが呼び出される
     """
@@ -70,8 +68,7 @@ async def test_collect_with_none_http_client():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_board_processing_error():
-    """
-    Given: ボード処理中にエラーが発生
+    """Given: ボード処理中にエラーが発生
     When: collectメソッドを呼び出す
     Then: エラーをログに記録し、他のボードの処理を継続
     """
@@ -102,8 +99,7 @@ async def test_collect_board_processing_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_date_filtering_outside_range():
-    """
-    Given: 対象日付範囲外のスレッド
+    """Given: 対象日付範囲外のスレッド
     When: _retrieve_ai_threadsを呼び出す
     Then: スレッドがスキップされる
     """
@@ -156,8 +152,7 @@ async def test_retrieve_ai_threads_date_filtering_outside_range():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_timezone_handling():
-    """
-    Given: タイムゾーン情報がないdatetimeを含むスレッド
+    """Given: タイムゾーン情報がないdatetimeを含むスレッド
     When: _retrieve_ai_threadsを呼び出す
     Then: UTCタイムゾーンが適用される
     """
@@ -210,8 +205,7 @@ async def test_retrieve_ai_threads_timezone_handling():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_ai_threads_missing_effective_datetime_warning():
-    """
-    Given: 有効な日時とタイムスタンプが両方とも取得できないスレッド
+    """Given: 有効な日時とタイムスタンプが両方とも取得できないスレッド
     When: _retrieve_ai_threadsを呼び出す
     Then: 警告ログが出力されスキップされる
     """
@@ -259,8 +253,7 @@ async def test_retrieve_ai_threads_missing_effective_datetime_warning():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_threads_grouping_by_date():
-    """
-    Given: 複数の日付にまたがるスレッド
+    """Given: 複数の日付にまたがるスレッド
     When: collectメソッドを呼び出す
     Then: 日付ごとにグループ化され、各日独立で上位15件が選択される
     """
@@ -336,8 +329,7 @@ async def test_collect_with_threads_grouping_by_date():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_more_than_limit_threads_per_date():
-    """
-    Given: 1日あたりの上限（15件）を超えるスレッド
+    """Given: 1日あたりの上限（15件）を超えるスレッド
     When: collectメソッドを呼び出す
     Then: 人気スコアでソートされ、上位15件が選択される
     """
@@ -402,8 +394,7 @@ async def test_collect_with_more_than_limit_threads_per_date():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_no_selected_threads():
-    """
-    Given: 選択されたスレッドがない
+    """Given: 選択されたスレッドがない
     When: collectメソッドを呼び出す
     Then: 保存処理がスキップされ、空のリストが返される
     """
@@ -435,8 +426,7 @@ async def test_collect_with_no_selected_threads():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_summarization_loop_coverage():
-    """
-    Given: 要約対象のスレッドが複数ある
+    """Given: 要約対象のスレッドが複数ある
     When: collectメソッドを呼び出す
     Then: 各スレッドに対して要約が生成される
     """

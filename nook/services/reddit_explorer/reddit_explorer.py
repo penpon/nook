@@ -3,6 +3,7 @@
 import asyncio
 import os
 import re
+from collections.abc import Iterable
 
 try:
     import tomllib  # Python 3.11+
@@ -10,9 +11,9 @@ except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10
 
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import asyncpraw
 
@@ -33,8 +34,7 @@ from nook.common.logging_utils import (
 
 @dataclass
 class RedditPost:
-    """
-    Reddit投稿情報。
+    """Reddit投稿情報。
 
     Parameters
     ----------
@@ -54,6 +54,7 @@ class RedditPost:
         投稿へのパーマリンク。
     thumbnail : str
         サムネイルURL。
+
     """
 
     type: Literal["image", "gallery", "video", "poll", "crosspost", "text", "link"]
@@ -71,8 +72,7 @@ class RedditPost:
 
 
 class RedditExplorer(BaseService):
-    """
-    Redditの人気投稿を収集・要約するクラス。
+    """Redditの人気投稿を収集・要約するクラス。
 
     Parameters
     ----------
@@ -84,6 +84,7 @@ class RedditExplorer(BaseService):
         Reddit APIのユーザーエージェント。指定しない場合は環境変数から取得。
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     def __init__(
@@ -93,8 +94,7 @@ class RedditExplorer(BaseService):
         user_agent: str | None = None,
         storage_dir: str = "data",
     ):
-        """
-        RedditExplorerを初期化します。
+        """RedditExplorerを初期化します。
 
         Parameters
         ----------
@@ -106,6 +106,7 @@ class RedditExplorer(BaseService):
             Reddit APIのユーザーエージェント。指定しない場合は環境変数から取得。
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+
         """
         super().__init__("reddit_explorer")
 
@@ -131,13 +132,13 @@ class RedditExplorer(BaseService):
             self.subreddits_config = tomllib.load(f)
 
     def run(self, limit: int | None = None) -> None:
-        """
-        Redditの人気投稿を収集・要約して保存します。
+        """Redditの人気投稿を収集・要約して保存します。
 
         Parameters
         ----------
         limit : Optional[int], default=None
             各サブレディットから取得する投稿数。Noneの場合は制限なし。
+
         """
         asyncio.run(self.collect(limit))
 
@@ -147,8 +148,7 @@ class RedditExplorer(BaseService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        Redditの人気投稿を収集・要約して保存します（非同期版）。
+        """Redditの人気投稿を収集・要約して保存します（非同期版）。
 
         Parameters
         ----------
@@ -159,6 +159,7 @@ class RedditExplorer(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         effective_target_dates = target_dates or target_dates_set(1)
 
@@ -207,13 +208,13 @@ class RedditExplorer(BaseService):
 
                         except Exception as e:
                             self.logger.error(
-                                f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {str(e)}"
+                                f"サブレディット r/{subreddit_name} の処理中にエラーが発生しました: {e!s}"
                             )
 
                 self.logger.info(f"合計 {len(candidate_posts)} 件の投稿候補を取得しました")
 
                 # 日付ごとにグループ化して各日独立で処理
-                posts_by_date = {}
+                posts_by_date: dict[date, list[tuple[str, str, RedditPost]]] = {}
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
                         # JSTタイムゾーンに変換して日付を取得
@@ -291,10 +292,9 @@ class RedditExplorer(BaseService):
         subreddit_name: str,
         limit: int | None,
         dedup_tracker: DedupTracker,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> tuple[list[RedditPost], int]:
-        """
-        サブレディットの人気投稿を取得します。
+        """サブレディットの人気投稿を取得します。
 
         Parameters
         ----------
@@ -304,35 +304,44 @@ class RedditExplorer(BaseService):
             取得する投稿数。Noneの場合は制限なし。
         dedup_tracker : DedupTracker
             タイトル重複を追跡するトラッカー。
-        target_dates : list[date]
+        target_dates : Iterable[date]
             保存対象とする日付集合。
 
         Returns
         -------
-        tuple[List[RedditPost], int]
+        tuple[list[RedditPost], int]
             取得した投稿のリストと、本来取得できた件数のタプル。
+
         """
+        if self.reddit is None:
+            raise RuntimeError("Reddit client not initialized")
         subreddit = await self.reddit.subreddit(subreddit_name)
         posts = []
         total_found = 0
 
         async for submission in subreddit.hot(limit=limit):
+            if not submission or not getattr(submission, "subreddit", None):
+                continue
+
+            # subreddit_name_prefixed = submission.subreddit.display_name_prefixed
             if submission.stickied:
                 continue
 
             total_found += 1
 
             # 投稿タイプを判定
-            post_type = "text"
-            if hasattr(submission, "is_video") and submission.is_video:
+            post_type: Literal["image", "gallery", "video", "poll", "crosspost", "text", "link"] = (
+                "text"
+            )
+            if getattr(submission, "is_video", False):
                 post_type = "video"
-            elif hasattr(submission, "is_gallery") and submission.is_gallery:
+            elif getattr(submission, "is_gallery", False):
                 post_type = "gallery"
-            elif hasattr(submission, "poll_data") and submission.poll_data:
+            elif getattr(submission, "poll_data", None):
                 post_type = "poll"
-            elif hasattr(submission, "crosspost_parent") and submission.crosspost_parent:
+            elif getattr(submission, "crosspost_parent", None):
                 post_type = "crosspost"
-            elif submission.is_self:
+            elif getattr(submission, "is_self", False):
                 post_type = "text"
             elif any(submission.url.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif"]):
                 post_type = "image"
@@ -358,7 +367,7 @@ class RedditExplorer(BaseService):
             )
 
             created_at = (
-                datetime.fromtimestamp(submission.created_utc, tz=UTC)
+                datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
                 if hasattr(submission, "created_utc")
                 else None
             )
@@ -385,8 +394,7 @@ class RedditExplorer(BaseService):
         return posts, total_found
 
     async def _translate_to_japanese(self, text: str) -> str:
-        """
-        テキストを日本語に翻訳します。
+        """テキストを日本語に翻訳します。
 
         Parameters
         ----------
@@ -397,6 +405,7 @@ class RedditExplorer(BaseService):
         -------
         str
             翻訳されたテキスト。
+
         """
         if not text:
             return ""
@@ -410,14 +419,13 @@ class RedditExplorer(BaseService):
 
             return translated_text
         except Exception as e:
-            self.logger.error(f"Error translating text: {str(e)}")
+            self.logger.error(f"Error translating text: {e!s}")
             return text  # 翻訳に失敗した場合は原文を返す
 
     async def _retrieve_top_comments_of_post(
         self, post: RedditPost, limit: int = 5
     ) -> list[dict[str, str | int]]:
-        """
-        投稿のトップコメントを取得します。
+        """投稿のトップコメントを取得します。
 
         Parameters
         ----------
@@ -430,7 +438,10 @@ class RedditExplorer(BaseService):
         -------
         List[Dict[str, str | int]]
             取得したコメントのリスト。
+
         """
+        if self.reddit is None:
+            raise RuntimeError("Reddit client not initialized")
         submission = await self.reddit.submission(id=post.id)
 
         # コメントを取得する前にソート順を設定
@@ -453,13 +464,13 @@ class RedditExplorer(BaseService):
         return comments
 
     async def _summarize_reddit_post(self, post: RedditPost) -> None:
-        """
-        Reddit投稿を要約します。
+        """Reddit投稿を要約します。
 
         Parameters
         ----------
         post : RedditPost
             要約する投稿。
+
         """
         prompt = f"""
         以下のReddit投稿を要約してください。
@@ -493,8 +504,8 @@ class RedditExplorer(BaseService):
             )
             post.summary = summary
         except Exception as e:
-            self.logger.error(f"要約の生成中にエラーが発生しました: {str(e)}")
-            post.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+            self.logger.error(f"要約の生成中にエラーが発生しました: {e!s}")
+            post.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
         self,
@@ -526,7 +537,7 @@ class RedditExplorer(BaseService):
     def _serialize_posts(self, posts: list[tuple[str, str, RedditPost]]) -> list[dict]:
         records: list[dict] = []
         for category, subreddit, post in posts:
-            created_at = post.created_at or datetime.now(UTC)
+            created_at = post.created_at or datetime.now(timezone.utc)
             records.append(
                 {
                     "id": post.id,
@@ -548,7 +559,7 @@ class RedditExplorer(BaseService):
             )
         return records
 
-    async def _load_existing_posts(self, target_date: datetime) -> list[dict]:
+    async def _load_existing_posts(self, target_date: date | datetime) -> list[dict]:
         date_str = target_date.strftime("%Y-%m-%d")
         filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
@@ -574,9 +585,9 @@ class RedditExplorer(BaseService):
             try:
                 created = datetime.fromisoformat(created_raw)
             except ValueError:
-                created = datetime.min.replace(tzinfo=UTC)
+                created = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            created = datetime.min.replace(tzinfo=UTC)
+            created = datetime.min.replace(tzinfo=timezone.utc)
         return (popularity, created)
 
     def _extract_post_id_from_permalink(self, permalink: str) -> str:
@@ -648,7 +659,7 @@ class RedditExplorer(BaseService):
 
             for post_match in post_pattern.finditer(block + "---"):
                 permalink = post_match.group("permalink")
-                record = {
+                record: dict[str, Any] = {
                     "id": self._extract_post_id_from_permalink(permalink),
                     "category": "unknown",
                     "title": post_match.group("title").strip(),

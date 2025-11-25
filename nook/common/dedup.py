@@ -5,8 +5,7 @@ import unicodedata
 
 
 class TitleNormalizer:
-    """
-    記事タイトルを正規化して重複判定を行うクラス。
+    """記事タイトルを正規化して重複判定を行うクラス。
 
     同一サービス内で異なるカテゴリに属していても、
     タイトルが実質的に同じであれば重複と判定します。
@@ -30,8 +29,7 @@ class TitleNormalizer:
 
     @staticmethod
     def normalize(title: str) -> str:
-        """
-        タイトルを正規化します。
+        """タイトルを正規化します。
 
         Parameters
         ----------
@@ -42,6 +40,7 @@ class TitleNormalizer:
         -------
         str
             正規化されたタイトル。
+
         """
         if not title:
             return ""
@@ -68,8 +67,7 @@ class TitleNormalizer:
 
     @staticmethod
     def are_duplicates(title1: str, title2: str) -> bool:
-        """
-        2つのタイトルが重複しているか判定します。
+        """2つのタイトルが重複しているか判定します。
 
         Parameters
         ----------
@@ -82,13 +80,13 @@ class TitleNormalizer:
         -------
         bool
             重複している場合はTrue、そうでなければFalse。
+
         """
         return TitleNormalizer.normalize(title1) == TitleNormalizer.normalize(title2)
 
 
 class DedupTracker:
-    """
-    記事の重複追跡を行うクラス。
+    """記事の重複追跡を行うクラス。
 
     サービス内のカテゴリ横断で、正規化タイトルによる重複を追跡します。
     """
@@ -99,8 +97,7 @@ class DedupTracker:
         self.title_mapping = {}  # 正規化タイトル -> 元のタイトル（ログ用）
 
     def is_duplicate(self, title: str) -> tuple[bool, str]:
-        """
-        タイトルが重複しているか確認します。
+        """タイトルが重複しているか確認します。
 
         Parameters
         ----------
@@ -111,14 +108,14 @@ class DedupTracker:
         -------
         tuple[bool, str]
             (重複しているか, 正規化されたタイトル)
+
         """
         normalized = TitleNormalizer.normalize(title)
         is_dup = normalized in self.seen_normalized_titles
         return is_dup, normalized
 
     def add(self, title: str) -> str:
-        """
-        タイトルを追跡対象に追加します。
+        """タイトルを追跡対象に追加します。
 
         Parameters
         ----------
@@ -129,6 +126,7 @@ class DedupTracker:
         -------
         str
             正規化されたタイトル。
+
         """
         normalized = TitleNormalizer.normalize(title)
         self.seen_normalized_titles.add(normalized)
@@ -137,8 +135,7 @@ class DedupTracker:
         return normalized
 
     def get_original_title(self, normalized_title: str) -> str | None:
-        """
-        正規化タイトルから元のタイトルを取得します（ログ用）。
+        """正規化タイトルから元のタイトルを取得します（ログ用）。
 
         Parameters
         ----------
@@ -149,17 +146,18 @@ class DedupTracker:
         -------
         str or None
             元のタイトル。見つからない場合はNone。
+
         """
         return self.title_mapping.get(normalized_title)
 
     def count(self) -> int:
-        """
-        追跡中の重複排除済みタイトル数を返します。
+        """追跡中の重複排除済みタイトル数を返します。
 
         Returns
         -------
         int
             追跡中のタイトル数。
+
         """
         return len(self.seen_normalized_titles)
 
@@ -169,8 +167,7 @@ async def load_existing_titles_from_storage(
     target_dates: set,
     logger=None,
 ) -> DedupTracker:
-    """
-    指定期間の既存ファイルから記事タイトルをロードして重複チェッカーを返す。
+    """指定期間の既存ファイルから記事タイトルをロードして重複チェッカーを返す。
 
     既存のJSON/Markdownファイルから記事タイトルを読み込み、
     DedupTrackerオブジェクトを初期化します。これにより、
@@ -198,6 +195,7 @@ async def load_existing_titles_from_storage(
     >>> is_dup, _ = tracker.is_duplicate("既存記事のタイトル")
     >>> print(is_dup)
     True
+
     """
     import json
     from datetime import datetime, time

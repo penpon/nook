@@ -24,8 +24,7 @@ from nook.common.exceptions import RetryException
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_async_success_first_try():
-    """
-    Given: 正常な非同期関数
+    """Given: 正常な非同期関数
     When: handle_errorsでデコレート
     Then: 1回目で成功し、関数結果を返す
     """
@@ -41,8 +40,7 @@ async def test_handle_errors_async_success_first_try():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_async_success_after_retry():
-    """
-    Given: 1回失敗後に成功する非同期関数
+    """Given: 1回失敗後に成功する非同期関数
     When: handle_errorsでデコレート
     Then: リトライ後に成功し、infoログ出力
     """
@@ -64,8 +62,7 @@ async def test_handle_errors_async_success_after_retry():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_async_all_retries_failed():
-    """
-    Given: 常に失敗する非同期関数
+    """Given: 常に失敗する非同期関数
     When: retries=3で全て失敗
     Then: RetryException発生
     """
@@ -84,8 +81,7 @@ async def test_handle_errors_async_all_retries_failed():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_async_various_exceptions():
-    """
-    Given: 様々な例外を出す関数
+    """Given: 様々な例外を出す関数
     When: handle_errorsでデコレート
     Then: RetryExceptionでラップされる
     """
@@ -108,8 +104,7 @@ async def test_handle_errors_async_various_exceptions():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_async_backoff_calculation():
-    """
-    Given: delay=1.0, backoff=2.0の設定
+    """Given: delay=1.0, backoff=2.0の設定
     When: リトライ発生
     Then: 待機時間が指数的に増加（1, 2, 4秒）
     """
@@ -136,8 +131,7 @@ async def test_handle_errors_async_backoff_calculation():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_async_logging():
-    """
-    Given: 失敗する非同期関数
+    """Given: 失敗する非同期関数
     When: リトライが発生
     Then: 適切なログが出力される
     """
@@ -166,8 +160,7 @@ async def test_handle_errors_async_logging():
 
 @pytest.mark.unit
 def test_handle_errors_sync_success_first_try():
-    """
-    Given: 正常な同期関数
+    """Given: 正常な同期関数
     When: handle_errorsでデコレート
     Then: 1回目で成功し、関数結果を返す
     """
@@ -182,8 +175,7 @@ def test_handle_errors_sync_success_first_try():
 
 @pytest.mark.unit
 def test_handle_errors_sync_success_after_retry():
-    """
-    Given: 1回失敗後に成功する同期関数
+    """Given: 1回失敗後に成功する同期関数
     When: handle_errorsでデコレート
     Then: リトライ後に成功し、infoログ出力
     """
@@ -204,8 +196,7 @@ def test_handle_errors_sync_success_after_retry():
 
 @pytest.mark.unit
 def test_handle_errors_sync_all_retries_failed():
-    """
-    Given: 常に失敗する同期関数
+    """Given: 常に失敗する同期関数
     When: retries=3で全て失敗
     Then: RetryException発生
     """
@@ -222,8 +213,7 @@ def test_handle_errors_sync_all_retries_failed():
 
 @pytest.mark.unit
 def test_handle_errors_sync_long_error_message():
-    """
-    Given: 100文字超のエラーメッセージ
+    """Given: 100文字超のエラーメッセージ
     When: ログ出力
     Then: メッセージは100文字に切り詰められる
     """
@@ -257,8 +247,7 @@ def test_handle_errors_sync_long_error_message():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_retries_one():
-    """
-    Given: retries=1
+    """Given: retries=1
     When: 1回失敗
     Then: すぐに例外発生
     """
@@ -274,8 +263,7 @@ async def test_handle_errors_retries_one():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_retries_ten():
-    """
-    Given: retries=10
+    """Given: retries=10
     When: 9回失敗後に成功
     Then: 10回目で成功
     """
@@ -297,8 +285,7 @@ async def test_handle_errors_retries_ten():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_delay_zero():
-    """
-    Given: delay=0（待機なし）
+    """Given: delay=0（待機なし）
     When: リトライ発生
     Then: 即座にリトライ
     """
@@ -319,8 +306,7 @@ async def test_handle_errors_delay_zero():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_backoff_one():
-    """
-    Given: backoff=1.0（固定待機時間）
+    """Given: backoff=1.0（固定待機時間）
     When: リトライ発生
     Then: 待機時間がdelayで固定
     """
@@ -346,8 +332,7 @@ async def test_handle_errors_backoff_one():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_log_execution_time_async_success():
-    """
-    Given: 正常な非同期関数
+    """Given: 正常な非同期関数
     When: log_execution_timeでデコレート
     Then: 実行時間がログ出力され、関数結果を返す
     """
@@ -373,8 +358,7 @@ async def test_log_execution_time_async_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_log_execution_time_async_with_exception():
-    """
-    Given: 例外を投げる非同期関数
+    """Given: 例外を投げる非同期関数
     When: log_execution_timeでデコレート
     Then: 実行時間がerrorログに記録され、例外を再raise
     """
@@ -400,8 +384,7 @@ async def test_log_execution_time_async_with_exception():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_log_execution_time_async_execution_time_recorded():
-    """
-    Given: 非同期関数
+    """Given: 非同期関数
     When: log_execution_timeでデコレート
     Then: extraフィールドにexecution_timeが記録される
     """
@@ -431,8 +414,7 @@ async def test_log_execution_time_async_execution_time_recorded():
 
 @pytest.mark.unit
 def test_log_execution_time_sync_returns_original():
-    """
-    Given: 同期関数
+    """Given: 同期関数
     When: log_execution_timeでデコレート
     Then: 元の関数がそのまま返る（未実装）
     """
@@ -455,8 +437,7 @@ def test_log_execution_time_sync_returns_original():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_combined_decorators():
-    """
-    Given: handle_errorsとlog_execution_timeを両方適用
+    """Given: handle_errorsとlog_execution_timeを両方適用
     When: 関数を実行
     Then: 両方のデコレータが正常動作
     """
@@ -473,8 +454,7 @@ async def test_combined_decorators():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_functools_wraps_preserved():
-    """
-    Given: デコレート済み関数
+    """Given: デコレート済み関数
     When: 関数名やdocstringを確認
     Then: 元の情報が保持されている
     """
@@ -496,8 +476,7 @@ async def test_functools_wraps_preserved():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_default_parameters():
-    """
-    Given: デフォルトパラメータ
+    """Given: デフォルトパラメータ
     When: デコレート
     Then: retries=3, delay=1.0, backoff=2.0で動作
     """
@@ -513,8 +492,7 @@ async def test_handle_errors_default_parameters():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_errors_large_backoff():
-    """
-    Given: backoff=10.0（急激な増加）
+    """Given: backoff=10.0（急激な増加）
     When: リトライ発生
     Then: 待機時間が急激に増加
     """

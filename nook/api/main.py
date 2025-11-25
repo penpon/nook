@@ -1,5 +1,4 @@
-"""
-Nook APIのメインアプリケーション。
+"""Nook APIのメインアプリケーション。
 FastAPIを使用してAPIエンドポイントを提供します。
 """
 
@@ -54,13 +53,13 @@ app.include_router(weather.router, prefix="/api")
 
 @app.get("/")
 async def root():
-    """
-    ルートエンドポイント。
+    """ルートエンドポイント。
 
     Returns
     -------
     dict
         APIの基本情報。
+
     """
     return {
         "name": "Nook API",
@@ -71,25 +70,25 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """
-    ヘルスチェックエンドポイント。
+    """ヘルスチェックエンドポイント。
 
     Returns
     -------
     dict
         ヘルスステータス。
+
     """
     return {"status": "healthy"}
 
 
 @app.get("/api/health/errors", include_in_schema=False)
 async def get_error_stats():
-    """
-    エラー統計を取得するエンドポイント。
+    """エラー統計を取得するエンドポイント。
 
     Returns
     -------
     dict
         過去60分間のエラー統計。
+
     """
     return error_metrics.get_error_stats()

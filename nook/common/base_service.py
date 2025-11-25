@@ -23,7 +23,7 @@ class BaseService(ABC):
         self.http_client = None  # グローバルHTTPクライアントで初期化
 
     @abstractmethod
-    async def collect(self) -> None:
+    async def collect(self, *args: Any, **kwargs: Any) -> Any:
         """データ収集のメイン処理（各サービスで実装）"""
         pass
 

@@ -2,8 +2,9 @@
 
 import asyncio
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from io import BytesIO
 
 import arxiv
@@ -28,8 +29,7 @@ from nook.common.logging_utils import (
 
 
 def remove_tex_backticks(text: str) -> str:
-    r"""
-    文字列が TeX 形式、つまり
+    r"""文字列が TeX 形式、つまり
       `$\ldots$`
     の場合、外側のバッククォート (`) だけを削除して
       $\ldots$
@@ -41,8 +41,7 @@ def remove_tex_backticks(text: str) -> str:
 
 
 def remove_outer_markdown_markers(text: str) -> str:
-    """
-    文章中の "```markdown" で始まるブロックについて、
+    """文章中の "```markdown" で始まるブロックについて、
     最も遠くにある "```" を閉じマーカーとして認識し、
     開始の "```markdown" とその閉じマーカー "```" のみを削除します。
     """
@@ -51,8 +50,7 @@ def remove_outer_markdown_markers(text: str) -> str:
 
 
 def remove_outer_singlequotes(text: str) -> str:
-    """
-    文章中の "'''" で始まるブロックについて、
+    """文章中の "'''" で始まるブロックについて、
     最も遠くにある "'''" を閉じマーカーとして認識し、
     開始の "'''" とその閉じマーカー "'''" のみを削除します。
     """
@@ -62,8 +60,7 @@ def remove_outer_singlequotes(text: str) -> str:
 
 @dataclass
 class PaperInfo:
-    """
-    arXiv論文情報。
+    """arXiv論文情報。
 
     Parameters
     ----------
@@ -75,6 +72,7 @@ class PaperInfo:
         URL。
     contents : str
         論文の内容。
+
     """
 
     title: str
@@ -86,23 +84,23 @@ class PaperInfo:
 
 
 class ArxivSummarizer(BaseService):
-    """
-    arXiv論文を収集・要約するクラス。
+    """arXiv論文を収集・要約するクラス。
 
     Parameters
     ----------
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     def __init__(self, storage_dir: str = "data"):
-        """
-        ArxivSummarizerを初期化します。
+        """ArxivSummarizerを初期化します。
 
         Parameters
         ----------
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+
         """
         super().__init__("arxiv_summarizer")
         self.http_client = None  # setup_http_clientで初期化
@@ -113,8 +111,7 @@ class ArxivSummarizer(BaseService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        arXiv論文を収集・要約して保存します。
+        """arXiv論文を収集・要約して保存します。
 
         Parameters
         ----------
@@ -125,6 +122,7 @@ class ArxivSummarizer(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -251,8 +249,7 @@ class ArxivSummarizer(BaseService):
 
     @handle_errors(retries=3)
     async def _get_curated_paper_ids(self, limit: int, snapshot_date: date) -> list[str] | None:
-        """
-        Hugging Faceでキュレーションされた論文IDを取得します。
+        """Hugging Faceでキュレーションされた論文IDを取得します。
 
         Parameters
         ----------
@@ -265,12 +262,15 @@ class ArxivSummarizer(BaseService):
         -------
         List[str] or None
             論文IDのリスト。URLが存在しない場合はNoneを返す。
+
         """
         paper_ids: list[str] = []
 
         # Upvote順で並んでいる日付ページから論文IDを抽出
         page_url = f"https://huggingface.co/papers/date/{snapshot_date:%Y-%m-%d}"
         try:
+            if not self.http_client:
+                return None
             response = await self.http_client.get(page_url)
             response.raise_for_status()
 
@@ -290,6 +290,10 @@ class ArxivSummarizer(BaseService):
                     continue
 
                 href = link.get("href", "")
+                if isinstance(href, list):
+                    href = href[0] if href else ""
+                if not isinstance(href, str):
+                    continue
                 paper_id_match = re.search(r"/papers/(\d+\.\d+)", href)
                 if not paper_id_match:
                     continue
@@ -315,12 +319,11 @@ class ArxivSummarizer(BaseService):
                     page_url,
                 )
                 return None
-            else:
-                self.logger.error(
-                    "Hugging Face日付ページの取得に失敗しました (%s): %s",
-                    page_url,
-                    exc,
-                )
+            self.logger.error(
+                "Hugging Face日付ページの取得に失敗しました (%s): %s",
+                page_url,
+                exc,
+            )
         except Exception as exc:
             self.logger.error(
                 "Hugging Face日付ページの取得に失敗しました (%s): %s",
@@ -331,12 +334,19 @@ class ArxivSummarizer(BaseService):
         # フォールバック: 旧来のトップページから取得
         if not paper_ids:
             fallback_url = "https://huggingface.co/papers"
-            response = await self.http_client.get(fallback_url)
-            soup = BeautifulSoup(response.text, "html.parser")
+            if self.http_client:
+                response = await self.http_client.get(fallback_url)
+                soup = BeautifulSoup(response.text, "html.parser")
+            else:
+                return []
 
             paper_links = soup.select("a[href^='/papers/']")
             for link in paper_links:
                 href = link.get("href", "")
+                if isinstance(href, list):
+                    href = href[0] if href else ""
+                if not isinstance(href, str):
+                    continue
                 paper_id_match = re.search(r"/papers/(\d+\.\d+)", href)
                 if not paper_id_match:
                     continue
@@ -359,8 +369,7 @@ class ArxivSummarizer(BaseService):
         return paper_ids[:limit] if paper_ids else []
 
     async def _get_processed_ids(self, target_date: date | None = None) -> list[str]:
-        """
-        既に処理済みの論文IDを取得します。
+        """既に処理済みの論文IDを取得します。
 
         Parameters
         ----------
@@ -371,6 +380,7 @@ class ArxivSummarizer(BaseService):
         -------
         List[str]
             処理済みの論文IDのリスト。
+
         """
         if target_date is None:
             target_date = datetime.now().date()
@@ -385,10 +395,9 @@ class ArxivSummarizer(BaseService):
         return [line.strip() for line in content.split("\n") if line.strip()]
 
     async def _save_processed_ids_by_date(
-        self, paper_ids: list[str], target_dates: list[date]
+        self, paper_ids: list[str], target_dates: Iterable[date]
     ) -> None:
-        """
-        処理済みの論文IDを日付ごとに保存します。
+        """処理済みの論文IDを日付ごとに保存します。
 
         Parameters
         ----------
@@ -396,6 +405,7 @@ class ArxivSummarizer(BaseService):
             処理済みの論文IDのリスト。
         target_dates : Set[date]
             対象の日付セット。
+
         """
         # 論文情報を取得して公開日を確認
         tasks = []
@@ -405,7 +415,7 @@ class ArxivSummarizer(BaseService):
         paper_dates = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 日付ごとにIDをグループ化
-        ids_by_date = {}
+        ids_by_date: dict[str, list[str]] = {}
         for paper_id, paper_date in zip(paper_ids, paper_dates, strict=True):
             if isinstance(paper_date, date):
                 date_str = paper_date.strftime("%Y-%m-%d")
@@ -435,8 +445,7 @@ class ArxivSummarizer(BaseService):
             await self.save_data(content, filename)
 
     async def _load_ids_from_file(self, filename: str) -> list[str]:
-        """
-        指定されたファイルからIDを読み込みます。
+        """指定されたファイルからIDを読み込みます。
 
         Parameters
         ----------
@@ -447,6 +456,7 @@ class ArxivSummarizer(BaseService):
         -------
         List[str]
             IDのリスト。
+
         """
         content = await self.storage.load(filename)
         if not content:
@@ -455,8 +465,7 @@ class ArxivSummarizer(BaseService):
         return [line.strip() for line in content.split("\n") if line.strip()]
 
     async def _get_paper_date(self, paper_id: str) -> date | None:
-        """
-        論文の公開日を取得します。
+        """論文の公開日を取得します。
 
         Parameters
         ----------
@@ -467,6 +476,7 @@ class ArxivSummarizer(BaseService):
         -------
         date or None
             論文の公開日。取得できない場合はNone。
+
         """
         try:
             # arxivライブラリは同期的なので、別スレッドで実行
@@ -489,12 +499,11 @@ class ArxivSummarizer(BaseService):
 
             return None
         except Exception as e:
-            self.logger.error(f"Error getting paper date for {paper_id}: {str(e)}")
+            self.logger.error(f"Error getting paper date for {paper_id}: {e!s}")
             return None
 
     async def _retrieve_paper_info(self, paper_id: str) -> PaperInfo | None:
-        """
-        論文情報を取得します。
+        """論文情報を取得します。
 
         Parameters
         ----------
@@ -505,6 +514,7 @@ class ArxivSummarizer(BaseService):
         -------
         PaperInfo or None
             取得した論文情報。取得に失敗した場合はNone。
+
         """
         try:
             # arxivライブラリは同期的なので、別スレッドで実行
@@ -534,9 +544,9 @@ class ArxivSummarizer(BaseService):
             published_at = getattr(paper, "published", None)
             if isinstance(published_at, datetime):
                 if published_at.tzinfo is None:
-                    published_at = published_at.replace(tzinfo=UTC)
+                    published_at = published_at.replace(tzinfo=timezone.utc)
             else:
-                published_at = datetime.now(UTC)
+                published_at = datetime.now(timezone.utc)
 
             return PaperInfo(
                 title=title,
@@ -547,12 +557,11 @@ class ArxivSummarizer(BaseService):
             )
 
         except Exception as e:
-            self.logger.error(f"Error retrieving paper {paper_id}: {str(e)}")
+            self.logger.error(f"Error retrieving paper {paper_id}: {e!s}")
             return None
 
     async def _translate_to_japanese(self, text: str) -> str:
-        """
-        テキストを日本語に翻訳します。
+        """テキストを日本語に翻訳します。
 
         Parameters
         ----------
@@ -563,6 +572,7 @@ class ArxivSummarizer(BaseService):
         -------
         str
             翻訳されたテキスト。
+
         """
         try:
             prompt = f"以下の英語の学術論文のテキストを自然な日本語に翻訳してください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。\n\n{text}"
@@ -578,12 +588,11 @@ class ArxivSummarizer(BaseService):
 
             return translated_text
         except Exception as e:
-            self.logger.error(f"Error translating text: {str(e)}")
+            self.logger.error(f"Error translating text: {e!s}")
             return text  # 翻訳に失敗した場合は原文を返す
 
     async def _extract_body_text(self, arxiv_id: str, min_line_length: int = 40) -> str:
-        """
-        ArXivから本文を抽出（HTML→PDF→アブストラクトのフォールバックチェーン）
+        """ArXivから本文を抽出（HTML→PDF→アブストラクトのフォールバックチェーン）
 
         Parameters
         ----------
@@ -596,6 +605,7 @@ class ArxivSummarizer(BaseService):
         -------
         str
             抽出された本文テキスト
+
         """
         # 1. HTML形式を試す
         html_text = await self._extract_from_html(arxiv_id, min_line_length)
@@ -615,8 +625,7 @@ class ArxivSummarizer(BaseService):
         return ""
 
     async def _download_html_without_retry(self, html_url: str) -> str:
-        """
-        リトライなしでHTMLをダウンロード（デコレータを回避）
+        """リトライなしでHTMLをダウンロード（デコレータを回避）
 
         Parameters
         ----------
@@ -627,6 +636,7 @@ class ArxivSummarizer(BaseService):
         -------
         str
             HTMLコンテンツ
+
         """
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -643,8 +653,7 @@ class ArxivSummarizer(BaseService):
             raise
 
     async def _extract_from_html(self, arxiv_id: str, min_line_length: int = 40) -> str:
-        """
-        HTML形式から本文を抽出
+        """HTML形式から本文を抽出
 
         Parameters
         ----------
@@ -657,6 +666,7 @@ class ArxivSummarizer(BaseService):
         -------
         str
             抽出されたテキスト
+
         """
         try:
             # HTMLをダウンロード（リトライなし）
@@ -700,12 +710,11 @@ class ArxivSummarizer(BaseService):
                     filtered_lines.append(line.strip())
             return "\n".join(filtered_lines)
         except Exception as e:
-            self.logger.debug(f"HTML抽出失敗: {arxiv_id} - {str(e)}")
+            self.logger.debug(f"HTML抽出失敗: {arxiv_id} - {e!s}")
             return ""
 
     async def _download_pdf_without_retry(self, pdf_url: str) -> httpx.Response:
-        """
-        リトライなしでPDFをダウンロード（デコレータを回避）
+        """リトライなしでPDFをダウンロード（デコレータを回避）
 
         Parameters
         ----------
@@ -716,6 +725,7 @@ class ArxivSummarizer(BaseService):
         -------
         httpx.Response
             HTTPレスポンス
+
         """
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(pdf_url)
@@ -723,8 +733,7 @@ class ArxivSummarizer(BaseService):
             return response
 
     async def _extract_from_pdf(self, arxiv_id: str, min_line_length: int = 40) -> str:
-        """
-        PDF形式から本文を抽出
+        """PDF形式から本文を抽出
 
         Parameters
         ----------
@@ -737,6 +746,7 @@ class ArxivSummarizer(BaseService):
         -------
         str
             抽出されたテキスト
+
         """
         try:
             # PDFをダウンロード（リトライなし）
@@ -783,11 +793,10 @@ class ArxivSummarizer(BaseService):
                 if text_parts:
                     full_text = "\n\n".join(text_parts)
                     return full_text
-                else:
-                    return ""
+                return ""
 
         except Exception as e:
-            self.logger.debug(f"PDF抽出失敗: {arxiv_id} - {str(e)}")
+            self.logger.debug(f"PDF抽出失敗: {arxiv_id} - {e!s}")
             return ""
 
     async def _summarize_papers(self, papers: list[PaperInfo]) -> None:
@@ -869,20 +878,19 @@ class ArxivSummarizer(BaseService):
             paper_info.summary = summary
             await self.rate_limit()
         except Exception as e:
-            self.logger.error(f"Error generating summary: {type(e).__name__}: {str(e)}")
+            self.logger.error(f"Error generating summary: {type(e).__name__}: {e!s}")
             if hasattr(e, "last_attempt") and hasattr(e.last_attempt, "exception"):
                 inner_error = e.last_attempt.exception()
-                self.logger.error(f"Inner error: {type(inner_error).__name__}: {str(inner_error)}")
-            paper_info.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
+                self.logger.error(f"Inner error: {type(inner_error).__name__}: {inner_error!s}")
+            paper_info.summary = f"要約の生成中にエラーが発生しました: {e!s}"
 
     async def _store_summaries(
         self,
         papers: list[PaperInfo],
         limit: int,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> list[tuple[str, str]]:
-        """
-        要約を保存します。
+        """要約を保存します。
 
         Parameters
         ----------
@@ -893,6 +901,7 @@ class ArxivSummarizer(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         if not papers:
             return []
@@ -918,7 +927,7 @@ class ArxivSummarizer(BaseService):
     def _serialize_papers(self, papers: list[PaperInfo]) -> list[dict]:
         records: list[dict] = []
         for paper in papers:
-            published = paper.published_at or datetime.now(UTC)
+            published = paper.published_at or datetime.now(timezone.utc)
             records.append(
                 {
                     "title": paper.title,
@@ -951,9 +960,9 @@ class ArxivSummarizer(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            published = datetime.min.replace(tzinfo=UTC)
+            published = datetime.min.replace(tzinfo=timezone.utc)
         return (0, published)
 
     def _render_markdown(self, records: list[dict], today: datetime) -> str:

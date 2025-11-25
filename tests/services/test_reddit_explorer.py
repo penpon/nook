@@ -1,5 +1,4 @@
-"""
-nook/services/reddit_explorer/reddit_explorer.py のテスト
+"""nook/services/reddit_explorer/reddit_explorer.py のテスト
 
 テスト観点:
 - RedditExplorerの初期化
@@ -130,8 +129,7 @@ def async_generator_helper():
 
 @pytest.mark.unit
 def test_init_with_default_storage_dir(mock_env_vars):
-    """
-    Given: デフォルトのstorage_dir
+    """Given: デフォルトのstorage_dir
     When: RedditExplorerを初期化
     Then: インスタンスが正常に作成される
     """
@@ -147,8 +145,7 @@ def test_init_with_default_storage_dir(mock_env_vars):
 
 @pytest.mark.unit
 def test_init_with_valid_credentials(monkeypatch):
-    """
-    Given: 有効なReddit APIクレデンシャル
+    """Given: 有効なReddit APIクレデンシャル
     When: RedditExplorerを初期化
     Then: client_id, client_secret, user_agentが正しく設定される
     """
@@ -167,8 +164,7 @@ def test_init_with_valid_credentials(monkeypatch):
 
 @pytest.mark.unit
 def test_init_with_env_credentials(reddit_explorer_service):
-    """
-    Given: 環境変数でReddit APIクレデンシャルを設定
+    """Given: 環境変数でReddit APIクレデンシャルを設定
     When: RedditExplorerを初期化（引数なし）
     Then: 環境変数から認証情報が読み込まれる
     """
@@ -179,8 +175,7 @@ def test_init_with_env_credentials(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_init_missing_credentials(monkeypatch):
-    """
-    Given: Reddit APIクレデンシャルが不足
+    """Given: Reddit APIクレデンシャルが不足
     When: RedditExplorerを初期化
     Then: ValueErrorが発生
     """
@@ -195,8 +190,7 @@ def test_init_missing_credentials(monkeypatch):
 
 @pytest.mark.unit
 def test_init_missing_all_credentials(monkeypatch):
-    """
-    Given: 環境変数もパラメータもReddit APIクレデンシャルなし
+    """Given: 環境変数もパラメータもReddit APIクレデンシャルなし
     When: RedditExplorerを初期化
     Then: ValueErrorが発生
     """
@@ -219,8 +213,7 @@ def test_init_missing_all_credentials(monkeypatch):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api, async_generator_helper):
-    """
-    Given: 有効なReddit API
+    """Given: 有効なReddit API
     When: collectメソッドを呼び出す
     Then: 投稿が正常に取得・保存される
     """
@@ -264,8 +257,7 @@ async def test_collect_success_with_posts(mock_env_vars, mock_reddit_api, async_
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_network_error(mock_env_vars):
-    """
-    Given: ネットワークエラーが発生
+    """Given: ネットワークエラーが発生
     When: collectメソッドを呼び出す
     Then: Exceptionが発生する
     """
@@ -285,8 +277,7 @@ async def test_collect_network_error(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_gpt_api_error(mock_env_vars, async_generator_helper):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: collectメソッドを呼び出す
     Then: エラーが適切に処理される
     """
@@ -319,8 +310,7 @@ async def test_collect_gpt_api_error(mock_env_vars, async_generator_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_multiple_subreddits(mock_env_vars, async_generator_helper):
-    """
-    Given: 複数のサブレディット
+    """Given: 複数のサブレディット
     When: collectメソッドを呼び出す
     Then: 全てのサブレディットが処理される
     """
@@ -349,8 +339,7 @@ async def test_collect_with_multiple_subreddits(mock_env_vars, async_generator_h
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_full_workflow_collect_and_save(mock_env_vars, async_generator_helper):
-    """
-    Given: 完全なワークフロー
+    """Given: 完全なワークフロー
     When: collect→save→cleanupを実行
     Then: 全フローが正常に動作
     """
@@ -415,8 +404,7 @@ async def test_post_type_detection(
     post_type,
     expected_type,
 ):
-    """
-    Given: 各種投稿タイプ（image/gallery/video/poll/crosspost/text/link）
+    """Given: 各種投稿タイプ（image/gallery/video/poll/crosspost/text/link）
     When: _retrieve_hot_postsで投稿を処理
     Then: 正しい投稿タイプが判定される
     """
@@ -457,8 +445,7 @@ async def test_post_type_detection(
 async def test_utc_to_jst_conversion(
     reddit_explorer_service, mock_reddit_submission, test_dates, async_generator_helper
 ):
-    """
-    Given: UTC タイムスタンプの投稿
+    """Given: UTC タイムスタンプの投稿
     When: _retrieve_hot_postsで投稿を処理
     Then: created_atがUTCタイムゾーンで正しく変換される
     """
@@ -503,8 +490,7 @@ async def test_utc_to_jst_conversion(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_reddit_post_success(reddit_explorer_service):
-    """
-    Given: 有効なReddit投稿
+    """Given: 有効なReddit投稿
     When: _summarize_reddit_postで要約を生成
     Then: GPTクライアントが呼ばれ、要約が設定される
     """
@@ -533,8 +519,7 @@ async def test_summarize_reddit_post_success(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_reddit_post_with_url(reddit_explorer_service):
-    """
-    Given: URLを含むReddit投稿
+    """Given: URLを含むReddit投稿
     When: _summarize_reddit_postで要約を生成
     Then: プロンプトにURLが含まれる
     """
@@ -561,8 +546,7 @@ async def test_summarize_reddit_post_with_url(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: _summarize_reddit_postで要約を生成
     Then: エラーメッセージが要約に設定される
     """
@@ -594,8 +578,7 @@ async def test_summarize_reddit_post_error_handling(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_to_japanese_success(reddit_explorer_service):
-    """
-    Given: 英語テキスト
+    """Given: 英語テキスト
     When: _translate_to_japaneseで翻訳
     Then: 日本語に翻訳される
     """
@@ -613,8 +596,7 @@ async def test_translate_to_japanese_success(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_to_japanese_empty_text(reddit_explorer_service):
-    """
-    Given: 空文字列
+    """Given: 空文字列
     When: _translate_to_japaneseで翻訳
     Then: 空文字列が返される（GPT呼び出しなし）
     """
@@ -629,8 +611,7 @@ async def test_translate_to_japanese_empty_text(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_translate_to_japanese_error_handling(reddit_explorer_service):
-    """
-    Given: GPT APIがエラーを返す
+    """Given: GPT APIがエラーを返す
     When: _translate_to_japaneseで翻訳
     Then: 原文がそのまま返される
     """
@@ -653,8 +634,7 @@ async def test_translate_to_japanese_error_handling(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_hot_posts_subreddit_not_found(reddit_explorer_service):
-    """
-    Given: 存在しないサブレディット
+    """Given: 存在しないサブレディット
     When: _retrieve_hot_postsで取得
     Then: 例外が発生する
     """
@@ -677,8 +657,7 @@ async def test_retrieve_hot_posts_subreddit_not_found(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, async_generator_helper):
-    """
-    Given: 投稿が0件のサブレディット
+    """Given: 投稿が0件のサブレディット
     When: _retrieve_hot_postsで取得
     Then: 空リストが返される
     """
@@ -703,8 +682,7 @@ async def test_retrieve_hot_posts_empty_results(reddit_explorer_service, async_g
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, async_generator_helper):
-    """
-    Given: スティッキー投稿を含むサブレディット
+    """Given: スティッキー投稿を含むサブレディット
     When: _retrieve_hot_postsで取得
     Then: スティッキー投稿はスキップされる
     """
@@ -752,8 +730,7 @@ async def test_retrieve_hot_posts_skip_stickied(reddit_explorer_service, async_g
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, async_generator_helper):
-    """
-    Given: 重複するタイトルの投稿
+    """Given: 重複するタイトルの投稿
     When: _retrieve_hot_postsで取得
     Then: 重複投稿はスキップされる
     """
@@ -813,8 +790,7 @@ async def test_retrieve_hot_posts_duplicate_titles(reddit_explorer_service, asyn
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_top_comments_success(reddit_explorer_service):
-    """
-    Given: コメントを持つ投稿
+    """Given: コメントを持つ投稿
     When: _retrieve_top_comments_of_postでコメント取得
     Then: トップコメントが取得され翻訳される
     """
@@ -859,8 +835,7 @@ async def test_retrieve_top_comments_success(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_top_comments_empty(reddit_explorer_service):
-    """
-    Given: コメントがない投稿
+    """Given: コメントがない投稿
     When: _retrieve_top_comments_of_postでコメント取得
     Then: 空リストが返される
     """
@@ -892,8 +867,7 @@ async def test_retrieve_top_comments_empty(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_extract_post_id_from_permalink(reddit_explorer_service):
-    """
-    Given: Redditパーマリンク
+    """Given: Redditパーマリンク
     When: _extract_post_id_from_permalinkでID抽出
     Then: 正しい投稿IDが返される
     """
@@ -919,8 +893,7 @@ def test_extract_post_id_from_permalink(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_post_sort_key(reddit_explorer_service):
-    """
-    Given: 投稿レコード
+    """Given: 投稿レコード
     When: _post_sort_keyでソートキー取得
     Then: popularity_scoreとcreated_atのタプルが返される
     """
@@ -939,8 +912,7 @@ def test_post_sort_key(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_select_top_posts(reddit_explorer_service):
-    """
-    Given: 複数の投稿
+    """Given: 複数の投稿
     When: _select_top_postsで上位を選択
     Then: popularity_scoreの高い順に並び替えられる
     """
@@ -1000,8 +972,7 @@ def test_select_top_posts(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_serialize_posts(reddit_explorer_service):
-    """
-    Given: RedditPost のリスト
+    """Given: RedditPost のリスト
     When: _serialize_postsでシリアライズ
     Then: 辞書のリストに変換される
     """
@@ -1038,8 +1009,7 @@ def test_serialize_posts(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_serialize_posts_without_created_at(reddit_explorer_service):
-    """
-    Given: created_atがないRedditPost
+    """Given: created_atがないRedditPost
     When: _serialize_postsでシリアライズ
     Then: 現在時刻が使用される
     """
@@ -1064,8 +1034,7 @@ def test_serialize_posts_without_created_at(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_empty_posts(reddit_explorer_service):
-    """
-    Given: 空の投稿リスト
+    """Given: 空の投稿リスト
     When: _store_summariesで保存
     Then: 空リストが返される
     """
@@ -1077,8 +1046,7 @@ async def test_store_summaries_empty_posts(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_with_posts(reddit_explorer_service):
-    """
-    Given: 投稿リスト
+    """Given: 投稿リスト
     When: _store_summariesで保存
     Then: ファイルパスのリストが返される
     """
@@ -1117,8 +1085,7 @@ async def test_store_summaries_with_posts(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_render_markdown(reddit_explorer_service):
-    """
-    Given: 投稿レコードのリスト
+    """Given: 投稿レコードのリスト
     When: _render_markdownでMarkdown生成
     Then: 正しいフォーマットのMarkdownが返される
     """
@@ -1150,8 +1117,7 @@ def test_render_markdown(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_render_markdown_long_text(reddit_explorer_service):
-    """
-    Given: 長い本文を持つ投稿レコード
+    """Given: 長い本文を持つ投稿レコード
     When: _render_markdownでMarkdown生成
     Then: 本文が200文字で切り詰められる
     """
@@ -1177,8 +1143,7 @@ def test_render_markdown_long_text(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_render_markdown_multiple_subreddits(reddit_explorer_service):
-    """
-    Given: 複数のサブレディットの投稿レコード
+    """Given: 複数のサブレディットの投稿レコード
     When: _render_markdownでMarkdown生成
     Then: サブレディットごとにグループ化される
     """
@@ -1217,8 +1182,7 @@ def test_render_markdown_multiple_subreddits(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_parse_markdown(reddit_explorer_service):
-    """
-    Given: Markdown形式の文字列
+    """Given: Markdown形式の文字列
     When: _parse_markdownでパース
     Then: 投稿レコードのリストに変換される
     """
@@ -1256,8 +1220,7 @@ This is a summary
 
 @pytest.mark.unit
 def test_parse_markdown_without_optional_fields(reddit_explorer_service):
-    """
-    Given: オプショナルフィールドなしのMarkdown
+    """Given: オプショナルフィールドなしのMarkdown
     When: _parse_markdownでパース
     Then: 正しくパースされる
     """
@@ -1289,8 +1252,7 @@ Simple summary
 
 @pytest.mark.unit
 def test_parse_markdown_multiple_posts(reddit_explorer_service):
-    """
-    Given: 複数投稿を含むMarkdown
+    """Given: 複数投稿を含むMarkdown
     When: _parse_markdownでパース
     Then: 全投稿が正しくパースされる
     """
@@ -1348,8 +1310,7 @@ Summary 3
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_posts_from_json_list(reddit_explorer_service):
-    """
-    Given: リスト形式のJSON
+    """Given: リスト形式のJSON
     When: _load_existing_postsで読み込み
     Then: リストが返される
     """
@@ -1371,8 +1332,7 @@ async def test_load_existing_posts_from_json_list(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_posts_from_json_dict(reddit_explorer_service):
-    """
-    Given: 辞書形式のJSON（サブレディット別）
+    """Given: 辞書形式のJSON（サブレディット別）
     When: _load_existing_postsで読み込み
     Then: フラット化されたリストが返される
     """
@@ -1396,8 +1356,7 @@ async def test_load_existing_posts_from_json_dict(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_posts_from_markdown(reddit_explorer_service):
-    """
-    Given: JSONがなくMarkdownのみ存在
+    """Given: JSONがなくMarkdownのみ存在
     When: _load_existing_postsで読み込み
     Then: Markdownからパースされたデータが返される
     """
@@ -1437,8 +1396,7 @@ Summary
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_posts_no_data(reddit_explorer_service):
-    """
-    Given: JSONもMarkdownも存在しない
+    """Given: JSONもMarkdownも存在しない
     When: _load_existing_postsで読み込み
     Then: 空リストが返される
     """
@@ -1465,8 +1423,7 @@ async def test_load_existing_posts_no_data(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_post_sort_key_edge_cases(reddit_explorer_service):
-    """
-    Given: created_atがない、またはpopularity_scoreがない投稿
+    """Given: created_atがない、またはpopularity_scoreがない投稿
     When: _post_sort_keyでソートキー取得
     Then: デフォルト値が使用される
     """
@@ -1496,8 +1453,7 @@ def test_post_sort_key_edge_cases(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_extract_post_id_edge_cases(reddit_explorer_service):
-    """
-    Given: 様々な形式のパーマリンク
+    """Given: 様々な形式のパーマリンク
     When: _extract_post_id_from_permalinkでID抽出
     Then: 正しくIDが抽出される
     """
@@ -1515,8 +1471,7 @@ def test_extract_post_id_edge_cases(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
-    """
-    Given: SUMMARY_LIMIT以下の投稿
+    """Given: SUMMARY_LIMIT以下の投稿
     When: _select_top_postsで選択
     Then: 全投稿が返される
     """
@@ -1542,8 +1497,7 @@ def test_select_top_posts_fewer_than_limit(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_run_method(reddit_explorer_service):
-    """
-    Given: RedditExplorer インスタンス
+    """Given: RedditExplorer インスタンス
     When: runメソッドを呼び出す
     Then: collectメソッドが実行される
     """
@@ -1559,8 +1513,7 @@ def test_run_method(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, async_generator_helper):
-    """
-    Given: 対象日付外の投稿
+    """Given: 対象日付外の投稿
     When: _retrieve_hot_postsで取得
     Then: 対象日付外の投稿はスキップされる (line 392)
     """
@@ -1606,8 +1559,7 @@ async def test_retrieve_hot_posts_date_filter(reddit_explorer_service, async_gen
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_retrieve_top_comments_without_body(reddit_explorer_service):
-    """
-    Given: body属性がないコメントオブジェクト
+    """Given: body属性がないコメントオブジェクト
     When: _retrieve_top_comments_of_postでコメント取得
     Then: body属性がないコメントはスキップされる (line 454)
     """
@@ -1648,8 +1600,7 @@ async def test_retrieve_top_comments_without_body(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_post_sort_key_invalid_date_format(reddit_explorer_service):
-    """
-    Given: 不正な形式のcreated_at
+    """Given: 不正な形式のcreated_at
     When: _post_sort_keyでソートキー取得
     Then: ValueErrorが発生し、datetime.minが使用される (lines 588-589)
     """
@@ -1666,8 +1617,7 @@ def test_post_sort_key_invalid_date_format(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_select_top_posts_empty_list(reddit_explorer_service):
-    """
-    Given: 空の投稿リスト
+    """Given: 空の投稿リスト
     When: _select_top_postsで選択
     Then: 空リストが返される (line 689)
     """
@@ -1683,8 +1633,7 @@ def test_select_top_posts_empty_list(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_titles_error(reddit_explorer_service):
-    """
-    Given: storage.load_markdownがエラーを発生させる
+    """Given: storage.load_markdownがエラーを発生させる
     When: _load_existing_titlesで既存タイトル読み込み
     Then: エラーをキャッチして空のDedupTrackerを返す (lines 707-710)
     """
@@ -1710,8 +1659,7 @@ async def test_load_existing_titles_error(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_config_path_resolution_reddit(mock_env_vars):
-    """
-    Given: RedditExplorerインスタンス作成
+    """Given: RedditExplorerインスタンス作成
     When: 初期化時に設定ファイルを読み込む
     Then: project_rootとconfig/services/subreddits.tomlパスが正しく生成される
     """
@@ -1725,8 +1673,7 @@ def test_config_path_resolution_reddit(mock_env_vars):
 
 @pytest.mark.unit
 def test_config_file_exists_reddit(mock_env_vars):
-    """
-    Given: RedditExplorerインスタンス
+    """Given: RedditExplorerインスタンス
     When: 設定ファイルのパスを確認
     Then: subreddits.tomlが存在することを確認
     """
@@ -1742,8 +1689,7 @@ def test_config_file_exists_reddit(mock_env_vars):
 
 @pytest.mark.unit
 def test_config_validation_reddit(mock_env_vars):
-    """
-    Given: RedditExplorerインスタンス
+    """Given: RedditExplorerインスタンス
     When: 設定ファイルの内容を検証
     Then: 必須フィールド（カテゴリとsubreddit名リスト）が存在
     """
@@ -1767,8 +1713,7 @@ def test_config_validation_reddit(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_date_grouping(mock_env_vars, async_generator_helper):
-    """
-    Given: 異なる日付の複数投稿
+    """Given: 異なる日付の複数投稿
     When: collectメソッドで取得
     Then: 日付ごとにグループ化される (lines 218-226)
     """
@@ -1831,8 +1776,7 @@ async def test_collect_date_grouping(mock_env_vars, async_generator_helper):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_daily_processing_with_existing_posts(mock_env_vars, async_generator_helper):
-    """
-    Given: 既存の記事が存在する日付
+    """Given: 既存の記事が存在する日付
     When: collectメソッドで新しい記事を取得
     Then: 既存記事と新規記事が統合される (lines 242-280)
     """
@@ -1909,8 +1853,7 @@ async def test_collect_daily_processing_with_existing_posts(mock_env_vars, async
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_subreddit_fetch_error_handling(mock_env_vars, async_generator_helper):
-    """
-    Given: サブレディット取得中にエラーが発生
+    """Given: サブレディット取得中にエラーが発生
     When: collectメソッドで複数サブレディットを取得
     Then: エラーログを出力し、他のサブレディット処理を継続 (lines 208-211)
     """
@@ -1982,8 +1925,7 @@ async def test_collect_subreddit_fetch_error_handling(mock_env_vars, async_gener
 
 @pytest.mark.unit
 def test_serialize_posts_comprehensive(reddit_explorer_service):
-    """
-    Given: 複数カテゴリ・サブレディットの投稿
+    """Given: 複数カテゴリ・サブレディットの投稿
     When: _serialize_postsでシリアライズ
     Then: 全フィールドが正しくシリアライズされる
     """
@@ -2049,8 +1991,7 @@ def test_serialize_posts_comprehensive(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_render_markdown_comprehensive(reddit_explorer_service):
-    """
-    Given: 複数サブレディットの投稿レコード
+    """Given: 複数サブレディットの投稿レコード
     When: _render_markdownでマークダウン生成
     Then: サブレディットごとにグループ化されたマークダウンが生成される
     """
@@ -2094,8 +2035,7 @@ def test_render_markdown_comprehensive(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_parse_markdown_comprehensive(reddit_explorer_service):
-    """
-    Given: 複数サブレディット・投稿を含むマークダウン
+    """Given: 複数サブレディット・投稿を含むマークダウン
     When: _parse_markdownでパース
     Then: 全投稿が正しくパースされる
     """
@@ -2171,8 +2111,7 @@ Programming要約
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_http_client_initialization(mock_env_vars, async_generator_helper):
-    """
-    Given: HTTPクライアントが初期化されていない状態
+    """Given: HTTPクライアントが初期化されていない状態
     When: collectメソッドを呼び出す
     Then: HTTPクライアントが初期化される (line 166-167)
     """
@@ -2204,8 +2143,7 @@ async def test_collect_http_client_initialization(mock_env_vars, async_generator
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_with_many_posts_sorting(mock_env_vars, async_generator_helper):
-    """
-    Given: SUMMARY_LIMIT（15件）を超える投稿
+    """Given: SUMMARY_LIMIT（15件）を超える投稿
     When: collectメソッドで取得
     Then: 人気度順にソートされ、上位15件のみが選択される (lines 255-261)
     """
@@ -2271,8 +2209,7 @@ async def test_collect_with_many_posts_sorting(mock_env_vars, async_generator_he
 
 @pytest.mark.unit
 def test_extract_post_id_from_permalink_empty_string(reddit_explorer_service):
-    """
-    Given: 空文字列のパーマリンク
+    """Given: 空文字列のパーマリンク
     When: _extract_post_id_from_permalinkでID抽出
     Then: 空文字列が返される (line 604)
     """
@@ -2283,8 +2220,7 @@ def test_extract_post_id_from_permalink_empty_string(reddit_explorer_service):
 
 @pytest.mark.unit
 def test_extract_post_id_from_permalink_only_slashes(reddit_explorer_service):
-    """
-    Given: スラッシュのみのパーマリンク
+    """Given: スラッシュのみのパーマリンク
     When: _extract_post_id_from_permalinkでID抽出
     Then: 空文字列が返される
     """
@@ -2298,8 +2234,7 @@ def test_extract_post_id_from_permalink_only_slashes(reddit_explorer_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_multiple_target_dates(mock_env_vars, async_generator_helper):
-    """
-    Given: 複数の対象日付
+    """Given: 複数の対象日付
     When: collectメソッドで取得
     Then: 各日付ごとに処理される (lines 218-226)
     """

@@ -5,8 +5,7 @@ from typing import Any
 
 
 def log_processing_start(logger, date_str: str) -> None:
-    """
-    処理開始のログを出力します。
+    """処理開始のログを出力します。
 
     Parameters
     ----------
@@ -14,13 +13,13 @@ def log_processing_start(logger, date_str: str) -> None:
         ロガーインスタンス
     date_str : str
         処理対象の日付 (YYYY-MM-DD形式)
+
     """
     logger.info(f"\n📰 [{date_str}] の記事を処理中...")
 
 
 def log_article_counts(logger, existing_count: int, new_count: int) -> None:
-    """
-    既存・新規記事数のログを出力します。
+    """既存・新規記事数のログを出力します。
 
     Parameters
     ----------
@@ -30,6 +29,7 @@ def log_article_counts(logger, existing_count: int, new_count: int) -> None:
         既存記事数
     new_count : int
         新規記事数
+
     """
     logger.info(f"   📊 既存: {existing_count}件（保持） | 新規: {new_count}件")
 
@@ -37,8 +37,7 @@ def log_article_counts(logger, existing_count: int, new_count: int) -> None:
 def log_summary_candidates(
     logger, candidates: list[Any], score_attr: str = "popularity_score"
 ) -> None:
-    """
-    要約対象記事のリストを出力します。
+    """要約対象記事のリストを出力します。
 
     Parameters
     ----------
@@ -48,6 +47,7 @@ def log_summary_candidates(
         要約対象の記事リスト
     score_attr : str, default="popularity_score"
         スコア属性名
+
     """
     if not candidates:
         return
@@ -66,20 +66,19 @@ def log_summary_candidates(
 
 
 def log_summarization_start(logger) -> None:
-    """
-    要約生成開始のログを出力します。
+    """要約生成開始のログを出力します。
 
     Parameters
     ----------
     logger : Logger
         ロガーインスタンス
+
     """
     logger.info("\n   🤖 要約生成中...")
 
 
 def log_summarization_progress(logger, idx: int, total: int, title: str) -> None:
-    """
-    要約生成の進捗を出力します。
+    """要約生成の進捗を出力します。
 
     Parameters
     ----------
@@ -91,14 +90,14 @@ def log_summarization_progress(logger, idx: int, total: int, title: str) -> None
         全体数
     title : str
         記事タイトル
+
     """
     truncated_title = title[:50] + "..." if len(title) > 50 else title
     logger.info(f"      ✓ {idx}/{total}: 「{truncated_title}」")
 
 
 def log_storage_complete(logger, json_path: str, md_path: str) -> None:
-    """
-    保存完了のログを出力します。
+    """保存完了のログを出力します。
 
     Parameters
     ----------
@@ -108,25 +107,25 @@ def log_storage_complete(logger, json_path: str, md_path: str) -> None:
         JSONファイルパス
     md_path : str
         Markdownファイルパス
+
     """
     logger.info(f"\n   💾 保存完了: {json_path}, {md_path}")
 
 
 def log_no_new_articles(logger) -> None:
-    """
-    新規記事がない場合のログを出力します。
+    """新規記事がない場合のログを出力します。
 
     Parameters
     ----------
     logger : Logger
         ロガーインスタンス
+
     """
     logger.info("   ℹ️  新規記事がありません")
 
 
 def log_multiple_dates_processing(logger, dates: list[date]) -> None:
-    """
-    複数日付処理のログを出力します。
+    """複数日付処理のログを出力します。
 
     Parameters
     ----------
@@ -134,6 +133,7 @@ def log_multiple_dates_processing(logger, dates: list[date]) -> None:
         ロガーインスタンス
     dates : List[date]
         処理対象の日付リスト
+
     """
     if len(dates) == 1:
         logger.info(f"📰 [{dates[0]:%Y-%m-%d}] の記事を処理中...")

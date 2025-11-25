@@ -7,8 +7,9 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -32,8 +33,7 @@ from nook.common.logging_utils import (
 
 @dataclass
 class Repository:
-    """
-    GitHubリポジトリ情報。
+    """GitHubリポジトリ情報。
 
     Parameters
     ----------
@@ -45,6 +45,7 @@ class Repository:
         リポジトリへのリンク。
     stars : int
         スター数。
+
     """
 
     name: str
@@ -54,23 +55,23 @@ class Repository:
 
 
 class GithubTrending(BaseService):
-    """
-    GitHubのトレンドリポジトリを収集するクラス。
+    """GitHubのトレンドリポジトリを収集するクラス。
 
     Parameters
     ----------
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+
     """
 
     def __init__(self, storage_dir: str = "data"):
-        """
-        GithubTrendingを初期化します。
+        """GithubTrendingを初期化します。
 
         Parameters
         ----------
         storage_dir : str, default="data"
             ストレージディレクトリのパス。
+
         """
         super().__init__("github_trending")
         self.base_url = "https://github.com/trending"
@@ -87,8 +88,7 @@ class GithubTrending(BaseService):
         *,
         target_dates: list[date] | None = None,
     ) -> list[tuple[str, str]]:
-        """
-        GitHubのトレンドリポジトリを収集して保存します。
+        """GitHubのトレンドリポジトリを収集して保存します。
 
         Parameters
         ----------
@@ -99,6 +99,7 @@ class GithubTrending(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         # HTTPクライアントの初期化を確認
         if self.http_client is None:
@@ -217,8 +218,7 @@ class GithubTrending(BaseService):
     async def _retrieve_repositories(
         self, language: str, limit: int, dedup_tracker: DedupTracker
     ) -> list[Repository]:
-        """
-        特定の言語のトレンドリポジトリを取得します。
+        """特定の言語のトレンドリポジトリを取得します。
 
         Parameters
         ----------
@@ -231,12 +231,15 @@ class GithubTrending(BaseService):
         -------
         List[Repository]
             取得したリポジトリのリスト。
+
         """
         url = self.base_url
         if language:
             url += f"/{language}"
 
         try:
+            if self.http_client is None:
+                raise RuntimeError("HTTP client not initialized")
             response = await self.http_client.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
 
@@ -284,7 +287,7 @@ class GithubTrending(BaseService):
             return repositories
 
         except Exception as e:
-            self.logger.error(f"Error retrieving repositories for language {language}: {str(e)}")
+            self.logger.error(f"Error retrieving repositories for language {language}: {e!s}")
             raise APIException(f"Failed to retrieve repositories for {language}") from e
 
     def _load_existing_repositories(self) -> DedupTracker:
@@ -306,8 +309,7 @@ class GithubTrending(BaseService):
         *,
         progress_callback=None,
     ) -> list[tuple[str, list[Repository]]]:
-        """
-        リポジトリの説明を日本語に翻訳します。
+        """リポジトリの説明を日本語に翻訳します。
 
         Parameters
         ----------
@@ -320,6 +322,7 @@ class GithubTrending(BaseService):
         -------
         List[tuple[str, List[Repository]]]
             翻訳されたリポジトリリスト。
+
         """
         # 進捗カウンターを初期化
         total_repos = sum(len(repos) for _, repos in repositories_by_language)
@@ -363,11 +366,11 @@ class GithubTrending(BaseService):
 
                         except Exception as e:
                             self.logger.error(
-                                f"Error translating description for {repo.name}: {str(e)}"
+                                f"Error translating description for {repo.name}: {e!s}"
                             )
 
         except Exception as e:
-            self.logger.error(f"Error in translation process: {str(e)}")
+            self.logger.error(f"Error in translation process: {e!s}")
 
         return repositories_by_language
 
@@ -376,8 +379,7 @@ class GithubTrending(BaseService):
         repositories_by_language: list[tuple[str, list[Repository]]],
         target_date: date,
     ) -> tuple[str, str]:
-        """
-        特定の日付のリポジトリ情報を保存します。
+        """特定の日付のリポジトリ情報を保存します。
 
         Parameters
         ----------
@@ -390,6 +392,7 @@ class GithubTrending(BaseService):
         -------
         tuple[str, str]
             保存されたファイルパス (json_path, md_path)
+
         """
         if not repositories_by_language:
             raise ValueError("保存するリポジトリがありません")
@@ -411,17 +414,15 @@ class GithubTrending(BaseService):
 
         if saved_files and len(saved_files) > 0:
             return saved_files[0]  # 最初の（唯一の）ファイルパスを返す
-        else:
-            raise ValueError("保存に失敗しました")
+        raise ValueError("保存に失敗しました")
 
     async def _store_summaries(
         self,
         repositories_by_language: list[tuple[str, list[Repository]]],
         limit_per_language: int | None,
-        target_dates: list[date],
+        target_dates: Iterable[date],
     ) -> list[tuple[str, str]]:
-        """
-        リポジトリ情報を保存します。
+        """リポジトリ情報を保存します。
 
         Parameters
         ----------
@@ -434,6 +435,7 @@ class GithubTrending(BaseService):
         -------
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
+
         """
         if not repositories_by_language:
             self.logger.info("保存するリポジトリがありません")
@@ -463,7 +465,7 @@ class GithubTrending(BaseService):
         default_date: date,
     ) -> list[dict[str, Any]]:
         serialized: list[dict[str, Any]] = []
-        base_dt = datetime.combine(default_date, time.min, tzinfo=UTC)
+        base_dt = datetime.combine(default_date, time.min, tzinfo=timezone.utc)
         now_iso = base_dt.isoformat()
         for language, repositories in repositories_by_language:
             for repo in repositories:
@@ -507,9 +509,9 @@ class GithubTrending(BaseService):
             try:
                 published = datetime.fromisoformat(published_raw)
             except ValueError:
-                published = datetime.min.replace(tzinfo=UTC)
+                published = datetime.min.replace(tzinfo=timezone.utc)
         else:
-            published = datetime.min.replace(tzinfo=UTC)
+            published = datetime.min.replace(tzinfo=timezone.utc)
         return (stars, published)
 
     def _render_markdown(self, records: list[dict[str, Any]], today: datetime) -> str:

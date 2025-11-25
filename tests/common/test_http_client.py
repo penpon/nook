@@ -1,5 +1,4 @@
-"""
-nook/common/http_client.py のテスト
+"""nook/common/http_client.py のテスト
 
 テスト観点:
 - AsyncHTTPClientの初期化とセッション管理
@@ -37,8 +36,7 @@ from nook.common.http_client import (
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_init_with_default_config():
-    """
-    Given: configを指定しない
+    """Given: configを指定しない
     When: AsyncHTTPClientを初期化
     Then: デフォルトのBaseConfigが使用される
     """
@@ -52,8 +50,7 @@ async def test_init_with_default_config():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_init_with_custom_config():
-    """
-    Given: カスタムBaseConfigを指定
+    """Given: カスタムBaseConfigを指定
     When: AsyncHTTPClientを初期化
     Then: カスタム設定が反映される
     """
@@ -67,8 +64,7 @@ async def test_init_with_custom_config():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_start_session():
-    """
-    Given: AsyncHTTPClientインスタンス
+    """Given: AsyncHTTPClientインスタンス
     When: start()を呼び出す
     Then: _clientが初期化され、_session_startが設定される
     """
@@ -83,8 +79,7 @@ async def test_start_session():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_start_http1_session():
-    """
-    Given: AsyncHTTPClientインスタンス
+    """Given: AsyncHTTPClientインスタンス
     When: _start_http1_client()を呼び出す
     Then: _http1_clientが初期化される
     """
@@ -98,8 +93,7 @@ async def test_start_http1_session():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_close_session():
-    """
-    Given: 開始されたセッション
+    """Given: 開始されたセッション
     When: close()を呼び出す
     Then: 両クライアントがクローズされ、Noneになる
     """
@@ -114,8 +108,7 @@ async def test_close_session():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_context_manager():
-    """
-    Given: AsyncHTTPClientをコンテキストマネージャーで使用
+    """Given: AsyncHTTPClientをコンテキストマネージャーで使用
     When: async withブロックを実行
     Then: 自動的にstart/closeが呼ばれる
     """
@@ -128,8 +121,7 @@ async def test_context_manager():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_session_duration_logging():
-    """
-    Given: セッション開始
+    """Given: セッション開始
     When: closeを呼び出す
     Then: ログにセッション時間が記録される
     """
@@ -147,8 +139,7 @@ async def test_session_duration_logging():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_duplicate_start_session():
-    """
-    Given: 既に開始されたセッション
+    """Given: 既に開始されたセッション
     When: start()を2回呼び出す
     Then: 2回目は何もしない（既存のクライアントを維持）
     """
@@ -167,8 +158,7 @@ async def test_duplicate_start_session():
 
 @pytest.mark.unit
 def test_get_browser_headers():
-    """
-    Given: get_browser_headers()を呼び出す
+    """Given: get_browser_headers()を呼び出す
     When: staticメソッドを実行
     Then: User-Agent等を含むヘッダー辞書が返される
     """
@@ -180,8 +170,7 @@ def test_get_browser_headers():
 
 @pytest.mark.unit
 def test_browser_headers_contains_required_keys():
-    """
-    Given: get_browser_headers()を呼び出す
+    """Given: get_browser_headers()を呼び出す
     When: 返されたヘッダーを検証
     Then: 必須キーが存在する
     """
@@ -199,8 +188,7 @@ def test_browser_headers_contains_required_keys():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_http2_success(respx_mock):
-    """
-    Given: 正常なHTTPエンドポイント
+    """Given: 正常なHTTPエンドポイント
     When: GETリクエストを送信（HTTP/2）
     Then: 200レスポンスが返される
     """
@@ -217,8 +205,7 @@ async def test_get_request_http2_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_http1_success(respx_mock):
-    """
-    Given: 正常なHTTPエンドポイント
+    """Given: 正常なHTTPエンドポイント
     When: force_http1=Trueでリクエスト
     Then: 200レスポンスが返され、HTTP/1.1が使用される
     """
@@ -235,8 +222,7 @@ async def test_get_request_http1_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_with_params(respx_mock):
-    """
-    Given: クエリパラメータを指定
+    """Given: クエリパラメータを指定
     When: GETリクエストを送信
     Then: パラメータ付きでリクエストが成功する
     """
@@ -252,8 +238,7 @@ async def test_get_request_with_params(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_with_custom_headers(respx_mock):
-    """
-    Given: カスタムヘッダーを指定
+    """Given: カスタムヘッダーを指定
     When: GETリクエストを送信
     Then: カスタムヘッダーが送信される
     """
@@ -273,8 +258,7 @@ async def test_get_request_with_custom_headers(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_with_browser_headers(respx_mock):
-    """
-    Given: use_browser_headers=True（デフォルト）
+    """Given: use_browser_headers=True（デフォルト）
     When: GETリクエストを送信
     Then: ブラウザヘッダーが自動設定される
     """
@@ -290,8 +274,7 @@ async def test_get_request_with_browser_headers(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_without_browser_headers(respx_mock):
-    """
-    Given: use_browser_headers=False, headers=None
+    """Given: use_browser_headers=False, headers=None
     When: GETリクエストを送信
     Then: ブラウザヘッダーなしでリクエストされる
     """
@@ -309,8 +292,7 @@ async def test_get_request_without_browser_headers(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_merge_browser_and_custom_headers(respx_mock):
-    """
-    Given: use_browser_headers=True & カスタムヘッダー指定
+    """Given: use_browser_headers=True & カスタムヘッダー指定
     When: GETリクエストを送信
     Then: ブラウザヘッダーとカスタムヘッダーが統合される
     """
@@ -330,8 +312,7 @@ async def test_get_request_merge_browser_and_custom_headers(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_follows_redirect(respx_mock):
-    """
-    Given: 301リダイレクトするURL
+    """Given: 301リダイレクトするURL
     When: GETリクエストを送信
     Then: 自動的にリダイレクト先に移動する
     """
@@ -355,8 +336,7 @@ async def test_get_request_follows_redirect(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_404_error(respx_mock):
-    """
-    Given: 404を返すエンドポイント
+    """Given: 404を返すエンドポイント
     When: GETリクエストを送信
     Then: RetryException発生（リトライ後）
     """
@@ -372,8 +352,7 @@ async def test_get_request_404_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_500_error(respx_mock):
-    """
-    Given: 500を返すエンドポイント
+    """Given: 500を返すエンドポイント
     When: GETリクエストを送信
     Then: RetryException発生（リトライ後）
     """
@@ -389,8 +368,7 @@ async def test_get_request_500_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_503_error(respx_mock):
-    """
-    Given: 503を返すエンドポイント
+    """Given: 503を返すエンドポイント
     When: GETリクエストを送信
     Then: RetryException発生（リトライ後）
     """
@@ -406,8 +384,7 @@ async def test_get_request_503_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_403_cloudscraper_success(respx_mock):
-    """
-    Given: 403エラー後、cloudscraperが成功
+    """Given: 403エラー後、cloudscraperが成功
     When: GETリクエストを送信
     Then: 200レスポンスが返される（cloudscraperフォールバック）
     """
@@ -432,8 +409,7 @@ async def test_get_request_403_cloudscraper_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_403_cloudscraper_failure(respx_mock):
-    """
-    Given: 403エラー後、cloudscraperも失敗
+    """Given: 403エラー後、cloudscraperも失敗
     When: GETリクエストを送信
     Then: RetryException発生（リトライ後）
     """
@@ -451,8 +427,7 @@ async def test_get_request_403_cloudscraper_failure(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_422_http1_fallback_success(respx_mock):
-    """
-    Given: HTTP/2で422エラー、HTTP/1.1で成功
+    """Given: HTTP/2で422エラー、HTTP/1.1で成功
     When: GETリクエストを送信
     Then: 200レスポンスが返される（HTTP/1.1フォールバック）
     """
@@ -463,8 +438,7 @@ async def test_get_request_422_http1_fallback_success(respx_mock):
         call_count += 1
         if call_count == 1:
             return httpx.Response(422, text="Unprocessable Entity")
-        else:
-            return httpx.Response(200, json={"status": "ok"})
+        return httpx.Response(200, json={"status": "ok"})
 
     respx_mock.get("https://example.com/api").mock(side_effect=side_effect)
 
@@ -476,8 +450,7 @@ async def test_get_request_422_http1_fallback_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_422_http1_fallback_failure(respx_mock):
-    """
-    Given: HTTP/2で422エラー、HTTP/1.1でも422
+    """Given: HTTP/2で422エラー、HTTP/1.1でも422
     When: GETリクエストを送信
     Then: RetryException発生（リトライ後）
     """
@@ -493,8 +466,7 @@ async def test_get_request_422_http1_fallback_failure(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_422_no_retry_http1(respx_mock):
-    """
-    Given: 422エラー、_retry_http1=False
+    """Given: 422エラー、_retry_http1=False
     When: GETリクエストを送信
     Then: RetryException発生（HTTP/1.1リトライなし）
     """
@@ -515,8 +487,7 @@ async def test_get_request_422_no_retry_http1(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_timeout_error(respx_mock):
-    """
-    Given: タイムアウトが発生
+    """Given: タイムアウトが発生
     When: GETリクエストを送信
     Then: リトライ後、RetryException発生
     """
@@ -530,8 +501,7 @@ async def test_get_request_timeout_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_connection_error(respx_mock):
-    """
-    Given: 接続エラーが発生
+    """Given: 接続エラーが発生
     When: GETリクエストを送信
     Then: リトライ後、RetryException発生
     """
@@ -547,8 +517,7 @@ async def test_get_request_connection_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_stream_error_http1_fallback_success(respx_mock):
-    """
-    Given: StreamError発生後、HTTP/1.1で成功
+    """Given: StreamError発生後、HTTP/1.1で成功
     When: GETリクエストを送信
     Then: 200レスポンスが返される（HTTP/1.1フォールバック）
     """
@@ -559,8 +528,7 @@ async def test_get_request_stream_error_http1_fallback_success(respx_mock):
         call_count += 1
         if call_count == 1:
             raise httpx.StreamError("Stream reset")
-        else:
-            return httpx.Response(200, json={"status": "ok"})
+        return httpx.Response(200, json={"status": "ok"})
 
     respx_mock.get("https://example.com/api").mock(side_effect=side_effect)
 
@@ -572,8 +540,7 @@ async def test_get_request_stream_error_http1_fallback_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_stream_error_http1_fallback_failure(respx_mock):
-    """
-    Given: StreamError発生、HTTP/1.1でも失敗
+    """Given: StreamError発生、HTTP/1.1でも失敗
     When: GETリクエストを送信
     Then: RetryException発生
     """
@@ -587,8 +554,7 @@ async def test_get_request_stream_error_http1_fallback_failure(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_stream_error_no_fallback_when_forced_http1(respx_mock):
-    """
-    Given: force_http1=True時にStreamError発生
+    """Given: force_http1=True時にStreamError発生
     When: GETリクエストを送信
     Then: RetryException発生（フォールバックなし）
     """
@@ -602,8 +568,7 @@ async def test_get_request_stream_error_no_fallback_when_forced_http1(respx_mock
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_request_general_request_error(respx_mock):
-    """
-    Given: 一般的なRequestErrorが発生
+    """Given: 一般的なRequestErrorが発生
     When: GETリクエストを送信
     Then: RetryException発生
     """
@@ -622,8 +587,7 @@ async def test_get_request_general_request_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_with_json_success(respx_mock):
-    """
-    Given: JSONデータを指定
+    """Given: JSONデータを指定
     When: POSTリクエストを送信
     Then: 200レスポンスが返される
     """
@@ -640,8 +604,7 @@ async def test_post_request_with_json_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_with_data_success(respx_mock):
-    """
-    Given: フォームデータを指定
+    """Given: フォームデータを指定
     When: POSTリクエストを送信
     Then: 200レスポンスが返される
     """
@@ -657,8 +620,7 @@ async def test_post_request_with_data_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_with_bytes_success(respx_mock):
-    """
-    Given: バイトデータを指定
+    """Given: バイトデータを指定
     When: POSTリクエストを送信
     Then: 200レスポンスが返される
     """
@@ -674,8 +636,7 @@ async def test_post_request_with_bytes_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_with_custom_headers(respx_mock):
-    """
-    Given: カスタムヘッダーを指定
+    """Given: カスタムヘッダーを指定
     When: POSTリクエストを送信
     Then: カスタムヘッダーが送信される
     """
@@ -695,8 +656,7 @@ async def test_post_request_with_custom_headers(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_404_error(respx_mock):
-    """
-    Given: 404を返すエンドポイント
+    """Given: 404を返すエンドポイント
     When: POSTリクエストを送信
     Then: RetryException発生（リトライ後）
     """
@@ -712,8 +672,7 @@ async def test_post_request_404_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_500_error(respx_mock):
-    """
-    Given: 500を返すエンドポイント
+    """Given: 500を返すエンドポイント
     When: POSTリクエストを送信
     Then: RetryException発生（リトライ後）
     """
@@ -729,8 +688,7 @@ async def test_post_request_500_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_timeout_error(respx_mock):
-    """
-    Given: タイムアウトが発生
+    """Given: タイムアウトが発生
     When: POSTリクエストを送信
     Then: リトライ後、RetryException発生
     """
@@ -744,8 +702,7 @@ async def test_post_request_timeout_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_request_connection_error(respx_mock):
-    """
-    Given: 接続エラーが発生
+    """Given: 接続エラーが発生
     When: POSTリクエストを送信
     Then: リトライ後、RetryException発生
     """
@@ -766,8 +723,7 @@ async def test_post_request_connection_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_json_success(respx_mock):
-    """
-    Given: JSONレスポンスを返すエンドポイント
+    """Given: JSONレスポンスを返すエンドポイント
     When: get_json()を呼び出す
     Then: JSON辞書が返される
     """
@@ -783,8 +739,7 @@ async def test_get_json_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_json_invalid_json(respx_mock):
-    """
-    Given: 不正なJSONを返すエンドポイント
+    """Given: 不正なJSONを返すエンドポイント
     When: get_json()を呼び出す
     Then: JSONDecodeError発生
     """
@@ -800,8 +755,7 @@ async def test_get_json_invalid_json(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_text_success(respx_mock):
-    """
-    Given: テキストレスポンスを返すエンドポイント
+    """Given: テキストレスポンスを返すエンドポイント
     When: get_text()を呼び出す
     Then: テキスト文字列が返される
     """
@@ -817,8 +771,7 @@ async def test_get_text_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_file_success(respx_mock):
-    """
-    Given: ダウンロード可能なファイル
+    """Given: ダウンロード可能なファイル
     When: download()を呼び出す
     Then: ファイルがダウンロードされる
     """
@@ -837,8 +790,7 @@ async def test_download_file_success(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_with_progress_callback(respx_mock):
-    """
-    Given: プログレスコールバックを指定
+    """Given: プログレスコールバックを指定
     When: download()を呼び出す
     Then: コールバックが呼ばれる
     """
@@ -866,8 +818,7 @@ async def test_download_with_progress_callback(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_download_404_error(respx_mock):
-    """
-    Given: 404を返すエンドポイント
+    """Given: 404を返すエンドポイント
     When: download()を呼び出す
     Then: HTTPStatusError発生
     """
@@ -890,8 +841,7 @@ async def test_download_404_error(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_cloudscraper_fallback_success():
-    """
-    Given: cloudscraperが成功するレスポンスを返す
+    """Given: cloudscraperが成功するレスポンスを返す
     When: _cloudscraper_fallback()を呼び出す
     Then: httpx互換レスポンスが返される
     """
@@ -913,8 +863,7 @@ async def test_cloudscraper_fallback_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_cloudscraper_fallback_timeout():
-    """
-    Given: cloudscraperでタイムアウト発生
+    """Given: cloudscraperでタイムアウト発生
     When: _cloudscraper_fallback()を呼び出す
     Then: APIException発生、status_code=403
     """
@@ -929,8 +878,7 @@ async def test_cloudscraper_fallback_timeout():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_cloudscraper_fallback_ssl_error():
-    """
-    Given: cloudscraperでSSLエラー発生
+    """Given: cloudscraperでSSLエラー発生
     When: _cloudscraper_fallback()を呼び出す
     Then: APIException発生、status_code=403
     """
@@ -945,8 +893,7 @@ async def test_cloudscraper_fallback_ssl_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_cloudscraper_fallback_403_error():
-    """
-    Given: cloudscraperでも403エラー
+    """Given: cloudscraperでも403エラー
     When: _cloudscraper_fallback()を呼び出す
     Then: APIException発生、status_code=403
     """
@@ -960,8 +907,7 @@ async def test_cloudscraper_fallback_403_error():
 
 @pytest.mark.unit
 def test_convert_to_httpx_response():
-    """
-    Given: requests.Responseオブジェクト
+    """Given: requests.Responseオブジェクト
     When: _convert_to_httpx_response()を呼び出す
     Then: CloudscraperResponseAdapterが作成される
     """
@@ -979,8 +925,7 @@ def test_convert_to_httpx_response():
 
 @pytest.mark.unit
 def test_cloudscraper_response_adapter_json():
-    """
-    Given: CloudscraperResponseAdapter
+    """Given: CloudscraperResponseAdapter
     When: json()メソッドを呼び出す
     Then: JSON辞書が返される
     """
@@ -998,8 +943,7 @@ def test_cloudscraper_response_adapter_json():
 
 @pytest.mark.unit
 def test_cloudscraper_response_adapter_raise_for_status_success():
-    """
-    Given: status_code=200のCloudscraperResponseAdapter
+    """Given: status_code=200のCloudscraperResponseAdapter
     When: raise_for_status()を呼び出す
     Then: 例外が発生しない
     """
@@ -1016,8 +960,7 @@ def test_cloudscraper_response_adapter_raise_for_status_success():
 
 @pytest.mark.unit
 def test_cloudscraper_response_adapter_raise_for_status_error():
-    """
-    Given: status_code=404のCloudscraperResponseAdapter
+    """Given: status_code=404のCloudscraperResponseAdapter
     When: raise_for_status()を呼び出す
     Then: HTTPStatusError発生
     """
@@ -1041,8 +984,7 @@ def test_cloudscraper_response_adapter_raise_for_status_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_http_client_first_call():
-    """
-    Given: _global_client=None
+    """Given: _global_client=None
     When: get_http_client()を呼び出す
     Then: 新規クライアントが作成され返される
     """
@@ -1062,8 +1004,7 @@ async def test_get_http_client_first_call():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_http_client_singleton():
-    """
-    Given: _global_client既存
+    """Given: _global_client既存
     When: get_http_client()を2回呼び出す
     Then: 同じインスタンスが返される
     """
@@ -1082,8 +1023,7 @@ async def test_get_http_client_singleton():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_close_http_client():
-    """
-    Given: _global_client存在
+    """Given: _global_client存在
     When: close_http_client()を呼び出す
     Then: クライアントがクローズされ、Noneになる
     """
@@ -1100,8 +1040,7 @@ async def test_close_http_client():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_close_http_client_already_none():
-    """
-    Given: _global_client=None
+    """Given: _global_client=None
     When: close_http_client()を呼び出す
     Then: 何もしない（エラーなし）
     """
@@ -1121,8 +1060,7 @@ async def test_close_http_client_already_none():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_retry_success_on_second_attempt(respx_mock):
-    """
-    Given: 1回目エラー、2回目成功
+    """Given: 1回目エラー、2回目成功
     When: GETリクエストを送信
     Then: 200レスポンスが返される（リトライ成功）
     """
@@ -1133,8 +1071,7 @@ async def test_get_retry_success_on_second_attempt(respx_mock):
         call_count += 1
         if call_count == 1:
             raise httpx.ConnectError("Connection failed")
-        else:
-            return httpx.Response(200, json={"status": "ok"})
+        return httpx.Response(200, json={"status": "ok"})
 
     respx_mock.get("https://example.com/api").mock(side_effect=side_effect)
 
@@ -1146,8 +1083,7 @@ async def test_get_retry_success_on_second_attempt(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_retry_max_retries_exceeded(respx_mock):
-    """
-    Given: 3回すべて失敗
+    """Given: 3回すべて失敗
     When: GETリクエストを送信
     Then: RetryException発生（リトライ最大回数到達）
     """
@@ -1163,8 +1099,7 @@ async def test_get_retry_max_retries_exceeded(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_retry_success_on_second_attempt(respx_mock):
-    """
-    Given: 1回目エラー、2回目成功
+    """Given: 1回目エラー、2回目成功
     When: POSTリクエストを送信
     Then: 200レスポンスが返される（リトライ成功）
     """
@@ -1175,8 +1110,7 @@ async def test_post_retry_success_on_second_attempt(respx_mock):
         call_count += 1
         if call_count == 1:
             raise httpx.ConnectError("Connection failed")
-        else:
-            return httpx.Response(200, json={"result": "created"})
+        return httpx.Response(200, json={"result": "created"})
 
     respx_mock.post("https://example.com/api").mock(side_effect=side_effect)
 
@@ -1188,8 +1122,7 @@ async def test_post_retry_success_on_second_attempt(respx_mock):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_post_retry_max_retries_exceeded(respx_mock):
-    """
-    Given: 3回すべて失敗
+    """Given: 3回すべて失敗
     When: POSTリクエストを送信
     Then: RetryException発生（リトライ最大回数到達）
     """
@@ -1209,8 +1142,7 @@ async def test_post_retry_max_retries_exceeded(respx_mock):
 
 @pytest.mark.unit
 def test_default_timeout_configuration():
-    """
-    Given: config.REQUEST_TIMEOUT=30（デフォルト）
+    """Given: config.REQUEST_TIMEOUT=30（デフォルト）
     When: AsyncHTTPClientを初期化
     Then: timeoutが正しく設定される
     """
@@ -1222,8 +1154,7 @@ def test_default_timeout_configuration():
 
 @pytest.mark.unit
 def test_custom_timeout_configuration():
-    """
-    Given: config.REQUEST_TIMEOUT=60（カスタム）
+    """Given: config.REQUEST_TIMEOUT=60（カスタム）
     When: AsyncHTTPClientを初期化
     Then: カスタムタイムアウトが反映される
     """
@@ -1235,8 +1166,7 @@ def test_custom_timeout_configuration():
 
 @pytest.mark.unit
 def test_timeout_zero_seconds():
-    """
-    Given: REQUEST_TIMEOUT=0（境界値）
+    """Given: REQUEST_TIMEOUT=0（境界値）
     When: AsyncHTTPClientを初期化
     Then: タイムアウト0が設定される
     """
@@ -1248,8 +1178,7 @@ def test_timeout_zero_seconds():
 
 @pytest.mark.unit
 def test_timeout_large_value():
-    """
-    Given: REQUEST_TIMEOUT=99999（極大値）
+    """Given: REQUEST_TIMEOUT=99999（極大値）
     When: AsyncHTTPClientを初期化
     Then: 設定が反映される
     """
@@ -1266,8 +1195,7 @@ def test_timeout_large_value():
 
 @pytest.mark.unit
 def test_connection_pool_limits():
-    """
-    Given: AsyncHTTPClientを初期化
+    """Given: AsyncHTTPClientを初期化
     When: limitsを確認
     Then: max_connections=100等が設定される
     """
@@ -1279,8 +1207,7 @@ def test_connection_pool_limits():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_connection_reuse_multiple_requests(respx_mock):
-    """
-    Given: 同一ホストへ複数回リクエスト
+    """Given: 同一ホストへ複数回リクエスト
     When: 複数のGETリクエストを送信
     Then: 接続が再利用される（エラーなく完了）
     """

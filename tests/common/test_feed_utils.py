@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -20,6 +20,9 @@ from nook.common.feed_utils import (
     parse_entry_datetime,
 )
 
+# JST timezone constant
+JST = timezone(timedelta(hours=9))
+
 # ================================================================================
 # 1. _get_entry_value 関数のテスト
 # ================================================================================
@@ -27,8 +30,7 @@ from nook.common.feed_utils import (
 
 @pytest.mark.unit
 def test_get_entry_value_from_object_with_attribute():
-    """
-    Given: 属性を持つオブジェクトとフィールド名
+    """Given: 属性を持つオブジェクトとフィールド名
     When: _get_entry_valueを呼び出す
     Then: getattr()で値が返される
     """
@@ -40,8 +42,7 @@ def test_get_entry_value_from_object_with_attribute():
 
 @pytest.mark.unit
 def test_get_entry_value_from_dict():
-    """
-    Given: 辞書型のentryとフィールド名
+    """Given: 辞書型のentryとフィールド名
     When: _get_entry_valueを呼び出す
     Then: entry.get()で値が返される
     """
@@ -52,8 +53,7 @@ def test_get_entry_value_from_dict():
 
 @pytest.mark.unit
 def test_get_entry_value_object_without_attribute():
-    """
-    Given: 属性を持たないオブジェクトとフィールド名
+    """Given: 属性を持たないオブジェクトとフィールド名
     When: _get_entry_valueを呼び出す
     Then: Noneが返される
     """
@@ -64,8 +64,7 @@ def test_get_entry_value_object_without_attribute():
 
 @pytest.mark.unit
 def test_get_entry_value_dict_without_key():
-    """
-    Given: キーを持たない辞書とフィールド名
+    """Given: キーを持たない辞書とフィールド名
     When: _get_entry_valueを呼び出す
     Then: Noneが返される
     """
@@ -76,8 +75,7 @@ def test_get_entry_value_dict_without_key():
 
 @pytest.mark.unit
 def test_get_entry_value_none_value():
-    """
-    Given: None値を持つフィールド
+    """Given: None値を持つフィールド
     When: _get_entry_valueを呼び出す
     Then: Noneが返される
     """
@@ -88,8 +86,7 @@ def test_get_entry_value_none_value():
 
 @pytest.mark.unit
 def test_get_entry_value_empty_string():
-    """
-    Given: 空文字列を持つフィールド
+    """Given: 空文字列を持つフィールド
     When: _get_entry_valueを呼び出す
     Then: 空文字列が返される
     """
@@ -105,64 +102,59 @@ def test_get_entry_value_empty_string():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_with_z_suffix():
-    """
-    Given: ISO 8601形式（Z付き）の日付文字列
+    """Given: ISO 8601形式（Z付き）の日付文字列
     When: _parse_iso_datetimeを呼び出す
-    Then: UTC→JST変換され、tzinfo=Noneのdatetimeが返される
+    Then: UTC→JST変換され、JST timezone-awareのdatetimeが返される
     """
     result = _parse_iso_datetime("2024-01-15T10:30:00Z")
     # UTC 10:30 + 9h = JST 19:30
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_iso_datetime_with_timezone_offset():
-    """
-    Given: ISO 8601形式（タイムゾーンオフセット付き）の日付文字列
+    """Given: ISO 8601形式（タイムゾーンオフセット付き）の日付文字列
     When: _parse_iso_datetimeを呼び出す
-    Then: UTC→JST変換され、tzinfo=Noneのdatetimeが返される
+    Then: UTC→JST変換され、JST timezone-awareのdatetimeが返される
     """
     result = _parse_iso_datetime("2024-01-15T10:30:00+00:00")
     # UTC 10:30 + 9h = JST 19:30
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_iso_datetime_naive():
-    """
-    Given: ISO 8601形式（タイムゾーンなし）の日付文字列
+    """Given: ISO 8601形式（タイムゾーンなし）の日付文字列
     When: _parse_iso_datetimeを呼び出す
-    Then: JST+9時間のdatetimeが返される
+    Then: JST+9時間のJST timezone-awareなdatetimeが返される
     """
     result = _parse_iso_datetime("2024-01-15T10:30:00")
-    # Naive 10:30 + 9h = 19:30
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    # Naive 10:30 (treated as UTC) + 9h = 19:30 JST
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_iso_datetime_date_only():
-    """
-    Given: 日付のみ（YYYY-MM-DD）の文字列
+    """Given: 日付のみ（YYYY-MM-DD）の文字列
     When: _parse_iso_datetimeを呼び出す
-    Then: 00:00:00として解釈され、JST+9時間が返される
+    Then: 00:00:00として解釈され、JST+9時間のJST timezone-awareが返される
     """
     result = _parse_iso_datetime("2024-01-15")
-    # "2024-01-15T00:00:00" + 9h = 09:00:00
-    expected = datetime(2024, 1, 15, 9, 0, 0)
+    # "2024-01-15T00:00:00" (treated as UTC) + 9h = 09:00:00 JST
+    expected = datetime(2024, 1, 15, 9, 0, 0, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_iso_datetime_empty_string():
-    """
-    Given: 空文字列
+    """Given: 空文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -172,8 +164,7 @@ def test_parse_iso_datetime_empty_string():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_whitespace_only():
-    """
-    Given: 空白のみの文字列
+    """Given: 空白のみの文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -183,8 +174,7 @@ def test_parse_iso_datetime_whitespace_only():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_invalid_format():
-    """
-    Given: 不正なISO形式の文字列
+    """Given: 不正なISO形式の文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される（ValueErrorをキャッチ）
     """
@@ -194,8 +184,7 @@ def test_parse_iso_datetime_invalid_format():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_invalid_date_values():
-    """
-    Given: 無効な日付値の文字列
+    """Given: 無効な日付値の文字列
     When: _parse_iso_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -205,44 +194,41 @@ def test_parse_iso_datetime_invalid_date_values():
 
 @pytest.mark.unit
 def test_parse_iso_datetime_jst_timezone():
-    """
-    Given: タイムゾーン+09:00（JST）の日付文字列
+    """Given: タイムゾーン+09:00（JST）の日付文字列
     When: _parse_iso_datetimeを呼び出す
-    Then: UTC変換後+9時間でJSTが返される
+    Then: JST timezone-awareなdatetimeが返される
     """
     result = _parse_iso_datetime("2024-01-15T10:30:00+09:00")
-    # JST 10:30 -> UTC 01:30 -> JST 10:30 (元に戻る)
-    expected = datetime(2024, 1, 15, 10, 30, 0)
+    # JST 10:30 -> stays as JST 10:30
+    expected = datetime(2024, 1, 15, 10, 30, 0, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_iso_datetime_negative_timezone():
-    """
-    Given: マイナスタイムゾーンの日付文字列
+    """Given: マイナスタイムゾーンの日付文字列
     When: _parse_iso_datetimeを呼び出す
-    Then: UTC変換後+9時間でJSTが返される
+    Then: UTC変換後+9時間でJST timezone-awareが返される
     """
     result = _parse_iso_datetime("2024-01-15T10:30:00-05:00")
     # EST 10:30 -> UTC 15:30 -> JST 00:30 (next day)
-    expected = datetime(2024, 1, 16, 0, 30, 0)
+    expected = datetime(2024, 1, 16, 0, 30, 0, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_iso_datetime_with_microseconds():
-    """
-    Given: マイクロ秒付きISO形式の日付文字列
+    """Given: マイクロ秒付きISO形式の日付文字列
     When: _parse_iso_datetimeを呼び出す
-    Then: 正しく解析される
+    Then: 正しく解析され、JST timezone-awareが返される
     """
     result = _parse_iso_datetime("2024-01-15T10:30:00.123456Z")
     # UTC 10:30:00.123456 + 9h = JST 19:30:00.123456
-    expected = datetime(2024, 1, 15, 19, 30, 0, 123456)
+    expected = datetime(2024, 1, 15, 19, 30, 0, 123456, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 # ================================================================================
@@ -254,10 +240,9 @@ def test_parse_iso_datetime_with_microseconds():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_published_parsed():
-    """
-    Given: published_parsedフィールドを持つentry
+    """Given: published_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
-    Then: UTC→JST変換されたdatetimeが返される
+    Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
     # 2024-01-15 10:30:00 UTC
     struct_time_value = time.struct_time((2024, 1, 15, 10, 30, 0, 0, 15, 0))
@@ -266,63 +251,62 @@ def test_parse_entry_datetime_from_published_parsed():
     result = parse_entry_datetime(entry)
 
     # UTC 10:30 + 9h = JST 19:30
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
-    assert result.tzinfo is None
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_updated_parsed():
-    """
-    Given: updated_parsedフィールドを持つentry
+    """Given: updated_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
-    Then: UTC→JST変換されたdatetimeが返される
+    Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
     struct_time_value = time.struct_time((2024, 1, 15, 10, 30, 0, 0, 15, 0))
     entry = {"updated_parsed": struct_time_value}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_created_parsed():
-    """
-    Given: created_parsedフィールドを持つentry
+    """Given: created_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
-    Then: UTC→JST変換されたdatetimeが返される
+    Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
     struct_time_value = time.struct_time((2024, 1, 15, 10, 30, 0, 0, 15, 0))
     entry = {"created_parsed": struct_time_value}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_issued_parsed():
-    """
-    Given: issued_parsedフィールドを持つentry
+    """Given: issued_parsedフィールドを持つentry
     When: parse_entry_datetimeを呼び出す
-    Then: UTC→JST変換されたdatetimeが返される
+    Then: UTC→JST変換されたJST timezone-awareなdatetimeが返される
     """
     struct_time_value = time.struct_time((2024, 1, 15, 10, 30, 0, 0, 15, 0))
     entry = {"issued_parsed": struct_time_value}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_struct_time_type_error():
-    """
-    Given: 不正なstruct_time値（TypeError発生）
+    """Given: 不正なstruct_time値（TypeError発生）
     When: parse_entry_datetimeを呼び出す
     Then: 次のフィールドにフォールバック
     """
@@ -334,14 +318,14 @@ def test_parse_entry_datetime_struct_time_type_error():
     result = parse_entry_datetime(entry)
 
     # フォールバック成功
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_struct_time_value_error():
-    """
-    Given: 不正なstruct_time値（ValueError発生）
+    """Given: 不正なstruct_time値（ValueError発生）
     When: parse_entry_datetimeを呼び出す
     Then: 次のフィールドにフォールバック
     """
@@ -354,8 +338,9 @@ def test_parse_entry_datetime_struct_time_value_error():
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 # 3.2 文字列フィールドからのパース（RFC 2822形式）
@@ -363,85 +348,84 @@ def test_parse_entry_datetime_struct_time_value_error():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_published_rfc2822():
-    """
-    Given: publishedフィールド（RFC 2822形式）
+    """Given: publishedフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
-    Then: parsedate_to_datetimeで解析、JST変換される
+    Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
     entry = {"published": "Mon, 15 Jan 2024 10:30:00 GMT"}
 
     result = parse_entry_datetime(entry)
 
     # GMT 10:30 + 9h = JST 19:30
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_updated_rfc2822():
-    """
-    Given: updatedフィールド（RFC 2822形式）
+    """Given: updatedフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
-    Then: parsedate_to_datetimeで解析、JST変換される
+    Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
     entry = {"updated": "Mon, 15 Jan 2024 10:30:00 +0000"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_created_rfc2822():
-    """
-    Given: createdフィールド（RFC 2822形式）
+    """Given: createdフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
-    Then: parsedate_to_datetimeで解析、JST変換される
+    Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
     entry = {"created": "Mon, 15 Jan 2024 10:30:00 GMT"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_issued_rfc2822():
-    """
-    Given: issuedフィールド（RFC 2822形式）
+    """Given: issuedフィールド（RFC 2822形式）
     When: parse_entry_datetimeを呼び出す
-    Then: parsedate_to_datetimeで解析、JST変換される
+    Then: parsedate_to_datetimeで解析、JST timezone-awareに変換される
     """
     entry = {"issued": "Mon, 15 Jan 2024 10:30:00 GMT"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_rfc2822_naive():
-    """
-    Given: タイムゾーンなしRFC 2822形式
+    """Given: タイムゾーンなしRFC 2822形式
     When: parse_entry_datetimeを呼び出す
-    Then: naive→JST+9時間が返される
+    Then: naive→JST+9時間のJST timezone-awareが返される
     """
     # RFC 2822でタイムゾーンなしはemail.utilsでは解析できないのでISO形式に頼る
     entry = {"published": "2024-01-15T10:30:00"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_rfc2822_type_error():
-    """
-    Given: parsedate_to_datetimeがTypeError発生
+    """Given: parsedate_to_datetimeがTypeError発生
     When: parse_entry_datetimeを呼び出す
     Then: ISO形式へフォールバック
     """
@@ -454,8 +438,7 @@ def test_parse_entry_datetime_rfc2822_type_error():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_rfc2822_value_error():
-    """
-    Given: parsedate_to_datetimeがValueError発生
+    """Given: parsedate_to_datetimeがValueError発生
     When: parse_entry_datetimeを呼び出す
     Then: ISO形式へフォールバック
     """
@@ -472,48 +455,48 @@ def test_parse_entry_datetime_rfc2822_value_error():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_published_iso():
-    """
-    Given: publishedフィールド（ISO形式）
+    """Given: publishedフィールド（ISO形式）
     When: parse_entry_datetimeを呼び出す
-    Then: _parse_iso_datetimeで解析、JST変換される
+    Then: _parse_iso_datetimeで解析、JST timezone-awareに変換される
     """
     entry = {"published": "2024-01-15T10:30:00Z"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_from_updated_iso():
-    """
-    Given: updatedフィールド（ISO形式）
+    """Given: updatedフィールド（ISO形式）
     When: parse_entry_datetimeを呼び出す
-    Then: _parse_iso_datetimeで解析、JST変換される
+    Then: _parse_iso_datetimeで解析、JST timezone-awareに変換される
     """
     entry = {"updated": "2024-01-15T10:30:00Z"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_fallback_to_iso():
-    """
-    Given: RFC 2822解析失敗後、ISO形式で成功
+    """Given: RFC 2822解析失敗後、ISO形式で成功
     When: parse_entry_datetimeを呼び出す
-    Then: ISO形式で正しく解析される
+    Then: ISO形式で正しく解析され、JST timezone-awareが返される
     """
     # email.utilsで解析できないがISO形式としては有効
     entry = {"published": "2024-01-15T10:30:00+09:00"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 10, 30, 0)
+    expected = datetime(2024, 1, 15, 10, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 # 3.4 境界値・エッジケース
@@ -521,8 +504,7 @@ def test_parse_entry_datetime_fallback_to_iso():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_all_fields_none():
-    """
-    Given: すべてのフィールドがNone
+    """Given: すべてのフィールドがNone
     When: parse_entry_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -544,8 +526,7 @@ def test_parse_entry_datetime_all_fields_none():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_all_fields_empty_string():
-    """
-    Given: すべてのフィールドが空文字列
+    """Given: すべてのフィールドが空文字列
     When: parse_entry_datetimeを呼び出す
     Then: Noneが返される
     """
@@ -563,8 +544,7 @@ def test_parse_entry_datetime_all_fields_empty_string():
 
 @pytest.mark.unit
 def test_parse_entry_datetime_field_priority():
-    """
-    Given: 複数フィールド存在（優先度確認）
+    """Given: 複数フィールド存在（優先度確認）
     When: parse_entry_datetimeを呼び出す
     Then: published_parsedが優先される
     """
@@ -579,100 +559,101 @@ def test_parse_entry_datetime_field_priority():
     result = parse_entry_datetime(entry)
 
     # published_parsedが優先される
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_dict_entry():
-    """
-    Given: 辞書型のentry
+    """Given: 辞書型のentry
     When: parse_entry_datetimeを呼び出す
-    Then: 正しく解析される
+    Then: 正しく解析され、JST timezone-awareが返される
     """
     entry = {"published": "2024-01-15T10:30:00Z"}
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_object_entry():
-    """
-    Given: オブジェクト型のentry
+    """Given: オブジェクト型のentry
     When: parse_entry_datetimeを呼び出す
-    Then: 正しく解析される
+    Then: 正しく解析され、JST timezone-awareが返される
     """
     entry = Mock()
     entry.published = "2024-01-15T10:30:00Z"
 
     result = parse_entry_datetime(entry)
 
-    expected = datetime(2024, 1, 15, 19, 30, 0)
+    expected = datetime(2024, 1, 15, 19, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_jst_midnight():
-    """
-    Given: JST深夜0時のエッジケース
+    """Given: JST深夜0時のエッジケース
     When: parse_entry_datetimeを呼び出す
-    Then: 正しく変換される
+    Then: 正しくJST timezone-awareに変換される
     """
     entry = {"published": "2024-01-15T00:00:00+09:00"}
 
     result = parse_entry_datetime(entry)
 
-    # JST 00:00 -> UTC 15:00 (prev day) -> JST 00:00
-    expected = datetime(2024, 1, 15, 0, 0, 0)
+    # JST 00:00 stays as JST 00:00
+    expected = datetime(2024, 1, 15, 0, 0, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_utc_midnight():
-    """
-    Given: UTC深夜0時のエッジケース
+    """Given: UTC深夜0時のエッジケース
     When: parse_entry_datetimeを呼び出す
-    Then: JST 09:00に変換される
+    Then: JST 09:00のJST timezone-awareに変換される
     """
     entry = {"published": "2024-01-15T00:00:00Z"}
 
     result = parse_entry_datetime(entry)
 
     # UTC 00:00 + 9h = JST 09:00
-    expected = datetime(2024, 1, 15, 9, 0, 0)
+    expected = datetime(2024, 1, 15, 9, 0, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_dst_timezone():
-    """
-    Given: 夏時間タイムゾーン
+    """Given: 夏時間タイムゾーン
     When: parse_entry_datetimeを呼び出す
-    Then: UTC変換後JSTが返される
+    Then: UTC変換後JST timezone-awareが返される
     """
     entry = {"published": "2024-06-15T10:30:00-04:00"}
 
     result = parse_entry_datetime(entry)
 
     # EDT 10:30 -> UTC 14:30 -> JST 23:30
-    expected = datetime(2024, 6, 15, 23, 30, 0)
+    expected = datetime(2024, 6, 15, 23, 30, 0, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST
 
 
 @pytest.mark.unit
 def test_parse_entry_datetime_year_boundary():
-    """
-    Given: 年末年始の境界
+    """Given: 年末年始の境界
     When: parse_entry_datetimeを呼び出す
-    Then: 正しく2025-01-01 08:59:59 JSTが返される
+    Then: 正しく2025-01-01 08:59:59 JSTのJST timezone-awareが返される
     """
     entry = {"published": "2024-12-31T23:59:59Z"}
 
     result = parse_entry_datetime(entry)
 
     # UTC 23:59:59 + 9h = JST 08:59:59 (next day)
-    expected = datetime(2025, 1, 1, 8, 59, 59)
+    expected = datetime(2025, 1, 1, 8, 59, 59, tzinfo=JST)
     assert result == expected
+    assert result.tzinfo == JST

@@ -22,8 +22,7 @@ from nook.common.service_errors import ServiceErrorHandler
 
 @pytest.mark.unit
 def test_service_error_handler_init():
-    """
-    Given: service_name="test_service"
+    """Given: service_name="test_service"
     When: ServiceErrorHandlerを初期化
     Then: 正常に初期化される
     """
@@ -40,8 +39,7 @@ def test_service_error_handler_init():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_success():
-    """
-    Given: 正常な非同期関数
+    """Given: 正常な非同期関数
     When: handle_api_errorでデコレート
     Then: 関数結果を返す
     """
@@ -58,8 +56,7 @@ async def test_handle_api_error_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_with_response_attribute():
-    """
-    Given: response属性を持つ例外を投げる関数
+    """Given: response属性を持つ例外を投げる関数
     When: handle_api_errorでデコレート
     Then: APIExceptionが発生し、status_codeとresponse_bodyが含まれる
     """
@@ -88,8 +85,7 @@ async def test_handle_api_error_with_response_attribute():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_with_status_code_500():
-    """
-    Given: status_code=500のHTTPエラー
+    """Given: status_code=500のHTTPエラー
     When: handle_api_errorでデコレート
     Then: APIExceptionが発生
     """
@@ -116,8 +112,7 @@ async def test_handle_api_error_with_status_code_500():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_without_response_attribute():
-    """
-    Given: response属性を持たない例外を投げる関数
+    """Given: response属性を持たない例外を投げる関数
     When: handle_api_errorでデコレート
     Then: APIExceptionが発生し、status_code=None
     """
@@ -138,8 +133,7 @@ async def test_handle_api_error_without_response_attribute():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_various_exceptions():
-    """
-    Given: 様々な例外を投げる関数
+    """Given: 様々な例外を投げる関数
     When: handle_api_errorでデコレート
     Then: 全てAPIExceptionでラップされる
     """
@@ -170,8 +164,7 @@ async def test_handle_api_error_various_exceptions():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_message_contains_api_name():
-    """
-    Given: api_name="github_api"
+    """Given: api_name="github_api"
     When: エラー発生
     Then: エラーメッセージにapi_nameが含まれる
     """
@@ -190,8 +183,7 @@ async def test_handle_api_error_message_contains_api_name():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_exception_chain():
-    """
-    Given: 例外が発生
+    """Given: 例外が発生
     When: handle_api_errorでデコレート
     Then: from句で元の例外がチェーンされる
     """
@@ -211,8 +203,7 @@ async def test_handle_api_error_exception_chain():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_api_error_logging():
-    """
-    Given: エラーが発生
+    """Given: エラーが発生
     When: handle_api_errorでデコレート
     Then: errorログが出力される
     """
@@ -246,8 +237,7 @@ async def test_handle_api_error_logging():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_data_processing_success():
-    """
-    Given: 正常な非同期関数
+    """Given: 正常な非同期関数
     When: handle_data_processingでデコレート
     Then: 関数結果を返す
     """
@@ -264,8 +254,7 @@ async def test_handle_data_processing_success():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_data_processing_value_error():
-    """
-    Given: ValueErrorを投げる関数
+    """Given: ValueErrorを投げる関数
     When: handle_data_processingでデコレート
     Then: ServiceExceptionが発生
     """
@@ -284,8 +273,7 @@ async def test_handle_data_processing_value_error():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_data_processing_various_exceptions():
-    """
-    Given: 様々な例外を投げる関数
+    """Given: 様々な例外を投げる関数
     When: handle_data_processingでデコレート
     Then: 全てServiceExceptionでラップされる
     """
@@ -309,8 +297,7 @@ async def test_handle_data_processing_various_exceptions():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_data_processing_message_contains_operation():
-    """
-    Given: operation="transform data"
+    """Given: operation="transform data"
     When: エラー発生
     Then: エラーメッセージにoperationが含まれる
     """
@@ -329,8 +316,7 @@ async def test_handle_data_processing_message_contains_operation():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_data_processing_exception_chain():
-    """
-    Given: 例外が発生
+    """Given: 例外が発生
     When: handle_data_processingでデコレート
     Then: from句で元の例外がチェーンされる
     """
@@ -349,8 +335,7 @@ async def test_handle_data_processing_exception_chain():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_handle_data_processing_logging():
-    """
-    Given: エラーが発生
+    """Given: エラーが発生
     When: handle_data_processingでデコレート
     Then: errorログが出力される
     """
@@ -384,8 +369,7 @@ async def test_handle_data_processing_logging():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_multiple_decorators():
-    """
-    Given: 両方のデコレータを適用
+    """Given: 両方のデコレータを適用
     When: 関数を実行
     Then: 両方のデコレータが正常動作
     """
@@ -403,8 +387,7 @@ async def test_multiple_decorators():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_functools_wraps_preserved():
-    """
-    Given: デコレート済み関数
+    """Given: デコレート済み関数
     When: 関数名を確認
     Then: 元の関数名が保持されている
     """
@@ -427,8 +410,7 @@ async def test_functools_wraps_preserved():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_api_error_logging_exc_info():
-    """
-    Given: APIエラーが発生
+    """Given: APIエラーが発生
     When: handle_api_errorでデコレート
     Then: logger.exception()が呼ばれる（自動的にexc_info=Trueを含む）
     """
@@ -449,8 +431,7 @@ async def test_api_error_logging_exc_info():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_data_processing_logging_exc_info():
-    """
-    Given: データ処理エラーが発生
+    """Given: データ処理エラーが発生
     When: handle_data_processingでデコレート
     Then: logger.exception()が呼ばれる（自動的にexc_info=Trueを含む）
     """

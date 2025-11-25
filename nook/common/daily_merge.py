@@ -39,8 +39,8 @@ def merge_records(
     -------
     list[T]
         マージ後のレコードリスト。
-    """
 
+    """
     ordered: OrderedDict[Hashable, T] = OrderedDict()
 
     # 既存順を先に登録
@@ -72,7 +72,6 @@ def merge_grouped_records(
     reverse: bool = True,
 ) -> dict[str, list[T]]:
     """カテゴリ/グループごとのレコードをマージする。"""
-
     merged: dict[str, list[T]] = {}
 
     existing = existing or {}

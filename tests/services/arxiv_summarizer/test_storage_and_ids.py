@@ -1,5 +1,4 @@
-"""
-ArxivSummarizer - ストレージ・ID管理 のテスト
+"""ArxivSummarizer - ストレージ・ID管理 のテスト
 
 このファイルは元々 test_arxiv_summarizer.py の一部でしたが、
 保守性向上のため機能別に分割されました。
@@ -44,8 +43,7 @@ import pytest
     ids=["success_with_ids", "empty_file", "file_not_found"],
 )
 async def test_get_processed_ids(arxiv_service, test_date, storage_return_value, expected_ids):
-    """
-    Given: 様々な状態の処理済みIDファイル
+    """Given: 様々な状態の処理済みIDファイル
     When: _get_processed_idsメソッドを呼び出す
     Then: 適切なIDリストが返される
     """
@@ -71,8 +69,7 @@ async def test_get_processed_ids(arxiv_service, test_date, storage_return_value,
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_processed_ids_by_date_success(arxiv_service, test_date):
-    """
-    Given: 論文IDリストと対象日付
+    """Given: 論文IDリストと対象日付
     When: _save_processed_ids_by_dateメソッドを呼び出す
     Then: 日付ごとにファイルが保存される
     """
@@ -109,8 +106,7 @@ async def test_save_processed_ids_by_date_success(arxiv_service, test_date):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_processed_ids_by_date_with_existing_ids(arxiv_service, test_date):
-    """
-    Given: 既存IDファイルが存在
+    """Given: 既存IDファイルが存在
     When: 新規IDを保存
     Then: 既存IDと新規IDがマージされて重複なく保存される
     """
@@ -147,8 +143,7 @@ async def test_save_processed_ids_by_date_with_existing_ids(arxiv_service, test_
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_processed_ids_by_date_unknown_date(arxiv_service, test_date):
-    """
-    Given: 日付が不明の論文ID
+    """Given: 日付が不明の論文ID
     When: _save_processed_ids_by_dateメソッドを呼び出す
     Then: 今日の日付で保存される
     """
@@ -186,8 +181,7 @@ async def test_save_processed_ids_by_date_unknown_date(arxiv_service, test_date)
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_papers_from_json(arxiv_service, test_datetime):
-    """
-    Given: JSONファイルが存在
+    """Given: JSONファイルが存在
     When: _load_existing_papersメソッドを呼び出す
     Then: JSONファイルから論文が読み込まれる
     """
@@ -217,8 +211,7 @@ async def test_load_existing_papers_from_json(arxiv_service, test_datetime):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_papers_fallback_to_markdown(arxiv_service, test_datetime):
-    """
-    Given: JSONファイルが存在せず、Markdownファイルが存在
+    """Given: JSONファイルが存在せず、Markdownファイルが存在
     When: _load_existing_papersメソッドを呼び出す
     Then: Markdownから論文が解析される
     """
@@ -260,8 +253,7 @@ Summary 1
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_papers_no_files(arxiv_service, test_datetime):
-    """
-    Given: JSONもMarkdownも存在しない
+    """Given: JSONもMarkdownも存在しない
     When: _load_existing_papersメソッドを呼び出す
     Then: 空リストが返される
     """
@@ -285,8 +277,7 @@ async def test_load_existing_papers_no_files(arxiv_service, test_datetime):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_ids_from_file_success(arxiv_service):
-    """
-    Given: 有効なIDファイル
+    """Given: 有効なIDファイル
     When: _load_ids_from_fileメソッドを呼び出す
     Then: IDリストが返される
     """
@@ -307,8 +298,7 @@ async def test_load_ids_from_file_success(arxiv_service):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_ids_from_file_empty(arxiv_service):
-    """
-    Given: 空のIDファイル
+    """Given: 空のIDファイル
     When: _load_ids_from_fileメソッドを呼び出す
     Then: 空リストが返される
     """

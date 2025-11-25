@@ -1,5 +1,4 @@
-"""
-nook/services/base_feed_service.py のテスト
+"""nook/services/base_feed_service.py のテスト
 
 テスト観点:
 - BaseFeedServiceの各内部メソッドの単体テスト
@@ -10,7 +9,7 @@ nook/services/base_feed_service.py のテスト
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -18,6 +17,9 @@ import pytest
 from bs4 import BeautifulSoup
 
 from nook.services.base_feed_service import Article, BaseFeedService
+
+# JST timezone helper
+JST = timezone(timedelta(hours=9))
 
 # =============================================================================
 # テスト用のBaseFeedService実装クラス
@@ -61,8 +63,7 @@ class TestFeedService(BaseFeedService):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_all_existing_dates_with_valid_files(temp_data_dir, mock_env_vars):
-    """
-    Given: 有効な日付形式のJSONファイルが複数存在
+    """Given: 有効な日付形式のJSONファイルが複数存在
     When: _get_all_existing_datesを呼び出す
     Then: すべての日付がセットで返される
     """
@@ -88,8 +89,7 @@ async def test_get_all_existing_dates_with_valid_files(temp_data_dir, mock_env_v
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_all_existing_dates_with_invalid_filenames(temp_data_dir, mock_env_vars):
-    """
-    Given: 無効な日付形式のファイルが混在
+    """Given: 無効な日付形式のファイルが混在
     When: _get_all_existing_datesを呼び出す
     Then: 有効な日付のみが返され、無効なファイルは無視される
     """
@@ -114,8 +114,7 @@ async def test_get_all_existing_dates_with_invalid_filenames(temp_data_dir, mock
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_all_existing_dates_with_empty_directory(temp_data_dir, mock_env_vars):
-    """
-    Given: ストレージディレクトリが空
+    """Given: ストレージディレクトリが空
     When: _get_all_existing_datesを呼び出す
     Then: 空のセットが返される
     """
@@ -134,8 +133,7 @@ async def test_get_all_existing_dates_with_empty_directory(temp_data_dir, mock_e
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_all_existing_dates_with_nonexistent_directory(tmp_path, mock_env_vars):
-    """
-    Given: ストレージディレクトリが存在しない
+    """Given: ストレージディレクトリが存在しない
     When: _get_all_existing_datesを呼び出す
     Then: 空のセットが返される（エラーにならない）
     """
@@ -159,8 +157,7 @@ async def test_get_all_existing_dates_with_nonexistent_directory(tmp_path, mock_
 
 @pytest.mark.unit
 def test_filter_entries_within_target_dates(mock_env_vars, mock_feed_entry):
-    """
-    Given: 対象日付内のエントリ
+    """Given: 対象日付内のエントリ
     When: _filter_entriesを呼び出す
     Then: エントリが返される
     """
@@ -179,8 +176,7 @@ def test_filter_entries_within_target_dates(mock_env_vars, mock_feed_entry):
 
 @pytest.mark.unit
 def test_filter_entries_with_limit(mock_env_vars, mock_feed_entry):
-    """
-    Given: 複数エントリとリミット指定
+    """Given: 複数エントリとリミット指定
     When: _filter_entriesを呼び出す
     Then: リミット数まで返される
     """
@@ -198,8 +194,7 @@ def test_filter_entries_with_limit(mock_env_vars, mock_feed_entry):
 
 @pytest.mark.unit
 def test_filter_entries_without_limit(mock_env_vars, mock_feed_entry):
-    """
-    Given: 複数エントリとリミットなし
+    """Given: 複数エントリとリミットなし
     When: _filter_entriesを呼び出す
     Then: すべてのエントリが返される
     """
@@ -217,8 +212,7 @@ def test_filter_entries_without_limit(mock_env_vars, mock_feed_entry):
 
 @pytest.mark.unit
 def test_filter_entries_with_empty_entries(mock_env_vars):
-    """
-    Given: 空のエントリリスト
+    """Given: 空のエントリリスト
     When: _filter_entriesを呼び出す
     Then: 空のリストが返される
     """
@@ -241,22 +235,23 @@ def test_filter_entries_with_empty_entries(mock_env_vars):
 
 @pytest.mark.unit
 def test_group_articles_by_date_normal(mock_env_vars, article_factory):
-    """
-    Given: 異なる日付の記事リスト
+    """Given: 異なる日付の記事リスト
     When: _group_articles_by_dateを呼び出す
     Then: 日付ごとにグループ化された辞書が返される
     """
     # Arrange
     service = TestFeedService()
 
+    # naive datetimeはUTCとして扱われ、JST(UTC+9)に変換されるため、
+    # UTCの10:00, 11:00はJSTの19:00, 20:00（同じ日）になる
     article1 = article_factory(title="記事1")
-    article1.published_at = datetime(2024, 11, 14, 10, 0, 0)
+    article1.published_at = datetime(2024, 11, 14, 10, 0, 0, tzinfo=JST)
 
     article2 = article_factory(title="記事2")
-    article2.published_at = datetime(2024, 11, 14, 15, 0, 0)
+    article2.published_at = datetime(2024, 11, 14, 15, 0, 0, tzinfo=JST)
 
     article3 = article_factory(title="記事3")
-    article3.published_at = datetime(2024, 11, 15, 10, 0, 0)
+    article3.published_at = datetime(2024, 11, 15, 10, 0, 0, tzinfo=JST)
 
     articles = [article1, article2, article3]
 
@@ -264,6 +259,9 @@ def test_group_articles_by_date_normal(mock_env_vars, article_factory):
     result = service._group_articles_by_date(articles)
 
     # Assert
+    # article1: 2024-11-14 10:00 UTC → 2024-11-14 19:00 JST (2024-11-14)
+    # article2: 2024-11-14 11:00 UTC → 2024-11-14 20:00 JST (2024-11-14)
+    # article3: 2024-11-15 10:00 UTC → 2024-11-15 19:00 JST (2024-11-15)
     assert len(result) == 2
     assert "2024-11-14" in result
     assert "2024-11-15" in result
@@ -273,8 +271,7 @@ def test_group_articles_by_date_normal(mock_env_vars, article_factory):
 
 @pytest.mark.unit
 def test_group_articles_by_date_with_none_published_at(mock_env_vars, article_factory):
-    """
-    Given: published_atがNoneの記事
+    """Given: published_atがNoneの記事
     When: _group_articles_by_dateを呼び出す
     Then: デフォルト日付（今日）でグループ化される
     """
@@ -299,8 +296,7 @@ def test_group_articles_by_date_with_none_published_at(mock_env_vars, article_fa
 
 @pytest.mark.unit
 def test_group_articles_by_date_with_empty_list(mock_env_vars):
-    """
-    Given: 空の記事リスト
+    """Given: 空の記事リスト
     When: _group_articles_by_dateを呼び出す
     Then: 空の辞書が返される
     """
@@ -323,8 +319,7 @@ def test_group_articles_by_date_with_empty_list(mock_env_vars):
 
 @pytest.mark.unit
 def test_serialize_articles_normal(mock_env_vars, article_factory):
-    """
-    Given: 通常の記事リスト
+    """Given: 通常の記事リスト
     When: _serialize_articlesを呼び出す
     Then: dict形式にシリアライズされる
     """
@@ -358,8 +353,7 @@ def test_serialize_articles_normal(mock_env_vars, article_factory):
 
 @pytest.mark.unit
 def test_serialize_articles_with_none_category(mock_env_vars, article_factory):
-    """
-    Given: categoryがNoneの記事
+    """Given: categoryがNoneの記事
     When: _serialize_articlesを呼び出す
     Then: categoryが"uncategorized"に設定される
     """
@@ -378,8 +372,7 @@ def test_serialize_articles_with_none_category(mock_env_vars, article_factory):
 
 @pytest.mark.unit
 def test_serialize_articles_with_none_published_at(mock_env_vars, article_factory):
-    """
-    Given: published_atがNoneの記事
+    """Given: published_atがNoneの記事
     When: _serialize_articlesを呼び出す
     Then: published_atがNoneのままシリアライズされる
     """
@@ -399,8 +392,7 @@ def test_serialize_articles_with_none_published_at(mock_env_vars, article_factor
 
 @pytest.mark.unit
 def test_serialize_articles_with_empty_list(mock_env_vars):
-    """
-    Given: 空の記事リスト
+    """Given: 空の記事リスト
     When: _serialize_articlesを呼び出す
     Then: 空のリストが返される
     """
@@ -423,8 +415,7 @@ def test_serialize_articles_with_empty_list(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_int(mock_env_vars):
-    """
-    Given: 整数値
+    """Given: 整数値
     When: _safe_parse_intを呼び出す
     Then: そのまま整数が返される
     """
@@ -440,8 +431,7 @@ def test_safe_parse_int_with_int(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_float(mock_env_vars):
-    """
-    Given: 浮動小数点値
+    """Given: 浮動小数点値
     When: _safe_parse_intを呼び出す
     Then: 整数に変換される
     """
@@ -457,8 +447,7 @@ def test_safe_parse_int_with_float(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_numeric_string(mock_env_vars):
-    """
-    Given: 数値文字列
+    """Given: 数値文字列
     When: _safe_parse_intを呼び出す
     Then: 整数が返される
     """
@@ -474,8 +463,7 @@ def test_safe_parse_int_with_numeric_string(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_comma_separated_string(mock_env_vars):
-    """
-    Given: カンマ区切りの数値文字列
+    """Given: カンマ区切りの数値文字列
     When: _safe_parse_intを呼び出す
     Then: カンマを除去して整数が返される
     """
@@ -491,8 +479,7 @@ def test_safe_parse_int_with_comma_separated_string(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_text_and_number(mock_env_vars):
-    """
-    Given: テキストと数値が混在した文字列
+    """Given: テキストと数値が混在した文字列
     When: _safe_parse_intを呼び出す
     Then: 最初の数値が抽出される
     """
@@ -508,8 +495,7 @@ def test_safe_parse_int_with_text_and_number(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_negative_number(mock_env_vars):
-    """
-    Given: 負の数値文字列
+    """Given: 負の数値文字列
     When: _safe_parse_intを呼び出す
     Then: 負の整数が返される
     """
@@ -525,8 +511,7 @@ def test_safe_parse_int_with_negative_number(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_none(mock_env_vars):
-    """
-    Given: None値
+    """Given: None値
     When: _safe_parse_intを呼び出す
     Then: Noneが返される
     """
@@ -542,8 +527,7 @@ def test_safe_parse_int_with_none(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_no_number_string(mock_env_vars):
-    """
-    Given: 数値を含まない文字列
+    """Given: 数値を含まない文字列
     When: _safe_parse_intを呼び出す
     Then: Noneが返される
     """
@@ -559,8 +543,7 @@ def test_safe_parse_int_with_no_number_string(mock_env_vars):
 
 @pytest.mark.unit
 def test_safe_parse_int_with_empty_string(mock_env_vars):
-    """
-    Given: 空文字列
+    """Given: 空文字列
     When: _safe_parse_intを呼び出す
     Then: Noneが返される
     """
@@ -582,8 +565,7 @@ def test_safe_parse_int_with_empty_string(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_articles_from_json(temp_data_dir, mock_env_vars):
-    """
-    Given: JSONファイルが存在
+    """Given: JSONファイルが存在
     When: _load_existing_articlesを呼び出す
     Then: JSONから記事が読み込まれる
     """
@@ -618,8 +600,7 @@ async def test_load_existing_articles_from_json(temp_data_dir, mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_articles_from_markdown(temp_data_dir, mock_env_vars):
-    """
-    Given: JSONファイルが存在せずMarkdownファイルが存在
+    """Given: JSONファイルが存在せずMarkdownファイルが存在
     When: _load_existing_articlesを呼び出す
     Then: Markdownから記事が読み込まれる
     """
@@ -655,8 +636,7 @@ async def test_load_existing_articles_from_markdown(temp_data_dir, mock_env_vars
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_load_existing_articles_no_files(temp_data_dir, mock_env_vars):
-    """
-    Given: ファイルが存在しない
+    """Given: ファイルが存在しない
     When: _load_existing_articlesを呼び出す
     Then: 空のリストが返される
     """
@@ -680,8 +660,7 @@ async def test_load_existing_articles_no_files(temp_data_dir, mock_env_vars):
 
 @pytest.mark.unit
 def test_article_sort_key_normal(mock_env_vars):
-    """
-    Given: 通常の記事データ
+    """Given: 通常の記事データ
     When: _article_sort_keyを呼び出す
     Then: タプル(人気スコア、日時)が返される
     """
@@ -702,8 +681,7 @@ def test_article_sort_key_normal(mock_env_vars):
 
 @pytest.mark.unit
 def test_article_sort_key_with_none_popularity(mock_env_vars):
-    """
-    Given: popularity_scoreがNone
+    """Given: popularity_scoreがNone
     When: _article_sort_keyを呼び出す
     Then: popularity_scoreが0.0として扱われる
     """
@@ -723,8 +701,7 @@ def test_article_sort_key_with_none_popularity(mock_env_vars):
 
 @pytest.mark.unit
 def test_article_sort_key_with_invalid_published_at(mock_env_vars):
-    """
-    Given: published_atが不正な形式
+    """Given: published_atが不正な形式
     When: _article_sort_keyを呼び出す
     Then: datetime.minとして扱われる
     """
@@ -744,8 +721,7 @@ def test_article_sort_key_with_invalid_published_at(mock_env_vars):
 
 @pytest.mark.unit
 def test_article_sort_key_with_none_published_at(mock_env_vars):
-    """
-    Given: published_atがNone
+    """Given: published_atがNone
     When: _article_sort_keyを呼び出す
     Then: datetime.minとして扱われる
     """
@@ -770,8 +746,7 @@ def test_article_sort_key_with_none_published_at(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_with_single_category(mock_env_vars):
-    """
-    Given: 1つのカテゴリと記事を含むMarkdown
+    """Given: 1つのカテゴリと記事を含むMarkdown
     When: _parse_markdownを呼び出す
     Then: 記事が正しく解析される
     """
@@ -803,8 +778,7 @@ def test_parse_markdown_with_single_category(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_with_multiple_categories(mock_env_vars):
-    """
-    Given: 複数カテゴリと記事を含むMarkdown
+    """Given: 複数カテゴリと記事を含むMarkdown
     When: _parse_markdownを呼び出す
     Then: すべての記事が正しく解析される
     """
@@ -844,8 +818,7 @@ def test_parse_markdown_with_multiple_categories(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_with_empty_string(mock_env_vars):
-    """
-    Given: 空のMarkdown文字列
+    """Given: 空のMarkdown文字列
     When: _parse_markdownを呼び出す
     Then: 空のリストが返される
     """
@@ -862,8 +835,7 @@ def test_parse_markdown_with_empty_string(mock_env_vars):
 
 @pytest.mark.unit
 def test_parse_markdown_with_no_articles(mock_env_vars):
-    """
-    Given: カテゴリのみで記事がないMarkdown
+    """Given: カテゴリのみで記事がないMarkdown
     When: _parse_markdownを呼び出す
     Then: 空のリストが返される
     """
@@ -889,8 +861,7 @@ def test_parse_markdown_with_no_articles(mock_env_vars):
 
 @pytest.mark.unit
 def test_select_top_articles_within_limit(mock_env_vars, article_factory):
-    """
-    Given: TOTAL_LIMIT以下の記事リスト
+    """Given: TOTAL_LIMIT以下の記事リスト
     When: _select_top_articlesを呼び出す
     Then: すべての記事が返される
     """
@@ -912,8 +883,7 @@ def test_select_top_articles_within_limit(mock_env_vars, article_factory):
 
 @pytest.mark.unit
 def test_select_top_articles_exceeds_limit(mock_env_vars, article_factory):
-    """
-    Given: TOTAL_LIMITを超える記事リスト
+    """Given: TOTAL_LIMITを超える記事リスト
     When: _select_top_articlesを呼び出す
     Then: 上位TOTAL_LIMIT件が返される
     """
@@ -938,8 +908,7 @@ def test_select_top_articles_exceeds_limit(mock_env_vars, article_factory):
 
 @pytest.mark.unit
 def test_select_top_articles_with_empty_list(mock_env_vars):
-    """
-    Given: 空の記事リスト
+    """Given: 空の記事リスト
     When: _select_top_articlesを呼び出す
     Then: 空のリストが返される
     """
@@ -956,8 +925,7 @@ def test_select_top_articles_with_empty_list(mock_env_vars):
 
 @pytest.mark.unit
 def test_select_top_articles_with_multiple_dates(mock_env_vars, article_factory):
-    """
-    Given: 複数の日付にまたがる記事リスト
+    """Given: 複数の日付にまたがる記事リスト
     When: _select_top_articlesを呼び出す
     Then: 各日付ごとにTOTAL_LIMIT件まで選択される
     """
@@ -992,8 +960,7 @@ def test_select_top_articles_with_multiple_dates(mock_env_vars, article_factory)
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_for_date_normal(temp_data_dir, mock_env_vars, article_factory):
-    """
-    Given: 記事リストと日付文字列
+    """Given: 記事リストと日付文字列
     When: _store_summaries_for_dateを呼び出す
     Then: JSONとMarkdownファイルが作成される
     """
@@ -1021,8 +988,7 @@ async def test_store_summaries_for_date_normal(temp_data_dir, mock_env_vars, art
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_store_summaries_for_date_with_empty_articles(temp_data_dir, mock_env_vars):
-    """
-    Given: 空の記事リスト
+    """Given: 空の記事リスト
     When: _store_summaries_for_dateを呼び出す
     Then: 空の文字列が返される
     """
@@ -1045,8 +1011,7 @@ async def test_store_summaries_for_date_with_empty_articles(temp_data_dir, mock_
 async def test_store_summaries_for_date_merges_with_existing(
     temp_data_dir, mock_env_vars, article_factory
 ):
-    """
-    Given: 既存ファイルと新規記事
+    """Given: 既存ファイルと新規記事
     When: _store_summaries_for_dateを呼び出す
     Then: 既存記事とマージされる
     """
@@ -1095,8 +1060,7 @@ async def test_store_summaries_for_date_merges_with_existing(
 
 @pytest.mark.unit
 def test_render_markdown_normal(mock_env_vars):
-    """
-    Given: 通常の記事レコードリスト
+    """Given: 通常の記事レコードリスト
     When: _render_markdownを呼び出す
     Then: Markdown形式の文字列が返される
     """
@@ -1126,8 +1090,7 @@ def test_render_markdown_normal(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_with_multiple_categories(mock_env_vars):
-    """
-    Given: 複数カテゴリの記事レコード
+    """Given: 複数カテゴリの記事レコード
     When: _render_markdownを呼び出す
     Then: カテゴリごとにセクション分けされたMarkdownが返される
     """
@@ -1161,8 +1124,7 @@ def test_render_markdown_with_multiple_categories(mock_env_vars):
 
 @pytest.mark.unit
 def test_render_markdown_with_empty_records(mock_env_vars):
-    """
-    Given: 空の記事レコードリスト
+    """Given: 空の記事レコードリスト
     When: _render_markdownを呼び出す
     Then: ヘッダーのみのMarkdownが返される
     """
@@ -1187,8 +1149,7 @@ def test_render_markdown_with_empty_records(mock_env_vars):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_article_success(mock_env_vars, article_factory):
-    """
-    Given: 記事オブジェクトとGPTクライアント
+    """Given: 記事オブジェクトとGPTクライアント
     When: _summarize_articleを呼び出す
     Then: 記事のsummaryフィールドが設定される
     """
@@ -1212,8 +1173,7 @@ async def test_summarize_article_success(mock_env_vars, article_factory):
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_summarize_article_with_error(mock_env_vars, article_factory):
-    """
-    Given: GPTクライアントがエラーを発生
+    """Given: GPTクライアントがエラーを発生
     When: _summarize_articleを呼び出す
     Then: エラーメッセージがsummaryに設定される
     """
@@ -1241,8 +1201,7 @@ async def test_summarize_article_with_error(mock_env_vars, article_factory):
 
 @pytest.mark.unit
 def test_needs_japanese_check_default(mock_env_vars):
-    """
-    Given: BaseFeedServiceのデフォルト実装
+    """Given: BaseFeedServiceのデフォルト実装
     When: _needs_japanese_checkを呼び出す
     Then: Falseが返される
     """
@@ -1263,8 +1222,7 @@ def test_needs_japanese_check_default(mock_env_vars):
 
 @pytest.mark.unit
 def test_detect_japanese_content_with_html_lang_ja(mock_env_vars):
-    """
-    Given: html langタグがjaのHTML
+    """Given: html langタグがjaのHTML
     When: _detect_japanese_contentを呼び出す
     Then: Trueが返される
     """
@@ -1284,8 +1242,7 @@ def test_detect_japanese_content_with_html_lang_ja(mock_env_vars):
 
 @pytest.mark.unit
 def test_detect_japanese_content_with_japanese_title(mock_env_vars):
-    """
-    Given: 日本語文字を含むタイトル
+    """Given: 日本語文字を含むタイトル
     When: _detect_japanese_contentを呼び出す
     Then: Trueが返される
     """
@@ -1305,8 +1262,7 @@ def test_detect_japanese_content_with_japanese_title(mock_env_vars):
 
 @pytest.mark.unit
 def test_detect_japanese_content_with_japanese_paragraph(mock_env_vars):
-    """
-    Given: 日本語文字を含む段落
+    """Given: 日本語文字を含む段落
     When: _detect_japanese_contentを呼び出す
     Then: Trueが返される
     """
@@ -1327,8 +1283,7 @@ def test_detect_japanese_content_with_japanese_paragraph(mock_env_vars):
 
 @pytest.mark.unit
 def test_detect_japanese_content_with_japanese_domain(mock_env_vars):
-    """
-    Given: 日本語ドメインのURL
+    """Given: 日本語ドメインのURL
     When: _detect_japanese_contentを呼び出す
     Then: Trueが返される
     """
@@ -1349,8 +1304,7 @@ def test_detect_japanese_content_with_japanese_domain(mock_env_vars):
 
 @pytest.mark.unit
 def test_detect_japanese_content_with_english_only(mock_env_vars):
-    """
-    Given: 英語のみのコンテンツ
+    """Given: 英語のみのコンテンツ
     When: _detect_japanese_contentを呼び出す
     Then: Falseが返される
     """
@@ -1371,8 +1325,7 @@ def test_detect_japanese_content_with_english_only(mock_env_vars):
 
 @pytest.mark.unit
 def test_detect_japanese_content_with_meta_lang(mock_env_vars):
-    """
-    Given: metaタグでcontent-language=jaのHTML
+    """Given: metaタグでcontent-language=jaのHTML
     When: _detect_japanese_contentを呼び出す
     Then: Trueが返される
     """

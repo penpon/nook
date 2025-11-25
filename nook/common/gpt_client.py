@@ -20,8 +20,7 @@ PRICING = {"input": 0.20, "cached_input": 0.05, "output": 0.80}
 
 
 class GPTClient:
-    """
-    OpenAI GPT APIとの通信を担当するクライアントクラス。
+    """OpenAI GPT APIとの通信を担当するクライアントクラス。
 
     Parameters
     ----------
@@ -29,11 +28,11 @@ class GPTClient:
         OpenAI APIキー。指定しない場合は環境変数から取得。
     model : str, optional
         使用するモデル名。指定しない場合は環境変数から取得。
+
     """
 
     def __init__(self, api_key: str | None = None, model: str | None = None):
-        """
-        GPTClientを初期化します。
+        """GPTClientを初期化します。
 
         Parameters
         ----------
@@ -41,6 +40,7 @@ class GPTClient:
             OpenAI APIキー。指定しない場合は環境変数から取得。
         model : str, optional
             使用するモデル名。指定しない場合は環境変数から取得。
+
         """
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
@@ -78,9 +78,7 @@ class GPTClient:
         return self._calculate_cost(self._count_tokens(input_text), self._count_tokens(output_text))
 
     def _messages_to_responses_input(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
-        """
-        Chat CompletionsのmessagesをResponses APIのinput形式へ変換します。
-        """
+        """Chat CompletionsのmessagesをResponses APIのinput形式へ変換します。"""
         inputs: list[dict[str, Any]] = []
         for msg in messages:
             role = msg.get("role", "user")
@@ -94,8 +92,7 @@ class GPTClient:
         return inputs
 
     def _extract_text_from_response(self, resp: Any) -> str:
-        """
-        Responses APIのレスポンスからテキスト出力を抽出します。
+        """Responses APIのレスポンスからテキスト出力を抽出します。
         output_textが無い場合にフォールバックとして使用。
         """
         # まずはSDKのプロパティを試す
@@ -137,8 +134,7 @@ class GPTClient:
         return "\n".join(pieces)
 
     def _call_gpt5(self, prompt: str, system_instruction: str | None, max_tokens: int) -> str:
-        """
-        GPT-5系モデル用のResponses API呼び出し。
+        """GPT-5系モデル用のResponses API呼び出し。
         必要に応じてprevious_response_idで継続生成を試みます。
         """
         effort = "minimal"
@@ -179,8 +175,7 @@ class GPTClient:
         system_instruction: str | None,
         max_tokens: int,
     ) -> str:
-        """
-        GPT-5系向けにチャット形式のmessagesをResponses APIで処理。
+        """GPT-5系向けにチャット形式のmessagesをResponses APIで処理。
         必要に応じてprevious_response_idで継続生成。
         """
         effort = "minimal"
@@ -211,8 +206,7 @@ class GPTClient:
         return output_text
 
     def _is_gpt5_model(self) -> bool:
-        """
-        GPT-5モデルかどうかを判定します。
+        """GPT-5モデルかどうかを判定します。
 
         GPT-5モデルはtemperature、top_p、logprobsをサポートせず、
         代わりにreasoning_effortとverbosityを使用します。
@@ -257,8 +251,7 @@ class GPTClient:
         max_tokens: int = 1000,
         service_name: str | None = None,
     ) -> str:
-        """
-        テキストを生成します。
+        """テキストを生成します。
 
         Parameters
         ----------
@@ -275,6 +268,7 @@ class GPTClient:
         -------
         str
             生成されたテキスト。
+
         """
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper
@@ -307,8 +301,7 @@ class GPTClient:
         max_tokens: int = 1000,
         service_name: str | None = None,
     ) -> str:
-        """
-        非同期でテキストを生成します。
+        """非同期でテキストを生成します。
 
         Parameters
         ----------
@@ -325,6 +318,7 @@ class GPTClient:
         -------
         str
             生成されたテキスト。
+
         """
         # 同期メソッドを非同期で実行
         loop = asyncio.get_event_loop()
@@ -340,8 +334,7 @@ class GPTClient:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def create_chat(self, system_instruction: str | None = None) -> dict[str, Any]:
-        """
-        チャットセッションを作成します。
+        """チャットセッションを作成します。
 
         Parameters
         ----------
@@ -352,6 +345,7 @@ class GPTClient:
         -------
         Dict[str, Any]
             チャットセッション情報。
+
         """
         messages = []
 
@@ -368,8 +362,7 @@ class GPTClient:
         temperature: float = 0.7,
         max_tokens: int = 1000,
     ) -> str:
-        """
-        チャットセッションにメッセージを送信します。
+        """チャットセッションにメッセージを送信します。
 
         Parameters
         ----------
@@ -386,6 +379,7 @@ class GPTClient:
         -------
         str
             AIの応答。
+
         """
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper
@@ -416,8 +410,7 @@ class GPTClient:
         temperature: float = 0.7,
         max_tokens: int = 1000,
     ) -> str:
-        """
-        検索機能付きチャットを実行します。
+        """検索機能付きチャットを実行します。
 
         Parameters
         ----------
@@ -436,6 +429,7 @@ class GPTClient:
         -------
         str
             AIの応答。
+
         """
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper
@@ -472,8 +466,7 @@ class GPTClient:
         temperature: float = 0.7,
         max_tokens: int = 1000,
     ) -> str:
-        """
-        チャットを実行します。
+        """チャットを実行します。
 
         Parameters
         ----------
@@ -490,6 +483,7 @@ class GPTClient:
         -------
         str
             AIの応答。
+
         """
         if temperature != 0.7:
             # stacklevel=3 accounts for @retry decorator wrapper

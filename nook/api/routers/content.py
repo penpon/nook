@@ -1,8 +1,10 @@
 """コンテンツAPIルーター。"""
 
+from __future__ import annotations
+
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException
 
 from nook.api.models.schemas import ContentItem, ContentResponse
 from nook.common.storage import LocalStorage
@@ -55,11 +57,8 @@ SOURCE_MAPPING = {
 
 
 @router.get("/content/{source}", response_model=ContentResponse)
-async def get_content(
-    source: str, date: str | None = None, response: Response = None
-) -> ContentResponse:
-    """
-    特定のソースのコンテンツを取得します。
+async def get_content(source: str, date: str | None = None) -> ContentResponse:
+    """特定のソースのコンテンツを取得します。
 
     Parameters
     ----------
@@ -77,15 +76,10 @@ async def get_content(
     ------
     HTTPException
         ソースが無効な場合や、コンテンツが見つからない場合。
+
     """
     if source not in SOURCE_MAPPING and source != "all":
         raise HTTPException(status_code=404, detail=f"Source '{source}' not found")
-
-    # キャッシュ制御ヘッダーを設定（キャッシュを無効化）
-    if response:
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
 
     # 日付の処理
     target_date = None
@@ -133,7 +127,7 @@ async def get_content(
                     )
         else:
             # 他のソースは従来通りMarkdownから取得
-            content = storage.load_markdown(service_name, target_date)
+            content = storage.load_markdown(service_name, target_date) or ""
 
             if content:
                 # 論文要約の場合はタイトルを変換
@@ -150,6 +144,7 @@ async def get_content(
                             f"{target_date.strftime('%Y-%m-%d')}"
                         ),
                         content=content,
+                        url=None,
                         source=source,
                     )
                 )
@@ -187,7 +182,7 @@ async def get_content(
                         )
             else:
                 # 他のソースは従来通りMarkdownから取得
-                content = storage.load_markdown(service_name, target_date)
+                content = storage.load_markdown(service_name, target_date) or ""
                 if content:
                     # 論文要約の場合はタイトルを変換
                     if src == "arxiv":
@@ -202,6 +197,7 @@ async def get_content(
                                 f"{target_date.strftime('%Y-%m-%d')}"
                             ),
                             content=content,
+                            url=None,
                             source=src,
                         )
                     )
@@ -225,17 +221,15 @@ async def get_content(
                 status_code=404,
                 detail="No content available. Please run the services first.",
             )
-        else:
-            # 最新の利用可能な日付のコンテンツを取得
-            latest_date = max(available_dates)
-            return await get_content(source, latest_date.strftime("%Y-%m-%d"))
+        # 最新の利用可能な日付のコンテンツを取得
+        latest_date = max(available_dates)
+        return await get_content(source, latest_date.strftime("%Y-%m-%d"))
 
     return ContentResponse(items=items)
 
 
 def _get_source_display_name(source: str) -> str:
-    """
-    ソースの表示名を取得します。
+    """ソースの表示名を取得します。
 
     Parameters
     ----------
@@ -246,6 +240,7 @@ def _get_source_display_name(source: str) -> str:
     -------
     str
         表示名
+
     """
     source_names = {
         "reddit": "Reddit",
