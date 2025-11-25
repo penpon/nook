@@ -388,7 +388,7 @@ class FiveChanExplorer(BaseService):
             if selected_threads:
                 # スレッドを保存
                 saved_files = await self._store_summaries(
-                    all_threads, sorted(effective_target_dates)
+                    selected_threads, sorted(effective_target_dates)
                 )
 
                 # 処理完了メッセージ

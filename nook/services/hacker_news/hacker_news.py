@@ -210,26 +210,22 @@ class HackerNewsRetriever(BaseService):
         # 4. フィルタリング処理を追加
         filtered_stories = []
         for story in all_stories:
-            created_at = story.created_at
-            if created_at:
-                story_date = normalize_datetime_to_local(created_at).date()
+            # スコアフィルタリング
+            if story.score < SCORE_THRESHOLD:
+                continue
 
-                # スコアフィルタリング
-                if story.score < SCORE_THRESHOLD:
-                    continue
+            # テキスト長フィルタリング
+            text_content = story.text or ""
+            text_length = len(text_content)
 
-                # テキスト長フィルタリング
-                text_content = story.text or ""
-                text_length = len(text_content)
+            if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
+                continue
 
-                if text_length < MIN_TEXT_LENGTH or text_length > MAX_TEXT_LENGTH:
-                    continue
+            # 日付でフィルタリング
+            if story.created_at and not is_within_target_dates(story.created_at, target_dates):
+                continue
 
-                # 日付でフィルタリング
-                if story.created_at and not is_within_target_dates(story.created_at, target_dates):
-                    continue
-
-                filtered_stories.append(story)
+            filtered_stories.append(story)
 
         # 5. スコアで降順ソート
         filtered_stories.sort(key=lambda story: story.score, reverse=True)
