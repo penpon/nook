@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import tracemalloc
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -96,7 +96,7 @@ async def test_full_data_flow_reddit_explorer_to_storage(tmp_path, mock_env_vars
         ),
     ):
         # 3. データ収集実行
-        result = await service.collect(limit=1)
+        result = await service.collect(limit=1, target_dates=[date(2025, 11, 18)])
 
         # 4. 検証: データ取得確認
         assert len(result) > 0, "データが取得できていません"
@@ -324,7 +324,7 @@ async def test_large_dataset_performance_reddit_explorer(tmp_path, mock_env_vars
             ),
         ):
             # 実行
-            result = await service.collect(limit=100)
+            result = await service.collect(limit=100, target_dates=[date(2025, 11, 18)])
 
             # メモリ使用量チェック
             current, peak = tracemalloc.get_traced_memory()

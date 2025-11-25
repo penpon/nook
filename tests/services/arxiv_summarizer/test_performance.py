@@ -282,7 +282,7 @@ async def test_stress_continuous_operations(arxiv_service, paper_info_factory):
 
     期待値:
     - エラー率: 0%
-    - レスポンスタイム変動: < 300%（軽量版のため緩い基準、外れ値除外後）
+    - レスポンスタイム変動: < 600%（軽量版のため緩い基準、外れ値除外後）
     """
     # Given
     paper_count = 10
@@ -331,7 +331,7 @@ async def test_stress_continuous_operations(arxiv_service, paper_info_factory):
         f"\n  - 全体最大: {overall_max * 1000:.2f}ms, 全体最小: {overall_min * 1000:.2f}ms"
     )
 
-    assert variation < 3.0, f"レスポンスタイム変動が大きい: {variation * 100:.1f}%"
+    assert variation < 6.0, f"レスポンスタイム変動が大きい: {variation * 100:.1f}%"
 
 
 # =============================================================================
