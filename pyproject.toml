@@ -228,6 +228,7 @@ ignore = [
     "ASYNC", # flake8-async (test async patterns differ)
     "PD",    # pandas-vet (test data patterns differ)
     "RUF059", # Unpacked variable never used (intentional in tests)
+    "RET505", # Unnecessary elif after return (Copilot recommends elif for readability)
 ]
 "tests/conftest.py" = [
     "E501",  # Line too long (HTML/test data strings)

@@ -252,9 +252,7 @@ class HackerNewsRetriever(BaseService):
             created_at = story.created_at
             if created_at:
                 story_date = normalize_datetime_to_local(created_at).date()
-                if story_date not in stories_by_date:
-                    stories_by_date[story_date] = []
-                stories_by_date[story_date].append(story)
+                stories_by_date.setdefault(story_date, []).append(story)
 
         # 各日独立で上位15件を選択して結合
         selected_stories = []

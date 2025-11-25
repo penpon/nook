@@ -95,11 +95,11 @@ async def test_00_full_data_flow_hacker_news_to_storage(tmp_path, mock_env_vars)
         async def mock_get_side_effect(url, **kwargs):
             if "topstories.json" in url:
                 return mock_topstories_response
-            if "/item/12345.json" in url:
+            elif "/item/12345.json" in url:
                 return mock_story_response_1
-            if "/item/12346.json" in url:
+            elif "/item/12346.json" in url:
                 return mock_story_response_2
-            if "/item/12347.json" in url:
+            elif "/item/12347.json" in url:
                 return mock_story_response_3
             raise ValueError(f"Unexpected URL: {url}")
 
