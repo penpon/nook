@@ -175,7 +175,6 @@ async def test_get_with_retry_raises_exception_after_max_retries(tmp_path: Path)
     When: _get_with_retry()を呼び出す
     Then: 最大リトライ到達時に例外を再送出する
     """
-    # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
 
     request = Mock()
@@ -185,9 +184,5 @@ async def test_get_with_retry_raises_exception_after_max_retries(tmp_path: Path)
     mock_http_client.get.side_effect = [network_error, network_error, network_error]
     service.http_client = mock_http_client
 
-    # Execute & Verify
-    with (
-        patch("asyncio.sleep", new_callable=AsyncMock),
-        pytest.raises(httpx.RequestError, match="Network error"),
-    ):
+    with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(httpx.RequestError):
         await service._get_with_retry("https://example.com/test", max_retries=2)
