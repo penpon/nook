@@ -9,6 +9,7 @@ Integration testではカバーしきれない詳細なエラーハンドリン�
 - _get_thread_posts_from_dat: .datファイルから投稿を取得
 """
 
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -24,7 +25,7 @@ from nook.services.fivechan_explorer.fivechan_explorer import (
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path):
+async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path: Path) -> None:
     """Given: 正常なHTTPレスポンス
     When: _get_with_403_tolerance()を呼び出す
     Then: 最初の戦略で成功し、レスポンスを返す
@@ -50,7 +51,7 @@ async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_success_after_retry(tmp_path):
+async def test_get_with_403_tolerance_success_after_retry(tmp_path: Path) -> None:
     """Given: 最初の戦略が403エラー、2番目の戦略が成功
     When: _get_with_403_tolerance()を呼び出す
     Then: リトライ後に成功し、レスポンスを返す
@@ -80,7 +81,7 @@ async def test_get_with_403_tolerance_success_after_retry(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path):
+async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path: Path) -> None:
     """Given: すべての戦略が403エラー
     When: _get_with_403_tolerance()を呼び出す
     Then: すべてのリトライを使い果たし、Noneを返す
@@ -104,7 +105,7 @@ async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_exception_handling(tmp_path):
+async def test_get_with_403_tolerance_exception_handling(tmp_path: Path) -> None:
     """Given: HTTPリクエストで例外が発生
     When: _get_with_403_tolerance()を呼び出す
     Then: 例外をキャッチし、次の戦略を試行する
@@ -134,7 +135,7 @@ async def test_get_with_403_tolerance_exception_handling(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_no_http_client(tmp_path):
+async def test_get_with_403_tolerance_no_http_client(tmp_path: Path) -> None:
     """Given: http_clientがNone
     When: _get_with_403_tolerance()を呼び出す
     Then: Noneを返す
@@ -156,7 +157,7 @@ async def test_get_with_403_tolerance_no_http_client(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path):
+async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path: Path) -> None:
     """Given: 正常なsubject.txtレスポンス
     When: _get_subject_txt_data()を呼び出す
     Then: スレッド情報のリストを正しく解析して返す
@@ -191,7 +192,7 @@ async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_decoding_errors_shift_jis(tmp_path):
+async def test_get_subject_txt_data_handle_decoding_errors_shift_jis(tmp_path: Path) -> None:
     """Given: Shift_JISでエンコードされたsubject.txt
     When: _get_subject_txt_data()を呼び出す
     Then: 正しくデコードしてスレッド情報を返す
@@ -222,7 +223,7 @@ async def test_get_subject_txt_data_handle_decoding_errors_shift_jis(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path):
+async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path: Path) -> None:
     """Given: CP932でエンコードされたsubject.txt（Shift_JISデコード失敗）
     When: _get_subject_txt_data()を呼び出す
     Then: CP932フォールバックでデコードに成功する
@@ -230,12 +231,19 @@ async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path):
     # Setup
     service = FiveChanExplorer(storage_dir=str(tmp_path))
 
-    # CP932特有の文字を含むデータ（①など）
-    subject_txt_content = "1577836800.dat<>①テストスレッド (10)\n".encode("cp932")
+    # CP932特有の文字を含むデータでShift_JISデコード失敗→CP932フォールバック
+    content_mock = Mock()
+
+    def decode_side_effect(encoding: str, errors: str = "strict") -> str:
+        if encoding == "shift_jis":
+            raise UnicodeDecodeError("shift_jis", b"", 0, 1, "decode error")
+        return "1577836800.dat<>①テストスレッド (10)\n"
+
+    content_mock.decode.side_effect = decode_side_effect
 
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = subject_txt_content
+    mock_response.content = content_mock
 
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -252,7 +260,7 @@ async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_empty_data(tmp_path):
+async def test_get_subject_txt_data_handle_empty_data(tmp_path: Path) -> None:
     """Given: 空のsubject.txtレスポンス
     When: _get_subject_txt_data()を呼び出す
     Then: 空のリストを返す
@@ -278,7 +286,7 @@ async def test_get_subject_txt_data_handle_empty_data(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_malformed_data(tmp_path):
+async def test_get_subject_txt_data_handle_malformed_data(tmp_path: Path) -> None:
     """Given: 不正な形式のsubject.txt
     When: _get_subject_txt_data()を呼び出す
     Then: パース可能な行のみを返し、不正な行はスキップする
@@ -314,7 +322,7 @@ async def test_get_subject_txt_data_handle_malformed_data(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_network_error_all_servers_fail(tmp_path):
+async def test_get_subject_txt_data_network_error_all_servers_fail(tmp_path: Path) -> None:
     """Given: すべてのサーバーでネットワークエラー
     When: _get_subject_txt_data()を呼び出す
     Then: 空のリストを返す
@@ -336,7 +344,7 @@ async def test_get_subject_txt_data_network_error_all_servers_fail(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_404_error(tmp_path):
+async def test_get_subject_txt_data_404_error(tmp_path: Path) -> None:
     """Given: サーバーが404エラーを返す
     When: _get_subject_txt_data()を呼び出す
     Then: 次のサーバーを試行する
@@ -372,7 +380,7 @@ async def test_get_subject_txt_data_404_error(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_parse_valid_dat(tmp_path):
+async def test_get_thread_posts_from_dat_parse_valid_dat(tmp_path: Path) -> None:
     """Given: 正常な.datファイルレスポンス
     When: _get_thread_posts_from_dat()を呼び出す
     Then: 投稿リストを正しく解析して返す
@@ -409,7 +417,7 @@ async def test_get_thread_posts_from_dat_parse_valid_dat(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_handle_decoding_errors_shift_jis(tmp_path):
+async def test_get_thread_posts_from_dat_handle_decoding_errors_shift_jis(tmp_path: Path) -> None:
     """Given: Shift_JISでエンコードされた.dat
     When: _get_thread_posts_from_dat()を呼び出す
     Then: 正しくデコードして投稿を返す
@@ -437,7 +445,7 @@ async def test_get_thread_posts_from_dat_handle_decoding_errors_shift_jis(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_handle_decoding_errors_cp932(tmp_path):
+async def test_get_thread_posts_from_dat_handle_decoding_errors_cp932(tmp_path: Path) -> None:
     """Given: CP932でエンコードされた.dat
     When: _get_thread_posts_from_dat()を呼び出す
     Then: CP932フォールバックでデコードに成功する
@@ -465,7 +473,7 @@ async def test_get_thread_posts_from_dat_handle_decoding_errors_cp932(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_handle_max_posts_limit(tmp_path):
+async def test_get_thread_posts_from_dat_handle_max_posts_limit(tmp_path: Path) -> None:
     """Given: 最大投稿数を超える.datファイル
     When: _get_thread_posts_from_dat()を呼び出す
     Then: MAX_POSTS_PER_THREAD件まで取得する
@@ -496,7 +504,7 @@ async def test_get_thread_posts_from_dat_handle_max_posts_limit(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_handle_http_error(tmp_path):
+async def test_get_thread_posts_from_dat_handle_http_error(tmp_path: Path) -> None:
     """Given: HTTPエラー（404）が発生
     When: _get_thread_posts_from_dat()を呼び出す
     Then: 空のリストとエラーメッセージを返す
@@ -520,7 +528,7 @@ async def test_get_thread_posts_from_dat_handle_http_error(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_handle_network_exception(tmp_path):
+async def test_get_thread_posts_from_dat_handle_network_exception(tmp_path: Path) -> None:
     """Given: ネットワーク例外が発生
     When: _get_thread_posts_from_dat()を呼び出す
     Then: 空のリストとエラーメッセージを返す
@@ -541,7 +549,7 @@ async def test_get_thread_posts_from_dat_handle_network_exception(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_handle_empty_dat(tmp_path):
+async def test_get_thread_posts_from_dat_handle_empty_dat(tmp_path: Path) -> None:
     """Given: 空の.datファイル
     When: _get_thread_posts_from_dat()を呼び出す
     Then: 空のリストを返す
@@ -566,7 +574,7 @@ async def test_get_thread_posts_from_dat_handle_empty_dat(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_thread_posts_from_dat_handle_malformed_dat(tmp_path):
+async def test_get_thread_posts_from_dat_handle_malformed_dat(tmp_path: Path) -> None:
     """Given: 不正な形式の.datファイル（フィールドが不足）
     When: _get_thread_posts_from_dat()を呼び出す
     Then: パース可能な行のみを返す
@@ -603,7 +611,7 @@ async def test_get_thread_posts_from_dat_handle_malformed_dat(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_success_on_first_attempt(tmp_path):
+async def test_get_with_retry_success_on_first_attempt(tmp_path: Path) -> None:
     """Given: 正常なHTTPレスポンス
     When: _get_with_retry()を呼び出す
     Then: 最初の試行で成功し、レスポンスを返す
@@ -629,7 +637,7 @@ async def test_get_with_retry_success_on_first_attempt(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_success_after_500_error(tmp_path):
+async def test_get_with_retry_success_after_500_error(tmp_path: Path) -> None:
     """Given: 最初の試行が500エラー、2回目が成功
     When: _get_with_retry()を呼び出す
     Then: リトライ後に成功し、レスポンスを返す
@@ -658,7 +666,7 @@ async def test_get_with_retry_success_after_500_error(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_rate_limit_429(tmp_path):
+async def test_get_with_retry_rate_limit_429(tmp_path: Path) -> None:
     """Given: 429レート制限エラーが発生
     When: _get_with_retry()を呼び出す
     Then: Retry-Afterヘッダーに従って待機後、リトライする
@@ -678,7 +686,9 @@ async def test_get_with_retry_rate_limit_429(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_retry("https://example.com/test")
+    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        result = await service._get_with_retry("https://example.com/test")
+        mock_sleep.assert_awaited_once_with(1)
 
     # Verify
     assert result is not None
@@ -687,7 +697,7 @@ async def test_get_with_retry_rate_limit_429(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_exhaustion_of_retries(tmp_path):
+async def test_get_with_retry_exhaustion_of_retries(tmp_path: Path) -> None:
     """Given: すべての試行が500エラー
     When: _get_with_retry()を呼び出す
     Then: 最後のエラーレスポンスを返す
@@ -712,7 +722,7 @@ async def test_get_with_retry_exhaustion_of_retries(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_exception_handling(tmp_path):
+async def test_get_with_retry_exception_handling(tmp_path: Path) -> None:
     """Given: 最初の試行で例外、2回目で成功
     When: _get_with_retry()を呼び出す
     Then: リトライ後に成功する
@@ -739,7 +749,29 @@ async def test_get_with_retry_exception_handling(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_no_http_client(tmp_path):
+async def test_get_with_retry_raises_exception_after_max_retries(tmp_path: Path) -> None:
+    """Given: 毎回例外が発生
+    When: _get_with_retry()を呼び出す
+    Then: 最大リトライ到達時に例外を再送出する
+    """
+    # Setup
+    service = FiveChanExplorer(storage_dir=str(tmp_path))
+
+    request = Mock()
+    network_error = httpx.RequestError("Network error", request=request)
+
+    mock_http_client = AsyncMock()
+    mock_http_client.get.side_effect = [network_error, network_error, network_error]
+    service.http_client = mock_http_client
+
+    # Execute & Verify
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        with pytest.raises(httpx.RequestError):
+            await service._get_with_retry("https://example.com/test", max_retries=2)
+
+
+@pytest.mark.asyncio
+async def test_get_with_retry_no_http_client(tmp_path: Path) -> None:
     """Given: http_clientがNone
     When: _get_with_retry()を呼び出す
     Then: Noneを返す
@@ -760,7 +792,7 @@ async def test_get_with_retry_no_http_client(tmp_path):
 # =============================================================================
 
 
-def test_calculate_backoff_delay(tmp_path):
+def test_calculate_backoff_delay(tmp_path: Path) -> None:
     """Given: リトライ回数
     When: _calculate_backoff_delay()を呼び出す
     Then: 指数バックオフによる遅延時間を返す
@@ -776,7 +808,7 @@ def test_calculate_backoff_delay(tmp_path):
     assert service._calculate_backoff_delay(10) == 300  # 2^10 > 300, capped at 300
 
 
-def test_get_random_user_agent(tmp_path):
+def test_get_random_user_agent(tmp_path: Path) -> None:
     """Given: user_agentsリスト
     When: _get_random_user_agent()を呼び出す
     Then: user_agentsからランダムに選択した文字列を返す
@@ -793,7 +825,7 @@ def test_get_random_user_agent(tmp_path):
     assert len(user_agent) > 0
 
 
-def test_build_board_url(tmp_path):
+def test_build_board_url(tmp_path: Path) -> None:
     """Given: 板IDとサーバー
     When: _build_board_url()を呼び出す
     Then: 正しい板URLを構築して返す
@@ -808,7 +840,7 @@ def test_build_board_url(tmp_path):
     assert url == "https://krsw.5ch.net/ai/"
 
 
-def test_get_board_server_known_board(tmp_path):
+def test_get_board_server_known_board(tmp_path: Path) -> None:
     """Given: 既知の板ID
     When: _get_board_server()を呼び出す
     Then: boards.tomlから読み込んだサーバーを返す
@@ -823,7 +855,7 @@ def test_get_board_server_known_board(tmp_path):
     assert server == "krsw.5ch.net"  # boards.tomlの設定値
 
 
-def test_get_board_server_unknown_board(tmp_path):
+def test_get_board_server_unknown_board(tmp_path: Path) -> None:
     """Given: 未知の板ID
     When: _get_board_server()を呼び出す
     Then: デフォルトサーバーを返す

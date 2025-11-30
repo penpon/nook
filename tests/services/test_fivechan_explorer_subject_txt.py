@@ -4,6 +4,7 @@ subject.txt形式でスレッド一覧を取得するロジックを検証。
 文字エンコーディング、エラーハンドリング、不正データの処理をテスト。
 """
 
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -13,7 +14,7 @@ from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path):
+async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path: Path) -> None:
     """Given: 正常なsubject.txtレスポンス
     When: _get_subject_txt_data()を呼び出す
     Then: スレッド情報のリストを正しく解析して返す
@@ -48,7 +49,7 @@ async def test_get_subject_txt_data_parse_valid_subject_txt(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_decoding_errors_shift_jis(tmp_path):
+async def test_get_subject_txt_data_handle_decoding_errors_shift_jis(tmp_path: Path) -> None:
     """Given: Shift_JISでエンコードされたsubject.txt
     When: _get_subject_txt_data()を呼び出す
     Then: 正しくデコードしてスレッド情報を返す
@@ -79,7 +80,7 @@ async def test_get_subject_txt_data_handle_decoding_errors_shift_jis(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path):
+async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path: Path) -> None:
     """Given: CP932でエンコードされたsubject.txt(Shift_JISデコード失敗)
     When: _get_subject_txt_data()を呼び出す
     Then: CP932フォールバックでデコードに成功する
@@ -109,7 +110,7 @@ async def test_get_subject_txt_data_handle_decoding_errors_cp932(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_empty_data(tmp_path):
+async def test_get_subject_txt_data_handle_empty_data(tmp_path: Path) -> None:
     """Given: 空のsubject.txtレスポンス
     When: _get_subject_txt_data()を呼び出す
     Then: 空のリストを返す
@@ -135,7 +136,7 @@ async def test_get_subject_txt_data_handle_empty_data(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_handle_malformed_data(tmp_path):
+async def test_get_subject_txt_data_handle_malformed_data(tmp_path: Path) -> None:
     """Given: 不正な形式のsubject.txt
     When: _get_subject_txt_data()を呼び出す
     Then: パース可能な行のみを返し、不正な行はスキップする
@@ -171,7 +172,7 @@ async def test_get_subject_txt_data_handle_malformed_data(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_network_error_all_servers_fail(tmp_path):
+async def test_get_subject_txt_data_network_error_all_servers_fail(tmp_path: Path) -> None:
     """Given: すべてのサーバーでネットワークエラー
     When: _get_subject_txt_data()を呼び出す
     Then: 空のリストを返す
@@ -193,7 +194,7 @@ async def test_get_subject_txt_data_network_error_all_servers_fail(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_subject_txt_data_404_error(tmp_path):
+async def test_get_subject_txt_data_404_error(tmp_path: Path) -> None:
     """Given: サーバーが404エラーを返す
     When: _get_subject_txt_data()を呼び出す
     Then: 次のサーバーを試行する

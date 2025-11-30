@@ -4,6 +4,7 @@
 複数の戦略を試行し、403エラーを回避する機能をテスト。
 """
 
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -13,7 +14,7 @@ from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path):
+async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path: Path) -> None:
     """Given: 正常なHTTPレスポンス
     When: _get_with_403_tolerance()を呼び出す
     Then: 最初の戦略で成功し、レスポンスを返す
@@ -39,7 +40,7 @@ async def test_get_with_403_tolerance_success_on_first_attempt(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_success_after_retry(tmp_path):
+async def test_get_with_403_tolerance_success_after_retry(tmp_path: Path) -> None:
     """Given: 最初の戦略が403エラー、2番目の戦略が成功
     When: _get_with_403_tolerance()を呼び出す
     Then: リトライ後に成功し、レスポンスを返す
@@ -69,7 +70,7 @@ async def test_get_with_403_tolerance_success_after_retry(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path):
+async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path: Path) -> None:
     """Given: すべての戦略が403エラー
     When: _get_with_403_tolerance()を呼び出す
     Then: すべてのリトライを使い果たし、Noneを返す
@@ -93,7 +94,7 @@ async def test_get_with_403_tolerance_exhaustion_of_retries(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_exception_handling(tmp_path):
+async def test_get_with_403_tolerance_exception_handling(tmp_path: Path) -> None:
     """Given: HTTPリクエストで例外が発生
     When: _get_with_403_tolerance()を呼び出す
     Then: 例外をキャッチし、次の戦略を試行する
@@ -123,7 +124,7 @@ async def test_get_with_403_tolerance_exception_handling(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_403_tolerance_no_http_client(tmp_path):
+async def test_get_with_403_tolerance_no_http_client(tmp_path: Path) -> None:
     """Given: http_clientがNone
     When: _get_with_403_tolerance()を呼び出す
     Then: Noneを返す
