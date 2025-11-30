@@ -89,9 +89,11 @@ async def test_get_with_retry_rate_limit_429(tmp_path: Path) -> None:
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_retry("https://example.com/test")
+    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        result = await service._get_with_retry("https://example.com/test")
 
     # Verify
+    mock_sleep.assert_awaited_once_with(1)
     assert result is not None
     assert result.status_code == 200
     assert mock_http_client.get.call_count == 2
