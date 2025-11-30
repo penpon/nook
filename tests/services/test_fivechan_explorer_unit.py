@@ -765,7 +765,9 @@ async def test_get_with_retry_raises_exception_after_max_retries(tmp_path: Path)
     service.http_client = mock_http_client
 
     # Execute & Verify
-    with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(httpx.RequestError):
+    with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(
+        httpx.RequestError, match="Network error"
+    ):
         await service._get_with_retry("https://example.com/test", max_retries=2)
 
 
