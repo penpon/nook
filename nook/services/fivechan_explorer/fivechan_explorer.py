@@ -319,7 +319,7 @@ class FiveChanExplorer(BaseService):
 
                         # 日付フィルタリング
                         thread_timestamp = int(thread_data["timestamp"])
-                        thread_datetime = datetime.fromtimestamp(thread_timestamp)
+                        thread_datetime = datetime.utcfromtimestamp(thread_timestamp)
                         if not is_within_target_dates(thread_datetime, effective_target_dates):
                             continue
 

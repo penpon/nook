@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import time
 import tracemalloc
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -391,7 +391,8 @@ async def test_xss_prevention_fivechan_explorer(mock_env_vars):
         service = FiveChanExplorer()
 
         # テストデータ: XSSペイロードを含むスレッドタイトル
-        malicious_subject = "1763996400.dat<><script>alert('XSS')</script>悪意のあるスレ (100)\n"
+        current_ts = int(datetime.now().timestamp())
+        malicious_subject = f"{current_ts}.dat<><script>alert('XSS')</script>悪意のあるスレ (100)\n"
         subject_data = malicious_subject.encode("shift_jis", errors="ignore")
 
         # テストデータ: XSSペイロードを含むスレッド本文
@@ -563,8 +564,9 @@ async def test_data_sanitization_fivechan_explorer(mock_env_vars):
         service = FiveChanExplorer()
 
         # テストデータ: HTMLエスケープが必要な文字を含むスレッドタイトル
+        current_ts = int(datetime.now().timestamp())
         html_special_chars_subject = (
-            '1763996400.dat<>テスト&lt;script&gt;alert("XSS")&lt;/script&gt;スレ (50)\n'
+            f'{current_ts}.dat<>テスト&lt;script&gt;alert("XSS")&lt;/script&gt;スレ (50)\n'
         )
         subject_data = html_special_chars_subject.encode("shift_jis", errors="ignore")
 

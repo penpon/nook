@@ -9,6 +9,7 @@ Integration testではカバーしきれない詳細なエラーハンドリン�
 - _get_thread_posts_from_dat: .datファイルから投稿を取得
 """
 
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -603,7 +604,7 @@ async def test_get_thread_posts_from_dat_handle_malformed_dat(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_success_on_first_attempt(tmp_path):
+async def test_get_with_retry_success_on_first_attempt(tmp_path: Path) -> None:
     """Given: 正常なHTTPレスポンス
     When: _get_with_retry()を呼び出す
     Then: 最初の試行で成功し、レスポンスを返す
@@ -629,7 +630,7 @@ async def test_get_with_retry_success_on_first_attempt(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_success_after_500_error(tmp_path):
+async def test_get_with_retry_success_after_500_error(tmp_path: Path) -> None:
     """Given: 最初の試行が500エラー、2回目が成功
     When: _get_with_retry()を呼び出す
     Then: リトライ後に成功し、レスポンスを返す
@@ -649,7 +650,8 @@ async def test_get_with_retry_success_after_500_error(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_retry("https://example.com/test", max_retries=3)
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        result = await service._get_with_retry("https://example.com/test", max_retries=3)
 
     # Verify
     assert result is not None
@@ -658,7 +660,7 @@ async def test_get_with_retry_success_after_500_error(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_rate_limit_429(tmp_path):
+async def test_get_with_retry_rate_limit_429(tmp_path: Path) -> None:
     """Given: 429レート制限エラーが発生
     When: _get_with_retry()を呼び出す
     Then: Retry-Afterヘッダーに従って待機後、リトライする
@@ -678,7 +680,9 @@ async def test_get_with_retry_rate_limit_429(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_retry("https://example.com/test")
+    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        result = await service._get_with_retry("https://example.com/test")
+        mock_sleep.assert_awaited_once_with(1)
 
     # Verify
     assert result is not None
@@ -687,7 +691,7 @@ async def test_get_with_retry_rate_limit_429(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_exhaustion_of_retries(tmp_path):
+async def test_get_with_retry_exhaustion_of_retries(tmp_path: Path) -> None:
     """Given: すべての試行が500エラー
     When: _get_with_retry()を呼び出す
     Then: 最後のエラーレスポンスを返す
@@ -703,7 +707,8 @@ async def test_get_with_retry_exhaustion_of_retries(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_retry("https://example.com/test", max_retries=2)
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        result = await service._get_with_retry("https://example.com/test", max_retries=2)
 
     # Verify
     assert result is not None
@@ -712,7 +717,7 @@ async def test_get_with_retry_exhaustion_of_retries(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_exception_handling(tmp_path):
+async def test_get_with_retry_exception_handling(tmp_path: Path) -> None:
     """Given: 最初の試行で例外、2回目で成功
     When: _get_with_retry()を呼び出す
     Then: リトライ後に成功する
@@ -731,7 +736,8 @@ async def test_get_with_retry_exception_handling(tmp_path):
     service.http_client = mock_http_client
 
     # Execute
-    result = await service._get_with_retry("https://example.com/test")
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        result = await service._get_with_retry("https://example.com/test")
 
     # Verify
     assert result is not None
@@ -739,7 +745,7 @@ async def test_get_with_retry_exception_handling(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_with_retry_no_http_client(tmp_path):
+async def test_get_with_retry_no_http_client(tmp_path: Path) -> None:
     """Given: http_clientがNone
     When: _get_with_retry()を呼び出す
     Then: Noneを返す
