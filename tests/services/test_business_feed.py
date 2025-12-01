@@ -1087,12 +1087,18 @@ async def test_retrieve_article_malformed_html(mock_env_vars):
 # Removed corrupted test functions after this point
 
 
+def _apply_minimal_feed_config(service: BusinessFeed) -> None:
+    """テストを高速化するため、最小構成のフィード設定に差し替える。"""
+    service.feed_config = {"business": ["https://example.com/rss"]}
+
+
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_collect_complete_workflow_with_article_save(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = BusinessFeed()
         service.http_client = AsyncMock()
+        _apply_minimal_feed_config(service)
 
         with (
             patch("feedparser.parse") as mock_parse,
@@ -1169,6 +1175,7 @@ async def test_collect_detects_duplicate_after_article_creation(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = BusinessFeed()
         service.http_client = AsyncMock()
+        _apply_minimal_feed_config(service)
 
         with (
             patch("feedparser.parse") as mock_parse,
@@ -1224,6 +1231,7 @@ async def test_collect_with_existing_articles_merge(mock_env_vars):
     with patch("nook.common.base_service.setup_logger"):
         service = BusinessFeed()
         service.http_client = AsyncMock()
+        _apply_minimal_feed_config(service)
 
         with (
             patch("feedparser.parse") as mock_parse,
