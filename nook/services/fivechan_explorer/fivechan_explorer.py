@@ -319,9 +319,7 @@ class FiveChanExplorer(BaseService):
 
                         # 日付フィルタリング
                         thread_timestamp = int(thread_data["timestamp"])
-                        thread_datetime = datetime.fromtimestamp(
-                            thread_timestamp, tz=timezone.utc
-                        )
+                        thread_datetime = datetime.fromtimestamp(thread_timestamp, tz=timezone.utc)
                         if not is_within_target_dates(thread_datetime, effective_target_dates):
                             continue
 
@@ -351,9 +349,7 @@ class FiveChanExplorer(BaseService):
             # 日付ごとにスレッドをグループ化
             threads_by_date: dict[date, list[Thread]] = {}
             for thread in all_threads:
-                thread_date = datetime.fromtimestamp(
-                    thread.timestamp, tz=timezone.utc
-                ).date()
+                thread_date = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc).date()
                 if thread_date not in threads_by_date:
                     threads_by_date[thread_date] = []
                 threads_by_date[thread_date].append(thread)
@@ -368,9 +364,7 @@ class FiveChanExplorer(BaseService):
                     else:
 
                         def sort_key(thread: Thread):
-                            created = datetime.fromtimestamp(
-                                thread.timestamp, tz=timezone.utc
-                            )
+                            created = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
                             return (thread.popularity_score, created)
 
                         sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
