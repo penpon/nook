@@ -1,0 +1,100 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # 手動実行を許可
+
+permissions:
+  contents: write  # 自動フォーマット時のコミット＆プッシュに必要
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: チェックアウト
+      uses: actions/checkout@v4.1.0
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ github.head_ref || github.ref_name }}  # PRブランチまたは現在のブランチ
+
+    - name: uv のセットアップ
+      uses: astral-sh/setup-uv@v3.0.0
+
+    - name: キャッシュの復元
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+
+    - name: 依存関係のインストール
+      run: |
+        uv sync --group dev
+
+    - name: 品質チェック実行 (poe check)
+      run: |
+        set -e
+        echo "=== 品質チェックを実行中 (format, lint, type-check, test) ==="
+        uv run poe format
+        uv run poe lint
+        uv run poe type-check
+        uv run pytest tests/ -v --cov=duplicate-scan --cov-report=xml --cov-report=term-missing --tb=short
+        echo ""
+        echo "✅ すべての品質チェックが成功しました"
+
+    - name: フォーマット変更の自動コミット
+      if: github.event_name == 'pull_request'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+        if ! git diff --quiet src/ tests/; then
+          echo "📝 フォーマット変更を検出しました。自動コミットします..."
+          git add src/ tests/
+          git commit -m "style: Ruffによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
+          git push
+          echo "✅ フォーマット変更をコミット＆プッシュしました"
+        else
+          echo "✅ フォーマット変更はありません"
+        fi
+
+    - name: テスト結果サマリーの生成
+      if: always()
+      run: |
+        test_status="${{ job.status }}"
+
+        {
+          echo "## 品質チェック結果サマリー"
+          echo ""
+          echo "### ジョブ状態"
+          if [ "$test_status" = "success" ]; then
+            echo "✅ すべての品質チェックが成功しました"
+          else
+            echo "❌ 品質チェックが失敗しました"
+          fi
+          echo ""
+          echo "### チェック内容"
+          echo "- Format: Ruff フォーマット"
+          echo "- Lint: Ruff リント"
+          echo "- Type Check: mypy 型チェック"
+          echo "- Test: pytest ユニットテスト"
+          echo "- Coverage: カバレッジ測定"
+          echo ""
+          echo "### テスト環境"
+          echo "- Python バージョン: 3.12"
+          echo "- ブランチ: ${{ github.ref_name }}"
+          echo ""
+          if [ -f coverage.xml ] && [ "$test_status" = "success" ]; then
+            echo "### カバレッジ率"
+            echo "\`\`\`"
+            uv run pytest --cov=duplicate-scan --cov-report=term
+            echo "\`\`\`"
+          elif [ ! -f coverage.xml ]; then
+            echo "⚠️ カバレッジレポート（coverage.xml）が見つかりません"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"

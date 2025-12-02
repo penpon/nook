@@ -1,0 +1,23 @@
+reviews:
+  enabled: true
+  request_changes: true
+  target_branches:
+    - main
+    - develop
+  auto_review:
+    enabled: true
+  auto_fix: true
+  poem: false
+  timeout: 900000
+  exclude_patterns:
+    - .spec-workflow/**
+    - "*.md"
+    - "*.txt"
+    - .github/**
+    - .venv/**
+  review_status: true
+  path_instructions:
+    - path: "**/*.py"
+      instructions: "行の長さが88文字以内であれば指摘しない。プロジェクトはRuffで88文字の行長制限を使用している。"
+chat:
+  auto_reply: true
