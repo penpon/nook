@@ -5,6 +5,9 @@
 CLAUDE.md
 .serena
 feature
+.spec-workflow/
+uv.lock
+
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/
