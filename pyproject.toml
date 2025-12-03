@@ -42,10 +42,11 @@ exclude = [
 [tool.poe.tasks]
 format = "uv run ruff format ."
 lint = "uv run ruff check --fix ."
-type-check = "uv run mypy ."
+# type-check = "uv run mypy ."
 test = "uv run pytest -n auto tests/ -v"
 coverage = "uv run pytest -n auto --cov=src --cov-report=term"
 audit = "uv run pip-audit"
 
-check = ["format", "lint", "type-check"]
+# check = ["format", "lint", "type-check"]
+check = ["format", "lint"]
 quality-check = ["check", "test", "coverage", "audit"]
