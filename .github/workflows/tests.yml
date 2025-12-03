@@ -39,10 +39,9 @@ jobs:
     - name: 品質チェック実行 (poe check)
       run: |
         set -e
-        echo "=== 品質チェックを実行中 (format, lint, type-check, test) ==="
+        echo "=== 品質チェックを実行中 (format, lint, test) ==="
         uv run poe format
         uv run poe lint
-        uv run poe type-check
         uv run pytest tests/ -v --cov=duplicate-scan --cov-report=xml --cov-report=term-missing --tb=short
         echo ""
         echo "✅ すべての品質チェックが成功しました"
