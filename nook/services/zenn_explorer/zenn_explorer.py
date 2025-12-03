@@ -214,7 +214,9 @@ class ZennExplorer(BaseFeedService):
                     log_summarization_start(self.logger)
                     for idx, article in enumerate(selected, 1):
                         await self._summarize_article(article)
-                        log_summarization_progress(self.logger, idx, len(selected), article.title)
+                        log_summarization_progress(
+                            self.logger, idx, len(selected), article.title
+                        )
 
                     # ログ改善：保存完了の前に改行
                     # この日付の記事をすぐに保存
@@ -226,15 +228,19 @@ class ZennExplorer(BaseFeedService):
                 else:
                     # 新規記事がない場合でも既存ファイルがあれば処理完了として記録
                     if existing_count > 0:
-                        self.logger.info(f"   📊 既存の{existing_count}件の記事を保持（新規記事なし）")
+                        self.logger.info(
+                            f"   📊 既存の{existing_count}件の記事を保持（新規記事なし）"
+                        )
                         # 既存ファイルのパスを保存ファイルリストに追加
                         try:
                             json_path = f"data/zenn_explorer/{date_str}.json"
                             md_path = f"data/zenn_explorer/{date_str}.md"
                             if await self.storage.load(f"{date_str}.json"):
                                 saved_files.append((json_path, md_path))
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            self.logger.debug(
+                                "既存Zenn記事ファイルのロードに失敗しました: %s", exc
+                            )
                     else:
                         log_no_new_articles(self.logger)
 
@@ -261,7 +267,9 @@ class ZennExplorer(BaseFeedService):
             self.logger.debug(f"既存タイトルの読み込みに失敗しました: {exc}")
         return tracker
 
-    def _select_top_articles(self, articles: list[Article], limit: int | None = None) -> list[Article]:
+    def _select_top_articles(
+        self, articles: list[Article], limit: int | None = None
+    ) -> list[Article]:
         """
         記事を人気スコアでソートし、上位N件を選択します。
 
@@ -279,10 +287,12 @@ class ZennExplorer(BaseFeedService):
         """
         if not articles:
             return []
-        
+
         # 人気スコアで降順ソート
-        sorted_articles = sorted(articles, key=lambda x: x.popularity_score, reverse=True)
-        
+        sorted_articles = sorted(
+            articles, key=lambda x: x.popularity_score, reverse=True
+        )
+
         # 上位N件を選択（limitが指定されていればそれを使用、なければSUMMARY_LIMIT）
         selection_limit = limit if limit is not None else self.SUMMARY_LIMIT
         return sorted_articles[:selection_limit]

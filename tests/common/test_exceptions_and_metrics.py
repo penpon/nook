@@ -150,11 +150,7 @@ def test_logging_utils_emit_messages():
     log_summarization_progress(logger, 1, 2, "Article")
     log_storage_complete(logger, "a.json", "a.md")
     log_no_new_articles(logger)
-    log_multiple_dates_processing(
-        logger, [date(2024, 11, 1), date(2024, 11, 2)]
-    )
+    log_multiple_dates_processing(logger, [date(2024, 11, 1), date(2024, 11, 2)])
 
     assert len(logger.messages) >= 7
     assert any("保存完了" in message for message in logger.messages)
-
-*** End Patch

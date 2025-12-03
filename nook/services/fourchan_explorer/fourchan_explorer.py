@@ -227,7 +227,7 @@ class FourChanExplorer(BaseService):
                 if thread_date not in threads_by_date:
                     threads_by_date[thread_date] = []
                 threads_by_date[thread_date].append(thread)
-            
+
             # 各日独立で上位15件を選択して結合
             selected_threads = []
             for target_date in sorted(effective_target_dates):
@@ -236,28 +236,35 @@ class FourChanExplorer(BaseService):
                     if len(date_threads) <= total_limit:
                         selected_threads.extend(date_threads)
                     else:
+
                         def sort_key(thread: Thread):
                             created = datetime.fromtimestamp(thread.timestamp)
                             return (thread.popularity_score, created)
-                        
-                        sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
+
+                        sorted_threads = sorted(
+                            date_threads, key=sort_key, reverse=True
+                        )
                         selected_threads.extend(sorted_threads[:total_limit])
-            
+
             # 既存/新規スレッド数をカウント
             existing_count = 0  # 既存スレッド数（簡略化）
             new_count = len(selected_threads)  # 新規スレッド数
-            
+
             # スレッド情報を表示
             log_article_counts(self.logger, existing_count, new_count)
-            
+
             if selected_threads:
-                log_summary_candidates(self.logger, selected_threads, "popularity_score")
-                
+                log_summary_candidates(
+                    self.logger, selected_threads, "popularity_score"
+                )
+
                 # 要約生成
                 log_summarization_start(self.logger)
                 for idx, thread in enumerate(selected_threads, 1):
                     await self._summarize_thread(thread)
-                    log_summarization_progress(self.logger, idx, len(selected_threads), thread.title)
+                    log_summarization_progress(
+                        self.logger, idx, len(selected_threads), thread.title
+                    )
 
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
@@ -510,8 +517,8 @@ class FourChanExplorer(BaseService):
                 modified = datetime.fromtimestamp(last_modified)
                 hours = (now - modified).total_seconds() / 3600
                 recency_bonus = 24 / max(1.0, hours)
-        except Exception:
-            pass
+        except Exception as exc:
+            self.logger.debug("Failed to calculate recency bonus: %s", exc)
 
         return float(replies + images * 2 + bumps + len(posts) + recency_bonus)
 
@@ -560,7 +567,7 @@ class FourChanExplorer(BaseService):
             if reply_text:
                 # HTMLタグを除去
                 reply_text = re.sub(r"<[^>]*>", " ", reply_text)
-                thread_content += f"返信 {i+1}: {reply_text}\n\n"
+                thread_content += f"返信 {i + 1}: {reply_text}\n\n"
 
         prompt = f"""
         以下の4chanスレッドを要約してください。

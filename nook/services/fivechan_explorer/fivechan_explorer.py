@@ -3,6 +3,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
+from random import SystemRandom
 from typing import Any
 
 import cloudscraper
@@ -84,6 +85,7 @@ class FiveChanExplorer(BaseService):
         super().__init__("fivechan_explorer")
         self.http_client = None  # setup_http_clientで初期化
         self.gpt_client = GPTClient()
+        self._secure_random = SystemRandom()
 
         storage_path = Path(storage_dir)
         if storage_path.name != self.service_name:
@@ -213,9 +215,7 @@ class FiveChanExplorer(BaseService):
         str
             ランダムに選択されたUser-Agent文字列。
         """
-        import random
-
-        return random.choice(self.user_agents)
+        return self._secure_random.choice(self.user_agents)
 
     def _calculate_backoff_delay(self, retry_count: int) -> float:
         """
@@ -371,9 +371,7 @@ class FiveChanExplorer(BaseService):
                     candidate_threads.extend(threads)
 
                     # 改善されたリクエスト間遅延（ランダム化）
-                    import random
-
-                    delay = random.uniform(
+                    delay = self._secure_random.uniform(
                         self.min_request_delay, self.max_request_delay
                     )
                     self.logger.debug(f"リクエスト間遅延: {delay:.1f}秒")
@@ -394,7 +392,7 @@ class FiveChanExplorer(BaseService):
                 if thread_date not in threads_by_date:
                     threads_by_date[thread_date] = []
                 threads_by_date[thread_date].append(thread)
-            
+
             # 各日独立で上位15件を選択して結合
             selected_threads = []
             for target_date in sorted(effective_target_dates):
@@ -403,28 +401,35 @@ class FiveChanExplorer(BaseService):
                     if len(date_threads) <= total_limit:
                         selected_threads.extend(date_threads)
                     else:
+
                         def sort_key(thread: Thread):
                             created = datetime.fromtimestamp(thread.timestamp)
                             return (thread.popularity_score, created)
-                        
-                        sorted_threads = sorted(date_threads, key=sort_key, reverse=True)
+
+                        sorted_threads = sorted(
+                            date_threads, key=sort_key, reverse=True
+                        )
                         selected_threads.extend(sorted_threads[:total_limit])
-            
+
             # 既存/新規スレッド数をカウント
             existing_count = 0  # 既存スレッド数（簡略化）
             new_count = len(selected_threads)  # 新規スレッド数
-            
+
             # スレッド情報を表示
             log_article_counts(self.logger, existing_count, new_count)
-            
+
             if selected_threads:
-                log_summary_candidates(self.logger, selected_threads, "popularity_score")
-                
+                log_summary_candidates(
+                    self.logger, selected_threads, "popularity_score"
+                )
+
                 # 要約生成
                 log_summarization_start(self.logger)
                 for idx, thread in enumerate(selected_threads, 1):
                     await self._summarize_thread(thread)
-                    log_summarization_progress(self.logger, idx, len(selected_threads), thread.title)
+                    log_summarization_progress(
+                        self.logger, idx, len(selected_threads), thread.title
+                    )
 
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
@@ -521,7 +526,7 @@ class FiveChanExplorer(BaseService):
         for i, user_agent in enumerate(user_agent_strategies):
             try:
                 self.logger.info(
-                    f"403対策戦略 {i+1}/{len(user_agent_strategies)}: {user_agent[:50]}..."
+                    f"403対策戦略 {i + 1}/{len(user_agent_strategies)}: {user_agent[:50]}..."
                 )
 
                 # 極限まで簡素化されたヘッダー
@@ -549,16 +554,16 @@ class FiveChanExplorer(BaseService):
 
                     if response.status_code == 200:
                         if not is_cloudflare:
-                            self.logger.info(f"成功: 戦略{i+1}で正常アクセス")
+                            self.logger.info(f"成功: 戦略{i + 1}で正常アクセス")
                             return response
                         else:
                             self.logger.warning(
-                                f"戦略{i+1}: Cloudflareチャレンジページ検出"
+                                f"戦略{i + 1}: Cloudflareチャレンジページ検出"
                             )
                     elif response.status_code == 403:
                         if is_cloudflare:
                             self.logger.warning(
-                                f"戦略{i+1}: Cloudflare保護により403エラー"
+                                f"戦略{i + 1}: Cloudflare保護により403エラー"
                             )
                             # Cloudflareの場合は長時間待機後にリトライ
                             if i < 2:  # 最初の2戦略のみリトライ
@@ -571,24 +576,24 @@ class FiveChanExplorer(BaseService):
                             and not is_cloudflare
                         ):
                             self.logger.warning(
-                                f"403エラーだが有効コンテンツ取得: 戦略{i+1} ({len(response.text)}文字)"
+                                f"403エラーだが有効コンテンツ取得: 戦略{i + 1} ({len(response.text)}文字)"
                             )
                             return response
                         else:
                             self.logger.warning(
-                                f"戦略{i+1}: 403エラー（利用不可コンテンツ）"
+                                f"戦略{i + 1}: 403エラー（利用不可コンテンツ）"
                             )
                     else:
                         self.logger.warning(
-                            f"戦略{i+1}: HTTPエラー {response.status_code}"
+                            f"戦略{i + 1}: HTTPエラー {response.status_code}"
                         )
 
                 except Exception as e:
-                    self.logger.warning(f"戦略{i+1}: リクエストエラー - {str(e)}")
+                    self.logger.warning(f"戦略{i + 1}: リクエストエラー - {str(e)}")
                     continue
 
             except Exception as e:
-                self.logger.error(f"戦略{i+1}: 予期しないエラー - {str(e)}")
+                self.logger.error(f"戦略{i + 1}: 予期しないエラー - {str(e)}")
                 continue
 
         # 最終戦略: 代替エンドポイント試行
@@ -646,7 +651,7 @@ class FiveChanExplorer(BaseService):
         for i, alt_url in enumerate(alternative_strategies):
             try:
                 self.logger.info(
-                    f"代替戦略 {i+1}/{len(alternative_strategies)}: {alt_url}"
+                    f"代替戦略 {i + 1}/{len(alternative_strategies)}: {alt_url}"
                 )
                 await asyncio.sleep(3)  # 短い間隔
 
@@ -668,20 +673,20 @@ class FiveChanExplorer(BaseService):
 
                     if is_valid:
                         self.logger.info(
-                            f"代替戦略{i+1}成功: {response.status_code} ({len(content)}文字)"
+                            f"代替戦略{i + 1}成功: {response.status_code} ({len(content)}文字)"
                         )
                         return response
                     else:
                         self.logger.warning(
-                            f"代替戦略{i+1}: 無効コンテンツ ({len(content)}文字)"
+                            f"代替戦略{i + 1}: 無効コンテンツ ({len(content)}文字)"
                         )
                 else:
                     self.logger.warning(
-                        f"代替戦略{i+1}: HTTPエラー {response.status_code}"
+                        f"代替戦略{i + 1}: HTTPエラー {response.status_code}"
                     )
 
             except Exception as e:
-                self.logger.warning(f"代替戦略{i+1}: エラー - {str(e)}")
+                self.logger.warning(f"代替戦略{i + 1}: エラー - {str(e)}")
                 continue
 
         return None
@@ -844,7 +849,9 @@ class FiveChanExplorer(BaseService):
 
                             date_field = parts[2]
                             try:
-                                parsed = parser.parse(date_field, fuzzy=True, ignoretz=True)
+                                parsed = parser.parse(
+                                    date_field, fuzzy=True, ignoretz=True
+                                )
                             except (ValueError, OverflowError):
                                 parsed = None
 
@@ -1030,8 +1037,8 @@ class FiveChanExplorer(BaseService):
             created = datetime.fromtimestamp(timestamp)
             hours = (now - created).total_seconds() / 3600
             recency_bonus = 24 / max(1.0, hours)
-        except Exception:
-            pass
+        except Exception as exc:
+            self.logger.debug("Failed to calculate recency bonus: %s", exc)
 
         return float(post_count + sample_count + recency_bonus)
 
