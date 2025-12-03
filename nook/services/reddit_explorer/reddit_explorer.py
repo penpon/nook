@@ -163,7 +163,7 @@ class RedditExplorer(BaseService):
 
         candidate_posts: list[tuple[str, str, RedditPost]] = []
         dedup_tracker = await self._load_existing_titles()
-        
+
         # デバッグ：重複トラッカーの状態を表示
         self.logger.info(f"🔍 既存タイトル数: {dedup_tracker.count()}件")
 
@@ -188,10 +188,12 @@ class RedditExplorer(BaseService):
                                 dedup_tracker,
                                 effective_target_dates,
                             )
-                            
+
                             # 本来の件数と実際の取得件数を表示
                             if total_found > 0:
-                                self.logger.info(f"   • r/{subreddit_name}: {len(posts)}件取得 (本来{total_found}件)")
+                                self.logger.info(
+                                    f"   • r/{subreddit_name}: {len(posts)}件取得 (本来{total_found}件)"
+                                )
                             else:
                                 self.logger.info(f"   • r/{subreddit_name}: 0件取得")
 
@@ -212,25 +214,29 @@ class RedditExplorer(BaseService):
                 for category, subreddit_name, post in candidate_posts:
                     if post.created_at:
                         # JSTタイムゾーンに変換して日付を取得
-                        jst_time = post.created_at.astimezone(timezone(timedelta(hours=9)))
+                        jst_time = post.created_at.astimezone(
+                            timezone(timedelta(hours=9))
+                        )
                         post_date = jst_time.date()
                         if post_date not in posts_by_date:
                             posts_by_date[post_date] = []
-                        posts_by_date[post_date].append((category, subreddit_name, post))
-                
+                        posts_by_date[post_date].append(
+                            (category, subreddit_name, post)
+                        )
+
                 # 各日独立で処理
                 saved_files: list[tuple[str, str]] = []
                 for target_date in sorted(effective_target_dates):
                     date_str = target_date.strftime("%Y-%m-%d")
                     date_posts = posts_by_date.get(target_date, [])
-                    
+
                     # 日付情報を先頭に表示
                     log_processing_start(self.logger, date_str)
-                    
+
                     if not date_posts:
                         log_no_new_articles(self.logger)
                         continue
-                    
+
                     # 既存記事数を取得
                     try:
                         existing_posts = await self._load_existing_posts(target_date)
@@ -239,32 +245,37 @@ class RedditExplorer(BaseService):
                         existing_count = 0
                     new_count = len(date_posts)
                     log_article_counts(self.logger, existing_count, new_count)
-                    
+
                     # 上位15件を選択
                     if len(date_posts) <= self.SUMMARY_LIMIT:
                         selected_posts = date_posts
                     else:
+
                         def sort_key(item: tuple[str, str, RedditPost]):
                             _, _, post = item
                             created = post.created_at or datetime.min
                             return (post.popularity_score, created)
-                        
+
                         sorted_posts = sorted(date_posts, key=sort_key, reverse=True)
-                        selected_posts = sorted_posts[:self.SUMMARY_LIMIT]
-                    
+                        selected_posts = sorted_posts[: self.SUMMARY_LIMIT]
+
                     # 要約対象を出力
                     post_candidates = [post for _, _, post in selected_posts]
                     log_summary_candidates(self.logger, post_candidates)
-                    
+
                     # 要約生成
                     log_summarization_start(self.logger)
-                    for idx, (category, subreddit_name, post) in enumerate(selected_posts, 1):
+                    for idx, (category, subreddit_name, post) in enumerate(
+                        selected_posts, 1
+                    ):
                         post.comments = await self._retrieve_top_comments_of_post(
                             post, limit=5
                         )
                         await self._summarize_reddit_post(post)
-                        log_summarization_progress(self.logger, idx, len(selected_posts), post.title)
-                    
+                        log_summarization_progress(
+                            self.logger, idx, len(selected_posts), post.title
+                        )
+
                     # 保存
                     day_saved_files = await self._store_summaries(
                         selected_posts, [target_date]
@@ -433,7 +444,7 @@ class RedditExplorer(BaseService):
             取得したコメントのリスト。
         """
         submission = await self.reddit.submission(id=post.id)
-        
+
         # コメントを取得する前にソート順を設定
         await submission.comments.replace_more(limit=0)
         comments_list = submission.comments.list()[:limit]
@@ -466,8 +477,8 @@ class RedditExplorer(BaseService):
         以下のReddit投稿を要約してください。
 
         タイトル: {post.title}
-        本文: {post.text if post.text else '(本文なし)'}
-        URL: {post.url if post.url else '(URLなし)'}
+        本文: {post.text if post.text else "(本文なし)"}
+        URL: {post.url if post.url else "(URLなし)"}
         
         トップコメント:
         {chr(10).join([f"- {comment['text']}" for comment in post.comments])}

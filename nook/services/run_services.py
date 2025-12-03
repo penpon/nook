@@ -53,7 +53,7 @@ class ServiceRunner:
             "4chan": FourChanExplorer,
             "5chan": FiveChanExplorer,
         }
-        
+
         # サービスインスタンスを保持（必要時にのみ作成）
         self.sync_services = {}
 
@@ -93,7 +93,9 @@ class ServiceRunner:
             # サービスごとに異なるlimitパラメータを設定
             if service_name == "hacker_news":
                 # Hacker Newsは15記事に制限し、sorted_target_dates を渡す
-                result = await service.collect(limit=15, target_dates=sorted_target_dates)
+                result = await service.collect(
+                    limit=15, target_dates=sorted_target_dates
+                )
                 saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
                 # Tech News/Business Newsは15記事に制限し、sorted_target_dates を渡す
@@ -109,7 +111,9 @@ class ServiceRunner:
                 saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは15記事に制限
-                result = await service.collect(limit=15, target_dates=sorted_target_dates)
+                result = await service.collect(
+                    limit=15, target_dates=sorted_target_dates
+                )
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
@@ -208,7 +212,10 @@ class ServiceRunner:
 
         try:
             await self._run_sync_service(
-                service_name, self.sync_services[service_name], days, sorted_target_dates
+                service_name,
+                self.sync_services[service_name],
+                days,
+                sorted_target_dates,
             )
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)

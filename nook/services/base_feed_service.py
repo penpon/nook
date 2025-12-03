@@ -348,20 +348,21 @@ class BaseFeedService(BaseService):
                 if local_dt:
                     date_key = local_dt.date()
                     articles_by_date[date_key].append(article)
-        
+
         # 各日独立で上位記事を選択
         selected_articles = []
         for date_key, date_articles in articles_by_date.items():
             if len(date_articles) <= self.TOTAL_LIMIT:
                 selected_articles.extend(date_articles)
             else:
+
                 def sort_key(article: Article):
                     published = article.published_at or datetime.min
                     return (article.popularity_score, published)
-                
+
                 sorted_articles = sorted(date_articles, key=sort_key, reverse=True)
-                selected_articles.extend(sorted_articles[:self.TOTAL_LIMIT])
-        
+                selected_articles.extend(sorted_articles[: self.TOTAL_LIMIT])
+
         return selected_articles
 
     async def _store_summaries_for_date(
