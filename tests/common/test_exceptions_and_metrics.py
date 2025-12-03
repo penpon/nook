@@ -30,8 +30,6 @@ from nook.common.service_errors import ServiceErrorHandler
 
 
 def _run(coro):
-    import asyncio
-
     return asyncio.run(coro)
 
 

@@ -4,8 +4,6 @@ from datetime import datetime
 from pathlib import Path
 import sys
 
-import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -46,6 +44,7 @@ def test_list_dates_returns_sorted_desc(tmp_path):
 
 def test_async_save_load_exists_and_rename(tmp_path):
     storage = LocalStorage(str(tmp_path))
+
     async def main():
         await storage.save({"hello": "world"}, "data.json")
         assert await storage.exists("data.json") is True
@@ -62,6 +61,7 @@ def test_async_save_load_exists_and_rename(tmp_path):
 
 def test_load_returns_none_when_missing(tmp_path):
     storage = LocalStorage(str(tmp_path))
+
     async def main():
         assert await storage.load("nothing.json") is None
 

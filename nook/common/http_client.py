@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 from typing import Any
 
-import cloudscraper
 import httpx
 
 from nook.common.config import BaseConfig
@@ -178,10 +177,15 @@ class AsyncHTTPClient:
                     **kwargs,
                 )
 
-            # 403エラーの場合、cloudscraperで再試行
+            # 403エラーの場合、HTTP/1.1 + ブラウザヘッダーで再試行
             if e.response.status_code == 403:
-                logger.info(f"403 error for {url}, trying cloudscraper")
-                return await self._cloudscraper_fallback(url, params, **kwargs)
+                logger.info(f"403 error for {url}, retrying with browser headers")
+                return await self._browser_retry_with_http1(
+                    url,
+                    params,
+                    original_headers=headers,
+                    **kwargs,
+                )
 
             logger.error(f"HTTP error for {url}: {e}")
             raise APIException(
@@ -243,62 +247,44 @@ class AsyncHTTPClient:
         response = await self.get(url, **kwargs)
         return response.text
 
-    async def _cloudscraper_fallback(
-        self, url: str, params: dict[str, Any] | None = None, **kwargs
+    async def _browser_retry_with_http1(
+        self,
+        url: str,
+        params: dict[str, Any] | None = None,
+        original_headers: dict[str, str] | None = None,
+        **kwargs,
     ) -> httpx.Response:
-        """cloudscraperを使用したフォールバック処理"""
+        """HTTP/1.1 + ブラウザヘッダーでのフォールバック処理"""
+        if not self._http1_client:
+            await self._start_http1_client()
+
+        fallback_headers = self.get_browser_headers()
+        if original_headers:
+            fallback_headers.update(original_headers)
+
         try:
-            scraper = cloudscraper.create_scraper(
-                browser={"browser": "chrome", "platform": "windows", "desktop": True}
+            response = await self._http1_client.get(
+                url,
+                headers=fallback_headers,
+                params=params,
+                **kwargs,
             )
-
-            # 同期処理を非同期で実行
-            response = await asyncio.to_thread(
-                scraper.get, url, params=params, timeout=self.timeout.read
+            response.raise_for_status()
+            logger.info(
+                f"Browser retry for {url} succeeded",
+                extra={"status_code": response.status_code},
             )
-
-            # httpx互換のレスポンスに変換
-            return self._convert_to_httpx_response(response)
-
-        except Exception as e:
-            # エラーの種類を特定して簡潔に出力
-            error_type = type(e).__name__
-            if "SSL" in str(e) or "handshake" in str(e).lower():
-                error_summary = f"SSL/TLS handshake error"
-            elif "timeout" in str(e).lower():
-                error_summary = f"Timeout error"
-            elif "403" in str(e) or "forbidden" in str(e).lower():
-                error_summary = f"Access denied (403)"
-            else:
-                error_summary = f"Connection error"
-            
-            logger.warning(f"Cloudscraper failed for {url}: {error_summary}")
-            # 元の403エラーを再発生
+            return response
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Browser retry failed for {url}: {e}")
             raise APIException(
-                "HTTP 403 error (cloudscraper also failed)", status_code=403
+                f"HTTP {e.response.status_code} error",
+                status_code=e.response.status_code,
+                response_body=e.response.text,
             ) from e
-
-    def _convert_to_httpx_response(self, response):
-        """requests.Responseをhttpx互換のレスポンスアダプターに変換"""
-
-        class CloudscraperResponseAdapter:
-            def __init__(self, cloudscraper_response):
-                self._response = cloudscraper_response
-                self.status_code = cloudscraper_response.status_code
-                self.text = cloudscraper_response.text
-                self.content = cloudscraper_response.content
-                self.headers = cloudscraper_response.headers
-
-            def json(self):
-                return self._response.json()
-
-            def raise_for_status(self):
-                if self.status_code >= 400:
-                    raise httpx.HTTPStatusError(
-                        f"HTTP {self.status_code} error", request=None, response=self
-                    )
-
-        return CloudscraperResponseAdapter(response)
+        except httpx.RequestError as e:
+            logger.error(f"Browser retry request error for {url}: {e}")
+            raise APIException(f"Request failed: {str(e)}") from e
 
     async def download(
         self, url: str, output_path: str, chunk_size: int = 8192, progress_callback=None

@@ -58,9 +58,23 @@ def test_gather_with_errors_validates_task_name_length():
 
     async def main():
         with pytest.raises(ValueError):
-            await gather_with_errors(noop(), task_names=["only-one"])
+            await gather_with_errors(noop(), task_names=["first", "second"])
 
     _run(main())
+
+
+def test_gather_with_errors_allows_single_named_task():
+    async def noop():
+        return 42
+
+    async def main():
+        return await gather_with_errors(noop(), task_names=["only-one"])
+
+    results = _run(main())
+    assert len(results) == 1
+    assert results[0].name == "only-one"
+    assert results[0].success is True
+    assert results[0].result == 42
 
 
 def test_run_with_semaphore_limits_parallelism():
