@@ -81,6 +81,19 @@ def test_gather_with_errors_allows_single_named_task():
     assert results[0].result == 42
 
 
+def test_gather_with_errors_treats_empty_task_names_as_default():
+    async def noop():
+        return "ok"
+
+    async def main():
+        return await gather_with_errors(noop(), task_names=[])
+
+    results = _run(main())
+    assert len(results) == 1
+    assert results[0].name == "Task-0"
+    assert results[0].result == "ok"
+
+
 def test_run_with_semaphore_limits_parallelism():
     max_running = 0
     current = 0
