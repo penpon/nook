@@ -82,9 +82,7 @@ def test_handle_exception_data_exception():
 
     response = handle_exception(exc, request)
 
-    assert_error_response(
-        response, status.HTTP_422_UNPROCESSABLE_ENTITY, "data_error"
-    )
+    assert_error_response(response, status.HTTP_422_UNPROCESSABLE_ENTITY, "data_error")
 
 
 def test_handle_exception_service_exception():

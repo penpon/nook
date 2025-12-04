@@ -21,7 +21,9 @@ def _make_client() -> TestClient:
     return TestClient(app)
 
 
-def _patch_storage_to_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> LocalStorage:
+def _patch_storage_to_tmp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> LocalStorage:
     storage = LocalStorage(str(tmp_path))
     monkeypatch.setattr(content_module, "storage", storage)
     return storage
@@ -54,9 +56,7 @@ def test_get_content_hacker_news_returns_items_from_json(tmp_path, monkeypatch):
         {"title": "Top", "summary": "summary text", "score": 10, "url": "u1"},
         {"title": "Second", "text": "body", "score": 5, "url": "u2"},
     ]
-    (service_dir / f"{date_str}.json").write_text(
-        json.dumps(stories), encoding="utf-8"
-    )
+    (service_dir / f"{date_str}.json").write_text(json.dumps(stories), encoding="utf-8")
 
     resp = client.get(f"/api/content/hacker-news?date={date_str}")
     assert resp.status_code == 200
@@ -100,12 +100,8 @@ def test_get_content_all_aggregates_multiple_sources(tmp_path, monkeypatch):
     # hacker_news JSON
     hn_dir = storage.base_dir / "hacker_news"
     hn_dir.mkdir(parents=True, exist_ok=True)
-    hn_stories = [
-        {"title": "Top", "summary": "sum", "score": 10, "url": "u1"}
-    ]
-    (hn_dir / f"{date_str}.json").write_text(
-        json.dumps(hn_stories), encoding="utf-8"
-    )
+    hn_stories = [{"title": "Top", "summary": "sum", "score": 10, "url": "u1"}]
+    (hn_dir / f"{date_str}.json").write_text(json.dumps(hn_stories), encoding="utf-8")
 
     # github_trending markdown
     gh_dir = storage.base_dir / "github_trending"
