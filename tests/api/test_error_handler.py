@@ -139,7 +139,7 @@ def test_handle_exception_data_exception() -> None:
     response = handle_exception(exc, request)
 
     # Then
-    assert_error_response(response, status.HTTP_422_UNPROCESSABLE_ENTITY, "data_error")
+    assert_error_response(response, status.HTTP_422_UNPROCESSABLE_CONTENT, "data_error")
 
 
 def test_handle_exception_service_exception() -> None:
@@ -203,7 +203,7 @@ def test_handle_exception_request_validation_error() -> None:
 
     # Then
     assert_error_response(
-        response, status.HTTP_422_UNPROCESSABLE_ENTITY, "validation_error"
+        response, status.HTTP_422_UNPROCESSABLE_CONTENT, "validation_error"
     )
     data = _get_json(response)
     assert "errors" in data["error"]["details"]
@@ -292,6 +292,6 @@ async def test_error_handler_middleware_uses_handle_exception_on_error() -> None
     response = await error_handler_middleware(request, call_next)
 
     # Then
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     data = _get_json(response)
     assert data["error"]["type"] == "data_error"

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import httpx
 
@@ -23,13 +23,13 @@ class RateLimiter:
         self.per = per
         self.burst = burst or rate
         self.allowance = float(self.burst)
-        self.last_check = datetime.utcnow()
+        self.last_check = datetime.now(UTC)
         self._lock = asyncio.Lock()
 
     async def acquire(self, tokens: int = 1):
         """レート制限をチェックして必要に応じて待機"""
         async with self._lock:
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             elapsed = (now - self.last_check).total_seconds()
             self.last_check = now
 
@@ -51,7 +51,7 @@ class RateLimiter:
                 await asyncio.sleep(wait_time)
 
                 # 待機後に再度計算
-                now = datetime.utcnow()
+                now = datetime.now(UTC)
                 elapsed = (now - self.last_check).total_seconds()
                 self.last_check = now
                 self.allowance += elapsed * (self.rate / self.per.total_seconds())

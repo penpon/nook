@@ -55,7 +55,7 @@ format = "uv run ruff format ."
 lint = "uv run ruff check --fix ."
 # type-check = "uv run mypy ."
 test = "uv run pytest -n auto tests/ -v"
-coverage = "uv run pytest -n auto --cov=src --cov-report=term"
+coverage = "uv run pytest -n auto --cov=nook --cov-report=term"
 audit = "uv run pip-audit"
 
 # check = ["format", "lint", "type-check"]
