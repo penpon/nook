@@ -15,7 +15,11 @@ from nook.common.base_service import BaseService
 from nook.common.decorators import handle_errors
 from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
-from nook.common.date_utils import is_within_target_dates, target_dates_set, normalize_datetime_to_local
+from nook.common.date_utils import (
+    is_within_target_dates,
+    target_dates_set,
+    normalize_datetime_to_local,
+)
 from nook.common.logging_utils import (
     log_processing_start,
     log_article_counts,
@@ -210,7 +214,7 @@ class HackerNewsRetriever(BaseService):
         for story in all_stories:
             if story.created_at:
                 story_date = normalize_datetime_to_local(story.created_at).date()
-                
+
                 # スコアフィルタリング
                 if story.score < SCORE_THRESHOLD:
                     continue
@@ -254,21 +258,23 @@ class HackerNewsRetriever(BaseService):
                 if story_date not in stories_by_date:
                     stories_by_date[story_date] = []
                 stories_by_date[story_date].append(story)
-        
+
         # 各日独立で上位15件を選択して結合
         selected_stories = []
         for target_date in sorted(target_dates):
             if target_date in stories_by_date:
-                date_stories = sorted(stories_by_date[target_date], key=lambda s: s.score, reverse=True)
+                date_stories = sorted(
+                    stories_by_date[target_date], key=lambda s: s.score, reverse=True
+                )
                 selected_stories.extend(date_stories[:limit])
 
         # 7. ログに統計情報を出力（qiita形式に合わせる）
         existing_count = 0  # 既存記事数（簡略化）
         new_count = len(selected_stories)  # 新規記事数
-        
+
         # 記事情報を表示
         log_article_counts(self.logger, existing_count, new_count)
-        
+
         if selected_stories:
             log_summary_candidates(self.logger, selected_stories, "score")
 
@@ -479,10 +485,10 @@ class HackerNewsRetriever(BaseService):
         """複数のストーリーを逐次要約（リアルタイム進捗表示）"""
         if not stories:
             return
-            
+
         # 要約生成開始を表示
         log_summarization_start(self.logger)
-        
+
         # 逐次要約してリアルタイムで進捗を表示
         for idx, story in enumerate(stories, 1):
             await self._summarize_story(story)
@@ -494,37 +500,40 @@ class HackerNewsRetriever(BaseService):
     async def _update_blocked_domains_from_errors(self, stories: list[Story]) -> None:
         """エラーになったドメインをブロックドメインリストに追記します。"""
         error_domains = {}
-        
+
         for story in stories:
             if not story.url:
                 continue
-                
+
             # エラー状態のチェック - より広範囲に
             is_error = (
-                not story.text or 
-                story.text == "記事の内容を取得できませんでした。" or
-                "Function get failed after 3 attempts" in story.text or
-                "RetryException" in story.text or
-                "HTTP error" in story.text or
-                "Request error" in story.text or
-                "APIException" in story.text
+                not story.text
+                or story.text == "記事の内容を取得できませんでした。"
+                or "Function get failed after 3 attempts" in story.text
+                or "RetryException" in story.text
+                or "HTTP error" in story.text
+                or "Request error" in story.text
+                or "APIException" in story.text
             )
-            
+
             if is_error:
                 self.logger.debug(f"Error detected for domain: {story.url}")
-                
+
                 try:
                     parsed_url = urlparse(story.url)
                     domain = parsed_url.netloc.lower()
-                    
+
                     # www.を除去して正規化
                     if domain.startswith("www."):
                         domain = domain[4:]
-                    
+
                     # 既存のブロックドメインは除外
-                    if domain in [d.lower() for d in self.blocked_domains.get("blocked_domains", [])]:
+                    if domain in [
+                        d.lower()
+                        for d in self.blocked_domains.get("blocked_domains", [])
+                    ]:
                         continue
-                    
+
                     # エラー理由を特定
                     if "522" in story.text or "Server error" in story.text:
                         reason = "522 - Server error"
@@ -542,13 +551,13 @@ class HackerNewsRetriever(BaseService):
                         reason = "Request error"
                     else:
                         reason = "Connection error"
-                    
+
                     error_domains[domain] = reason
                     self.logger.info(f"検出されたエラードメイン: {domain} ({reason})")
-                    
+
                 except Exception as e:
                     self.logger.debug(f"Failed to parse domain from {story.url}: {e}")
-        
+
         # ブロックドメインリストを更新
         if error_domains:
             await self._add_to_blocked_domains(error_domains)
@@ -558,33 +567,35 @@ class HackerNewsRetriever(BaseService):
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             blocked_domains_path = os.path.join(current_dir, "blocked_domains.json")
-            
+
             # 現在のリストを読み込み
             if os.path.exists(blocked_domains_path):
                 with open(blocked_domains_path, encoding="utf-8") as f:
                     blocked_data = json.load(f)
             else:
                 blocked_data = {"blocked_domains": [], "reasons": {}}
-            
+
             # 新しいドメインを追加
             added_count = 0
             for domain, reason in new_domains.items():
-                if domain not in [d.lower() for d in blocked_data.get("blocked_domains", [])]:
+                if domain not in [
+                    d.lower() for d in blocked_data.get("blocked_domains", [])
+                ]:
                     blocked_data.setdefault("blocked_domains", []).append(domain)
                     blocked_data.setdefault("reasons", {})[domain] = reason
                     added_count += 1
                     self.logger.info(f"ブロックドメインを追加: {domain} ({reason})")
-            
+
             # ファイルに保存
             if added_count > 0:
                 with open(blocked_domains_path, "w", encoding="utf-8") as f:
                     json.dump(blocked_data, f, indent=4, ensure_ascii=False)
-                
+
                 # メモリ上のリストも更新
                 self.blocked_domains = blocked_data
-                
+
                 self.logger.info(f"ブロックドメインリストを更新: {added_count}件追加")
-            
+
         except Exception as e:
             self.logger.error(f"ブロックドメインリストの更新に失敗しました: {e}")
 

@@ -40,7 +40,7 @@ async def get_weather_data() -> WeatherResponse:
         city = "Kanagawa"
         url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
 
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         if response.status_code != 200:
             raise HTTPException(status_code=500, detail="Failed to fetch weather data")
 
@@ -51,7 +51,7 @@ async def get_weather_data() -> WeatherResponse:
 
         return WeatherResponse(temperature=temperature, icon=icon)
 
-    except Exception as e:
+    except (requests.RequestException, KeyError, ValueError) as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching weather data: {str(e)}"
         )

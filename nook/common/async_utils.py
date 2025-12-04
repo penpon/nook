@@ -26,12 +26,17 @@ class TaskResult:
 async def gather_with_errors(
     *coros, return_exceptions: bool = True, task_names: list[str] | None = None
 ) -> list[TaskResult]:
-    """複数のコルーチンを並行実行し、エラーも含めて結果を返す"""
-    if task_names and len(task_names) != len(coros):
-        raise ValueError("task_names must have the same length as coros")
+    """複数のコルーチンを並行実行し、エラーも含めて結果を返す。
 
-    if not task_names:
+    Parameters
+    ----------
+    task_names : list[str] | None, optional
+        タスク名リスト。None または空リストの場合は ``Task-{index}`` が自動付与される。
+    """
+    if task_names is None or len(task_names) == 0:
         task_names = [f"Task-{i}" for i in range(len(coros))]
+    elif len(task_names) != len(coros):
+        raise ValueError("task_names must have the same length as coros")
 
     results = await asyncio.gather(*coros, return_exceptions=return_exceptions)
 

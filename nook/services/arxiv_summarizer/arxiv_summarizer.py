@@ -200,7 +200,7 @@ class ArxivSummarizer(BaseService):
         if papers:
             existing_count = 0  # 既存論文数（簡略化）
             new_count = len(papers)  # 新規論文数
-            
+
             # 論文情報を表示
             log_article_counts(self.logger, existing_count, new_count)
             log_summary_candidates(self.logger, papers, "published_at")
@@ -251,7 +251,9 @@ class ArxivSummarizer(BaseService):
         return False if "." not in line else True
 
     @handle_errors(retries=3)
-    async def _get_curated_paper_ids(self, limit: int, snapshot_date: date) -> list[str] | None:
+    async def _get_curated_paper_ids(
+        self, limit: int, snapshot_date: date
+    ) -> list[str] | None:
         """
         Hugging Faceでキュレーションされた論文IDを取得します。
 
@@ -274,7 +276,7 @@ class ArxivSummarizer(BaseService):
         try:
             response = await self.http_client.get(page_url)
             response.raise_for_status()
-            
+
             # リダイレクトを検出（実際のURLとリクエストしたURLが異なる場合はリダイレクト）
             if str(response.url) != page_url:
                 self.logger.info(
@@ -282,7 +284,7 @@ class ArxivSummarizer(BaseService):
                     page_url,
                 )
                 return None
-                
+
             soup = BeautifulSoup(response.text, "html.parser")
 
             for article in soup.select("article"):
@@ -377,7 +379,7 @@ class ArxivSummarizer(BaseService):
         """
         if target_date is None:
             target_date = datetime.now().date()
-            
+
         date_str = target_date.strftime("%Y-%m-%d")
         filename = f"arxiv_ids-{date_str}.txt"
 
@@ -387,7 +389,9 @@ class ArxivSummarizer(BaseService):
 
         return [line.strip() for line in content.split("\n") if line.strip()]
 
-    async def _save_processed_ids_by_date(self, paper_ids: list[str], target_dates: list[date]) -> None:
+    async def _save_processed_ids_by_date(
+        self, paper_ids: list[str], target_dates: list[date]
+    ) -> None:
         """
         処理済みの論文IDを日付ごとに保存します。
 
@@ -402,9 +406,9 @@ class ArxivSummarizer(BaseService):
         tasks = []
         for paper_id in paper_ids:
             tasks.append(self._get_paper_date(paper_id))
-        
+
         paper_dates = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # 日付ごとにIDをグループ化
         ids_by_date = {}
         for paper_id, paper_date in zip(paper_ids, paper_dates, strict=True):
@@ -420,30 +424,30 @@ class ArxivSummarizer(BaseService):
                 if date_str not in ids_by_date:
                     ids_by_date[date_str] = []
                 ids_by_date[date_str].append(paper_id)
-        
+
         # 日付ごとにファイルに保存
         for date_str, ids in ids_by_date.items():
             filename = f"arxiv_ids-{date_str}.txt"
-            
+
             # 既存のIDを読み込む
             existing_ids = await self._load_ids_from_file(filename)
-            
+
             # 新しいIDを追加
             all_ids = existing_ids + ids
             all_ids = list(dict.fromkeys(all_ids))  # 重複を削除
-            
+
             content = "\n".join(all_ids)
             await self.save_data(content, filename)
-    
+
     async def _load_ids_from_file(self, filename: str) -> list[str]:
         """
         指定されたファイルからIDを読み込みます。
-        
+
         Parameters
         ----------
         filename : str
             ファイル名。
-            
+
         Returns
         -------
         List[str]
@@ -452,18 +456,18 @@ class ArxivSummarizer(BaseService):
         content = await self.storage.load(filename)
         if not content:
             return []
-        
+
         return [line.strip() for line in content.split("\n") if line.strip()]
-    
+
     async def _get_paper_date(self, paper_id: str) -> date | None:
         """
         論文の公開日を取得します。
-        
+
         Parameters
         ----------
         paper_id : str
             論文ID。
-            
+
         Returns
         -------
         date or None
@@ -472,22 +476,22 @@ class ArxivSummarizer(BaseService):
         try:
             # arxivライブラリは同期的なので、別スレッドで実行
             loop = asyncio.get_event_loop()
-            
+
             def get_paper():
                 client = arxiv.Client()
                 search = arxiv.Search(id_list=[paper_id])
                 results = list(client.results(search))
                 return results[0] if results else None
-            
+
             paper = await loop.run_in_executor(None, get_paper)
-            
+
             if not paper:
                 return None
-                
+
             published = getattr(paper, "published", None)
             if isinstance(published, datetime):
                 return published.date()
-            
+
             return None
         except Exception as e:
             self.logger.error(f"Error getting paper date for {paper_id}: {str(e)}")
@@ -585,14 +589,14 @@ class ArxivSummarizer(BaseService):
     async def _extract_body_text(self, arxiv_id: str, min_line_length: int = 40) -> str:
         """
         ArXivから本文を抽出（HTML→PDF→アブストラクトのフォールバックチェーン）
-        
+
         Parameters
         ----------
         arxiv_id : str
             arXiv論文ID
         min_line_length : int, default=40
             本文として扱う最小行長
-            
+
         Returns
         -------
         str
@@ -603,14 +607,14 @@ class ArxivSummarizer(BaseService):
         if html_text:
             self.logger.debug(f"HTMLから本文を抽出: {arxiv_id}")
             return html_text
-        
+
         # 2. HTMLが取得できない場合はPDFを試す
         self.logger.info(f"HTML形式が利用できません: {arxiv_id} - PDF抽出に移行します")
         pdf_text = await self._extract_from_pdf(arxiv_id, min_line_length)
         if pdf_text:
             self.logger.info(f"PDFから本文を抽出: {arxiv_id}")
             return pdf_text
-        
+
         # 3. どちらも失敗した場合は空文字列（呼び出し元でアブストラクトを使用）
         self.logger.warning(f"本文抽出失敗: {arxiv_id} - アブストラクトを使用します")
         return ""
@@ -618,12 +622,12 @@ class ArxivSummarizer(BaseService):
     async def _download_html_without_retry(self, html_url: str) -> str:
         """
         リトライなしでHTMLをダウンロード（デコレータを回避）
-        
+
         Parameters
         ----------
         html_url : str
             HTMLのURL
-            
+
         Returns
         -------
         str
@@ -646,14 +650,14 @@ class ArxivSummarizer(BaseService):
     async def _extract_from_html(self, arxiv_id: str, min_line_length: int = 40) -> str:
         """
         HTML形式から本文を抽出
-        
+
         Parameters
         ----------
         arxiv_id : str
             arXiv論文ID
         min_line_length : int
             最小行長
-            
+
         Returns
         -------
         str
@@ -663,10 +667,10 @@ class ArxivSummarizer(BaseService):
             # HTMLをダウンロード（リトライなし）
             html_url = f"https://arxiv.org/html/{arxiv_id}"
             html_content = await self._download_html_without_retry(html_url)
-            
+
             if not html_content:
                 return ""
-            
+
             soup = BeautifulSoup(html_content, "html.parser")
 
             body = soup.body
@@ -709,12 +713,12 @@ class ArxivSummarizer(BaseService):
     async def _download_pdf_without_retry(self, pdf_url: str) -> httpx.Response:
         """
         リトライなしでPDFをダウンロード（デコレータを回避）
-        
+
         Parameters
         ----------
         pdf_url : str
             PDFのURL
-            
+
         Returns
         -------
         httpx.Response
@@ -728,14 +732,14 @@ class ArxivSummarizer(BaseService):
     async def _extract_from_pdf(self, arxiv_id: str, min_line_length: int = 40) -> str:
         """
         PDF形式から本文を抽出
-        
+
         Parameters
         ----------
         arxiv_id : str
             arXiv論文ID
         min_line_length : int
             最小行長
-            
+
         Returns
         -------
         str
@@ -744,47 +748,53 @@ class ArxivSummarizer(BaseService):
         try:
             # PDFをダウンロード（リトライなし）
             pdf_url = f"https://arxiv.org/pdf/{arxiv_id}"
-            
+
             # リトライなしのダウンロードメソッドを使用
             response = await self._download_pdf_without_retry(pdf_url)
-            
+
             if not response.content:
                 return ""
-            
+
             # pdfplumberでテキスト抽出
             with pdfplumber.open(BytesIO(response.content)) as pdf:
                 text_parts = []
-                
+
                 for _page_num, page in enumerate(pdf.pages):
                     try:
                         page_text = page.extract_text()
-                        if page_text and len(page_text.strip()) > 100:  # 有意なテキストのみ
+                        if (
+                            page_text and len(page_text.strip()) > 100
+                        ):  # 有意なテキストのみ
                             # ページ番号やヘッダー/フッターを除去
-                            lines = page_text.split('\n')
+                            lines = page_text.split("\n")
                             filtered_lines = []
-                            
+
                             for line in lines:
                                 clean_line = line.strip()
                                 # ページ番号や短すぎる行を除外
-                                if (len(clean_line) >= min_line_length and 
-                                    not clean_line.isdigit() and 
-                                    not clean_line.startswith('arXiv:') and
-                                    'References' not in clean_line[:20]):  # 参考文献セクションを除外
+                                if (
+                                    len(clean_line) >= min_line_length
+                                    and not clean_line.isdigit()
+                                    and not clean_line.startswith("arXiv:")
+                                    and "References" not in clean_line[:20]
+                                ):  # 参考文献セクションを除外
                                     filtered_lines.append(clean_line)
-                            
+
                             if filtered_lines:
-                                text_parts.append('\n'.join(filtered_lines))
-                                
+                                text_parts.append("\n".join(filtered_lines))
+
                     except Exception as page_error:
-                        self.logger.debug(f"ページ抽出失敗: {arxiv_id} page {_page_num} - {page_error}")
+                        self.logger.debug(
+                            f"ページ抽出失敗: {arxiv_id} page {_page_num} - {page_error}"
+                        )
                         continue
-                
+
                 if text_parts:
-                    full_text = '\n\n'.join(text_parts)
+                    full_text = "\n\n".join(text_parts)
                     return full_text
                 else:
                     return ""
-                    
+
         except Exception as e:
             self.logger.debug(f"PDF抽出失敗: {arxiv_id} - {str(e)}")
             return ""

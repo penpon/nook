@@ -3,6 +3,7 @@
 import asyncio
 import inspect
 import json
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 # 環境変数の読み込み
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # 料金設定（USD per 1M tokens）
 PRICING = {"input": 0.20, "cached_input": 0.05, "output": 0.80}
@@ -63,7 +66,6 @@ class GPTClient:
             self.encoding = tiktoken.encoding_for_model("gpt-4")
         except KeyError:
             self.encoding = tiktoken.get_encoding("cl100k_base")
-
 
     def _count_tokens(self, text: str) -> int:
         """テキストのトークン数を計算します。"""
@@ -114,8 +116,8 @@ class GPTClient:
                 if callable(meth):
                     data = meth()
                     break
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Failed to convert response via %s: %s", attr, exc)
         if data is None:
             try:
                 data = resp.__dict__
