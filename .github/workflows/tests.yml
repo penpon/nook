@@ -42,7 +42,7 @@ jobs:
         echo "=== 品質チェックを実行中 (format, lint, test) ==="
         uv run poe format
         uv run poe lint
-        uv run pytest tests/ -v --cov=duplicate-scan --cov-report=xml --cov-report=term-missing --tb=short
+        uv run pytest tests/ -v --cov=nook --cov-report=xml --cov-report=term-missing --tb=short
         echo ""
         echo "✅ すべての品質チェックが成功しました"
 
@@ -52,9 +52,9 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
 
-        if ! git diff --quiet src/ tests/; then
+        if ! git diff --quiet -- nook/ tests/; then
           echo "📝 フォーマット変更を検出しました。自動コミットします..."
-          git add src/ tests/
+          git add nook/ tests/
           git commit -m "style: Ruffによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
           git push
           echo "✅ フォーマット変更をコミット＆プッシュしました"
@@ -90,9 +90,9 @@ jobs:
           echo ""
           if [ -f coverage.xml ] && [ "$test_status" = "success" ]; then
             echo "### カバレッジ率"
-            echo "\`\`\`"
-            uv run pytest --cov=duplicate-scan --cov-report=term
-            echo "\`\`\`"
+            echo "```"
+            uv run pytest --cov=nook --cov-report=term
+            echo "```"
           elif [ ! -f coverage.xml ]; then
             echo "⚠️ カバレッジレポート（coverage.xml）が見つかりません"
           fi
