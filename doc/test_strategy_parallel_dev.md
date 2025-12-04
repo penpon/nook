@@ -88,7 +88,7 @@ tests/
 
 ### 3.1 基本方針
 
-- メインの開発ブランチ（例: `develop`）から、テスト追加用の feature ブランチを切り、
+- メインの開発ブランチ（例: `main`）から、テスト追加用の feature ブランチを切り、
   **各ブランチを git worktree としてチェックアウト**して並列開発します。
 - 原則として **1 worktree = 1 テストストリーム** とし、衝突を最小化します。
 
@@ -105,16 +105,16 @@ tests/
 ブランチ・worktree 命名の一例:
 
 ```bash
-# ベース: develop ブランチ
+# ベース: main ブランチ
 # worktree ルートを ./feature/ 以下にまとめる例
 
 # Stream A (common)
-git worktree add feature/tests-common develop
+git worktree add feature/tests-common main
 cd feature/tests-common
 git switch -c feature/tests-common
 
 # Stream B (api)
-git worktree add feature/tests-api develop
+git worktree add feature/tests-api main
 cd feature/tests-api
 git switch -c feature/tests-api
 
