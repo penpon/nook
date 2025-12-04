@@ -57,8 +57,12 @@ def test_gather_with_errors_validates_task_name_length():
         return None
 
     async def main():
-        with pytest.raises(ValueError):
-            await gather_with_errors(noop(), task_names=["first", "second"])
+        coro = noop()
+        with pytest.raises(
+            ValueError, match="task_names must have the same length as coros"
+        ):
+            await gather_with_errors(coro, task_names=["first", "second"])
+        coro.close()
 
     _run(main())
 
@@ -158,7 +162,7 @@ def test_async_task_manager_handles_success_and_failure():
 
         assert await manager.wait_for("ok") == "done"
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="bad"):
             await manager.wait_for("fail")
 
         summary = await manager.wait_all()
@@ -178,8 +182,10 @@ def test_async_task_manager_rejects_duplicate_names():
     async def main():
         await manager.submit("task", sleeper())
 
-        with pytest.raises(ValueError):
-            await manager.submit("task", sleeper())
+        duplicate_coro = sleeper()
+        with pytest.raises(ValueError, match="Task task already exists"):
+            await manager.submit("task", duplicate_coro)
+        duplicate_coro.close()
 
         await manager.wait_all()
 

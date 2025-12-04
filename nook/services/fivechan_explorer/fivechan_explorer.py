@@ -738,15 +738,15 @@ class FiveChanExplorer(BaseService):
                     # 文字化け対策（Shift_JIS + フォールバック）
                     try:
                         content = response.content.decode("shift_jis", errors="ignore")
-                    except:
+                    except (UnicodeDecodeError, LookupError):
                         try:
                             content = response.content.decode("cp932", errors="ignore")
-                        except:
+                        except (UnicodeDecodeError, LookupError):
                             try:
                                 content = response.content.decode(
                                     "utf-8", errors="ignore"
                                 )
-                            except:
+                            except (UnicodeDecodeError, LookupError):
                                 content = response.text
 
                     threads_data = []
@@ -817,10 +817,10 @@ class FiveChanExplorer(BaseService):
                 # 文字化け対策（Shift_JIS + フォールバック）
                 try:
                     content = response.content.decode("shift_jis", errors="ignore")
-                except:
+                except (UnicodeDecodeError, LookupError):
                     try:
                         content = response.content.decode("cp932", errors="ignore")
-                    except:
+                    except (UnicodeDecodeError, LookupError):
                         content = response.text
 
                 posts: list[dict[str, Any]] = []

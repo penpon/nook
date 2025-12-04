@@ -27,9 +27,8 @@ async def gather_with_errors(
     *coros, return_exceptions: bool = True, task_names: list[str] | None = None
 ) -> list[TaskResult]:
     """複数のコルーチンを並行実行し、エラーも含めて結果を返す"""
-    if task_names:
-        if len(task_names) != len(coros):
-            raise ValueError("task_names must have the same length as coros")
+    if task_names is not None and len(task_names) != len(coros):
+        raise ValueError("task_names must have the same length as coros")
 
     if not task_names:
         task_names = [f"Task-{i}" for i in range(len(coros))]
