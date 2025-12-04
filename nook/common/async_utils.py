@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import partial
 from typing import Any, TypeVar
 
@@ -20,7 +20,7 @@ class TaskResult:
         self.success = success
         self.result = result
         self.error = error
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(UTC)
 
 
 async def gather_with_errors(

@@ -56,7 +56,7 @@ class ValidationError(NookHTTPException):
 
     def __init__(self, detail: str, field: str | None = None):
         super().__init__(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=detail,
             error_type="validation_error",
         )

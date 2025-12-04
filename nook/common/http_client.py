@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -70,7 +70,7 @@ class AsyncHTTPClient:
                 follow_redirects=True,
                 http2=True,  # HTTP/2サポート
             )
-            self._session_start = datetime.utcnow()
+            self._session_start = datetime.now(UTC)
             logger.info("HTTP client session started")
 
     async def _start_http1_client(self):
@@ -95,7 +95,7 @@ class AsyncHTTPClient:
             self._http1_client = None
 
         if self._session_start:
-            duration = (datetime.utcnow() - self._session_start).total_seconds()
+            duration = (datetime.now(UTC) - self._session_start).total_seconds()
             logger.info(f"HTTP client session closed after {duration:.2f} seconds")
 
     @handle_errors(retries=3, delay=1.0, backoff=2.0)

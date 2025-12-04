@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 import sys
@@ -102,7 +102,7 @@ def test_error_metrics_tracks_recent_errors():
     assert "api" in report
 
     # 古いエラーは集計から除外される
-    old_time = datetime.utcnow() - timedelta(minutes=5)
+    old_time = datetime.now(UTC) - timedelta(minutes=5)
     metrics.errors["api"].append((old_time, {}))
     stats_after = metrics.get_error_stats()
     assert stats_after["api"]["count"] == 1
@@ -116,7 +116,7 @@ def test_error_metrics_empty_report_message():
 def test_rate_limiter_waits_when_tokens_insufficient(monkeypatch):
     limiter = RateLimiter(rate=10, per=timedelta(milliseconds=1), burst=2)
     limiter.allowance = 0.0
-    limiter.last_check = datetime.utcnow()
+    limiter.last_check = datetime.now(UTC)
 
     sleep_calls: list[float] = []
 

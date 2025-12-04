@@ -1,6 +1,6 @@
 import threading
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 
 class ErrorMetrics:
@@ -14,7 +14,7 @@ class ErrorMetrics:
     def record_error(self, error_type: str, details: dict):
         """エラーを記録"""
         with self.lock:
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             self.errors[error_type].append((now, details))
 
             # 古いエラーを削除
@@ -26,7 +26,7 @@ class ErrorMetrics:
     def get_error_stats(self) -> dict[str, dict]:
         """エラー統計を取得"""
         with self.lock:
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             cutoff = now - timedelta(minutes=self.window_minutes)
 
             stats = {}
