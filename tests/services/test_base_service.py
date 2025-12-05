@@ -22,11 +22,19 @@ class DummyConfig(BaseConfig):
 
 
 class DummyService(BaseService):
+    """テスト用のBaseServiceサブクラス。
+
+    Args:
+        request_delay: リクエスト間の待機秒数。
+        config: 設定オブジェクト（未指定時はDummyConfig）。
+    """
+
     def __init__(self, request_delay: float = 0.05, config: BaseConfig | None = None):
         super().__init__("dummy", config=config or DummyConfig())
         self.request_delay = request_delay
 
     async def collect(self):
+        """データ収集処理（テスト用ダミーで何もしない）。"""
         return None
 
 

@@ -27,6 +27,7 @@ async def test_run_all_invokes_each_service(monkeypatch):
     runner = _make_runner(["a", "b"])
     calls: list[tuple[str, object, int, list[int]]] = []
 
+    # Given
     async def fake_run_sync(self, service_name, service, days, target_dates):
         calls.append((service_name, service, days, target_dates))
 
@@ -61,8 +62,10 @@ async def test_run_all_invokes_each_service(monkeypatch):
         fake_close_http_client,
     )
 
+    # When
     await runner.run_all(days=3)
 
+    # Then
     assert runner.running is False
     # target_dates should be sorted list [1,2]
     assert calls == [
@@ -77,6 +80,7 @@ async def test_run_service_single(monkeypatch):
     runner = _make_runner(["only"])
     calls: list[tuple[str, object, int, list[int]]] = []
 
+    # Given
     async def fake_run_sync(self, service_name, service, days, target_dates):
         calls.append((service_name, service, days, target_dates))
 
@@ -93,8 +97,10 @@ async def test_run_service_single(monkeypatch):
         fake_target_dates_set,
     )
 
+    # When
     await runner.run_service("only", days=2)
 
+    # Then
     assert calls == [
         ("only", runner.sync_services["only"], 2, [1, 5]),
     ]
