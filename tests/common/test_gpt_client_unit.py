@@ -107,8 +107,13 @@ def test_messages_to_responses_input(client):
 
 def test_supports_and_gpt5_detection(dummy_openai):
     assert GPTClient(api_key="k", model="gpt-5-abc")._supports_max_completion_tokens()
-    assert GPTClient(api_key="k", model="gpt-4.1-mini")._supports_max_completion_tokens()
-    assert GPTClient(api_key="k", model="gpt-3.5-turbo")._supports_max_completion_tokens() is False
+    assert GPTClient(
+        api_key="k", model="gpt-4.1-mini"
+    )._supports_max_completion_tokens()
+    assert (
+        GPTClient(api_key="k", model="gpt-3.5-turbo")._supports_max_completion_tokens()
+        is False
+    )
     assert GPTClient(api_key="k", model="gpt-5-xyz")._is_gpt5_model() is True
     assert GPTClient(api_key="k", model="gpt-4.1-mini")._is_gpt5_model() is False
 

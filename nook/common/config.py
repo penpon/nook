@@ -14,8 +14,12 @@ class BaseConfig(BaseSettings):
 
     # API関連
     OPENAI_API_KEY: SecretStr = Field(validation_alias="OPENAI_API_KEY")
-    REDDIT_CLIENT_ID: SecretStr | None = Field(default=None, validation_alias="REDDIT_CLIENT_ID")
-    REDDIT_CLIENT_SECRET: SecretStr | None = Field(default=None, validation_alias="REDDIT_CLIENT_SECRET")
+    REDDIT_CLIENT_ID: SecretStr | None = Field(
+        default=None, validation_alias="REDDIT_CLIENT_ID"
+    )
+    REDDIT_CLIENT_SECRET: SecretStr | None = Field(
+        default=None, validation_alias="REDDIT_CLIENT_SECRET"
+    )
 
     # ログ関連
     LOG_LEVEL: str = Field(default="INFO", validation_alias="LOG_LEVEL")
