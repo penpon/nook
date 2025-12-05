@@ -105,11 +105,9 @@ class TestExtractPopularity:
         """
         html = "<html><body></body></html>"
         soup = BeautifulSoup(html, "html.parser")
-        entry = MagicMock()
+        entry = MagicMock(spec=["likes", "likes_count"])
         entry.likes = 200
         entry.likes_count = None
-        # Ensure hasattr returns True for likes but False for zenn_likes_count
-        del entry.zenn_likes_count
 
         result = zenn_explorer._extract_popularity(entry, soup)
 
@@ -125,10 +123,9 @@ class TestExtractPopularity:
         """
         html = "<html><body><p>No likes here</p></body></html>"
         soup = BeautifulSoup(html, "html.parser")
-        entry = MagicMock()
+        entry = MagicMock(spec=["likes", "likes_count"])
         entry.likes = None
         entry.likes_count = None
-        del entry.zenn_likes_count
 
         result = zenn_explorer._extract_popularity(entry, soup)
 
