@@ -120,11 +120,14 @@ def test_filter_entries_respects_dates_and_limit():
 
 def test_safe_parse_int_variants():
     service = DummyFeedService()
+    # Given
+    targets = [3.5, "1,234", "abc", None]
+
     # When & Then
-    assert service._safe_parse_int(3.5) == 3
-    assert service._safe_parse_int("1,234") == 1234
-    assert service._safe_parse_int("abc") is None
-    assert service._safe_parse_int(None) is None
+    assert service._safe_parse_int(targets[0]) == 3
+    assert service._safe_parse_int(targets[1]) == 1234
+    assert service._safe_parse_int(targets[2]) is None
+    assert service._safe_parse_int(targets[3]) is None
 
 
 def test_parse_markdown_extracts_articles():

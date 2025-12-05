@@ -10,7 +10,7 @@ from nook.common.config import BaseConfig
 
 
 @pytest.fixture(autouse=True)
-def _set_env(monkeypatch):
+def _set_env(monkeypatch) -> None:
     """必須環境変数をテスト用ダミーで埋める"""
     monkeypatch.setenv("OPENAI_API_KEY", "dummy-key")
 
@@ -34,7 +34,11 @@ class DummyService(BaseService):
         self.request_delay = request_delay
 
     async def collect(self):
-        """データ収集処理（テスト用ダミーで何もしない）。"""
+        """データ収集処理（テスト用ダミーで何もしない）。
+
+        Returns:
+            None
+        """
         return None
 
 
@@ -61,6 +65,7 @@ async def test_save_data_uses_storage(monkeypatch, tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_rate_limit_uses_request_delay(monkeypatch):
+    # Given
     service = DummyService(request_delay=0.2)
 
     recorded: dict[str, float] = {}
@@ -79,6 +84,7 @@ async def test_rate_limit_uses_request_delay(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_setup_http_client_called_once(monkeypatch):
+    # Given
     service = DummyService()
     sentinel_client = object()
     calls = {"count": 0}
@@ -104,6 +110,7 @@ async def test_setup_http_client_called_once(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_initialize_calls_setup_http_client(monkeypatch):
+    # Given
     service = DummyService()
     sentinel_client = object()
     calls = {"count": 0}
@@ -124,6 +131,7 @@ async def test_initialize_calls_setup_http_client(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_save_data_logs_and_raises_on_error(monkeypatch, caplog):
+    # Given
     service = DummyService()
     calls: dict[str, object] = {}
 
