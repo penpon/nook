@@ -7,6 +7,7 @@ from datetime import timedelta
 
 import httpx
 import pytest
+import pytest_asyncio
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -55,8 +56,8 @@ def mock_elapsed(monkeypatch):
     )
 
 
-@pytest.fixture
-def client_factory():
+@pytest_asyncio.fixture
+async def client_factory():
     clients: list[AsyncHTTPClient] = []
 
     def _make(http2_handler, http1_handler=None):
@@ -77,8 +78,7 @@ def client_factory():
 
     yield _make
 
-    for c in clients:
-        asyncio.get_event_loop().run_until_complete(c.close())
+    await asyncio.gather(*(c.close() for c in clients))
 
 
 @pytest.mark.asyncio
@@ -149,9 +149,7 @@ async def test_get_403_browser_retry(client_factory):
 
     client = client_factory(http2_handler, http1_handler)
 
-    resp = await client.get(
-        "https://example.com/need-browser", headers={"X-Test": "1"}
-    )
+    resp = await client.get("https://example.com/need-browser", headers={"X-Test": "1"})
 
     assert resp.json()["via"] == "browser"
     assert any(k.lower() == "x-test" and v == "1" for k, v in headers_seen.items())
