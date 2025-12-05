@@ -54,7 +54,7 @@ def run_fourchan_explorer():
         fourchan_explorer.run()
         print("4chanの技術板スレッド収集が完了しました。")
     except Exception as e:
-        print(f"4chanからのAI関連スレッド収集中にエラーが発生しました: {str(e)}")
+        print(f"4chanの技術板スレッド収集中にエラーが発生しました: {str(e)}")
 
 
 def run_github_trending():
@@ -62,15 +62,18 @@ def run_github_trending():
     GitHubトレンドサービスを実行します。
     """
     print("GitHubのトレンドリポジトリを収集しています...")
-    github_trending = GithubTrending()
-    # Handle both real async calls and mocked sync calls in tests
-    if hasattr(github_trending.collect, "return_value"):
-        # This is a mock, call run() instead for test compatibility
-        github_trending.run()
-    else:
-        # This is the real async service
-        asyncio.run(github_trending.collect())
-    print("GitHubのトレンドリポジトリ収集が完了しました。")
+    try:
+        github_trending = GithubTrending()
+        # Handle both real async calls and mocked sync calls in tests
+        if hasattr(github_trending.collect, "return_value"):
+            # This is a mock, call run() instead for test compatibility
+            github_trending.run()
+        else:
+            # This is the real async service
+            asyncio.run(github_trending.collect())
+        print("GitHubのトレンドリポジトリ収集が完了しました。")
+    except Exception as e:
+        print(f"GitHubのトレンドリポジトリ収集中にエラーが発生しました: {str(e)}")
 
 
 def run_hacker_news():
@@ -84,7 +87,7 @@ def run_hacker_news():
         hacker_news.run(limit=15)
         print("Hacker Newsの人気記事収集が完了しました。")
     except Exception as e:
-        print(f"Hacker Newsの記事収集中にエラーが発生しました: {str(e)}")
+        print(f"Hacker Newsの人気記事収集中にエラーが発生しました: {str(e)}")
 
 
 def run_note_explorer():
@@ -198,7 +201,7 @@ def run_arxiv_summarizer():
         arxiv_summarizer.run()
         print("ArXivの論文要約が完了しました。")
     except Exception as e:
-        print(f"論文の収集・要約中にエラーが発生しました: {str(e)}")
+        print(f"ArXivの論文要約中にエラーが発生しました: {str(e)}")
 
 
 def main():
