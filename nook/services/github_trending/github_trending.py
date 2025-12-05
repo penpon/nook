@@ -534,11 +534,14 @@ class GithubTrending(BaseService):
 
         grouped: dict[str, list[dict[str, Any]]] = {}
         for record in records:
-            language_value = record.get("language", "all")
-            if language_value is None:
-                raise ValueError("record language must not be None")
-            if not isinstance(language_value, str):
-                raise TypeError("record language must be a string")
+            if "language" in record:
+                language_value = record["language"]
+                if language_value is None:
+                    raise ValueError("record language must not be None")
+                if not isinstance(language_value, str):
+                    raise TypeError("record language must be a string")
+            else:
+                language_value = "all"
             grouped.setdefault(language_value, []).append(record)
 
         for language, repositories in grouped.items():
