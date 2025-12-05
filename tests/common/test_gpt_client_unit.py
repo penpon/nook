@@ -82,6 +82,8 @@ def client(dummy_openai):
 
 
 def test_count_tokens_and_calculate_cost(client, monkeypatch):
+    # Given: クライアントは通常のエンコーディングを使用
+    # When: トークンカウントと料金計算を行う
     assert client._count_tokens("abc") == 3
     assert client._calculate_cost(1_000_000, 500_000) == pytest.approx(0.2 + 0.4)
 
@@ -90,15 +92,19 @@ def test_count_tokens_and_calculate_cost(client, monkeypatch):
             raise RuntimeError("encoding failed")
 
     client.encoding = FailingEncoding()
+    # Then: エンコード失敗時は0を返す
     assert client._count_tokens("won't matter") == 0
 
 
 def test_messages_to_responses_input(client):
+    # Given: system/userのメッセージリスト
     messages = [
         {"role": "system", "content": "sys"},
         {"role": "user", "content": "hi"},
     ]
+    # When: Responses API形式に変換
     converted = client._messages_to_responses_input(messages)
+    # Then: 期待フォーマットで返却される
     assert converted == [
         {"role": "system", "content": [{"type": "input_text", "text": "sys"}]},
         {"role": "user", "content": [{"type": "input_text", "text": "hi"}]},
@@ -106,6 +112,7 @@ def test_messages_to_responses_input(client):
 
 
 def test_supports_and_gpt5_detection(dummy_openai):
+    # Given/When/Then: モデル名に応じてmax_completion_tokensとgpt5判定を確認
     assert GPTClient(api_key="k", model="gpt-5-abc")._supports_max_completion_tokens()
     assert GPTClient(
         api_key="k", model="gpt-4.1-mini"
@@ -119,6 +126,7 @@ def test_supports_and_gpt5_detection(dummy_openai):
 
 
 def test_get_calling_service(monkeypatch, client):
+    # Given: services配下から呼ばれたスタックフレームを用意
     service_frame = types.SimpleNamespace(
         f_back=None,
         f_code=types.SimpleNamespace(
@@ -134,15 +142,18 @@ def test_get_calling_service(monkeypatch, client):
         "nook.common.gpt_client.inspect.currentframe", lambda: caller_frame
     )
 
+    # When/Then: サービス名を抽出できる
     assert client._get_calling_service() == "my_service"
 
 
 def test_generate_content_uses_chat_completions_params(client):
+    # Given: chat completionsに差し込むパラメータ
     result = client.generate_content(
         prompt="hello", system_instruction="sys", temperature=0.5, max_tokens=50
     )
 
     params = client.client.chat.completions.last_params
+    # Then: SDK呼び出しのパラメータが期待通り
     assert result == "chat-output"
     assert params["model"] == "gpt-4.1-mini"
     assert params["messages"][0]["role"] == "system"
@@ -153,6 +164,7 @@ def test_generate_content_uses_chat_completions_params(client):
 
 
 def test_generate_content_calls_gpt5_path(monkeypatch, dummy_openai):
+    # Given: gpt-5系モデルとモックのコール関数
     client = GPTClient(api_key="k", model="gpt-5-preview")
     client.encoding = DummyEncoding()
 
@@ -164,12 +176,15 @@ def test_generate_content_calls_gpt5_path(monkeypatch, dummy_openai):
 
     monkeypatch.setattr(client, "_call_gpt5", fake_call)
 
+    # When: generate_contentを呼ぶ
     result = client.generate_content(prompt="p", system_instruction="s", max_tokens=10)
+    # Then: gpt5パスが呼ばれ、引数が渡る
     assert result == "gpt5-output"
     assert called["args"] == ("p", "s", 10)
 
 
 def test_chat_uses_system_and_max_completion_tokens(client):
+    # Given: systemメッセージとmax_completion_tokens
     result = client.chat(
         messages=[{"role": "user", "content": "hi"}],
         system="sys",
@@ -186,10 +201,13 @@ def test_chat_uses_system_and_max_completion_tokens(client):
 
 
 def test_send_message_appends_and_returns_reply(client):
+    # Given: システムメッセージのみを持つチャットセッション
     chat_session = {"messages": [{"role": "system", "content": "sys"}]}
 
+    # When: 質問を送信
     reply = client.send_message(chat_session, "question", temperature=0.1, max_tokens=5)
 
+    # Then: 応答が追加され、パラメータが期待通り
     assert reply == "chat-output"
     assert chat_session["messages"][-1]["role"] == "assistant"
     assert chat_session["messages"][-1]["content"] == "chat-output"
@@ -199,6 +217,7 @@ def test_send_message_appends_and_returns_reply(client):
 
 
 def test_chat_with_search_uses_history(client):
+    # Given: 既存履歴とコンテキスト付きメッセージ
     history = [{"role": "user", "content": "old"}]
     output = client.chat_with_search(
         message="new",
@@ -208,6 +227,7 @@ def test_chat_with_search_uses_history(client):
         max_tokens=12,
     )
 
+    # Then: システム・履歴・新メッセージが含まれ、max_completion_tokensを使用
     params = client.client.chat.completions.last_params
     assert output == "chat-output"
     assert params["messages"][0]["role"] == "system"
