@@ -534,8 +534,12 @@ class GithubTrending(BaseService):
 
         grouped: dict[str, list[dict[str, Any]]] = {}
         for record in records:
-            language = record.get("language", "all")
-            grouped.setdefault(language, []).append(record)
+            language_value = record.get("language", "all")
+            if language_value is None:
+                raise ValueError("record language must not be None")
+            if not isinstance(language_value, str):
+                raise TypeError("record language must be a string")
+            grouped.setdefault(language_value, []).append(record)
 
         for language, repositories in grouped.items():
             if not repositories:
@@ -545,13 +549,27 @@ class GithubTrending(BaseService):
             content += f"## {language_display.capitalize()}\n\n"
 
             for repo in repositories:
-                content += f"### [{repo['name']}]({repo.get('link')})\n\n"
+                name = repo.get("name")
+                if name is None:
+                    raise KeyError("record missing required field 'name'")
+
+                link = repo.get("link")
+                if link is None:
+                    raise KeyError("record missing required field 'link'")
+
+                stars_value = repo.get("stars")
+                if stars_value is None:
+                    raise KeyError("record missing required field 'stars'")
+                if not isinstance(stars_value, (int, float)):
+                    raise TypeError("record field 'stars' must be numeric")
+
+                content += f"### [{name}]({link})\n\n"
 
                 description = repo.get("description")
                 if description:
                     content += f"{description}\n\n"
 
-                content += f"⭐ スター数: {repo.get('stars', 0)}\n\n"
+                content += f"⭐ スター数: {int(stars_value)}\n\n"
                 content += "---\n\n"
 
         return content

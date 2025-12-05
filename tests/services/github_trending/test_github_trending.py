@@ -444,15 +444,56 @@ class TestRenderMarkdown:
         with pytest.raises(KeyError):
             trending._render_markdown(records, today)
 
-    def test_render_markdown_string_stars_is_rendered(
+    def test_render_markdown_missing_link_field_raises_key_error(
         self, trending: GithubTrending
     ) -> None:
         """
-        Given: Record with string stars (non-validated).
+        Given: Record missing the 'link' field.
         When: _render_markdown is called.
-        Then: The string is rendered as-is in the output.
+        Then: KeyError is raised.
         """
-        # Given
+        records = [
+            {
+                "language": "python",
+                "name": "owner/repo",
+                "description": "Missing link",
+                "stars": 10,
+            }
+        ]
+        today = datetime(2024, 1, 15, tzinfo=timezone.utc)
+
+        with pytest.raises(KeyError):
+            trending._render_markdown(records, today)
+
+    def test_render_markdown_missing_stars_field_raises_key_error(
+        self, trending: GithubTrending
+    ) -> None:
+        """
+        Given: Record missing the 'stars' field.
+        When: _render_markdown is called.
+        Then: KeyError is raised.
+        """
+        records = [
+            {
+                "language": "python",
+                "name": "owner/repo",
+                "description": "Missing stars",
+                "link": "https://github.com/owner/repo",
+            }
+        ]
+        today = datetime(2024, 1, 15, tzinfo=timezone.utc)
+
+        with pytest.raises(KeyError):
+            trending._render_markdown(records, today)
+
+    def test_render_markdown_string_stars_raises_type_error(
+        self, trending: GithubTrending
+    ) -> None:
+        """
+        Given: Record with string stars (invalid type).
+        When: _render_markdown is called.
+        Then: TypeError is raised.
+        """
         records = [
             {
                 "language": "python",
@@ -464,21 +505,17 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When
-        result = trending._render_markdown(records, today)
+        with pytest.raises(TypeError):
+            trending._render_markdown(records, today)
 
-        # Then
-        assert "⭐ スター数: 1000" in result
-
-    def test_render_markdown_language_none_raises_attribute_error(
+    def test_render_markdown_language_none_raises_value_error(
         self, trending: GithubTrending
     ) -> None:
         """
         Given: Record with language=None.
         When: _render_markdown is called.
-        Then: AttributeError is raised when calling capitalize() on None.
+        Then: ValueError is raised for missing language.
         """
-        # Given
         records = [
             {
                 "language": None,
@@ -490,8 +527,29 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When / Then
-        with pytest.raises(AttributeError):
+        with pytest.raises(ValueError):
+            trending._render_markdown(records, today)
+
+    def test_render_markdown_language_non_string_raises_type_error(
+        self, trending: GithubTrending
+    ) -> None:
+        """
+        Given: Record with non-string language value.
+        When: _render_markdown is called.
+        Then: TypeError is raised.
+        """
+        records = [
+            {
+                "language": 123,
+                "name": "owner/repo",
+                "description": "Language not string",
+                "link": "https://github.com/owner/repo",
+                "stars": 100,
+            }
+        ]
+        today = datetime(2024, 1, 15, tzinfo=timezone.utc)
+
+        with pytest.raises(TypeError):
             trending._render_markdown(records, today)
 
 

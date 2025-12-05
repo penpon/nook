@@ -186,6 +186,46 @@ class TestExtractPopularity:
 
         assert result == 0.0
 
+    def test_ignores_non_numeric_meta_content(
+        self, note_explorer: NoteExplorer
+    ) -> None:
+        """
+        Given: Non-numeric metadata content.
+        When: _extract_popularity parses the value.
+        Then: It is ignored and 0.0 is returned.
+        """
+        html = """
+        <html>
+            <head>
+                <meta name="twitter:data1" content="not-a-number">
+            </head>
+            <body></body>
+        </html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+        entry = MagicMock()
+        entry.likes = None
+        entry.likes_count = None
+
+        result = note_explorer._extract_popularity(entry, soup)
+
+        assert result == 0.0
+
+    def test_handles_missing_entry_attributes_gracefully(
+        self, note_explorer: NoteExplorer
+    ) -> None:
+        """
+        Given: Entry object without likes-related attributes.
+        When: _extract_popularity checks feed fields.
+        Then: It falls back to 0.0 without raising errors.
+        """
+        soup = BeautifulSoup("<html><body></body></html>", "html.parser")
+        entry = MagicMock(spec=[])
+
+        result = note_explorer._extract_popularity(entry, soup)
+
+        assert result == 0.0
+
 
 class TestGetMarkdownHeader:
     """Tests for NoteExplorer._get_markdown_header method."""
