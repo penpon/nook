@@ -13,32 +13,23 @@ class BaseConfig(BaseSettings):
     )
 
     # API関連
-    OPENAI_API_KEY: SecretStr = Field(validation_alias="OPENAI_API_KEY")
-    REDDIT_CLIENT_ID: SecretStr | None = Field(
-        default=None, validation_alias="REDDIT_CLIENT_ID"
-    )
-    REDDIT_CLIENT_SECRET: SecretStr | None = Field(
-        default=None, validation_alias="REDDIT_CLIENT_SECRET"
-    )
+    OPENAI_API_KEY: SecretStr
+    REDDIT_CLIENT_ID: SecretStr | None = Field(default=None)
+    REDDIT_CLIENT_SECRET: SecretStr | None = Field(default=None)
 
     # ログ関連
-    LOG_LEVEL: str = Field(default="INFO", validation_alias="LOG_LEVEL")
+    LOG_LEVEL: str = Field(default="INFO")
     LOG_FORMAT: str = Field(
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        validation_alias="LOG_FORMAT",
     )
 
     # リクエスト関連
-    REQUEST_TIMEOUT: int = Field(
-        default=30, ge=1, le=300, validation_alias="REQUEST_TIMEOUT"
-    )
-    REQUEST_DELAY: float = Field(
-        default=1.0, ge=0.1, le=10.0, validation_alias="REQUEST_DELAY"
-    )
-    MAX_RETRIES: int = Field(default=3, ge=1, le=10, validation_alias="MAX_RETRIES")
+    REQUEST_TIMEOUT: int = Field(default=30, ge=1, le=300)
+    REQUEST_DELAY: float = Field(default=1.0, ge=0.1, le=10.0)
+    MAX_RETRIES: int = Field(default=3, ge=1, le=10)
 
     # データ保存関連
-    DATA_DIR: str = Field(default="data", validation_alias="DATA_DIR")
+    DATA_DIR: str = Field(default="data")
 
 
 class RedditConfig(BaseConfig):
