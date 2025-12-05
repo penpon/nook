@@ -58,7 +58,7 @@ class TestMain:
         )
 
         mock_print.assert_any_call(
-            "Nook APIサーバーを起動しています... http://0.0.0.0:8000"
+            "Nook APIサーバーを起動しています... http://127.0.0.1:8000"
         )
 
     @patch("nook.api.run.uvicorn.run")
@@ -255,14 +255,12 @@ class TestMain:
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
-    def test_main_short_arguments(self, mock_print, mock_uvicorn_run) -> None:
+    def test_main_long_arguments(self, mock_print, mock_uvicorn_run) -> None:
         """
-        Given: Short form arguments (if supported).
+        Given: Long form arguments.
         When: main is called.
         Then: Arguments are parsed correctly.
         """
-        # Test with short arguments if argparse supports them
-        # (current implementation uses long arguments only)
         with patch("sys.argv", ["run.py", "--host", "127.0.0.1", "--port", "8080"]):
             main()
 
