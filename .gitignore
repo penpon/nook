@@ -8,6 +8,12 @@ feature
 .spec-workflow/
 uv.lock
 
+# CodeRabbit review logs
+.coderabbit_review_*
+
+# Coverage artifacts
+.coverage
+
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/
