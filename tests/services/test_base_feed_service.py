@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
+
 # bs4 が無くても動かせるように簡易スタブを注入
 class _DummyBS4Module(types.SimpleNamespace):
     def __init__(self):
@@ -172,9 +173,7 @@ async def test_store_summaries_merges_and_saves():
         make_article("tech", "new2", popularity=2, published_at=dt, category="tech"),
     ]
 
-    json_path, md_path = await service._store_summaries_for_date(
-        articles, "2024-01-01"
-    )
+    json_path, md_path = await service._store_summaries_for_date(articles, "2024-01-01")
 
     assert json_path.endswith("2024-01-01.json")
     assert md_path.endswith("2024-01-01.md")
