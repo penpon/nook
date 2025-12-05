@@ -13,6 +13,8 @@ class _DummyBS4Module(types.SimpleNamespace):
         super().__init__(BeautifulSoup=object)
 
 
+_ORIGINAL_BS4 = sys.modules.get("bs4")
+# Baseクラスimport時にbs4が必要になるためデフォルトで差し込み、各テストではmonkeypatchで上書きしてスコープを狭める
 sys.modules.setdefault("bs4", _DummyBS4Module())
 
 from nook.common.config import BaseConfig
@@ -23,6 +25,16 @@ from nook.services.base_feed_service import Article, BaseFeedService
 def _set_env(monkeypatch):
     """必須環境変数をテスト用ダミーで埋める"""
     monkeypatch.setenv("OPENAI_API_KEY", "dummy-key")
+
+
+@pytest.fixture(autouse=True)
+def _stub_bs4(monkeypatch):
+    monkeypatch.setitem(sys.modules, "bs4", _DummyBS4Module())
+    yield
+    if _ORIGINAL_BS4 is not None:
+        monkeypatch.setitem(sys.modules, "bs4", _ORIGINAL_BS4)
+    else:
+        sys.modules.pop("bs4", None)
 
 
 class DummyConfig(BaseConfig):
