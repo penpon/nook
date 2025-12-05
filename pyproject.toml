@@ -41,7 +41,7 @@ lint.select = [
 lint.ignore = [
     "E501",  # line too long
 ]
-lint.per-file-ignores."tests/*" = ["S101"]  # テストファイルでのassert使用を許可
+lint.per-file-ignores."tests/*" = ["S101", "S105", "S106"]  # テストファイルでのassert使用を許可、テスト用の疑似パスワードを許可
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
