@@ -261,6 +261,31 @@ class TestNeedsJapaneseCheck:
 
         assert result is True
 
+    def test_returns_true_for_japanese_content_check(
+        self, business_feed: BusinessFeed
+    ) -> None:
+        """
+        Given: A BusinessFeed instance with Japanese content requirement.
+        When: _needs_japanese_check is called multiple times.
+        Then: Consistently returns True for Japanese content validation.
+        """
+        # Multiple calls should return the same result
+        for _ in range(3):
+            result = business_feed._needs_japanese_check()
+            assert result is True
+
+    def test_returns_true_for_mixed_language_content(
+        self, business_feed: BusinessFeed
+    ) -> None:
+        """
+        Given: A BusinessFeed instance that handles mixed language content.
+        When: _needs_japanese_check is called.
+        Then: True is returned indicating Japanese check is required.
+        """
+        # Even for mixed content, Japanese check should be required
+        result = business_feed._needs_japanese_check()
+        assert result is True
+
 
 class TestGetSummarySystemInstruction:
     """Tests for BusinessFeed._get_summary_system_instruction method."""

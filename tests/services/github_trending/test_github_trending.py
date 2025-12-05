@@ -9,7 +9,6 @@ This module tests the pure logic functions in github_trending.py:
 """
 
 from datetime import date, datetime, time, timezone
-from unittest.mock import AsyncMock, patch
 
 import pytest
 

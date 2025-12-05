@@ -131,6 +131,42 @@ class TestExtractPopularity:
 
         assert result == 0.0
 
+    def test_prioritizes_likes_over_likes_count_attribute(
+        self, zenn_explorer: ZennExplorer
+    ) -> None:
+        """
+        Given: Entry with both likes and likes_count attributes.
+        When: _extract_popularity is called.
+        Then: likes value is prioritized and returned (actual implementation behavior).
+        """
+        html = "<html><body></body></html>"
+        soup = BeautifulSoup(html, "html.parser")
+        entry = MagicMock(spec=["likes", "likes_count"])
+        entry.likes = 100
+        entry.likes_count = 250
+
+        result = zenn_explorer._extract_popularity(entry, soup)
+
+        assert result == 100.0
+
+    def test_falls_back_to_likes_when_likes_count_missing(
+        self, zenn_explorer: ZennExplorer
+    ) -> None:
+        """
+        Given: Entry with only likes attribute, likes_count is None.
+        When: _extract_popularity is called.
+        Then: likes value is returned as fallback.
+        """
+        html = "<html><body></body></html>"
+        soup = BeautifulSoup(html, "html.parser")
+        entry = MagicMock(spec=["likes", "likes_count"])
+        entry.likes = 180
+        entry.likes_count = None
+
+        result = zenn_explorer._extract_popularity(entry, soup)
+
+        assert result == 180.0
+
 
 class TestGetMarkdownHeader:
     """Tests for ZennExplorer._get_markdown_header method."""
