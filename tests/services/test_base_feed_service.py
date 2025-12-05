@@ -47,7 +47,7 @@ class DummyFeedService(BaseFeedService):
         return []
 
     # 抽象メソッドの最小実装
-    def _extract_popularity(self, _) -> float:  # pragma: no cover
+    def _extract_popularity(self, _, __) -> float:  # pragma: no cover
         return 0.0
 
     def _get_markdown_header(self) -> str:
@@ -56,7 +56,7 @@ class DummyFeedService(BaseFeedService):
     def _get_summary_system_instruction(self) -> str:  # pragma: no cover
         return ""
 
-    def _get_summary_prompt_template(self) -> str:  # pragma: no cover
+    def _get_summary_prompt_template(self, _) -> str:  # pragma: no cover
         return ""
 
     async def _load_existing_articles(self, target_date: datetime) -> list[dict]:
@@ -92,19 +92,23 @@ def make_article(
 
 def test_filter_entries_respects_dates_and_limit():
     service = DummyFeedService()
+    # Given
     entries = [
         {"published": "2024-01-01T00:00:00Z"},
         {"published": "2024-01-02T00:00:00Z"},
     ]
     targets = [date(2024, 1, 1)]
 
+    # When
     filtered = service._filter_entries(entries, targets, limit=1)
 
+    # Then
     assert filtered == [entries[0]]
 
 
 def test_safe_parse_int_variants():
     service = DummyFeedService()
+    # When & Then
     assert service._safe_parse_int(3.5) == 3
     assert service._safe_parse_int("1,234") == 1234
     assert service._safe_parse_int("abc") is None
@@ -113,6 +117,7 @@ def test_safe_parse_int_variants():
 
 def test_parse_markdown_extracts_articles():
     service = DummyFeedService()
+    # Given
     md = (
         "## Tech\n\n"
         "### [Title](https://example.com)\n\n"
@@ -121,8 +126,10 @@ def test_parse_markdown_extracts_articles():
         "---\n"
     )
 
+    # When
     articles = service._parse_markdown(md)
 
+    # Then
     assert articles == [
         {
             "title": "Title",
@@ -139,14 +146,17 @@ def test_parse_markdown_extracts_articles():
 def test_select_top_articles_limits_per_day():
     service = DummyFeedService()
     service.TOTAL_LIMIT = 1
+    # Given
     dt = datetime(2024, 1, 1)
     articles = [
         make_article("a", "low", popularity=1, published_at=dt),
         make_article("a", "high", popularity=5, published_at=dt),
     ]
 
+    # When
     selected = service._select_top_articles(articles)
 
+    # Then
     assert len(selected) == 1
     assert selected[0].title == "high"
 
@@ -155,6 +165,7 @@ def test_select_top_articles_limits_per_day():
 async def test_store_summaries_merges_and_saves():
     service = DummyFeedService()
     service.TOTAL_LIMIT = 2
+    # Given
     dt = datetime(2024, 1, 1)
     service._existing = [
         {
@@ -173,10 +184,12 @@ async def test_store_summaries_merges_and_saves():
         make_article("tech", "new2", popularity=2, published_at=dt, category="tech"),
     ]
 
+    # When
     json_path, md_path = await service._store_summaries_for_date(articles, "2024-01-01")
 
-    assert json_path.endswith("2024-01-01.json")
-    assert md_path.endswith("2024-01-01.md")
+    # Then
+    assert Path(json_path).name == "2024-01-01.json"
+    assert Path(md_path).name == "2024-01-01.md"
     saved = service._saved_json["data"]
     # TOTAL_LIMIT=2 なので popularity 上位2件が残る
     titles = [item["title"] for item in saved]

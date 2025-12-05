@@ -42,8 +42,10 @@ async def test_save_data_uses_storage(monkeypatch, tmp_path: Path):
 
     service.storage = types.SimpleNamespace(save=fake_save)
 
+    # When
     path = await service.save_data({"x": 1}, "foo.json")
 
+    # Then
     assert path == tmp_path / "foo.json"
     assert calls == {"data": {"x": 1}, "filename": "foo.json"}
 
@@ -59,8 +61,10 @@ async def test_rate_limit_uses_request_delay(monkeypatch):
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
 
+    # When
     await service.rate_limit()
 
+    # Then
     assert recorded["delay"] == pytest.approx(0.2)
 
 
@@ -76,12 +80,14 @@ async def test_setup_http_client_called_once(monkeypatch):
 
     monkeypatch.setattr("nook.common.http_client.get_http_client", fake_get_http_client)
 
+    # When
     await service.setup_http_client()
     first_client = service.http_client
 
     # 再呼び出しでも新規取得しない
     await service.setup_http_client()
 
+    # Then
     assert first_client is sentinel_client
     assert service.http_client is sentinel_client
     assert calls["count"] == 1
@@ -99,7 +105,31 @@ async def test_initialize_calls_setup_http_client(monkeypatch):
 
     monkeypatch.setattr(service, "setup_http_client", fake_setup)
 
+    # When
     await service.initialize()
 
+    # Then
     assert calls["count"] == 1
     assert service.http_client is sentinel_client
+
+
+@pytest.mark.asyncio
+async def test_save_data_logs_and_raises_on_error(monkeypatch, caplog):
+    service = DummyService()
+    calls: dict[str, object] = {}
+
+    async def failing_save(data, filename):
+        calls["data"] = data
+        calls["filename"] = filename
+        raise ValueError("boom")
+
+    service.storage = types.SimpleNamespace(save=failing_save)
+    caplog.set_level("ERROR")
+
+    # When / Then
+    with pytest.raises(ValueError):
+        await service.save_data({"x": 1}, "foo.json")
+
+    # Then
+    assert calls == {"data": {"x": 1}, "filename": "foo.json"}
+    assert "Failed to save data foo.json: boom" in caplog.text
