@@ -81,7 +81,7 @@ def client(dummy_openai):
     return client
 
 
-def test_count_tokens_and_calculate_cost(client, monkeypatch):
+def test_count_tokens_and_calculate_cost(client):
     # Given: クライアントは通常のエンコーディングを使用
     # When: トークンカウントと料金計算を行う
     assert client._count_tokens("abc") == 3
