@@ -40,6 +40,7 @@ class DummyService(BaseService):
 
 @pytest.mark.asyncio
 async def test_save_data_uses_storage(monkeypatch, tmp_path: Path):
+    # Given
     service = DummyService()
     calls: dict[str, object] = {}
 
