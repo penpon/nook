@@ -14,11 +14,17 @@ class _DummyBS4Module(types.SimpleNamespace):
 
 
 _ORIGINAL_BS4 = sys.modules.get("bs4")
-# Baseクラスimport時にbs4が必要になるためデフォルトで差し込み、各テストではmonkeypatchで上書きしてスコープを狭める
-sys.modules.setdefault("bs4", _DummyBS4Module())
+# Baseクラスimport時にbs4が必要になるため、一時的にスタブを差し込む
+sys.modules["bs4"] = _DummyBS4Module()
 
 from nook.common.config import BaseConfig
 from nook.services.base_feed_service import Article, BaseFeedService
+
+# import 完了後は元の状態に戻す
+if _ORIGINAL_BS4 is not None:
+    sys.modules["bs4"] = _ORIGINAL_BS4
+else:
+    sys.modules.pop("bs4", None)
 
 
 @pytest.fixture(autouse=True)
