@@ -17,7 +17,6 @@ This module tests the pure logic helper functions in fivechan_explorer.py:
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
-import tempfile
 
 # Skip tests if dateutil is not installed (optional dependency)
 pytest.importorskip("dateutil")
