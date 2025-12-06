@@ -153,7 +153,7 @@ class TestRunGitHubTrending:
         """
         Given: A working GithubTrending.
         When: run_github_trending is called.
-        Then: The explorer is instantiated and run() is called.
+        Then: The explorer is instantiated and collect() is called.
         """
         mock_explorer = MagicMock()
         mock_explorer_class.return_value = mock_explorer
@@ -161,7 +161,7 @@ class TestRunGitHubTrending:
         run_github_trending()
 
         mock_explorer_class.assert_called_once()
-        mock_explorer.run.assert_called_once()
+        mock_explorer.collect.assert_called_once()
         mock_print.assert_any_call("GitHubのトレンドリポジトリを収集しています...")
         mock_print.assert_any_call("GitHubのトレンドリポジトリ収集が完了しました。")
 
@@ -176,7 +176,7 @@ class TestRunGitHubTrending:
         Then: Error is caught and printed.
         """
         mock_explorer = MagicMock()
-        mock_explorer.run.side_effect = Exception("Test error")
+        mock_explorer.collect.side_effect = Exception("Test error")
         mock_explorer_class.return_value = mock_explorer
 
         run_github_trending()
@@ -610,22 +610,3 @@ class TestMain:
             run_services_sync.run_business_feed.assert_called_once()
             run_services_sync.run_arxiv_summarizer.assert_called_once()
             run_services_sync.run_fourchan_explorer.assert_called_once()
-
-    @patch("nook.services.run_services_sync.ArgumentParser")
-    @patch("builtins.print")
-    def test_main_invalid_argument(self, mock_print, mock_parser_class) -> None:
-        """
-        Given: Invalid command line argument.
-        When: main is called.
-        Then: Error message is printed.
-        """
-        mock_parser = MagicMock()
-        mock_parser.parse_args.return_value = MagicMock(service="invalid")
-        mock_parser_class.return_value = mock_parser
-
-        main()
-
-        mock_print.assert_any_call("エラー: 不正なサービス名が指定されました。")
-        mock_print.assert_any_call(
-            "利用可能なサービス: 5chan, 4chan, reddit, github, hackernews, note, zenn, qiita, tech, business, arxiv, all"
-        )

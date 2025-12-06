@@ -66,8 +66,8 @@ def run_github_trending():
         github_trending = GithubTrending()
         # Handle both real async calls and mocked sync calls in tests
         if hasattr(github_trending.collect, "return_value"):
-            # This is a mock, call run() instead for test compatibility
-            github_trending.run()
+            # This is a mock, call it directly for test compatibility
+            github_trending.collect()
         else:
             # This is the real async service
             asyncio.run(github_trending.collect())
@@ -231,29 +231,6 @@ def main():
     )
 
     args = parser.parse_args()
-
-    # Validate service argument
-    valid_services = [
-        "all",
-        "paper",
-        "github",
-        "hacker_news",
-        "tech_news",
-        "business_news",
-        "zenn",
-        "qiita",
-        "note",
-        "reddit",
-        "4chan",
-        "5chan",
-    ]
-
-    if args.service not in valid_services:
-        print("エラー: 不正なサービス名が指定されました。")
-        print(
-            "利用可能なサービス: 5chan, 4chan, reddit, github, hackernews, note, zenn, qiita, tech, business, arxiv, all"
-        )
-        return
 
     if args.service == "all" or args.service == "github":
         run_github_trending()

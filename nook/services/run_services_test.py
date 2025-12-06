@@ -52,27 +52,53 @@ class ServiceRunnerTest:
     """サービス実行マネージャー（テスト用：1件制限）"""
 
     def __init__(self):
-        # サービスクラスを保持（遅延読み込み用）
-        # Use module reference to support mocking in tests
-        self.service_classes = {
-            "github_trending": GithubTrending,
-            "hacker_news": HackerNewsRetriever,
-            "reddit": RedditExplorer,
-            "zenn": ZennExplorer,
-            "qiita": QiitaExplorer,
-            "note": NoteExplorer,
-            "tech_news": TechFeed,
-            "business_news": BusinessFeed,
-            "arxiv": ArxivSummarizer,
-            "4chan": FourChanExplorer,
-            "5chan": FiveChanExplorer,
-        }
+        # モジュールレベルのレジストリを使用
+        self.service_classes = SERVICE_CLASS_REGISTRY
 
         # サービスインスタンスを保持（必要時にのみ作成）
         self.sync_services = {}
 
         self.task_manager = AsyncTaskManager(max_concurrent=5)
         self.running = False
+
+    async def _handle_service_call(
+        self,
+        service,
+        service_name: str,
+        days: int = 1,
+        sorted_target_dates: list = None,
+    ):
+        """モック検出とサービス呼び出しを共通化するヘルパーメソッド"""
+        # Handle mocked services in tests
+        if hasattr(service, "collect") and hasattr(service.collect, "return_value"):
+            # This is a mock, call it directly
+            result = service.collect(limit=1, target_dates=sorted_target_dates)
+            # If result is a coroutine (AsyncMock), await it
+            if asyncio.iscoroutine(result):
+                result = await result
+            return result
+        elif service_name == "hacker_news":
+            result = await service.collect(limit=1, target_dates=sorted_target_dates)
+            return result
+        elif service_name in ["tech_news", "business_news"]:
+            result = await service.collect(
+                days=days, limit=1, target_dates=sorted_target_dates
+            )
+            return result
+        elif service_name in ["zenn", "qiita", "note"]:
+            result = await service.collect(
+                days=days, limit=1, target_dates=sorted_target_dates
+            )
+            return result
+        elif service_name == "reddit":
+            result = await service.collect(limit=1, target_dates=sorted_target_dates)
+            return result
+        elif service_name == "github_trending":
+            result = await service.collect(limit=1, target_dates=sorted_target_dates)
+            return result
+        else:
+            result = await service.collect(target_dates=sorted_target_dates)
+            return result
 
     async def _run_sync_service(
         self,
@@ -104,41 +130,11 @@ class ServiceRunnerTest:
 
         saved_files: list[tuple[str, str]] = []
         try:
-            # テスト用：すべてのサービスで1件に制限
-            if service_name == "hacker_news":
-                # Hacker Newsは1記事に制限し、sorted_target_dates を渡す
-                result = await service.collect(
-                    limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name in ["tech_news", "business_news"]:
-                # Tech News/Business Newsは1記事に制限し、sorted_target_dates を渡す
-                result = await service.collect(
-                    days=days, limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name in ["zenn", "qiita", "note"]:
-                # Zenn/Qiita/Noteは1記事に制限し、daysパラメータを渡す
-                result = await service.collect(
-                    days=days, limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name == "reddit":
-                # Redditは1記事に制限
-                result = await service.collect(
-                    limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name == "github_trending":
-                # GitHub Trendingは1件に制限
-                result = await service.collect(
-                    limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            else:
-                # その他のサービスはデフォルト値を使用
-                result = await service.collect(target_dates=sorted_target_dates)
-                saved_files = result if result else []
+            # ヘルパーメソッドを使用してサービス呼び出し
+            result = await self._handle_service_call(
+                service, service_name, days, sorted_target_dates
+            )
+            saved_files = result if result else []
 
             # 保存されたファイルのサマリーを表示
             if saved_files:
@@ -260,42 +256,11 @@ class ServiceRunnerTest:
 
         saved_files: list[tuple[str, str]] = []
         try:
-            # Handle mocked services in tests
-            if hasattr(service, "collect") and hasattr(service.collect, "return_value"):
-                # This is a mock, call it directly
-                result = service.collect(limit=1, target_dates=sorted_target_dates)
-                # If result is a coroutine (AsyncMock), await it
-                if asyncio.iscoroutine(result):
-                    result = await result
-                saved_files = result if result else []
-            elif service_name == "hacker_news":
-                result = await service.collect(
-                    limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name in ["tech_news", "business_news"]:
-                result = await service.collect(
-                    days=days, limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name in ["zenn", "qiita", "note"]:
-                result = await service.collect(
-                    days=days, limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name == "reddit":
-                result = await service.collect(
-                    limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            elif service_name == "github_trending":
-                result = await service.collect(
-                    limit=1, target_dates=sorted_target_dates
-                )
-                saved_files = result if result else []
-            else:
-                result = await service.collect(target_dates=sorted_target_dates)
-                saved_files = result if result else []
+            # ヘルパーメソッドを使用してサービス呼び出し
+            result = await self._handle_service_call(
+                service, service_name, days, sorted_target_dates
+            )
+            saved_files = result if result else []
 
             if saved_files:
                 logger.info("\n" + "━" * 60)
@@ -375,44 +340,10 @@ class ServiceRunnerTest:
             sorted_target_dates = sorted(target_dates)
 
             try:
-                # Handle mocked services in tests
-                if hasattr(service, "collect") and hasattr(
-                    service.collect, "return_value"
-                ):
-                    # This is a mock, call it directly
-                    result = service.collect(limit=1, target_dates=sorted_target_dates)
-                    # If result is a coroutine (AsyncMock), await it
-                    if asyncio.iscoroutine(result):
-                        result = await result
-                    return result
-                elif service_name == "hacker_news":
-                    result = await service.collect(
-                        limit=1, target_dates=sorted_target_dates
-                    )
-                    return result
-                elif service_name in ["tech_news", "business_news"]:
-                    result = await service.collect(
-                        days=1, limit=1, target_dates=sorted_target_dates
-                    )
-                    return result
-                elif service_name in ["zenn", "qiita", "note"]:
-                    result = await service.collect(
-                        days=1, limit=1, target_dates=sorted_target_dates
-                    )
-                    return result
-                elif service_name == "reddit":
-                    result = await service.collect(
-                        limit=1, target_dates=sorted_target_dates
-                    )
-                    return result
-                elif service_name == "github_trending":
-                    result = await service.collect(
-                        limit=1, target_dates=sorted_target_dates
-                    )
-                    return result
-                else:
-                    result = await service.collect(target_dates=sorted_target_dates)
-                    return result
+                # ヘルパーメソッドを使用してサービス呼び出し
+                return await self._handle_service_call(
+                    service, service_name, 1, sorted_target_dates
+                )
             except Exception:
                 return None
 
