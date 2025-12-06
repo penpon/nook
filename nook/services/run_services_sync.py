@@ -256,7 +256,7 @@ def main():
     if args.service == "all" or args.service == "business_news":
         run_business_feed()
 
-    if args.service == "all" or args.service == "arxiv":
+    if args.service == "all" or args.service == "paper":
         run_arxiv_summarizer()
 
     if args.service == "all" or args.service == "4chan":
