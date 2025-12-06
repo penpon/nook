@@ -136,7 +136,6 @@ class TestRedditPostDataclass:
         assert isinstance(post.comments, list)
 
 
-@pytest.mark.asyncio
 class TestRedditExplorer:
     """Tests for RedditExplorer class methods."""
 
@@ -208,6 +207,7 @@ class TestRedditExplorer:
         assert explorer.client_secret == "test-secret"
         assert explorer.user_agent == "direct-agent"
 
+    @pytest.mark.asyncio
     async def test_translate_to_japanese_empty_text(
         self, reddit_explorer: RedditExplorer
     ) -> None:
@@ -219,6 +219,7 @@ class TestRedditExplorer:
         result = await reddit_explorer._translate_to_japanese("")
         assert result == ""
 
+    @pytest.mark.asyncio
     async def test_translate_to_japanese_success(
         self, reddit_explorer: RedditExplorer
     ) -> None:
@@ -234,6 +235,7 @@ class TestRedditExplorer:
         assert result == "翻訳されたテキスト"
         reddit_explorer.gpt_client.generate_content.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_translate_to_japanese_error_returns_original(
         self, reddit_explorer: RedditExplorer
     ) -> None:
@@ -248,6 +250,7 @@ class TestRedditExplorer:
 
         assert result == "Original text"
 
+    @pytest.mark.asyncio
     async def test_retrieve_top_comments_of_post(
         self, reddit_explorer: RedditExplorer
     ) -> None:
@@ -280,6 +283,7 @@ class TestRedditExplorer:
         assert result[0]["text"] == "テストコメント"
         assert result[0]["score"] == 10
 
+    @pytest.mark.asyncio
     async def test_summarize_reddit_post(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: A Reddit post with comments.
@@ -303,6 +307,7 @@ class TestRedditExplorer:
         assert post.summary == "テスト投稿の要約"
         reddit_explorer.gpt_client.generate_content.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_summarize_reddit_post_error_handling(
         self, reddit_explorer: RedditExplorer
     ) -> None:
@@ -502,6 +507,7 @@ class TestRedditExplorer:
             args, kwargs = mock_run.call_args
             assert args[0].__name__ == "collect"
 
+    @pytest.mark.asyncio
     async def test_collect_no_posts_returns_empty(
         self, reddit_explorer: RedditExplorer
     ) -> None:
@@ -516,6 +522,11 @@ class TestRedditExplorer:
         with patch("asyncpraw.Reddit") as mock_reddit_class:
             mock_reddit = AsyncMock()
             mock_reddit_class.return_value.__aenter__.return_value = mock_reddit
+
+            # Mock subreddit to return async iterator that yields nothing
+            mock_subreddit = AsyncMock()
+            mock_subreddit.hot.return_value = []  # Empty list instead of coroutine
+            mock_reddit.subreddit.return_value = mock_subreddit
 
             with patch(
                 "nook.services.reddit_explorer.reddit_explorer.log_processing_start"
