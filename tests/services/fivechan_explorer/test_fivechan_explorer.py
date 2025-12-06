@@ -475,11 +475,11 @@ class TestGetSubjectTxtData:
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
-            mock_response = AsyncMock()
+            mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.content.decode.return_value = mock_content
+            mock_response.content = mock_content.encode("shift_jis")
 
-            mock_client.get.return_value = mock_response
+            mock_client.get = AsyncMock(return_value=mock_response)
             mock_client_class.return_value.__aenter__.return_value = mock_client
 
             result = await fivechan_explorer._get_subject_txt_data("ai")
@@ -550,19 +550,24 @@ class TestCollect:
         When: collect is called.
         Then: Threads are processed and saved.
         """
+        from datetime import datetime, timezone
+
+        # Use current timestamp so thread matches target_dates
+        current_timestamp = int(datetime.now(timezone.utc).timestamp())
+
         mock_thread = Thread(
             thread_id=1234567890,
             title="AI関連スレッド",
             url="https://example.com/thread/1234567890",
             board="ai",
             posts=[],
-            timestamp=1609459200,
+            timestamp=current_timestamp,
             popularity_score=10.0,
         )
 
         fivechan_explorer.setup_http_client = AsyncMock()
         fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[mock_thread])
-        fivechan_explorer._load_existing_titles = AsyncMock(return_value=MagicMock())
+        fivechan_explorer._load_existing_titles = MagicMock(return_value=MagicMock())
         fivechan_explorer._summarize_thread = AsyncMock()
         fivechan_explorer._store_summaries = AsyncMock(
             return_value=[("test.json", "test.md")]
@@ -588,8 +593,9 @@ class TestCollect:
                             ):
                                 result = await fivechan_explorer.collect()
                                 assert result == [("test.json", "test.md")]
-                                fivechan_explorer._summarize_thread.assert_called_once_with(
-                                    mock_thread
+                                # _summarize_thread is called for each thread (4 boards x 1 thread each)
+                                assert (
+                                    fivechan_explorer._summarize_thread.call_count == 4
                                 )
 
 

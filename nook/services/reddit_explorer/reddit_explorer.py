@@ -59,7 +59,7 @@ class RedditPost:
     text: str
     permalink: str = ""
     comments: list[dict[str, str | int]] = field(default_factory=list)
-    summary: str = field(init=False)
+    summary: str = field(init=False, default="")
     thumbnail: str = "self"
     popularity_score: float = field(default=0.0)
     created_at: datetime | None = None
@@ -416,7 +416,7 @@ class RedditExplorer(BaseService):
         try:
             prompt = f"以下の英語のテキストを自然な日本語に翻訳してください。専門用語や固有名詞は適切に翻訳し、必要に応じて英語の原語を括弧内に残してください。\n\n{text}"
 
-            translated_text = self.gpt_client.generate_content(
+            translated_text = await self.gpt_client.generate_content(
                 prompt=prompt, temperature=0.3, max_tokens=1000
             )
 
@@ -497,7 +497,7 @@ class RedditExplorer(BaseService):
         """
 
         try:
-            summary = self.gpt_client.generate_content(
+            summary = await self.gpt_client.generate_content(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,

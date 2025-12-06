@@ -1108,7 +1108,7 @@ class FiveChanExplorer(BaseService):
         """
 
         try:
-            summary = self.gpt_client.generate_content(
+            summary = await self.gpt_client.generate_content(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,

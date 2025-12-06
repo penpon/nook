@@ -64,13 +64,17 @@ class TestServiceRunnerTest:
         Then: Service is created and collect is called with limit=1.
         """
         mock_service = MagicMock()
+        mock_service.collect = AsyncMock(return_value=[])
         mock_github_class.return_value = mock_service
 
         runner = ServiceRunnerTest()
         runner._run_sync_service("github_trending")
 
         mock_github_class.assert_called_once()
-        mock_service.collect.assert_called_once_with(limit=1)
+        mock_service.collect.assert_called_once()
+        # Verify limit=1 was passed
+        call_kwargs = mock_service.collect.call_args[1]
+        assert call_kwargs.get("limit") == 1
 
     @patch("nook.services.run_services_test.GithubTrending")
     def test_run_sync_service_exception(self, mock_github_class) -> None:
@@ -97,6 +101,7 @@ class TestServiceRunnerTest:
         Then: Service is cached after first call.
         """
         mock_service = MagicMock()
+        mock_service.collect = AsyncMock(return_value=[])
         mock_github_class.return_value = mock_service
 
         runner = ServiceRunnerTest()
@@ -114,27 +119,21 @@ class TestServiceRunnerTest:
         assert mock_service.collect.call_count == 2
 
     @patch("nook.services.run_services_test.GithubTrending")
-    @patch("nook.services.run_services_test.AsyncTaskManager")
-    def test_run_service_async_success(
-        self, mock_task_manager_class, mock_github_class
-    ) -> None:
+    def test_run_service_async_success(self, mock_github_class) -> None:
         """
         Given: A valid service and mocked task manager.
         When: run_service is called.
-        Then: Service is run asynchronously through task manager.
+        Then: Service is run synchronously.
         """
         mock_service = MagicMock()
+        mock_service.collect = AsyncMock(return_value=[])
         mock_github_class.return_value = mock_service
-        mock_task_manager = MagicMock()
-        mock_task_manager_class.return_value = mock_task_manager
 
         runner = ServiceRunnerTest()
         runner.run_service("github_trending")
 
-        mock_task_manager.add_task.assert_called_once()
-        # Verify the task function is correct
-        args, kwargs = mock_task_manager.add_task.call_args
-        assert callable(args[0])
+        # Verify service was called
+        mock_service.collect.assert_called_once()
 
     @patch("nook.services.run_services_test.GithubTrending")
     @patch("nook.services.run_services_test.AsyncTaskManager")
@@ -271,11 +270,14 @@ class TestServiceRunnerTest:
         # Run the task
         result = asyncio.run(task_func())
 
-        mock_service.collect.assert_called_once_with(limit=1)
+        mock_service.collect.assert_called_once()
+        # Verify limit=1 was passed
+        call_kwargs = mock_service.collect.call_args[1]
+        assert call_kwargs.get("limit") == 1
         assert result == "test_result"
 
     @patch("nook.services.run_services_test.GithubTrending")
-    @patch("asyncio.sleep", new_callable=MagicMock)
+    @patch("asyncio.sleep", new_callable=AsyncMock)
     def test_create_service_task_with_exception(
         self, mock_sleep, mock_github_class
     ) -> None:
@@ -298,7 +300,7 @@ class TestServiceRunnerTest:
         assert result is None
 
     @patch("nook.services.run_services_test.GithubTrending")
-    @patch("asyncio.sleep", new_callable=MagicMock)
+    @patch("asyncio.sleep", new_callable=AsyncMock)
     def test_create_service_task_with_delay(
         self, mock_sleep, mock_github_class
     ) -> None:

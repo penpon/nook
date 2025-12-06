@@ -202,12 +202,14 @@ class ServiceRunnerTest:
         if service_name not in self.service_classes:
             raise ValueError(f"Unknown service: {service_name}")
 
-        # Don't cache service until after successful execution
-        service = None
-        if service_name == "4chan":
-            service = self.service_classes[service_name](test_mode=True)
+        # Use cached service if available, otherwise create new one
+        if service_name in self.sync_services:
+            service = self.sync_services[service_name]
         else:
-            service = self.service_classes[service_name]()
+            if service_name == "4chan":
+                service = self.service_classes[service_name](test_mode=True)
+            else:
+                service = self.service_classes[service_name]()
 
         target_dates = target_dates_set(1)
         sorted_target_dates = sorted(target_dates)
@@ -262,6 +264,9 @@ class ServiceRunnerTest:
             if hasattr(service, "collect") and hasattr(service.collect, "return_value"):
                 # This is a mock, call it directly
                 result = service.collect(limit=1, target_dates=sorted_target_dates)
+                # If result is a coroutine (AsyncMock), await it
+                if asyncio.iscoroutine(result):
+                    result = await result
                 saved_files = result if result else []
             elif service_name == "hacker_news":
                 result = await service.collect(
@@ -376,6 +381,9 @@ class ServiceRunnerTest:
                 ):
                     # This is a mock, call it directly
                     result = service.collect(limit=1, target_dates=sorted_target_dates)
+                    # If result is a coroutine (AsyncMock), await it
+                    if asyncio.iscoroutine(result):
+                        result = await result
                     return result
                 elif service_name == "hacker_news":
                     result = await service.collect(

@@ -150,7 +150,9 @@ class TestRedditExplorer:
 
         explorer = RedditExplorer()
         explorer.http_client = AsyncMock()
-        explorer.gpt_client = AsyncMock()
+        explorer.gpt_client = MagicMock()
+        explorer.gpt_client.generate_content = AsyncMock()
+        explorer.reddit = MagicMock()
         return explorer
 
     def test_init_with_credentials(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -182,16 +184,20 @@ class TestRedditExplorer:
         Then: ValueError is raised.
         """
         monkeypatch.delenv("REDDIT_CLIENT_ID", raising=False)
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key")
 
         with pytest.raises(ValueError, match="Reddit API credentials must be provided"):
             RedditExplorer()
 
-    def test_init_with_direct_credentials(self) -> None:
+    def test_init_with_direct_credentials(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """
         Given: Direct credentials provided.
         When: RedditExplorer is initialized with credentials.
         Then: A valid instance is created with provided credentials.
         """
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key")
         explorer = RedditExplorer(
             client_id="direct-id",
             client_secret="test-secret",
@@ -251,7 +257,7 @@ class TestRedditExplorer:
         Then: Translated comments are returned.
         """
         # Mock Reddit submission and comments
-        mock_submission = AsyncMock()
+        mock_submission = MagicMock()
         mock_comment = MagicMock()
         mock_comment.body = "Test comment"
         mock_comment.score = 10
@@ -259,7 +265,7 @@ class TestRedditExplorer:
         mock_submission.comments.replace_more = AsyncMock()
         mock_submission.comments.list.return_value = [mock_comment]
 
-        reddit_explorer.reddit.submission.return_value = mock_submission
+        reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
         reddit_explorer._translate_to_japanese = AsyncMock(
             return_value="テストコメント"
         )
