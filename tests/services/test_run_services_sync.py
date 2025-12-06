@@ -7,7 +7,6 @@ This module tests the service runner functions in run_services_sync.py:
 """
 
 from unittest.mock import MagicMock, patch
-import pytest
 import os
 import sys
 

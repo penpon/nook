@@ -193,8 +193,18 @@ class ServiceRunnerTest:
         self.running = False
 
     # Legacy sync methods for backward compatibility with tests
-    def _run_sync_service(self, service_name: str):
-        """Run specific service synchronously (legacy for tests)"""
+    def _run_sync_service(self, service_name: str) -> None:
+        """特定のサービスを同期的に実行します（テスト用：1件制限）。
+
+        このメソッドは後方互換性のために提供されています。
+
+        Args:
+            service_name: 実行するサービス名
+
+        Raises:
+            ValueError: サービス名が見つからない場合
+            Exception: サービス実行中にエラーが発生した場合
+        """
         if service_name not in self.service_classes:
             raise ValueError(f"Unknown service: {service_name}")
 
@@ -278,8 +288,20 @@ class ServiceRunnerTest:
             # Re-raise for test compatibility
             raise
 
-    def run_service(self, service_name: str, days: int = 1):
-        """Run specific service synchronously (legacy for tests)"""
+    def run_service(self, service_name: str, days: int = 1) -> None:
+        """特定のサービスを同期的に実行します（テスト用：1件制限）。
+
+        このメソッドは後方互換性のために提供されています。
+        新しいコードでは非同期バージョンの使用を推奨します。
+
+        Args:
+            service_name: 実行するサービス名
+            days: 取得する日数（デフォルト: 1）
+
+        Raises:
+            ValueError: サービス名が見つからない場合
+            Exception: サービス実行中にエラーが発生した場合
+        """
         if service_name not in self.service_classes:
             raise ValueError(f"Unknown service: {service_name}")
 
@@ -303,7 +325,20 @@ class ServiceRunnerTest:
                 )
 
     def _get_service_instance(self, service_name: str):
-        """Get service instance (legacy for tests)"""
+        """サービスインスタンスを取得します（テスト用：キャッシュ対応）。
+
+        既存のインスタンスがあればキャッシュから返し、
+        なければ新しく作成してキャッシュに保存します。
+
+        Args:
+            service_name: サービス名
+
+        Returns:
+            サービスインスタンス
+
+        Raises:
+            ValueError: サービス名が見つからない場合
+        """
         if service_name not in self.service_classes:
             raise ValueError(f"Unknown service: {service_name}")
 
