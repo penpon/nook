@@ -523,10 +523,19 @@ class TestRedditExplorer:
             mock_reddit = AsyncMock()
             mock_reddit_class.return_value.__aenter__.return_value = mock_reddit
 
-            # Mock subreddit to return async iterator that yields nothing
+            # Mock subreddit to return empty async iterator
             mock_subreddit = AsyncMock()
-            mock_subreddit.hot.return_value = []  # Empty list instead of coroutine
-            mock_reddit.subreddit.return_value = mock_subreddit
+
+            # Create a proper async iterator that yields nothing
+            class EmptyAsyncIterator:
+                def __aiter__(self):
+                    return self
+
+                async def __anext__(self):
+                    raise StopAsyncIteration
+
+            mock_subreddit.hot = MagicMock(return_value=EmptyAsyncIterator())
+            mock_reddit.subreddit = MagicMock(return_value=mock_subreddit)
 
             with patch(
                 "nook.services.reddit_explorer.reddit_explorer.log_processing_start"

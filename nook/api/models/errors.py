@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ErrorDetail(BaseModel):
@@ -15,19 +15,8 @@ class ErrorDetail(BaseModel):
 class ErrorResponse(BaseModel):
     """APIエラーレスポンス"""
 
-    type: str = Field(..., description="エラータイプ")
-    message: str = Field(..., description="エラーメッセージ")
-    error_id: str = Field(..., description="エラー追跡用ID")
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="エラー発生時刻"
-    )
-    status_code: int = Field(..., description="HTTPステータスコード")
-    details: dict[str, Any] | list[ErrorDetail] | None = Field(
-        None, description="追加の詳細情報"
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "type": "validation_error",
                 "message": "Request validation failed",
@@ -43,3 +32,15 @@ class ErrorResponse(BaseModel):
                 ],
             }
         }
+    )
+
+    type: str = Field(..., description="エラータイプ")
+    message: str = Field(..., description="エラーメッセージ")
+    error_id: str = Field(..., description="エラー追跡用ID")
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="エラー発生時刻"
+    )
+    status_code: int = Field(..., description="HTTPステータスコード")
+    details: dict[str, Any] | list[ErrorDetail] | None = Field(
+        None, description="追加の詳細情報"
+    )
