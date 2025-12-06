@@ -8,13 +8,16 @@ from dotenv import load_dotenv
 # 環境変数の読み込み
 load_dotenv()
 
+# Expose ArgumentParser for tests to patch
+ArgumentParser = argparse.ArgumentParser
+
 
 def main():
     """
     APIサーバーを起動します。
     コマンドライン引数でホストとポートを指定できます。
     """
-    parser = argparse.ArgumentParser(description="Nook APIサーバーを起動します")
+    parser = ArgumentParser(description="Nook APIサーバーを起動します")
     parser.add_argument(
         "--host",
         type=str,

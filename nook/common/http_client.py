@@ -68,7 +68,7 @@ class AsyncHTTPClient:
                 timeout=self.timeout,
                 limits=self.limits,
                 follow_redirects=True,
-                http2=True,  # HTTP/2サポート
+                http2=False,  # HTTP/2を無効化してh2パッケージ依存を回避
             )
             self._session_start = datetime.now(UTC)
             logger.info("HTTP client session started")
