@@ -18,7 +18,6 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import tempfile
-import shutil
 
 # Skip tests if dateutil is not installed (optional dependency)
 pytest.importorskip("dateutil")

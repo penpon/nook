@@ -6,11 +6,9 @@ This module tests the pure logic helper functions in reddit_explorer.py:
 - Translation, post retrieval, and summarization logic
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
-import tempfile
-import shutil
 
 # Skip tests if asyncpraw is not installed (optional dependency)
 pytest.importorskip("asyncpraw")
