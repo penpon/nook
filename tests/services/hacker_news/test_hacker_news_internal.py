@@ -528,8 +528,8 @@ class TestFetchStoryContent:
             "<html>\n"
             "<head></head>\n"
             "<body>\n"
-            "    <article>This is the article content that should be extracted "
-            "when no paragraphs are available.</article>\n"
+            "    <article>This is the article content that should be "
+            "extracted when no paragraphs are available.</article>\n"
             "</body>\n"
             "</html>\n"
         )

@@ -437,10 +437,13 @@ class TestExtractBodyText:
         """
         html_content = (
             "<html>\n"
+            "<head></head>\n"
             "<body>\n"
-            "    <header>Header</header>\n"
-            "    <p>This is a very long paragraph that contains the main content "
-            "of the paper and should be extracted properly.</p>\n"
+            "    <p>This is a short paragraph.</p>\n"
+            "    <p>This is a much longer paragraph that contains more than "
+            "fifty characters of meaningful content about the article.</p>\n"
+            "    <p>Another long paragraph with sufficient content length to be "
+            "considered meaningful by the extraction algorithm.</p>\n"
             "</body>\n"
             "</html>\n"
         )
