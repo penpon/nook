@@ -6,11 +6,16 @@ This module tests the pure logic helper functions in fivechan_explorer.py:
 - _get_random_user_agent
 - _calculate_backoff_delay
 - _load_boards
+- _build_board_url
+- _get_board_server
+- _get_with_retry
+- _get_subject_txt_data
+- collect method
+- run method
 """
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # Skip tests if dateutil is not installed (optional dependency)
@@ -304,3 +309,351 @@ class TestBrowserHeaders:
         assert "Accept-Language" in headers
         assert "Referer" in headers
         assert "5ch.net" in headers.get("Referer", "")
+
+
+class TestBuildBoardUrl:
+    """Tests for FiveChanExplorer._build_board_url method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_build_board_url_formats_correctly(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A board_id and server.
+        When: _build_board_url is called.
+        Then: A properly formatted URL is returned.
+        """
+        url = fivechan_explorer._build_board_url("ai", "mevius.5ch.net")
+        assert url == "https://mevius.5ch.net/ai/"
+
+        url = fivechan_explorer._build_board_url("tech", "egg.5ch.net")
+        assert url == "https://egg.5ch.net/tech/"
+
+
+class TestGetBoardServer:
+    """Tests for FiveChanExplorer._get_board_server method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_get_existing_board_server(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A FiveChanExplorer instance.
+        When: _get_board_server is called with existing board.
+        Then: The correct server is returned.
+        """
+        server = fivechan_explorer._get_board_server("ai")
+        assert isinstance(server, str)
+        assert "5ch.net" in server
+
+    def test_get_nonexistent_board_server(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A FiveChanExplorer instance.
+        When: _get_board_server is called with nonexistent board.
+        Then: The default server is returned.
+        """
+        server = fivechan_explorer._get_board_server("nonexistent")
+        assert server == "mevius.5ch.net"
+
+
+@pytest.mark.asyncio
+class TestGetWithRetry:
+    """Tests for FiveChanExplorer._get_with_retry method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        explorer = FiveChanExplorer()
+        explorer.http_client = AsyncMock()
+        return explorer
+
+    async def test_success_on_first_try(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A successful HTTP response.
+        When: _get_with_retry is called.
+        Then: The response is returned immediately.
+        """
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        fivechan_explorer.http_client.get.return_value = mock_response
+
+        result = await fivechan_explorer._get_with_retry("https://example.com")
+
+        assert result == mock_response
+        fivechan_explorer.http_client.get.assert_called_once()
+
+    async def test_retry_on_rate_limit(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A rate limit response followed by success.
+        When: _get_with_retry is called.
+        Then: The request is retried and succeeds.
+        """
+        mock_response_429 = AsyncMock()
+        mock_response_429.status_code = 429
+        mock_response_429.headers = {}
+
+        mock_response_200 = AsyncMock()
+        mock_response_200.status_code = 200
+
+        fivechan_explorer.http_client.get.side_effect = [
+            mock_response_429,
+            mock_response_200,
+        ]
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            result = await fivechan_explorer._get_with_retry("https://example.com")
+
+            assert result == mock_response_200
+            assert fivechan_explorer.http_client.get.call_count == 2
+            mock_sleep.assert_called_once()
+
+    async def test_retry_on_server_error(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A server error response followed by success.
+        When: _get_with_retry is called.
+        Then: The request is retried and succeeds.
+        """
+        mock_response_503 = AsyncMock()
+        mock_response_503.status_code = 503
+
+        mock_response_200 = AsyncMock()
+        mock_response_200.status_code = 200
+
+        fivechan_explorer.http_client.get.side_effect = [
+            mock_response_503,
+            mock_response_200,
+        ]
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            result = await fivechan_explorer._get_with_retry("https://example.com")
+
+            assert result == mock_response_200
+            assert fivechan_explorer.http_client.get.call_count == 2
+            mock_sleep.assert_called_once()
+
+
+@pytest.mark.asyncio
+class TestGetSubjectTxtData:
+    """Tests for FiveChanExplorer._get_subject_txt_data method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    async def test_successful_subject_txt_parsing(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A valid subject.txt response.
+        When: _get_subject_txt_data is called.
+        Then: Thread data is correctly parsed.
+        """
+        mock_content = "1234567890.dat<>テストスレッド (10)\n9876543210.dat<>もう一つのスレッド (5)"
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.content = mock_content.encode("shift_jis")
+
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            result = await fivechan_explorer._get_subject_txt_data("ai")
+
+            assert len(result) == 2
+            assert result[0]["title"] == "テストスレッド"
+            assert result[0]["post_count"] == 10
+            assert result[1]["title"] == "もう一つのスレッド"
+            assert result[1]["post_count"] == 5
+
+    async def test_network_error_returns_empty_list(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A network error occurs.
+        When: _get_subject_txt_data is called.
+        Then: An empty list is returned.
+        """
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = Exception("Network error")
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            result = await fivechan_explorer._get_subject_txt_data("ai")
+
+            assert result == []
+
+
+@pytest.mark.asyncio
+class TestCollect:
+    """Tests for FiveChanExplorer.collect method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        explorer = FiveChanExplorer()
+        explorer.http_client = AsyncMock()
+        explorer.gpt_client = AsyncMock()
+        return explorer
+
+    async def test_collect_no_threads_returns_empty(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: No threads found.
+        When: collect is called.
+        Then: An empty list is returned.
+        """
+        fivechan_explorer.setup_http_client = AsyncMock()
+        fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[])
+        fivechan_explorer._load_existing_titles = AsyncMock(return_value=MagicMock())
+
+        with patch(
+            "nook.services.fivechan_explorer.fivechan_explorer.log_processing_start"
+        ):
+            with patch(
+                "nook.services.fivechan_explorer.fivechan_explorer.log_no_new_articles"
+            ):
+                result = await fivechan_explorer.collect()
+                assert result == []
+
+    async def test_collect_with_threads_processes_successfully(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Threads are found.
+        When: collect is called.
+        Then: Threads are processed and saved.
+        """
+        from datetime import datetime, timezone
+
+        # Use current timestamp so thread matches target_dates
+        current_timestamp = int(datetime.now(timezone.utc).timestamp())
+
+        mock_thread = Thread(
+            thread_id=1234567890,
+            title="AI関連スレッド",
+            url="https://example.com/thread/1234567890",
+            board="ai",
+            posts=[],
+            timestamp=current_timestamp,
+            popularity_score=10.0,
+        )
+
+        # Configure mocks with explicit return values to avoid race conditions
+        fivechan_explorer.setup_http_client = AsyncMock()
+        fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[mock_thread])
+        fivechan_explorer._load_existing_titles = MagicMock(return_value=set())
+        fivechan_explorer._summarize_thread = AsyncMock()
+
+        # Ensure _store_summaries always returns the expected value
+        store_summaries_mock = AsyncMock(return_value=[("test.json", "test.md")])
+        fivechan_explorer._store_summaries = store_summaries_mock
+
+        with patch(
+            "nook.services.fivechan_explorer.fivechan_explorer.log_processing_start"
+        ):
+            with patch(
+                "nook.services.fivechan_explorer.fivechan_explorer.log_article_counts"
+            ):
+                with patch(
+                    "nook.services.fivechan_explorer.fivechan_explorer.log_summary_candidates"
+                ):
+                    with patch(
+                        "nook.services.fivechan_explorer.fivechan_explorer.log_summarization_start"
+                    ):
+                        with patch(
+                            "nook.services.fivechan_explorer.fivechan_explorer.log_summarization_progress"
+                        ):
+                            with patch(
+                                "nook.services.fivechan_explorer.fivechan_explorer.log_storage_complete"
+                            ):
+                                result = await fivechan_explorer.collect()
+                                assert result == [("test.json", "test.md")]
+                                # _summarize_thread is called for each thread (4 boards x 1 thread each)
+                                assert (
+                                    fivechan_explorer._summarize_thread.call_count == 4
+                                )
+
+
+class TestRun:
+    """Tests for FiveChanExplorer.run method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_run_calls_asyncio_run(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: A FiveChanExplorer instance.
+        When: run is called.
+        Then: asyncio.run is called with collect.
+        """
+        with patch("asyncio.run", new_callable=MagicMock) as mock_run:
+            fivechan_explorer.run(thread_limit=10)
+            mock_run.assert_called_once()
+            # Verify that collect method is the target
+            args, kwargs = mock_run.call_args
+            assert args[0].__name__ == "collect"
+
+
+@pytest.mark.asyncio
+class TestSummarizeThread:
+    """Tests for FiveChanExplorer._summarize_thread method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        explorer = FiveChanExplorer()
+        explorer.gpt_client = AsyncMock()
+        return explorer
+
+    async def test_summarize_thread_sets_summary(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A thread and GPT client.
+        When: _summarize_thread is called.
+        Then: The thread summary is set.
+        """
+        thread = Thread(
+            thread_id=1234567890,
+            title="AI関連スレッド",
+            url="https://example.com/thread/1234567890",
+            board="ai",
+            posts=[{"com": "テスト投稿"}],
+            timestamp=1609459200,
+        )
+
+        fivechan_explorer.gpt_client.generate_content.return_value = "テスト要約"
+
+        await fivechan_explorer._summarize_thread(thread)
+
+        assert thread.summary == "テスト要約"
+        fivechan_explorer.gpt_client.generate_content.assert_called_once()

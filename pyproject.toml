@@ -6,11 +6,13 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiofiles>=24.1.0",
+    "asyncpraw>=7.7.0",
     "cloudscraper>=1.2.71",
     "httpx>=0.27.0",
     "pydantic>=2.8.0",
     "pydantic-settings>=2.5.0",
     "fastapi>=0.115.3",
+    "uvicorn>=0.21.1",
     "python-dotenv>=1.0.0",
     "openai>=1.0.0",
     "tiktoken>=0.5.0",
@@ -18,6 +20,7 @@ dependencies = [
     "arxiv>=2.3.1",
     "pdfplumber>=0.11.8",
     "beautifulsoup4>=4.14.3",
+    "python-dateutil>=2.8.0",
 ]
 
 [dependency-groups]
@@ -41,7 +44,7 @@ lint.select = [
 lint.ignore = [
     "E501",  # line too long
 ]
-lint.per-file-ignores."tests/*" = ["S101"]  # テストファイルでのassert使用を許可
+lint.per-file-ignores."tests/*" = ["S101", "S105", "S106"]  # テストファイルでのassert使用を許可、テスト用の疑似パスワードを許可
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
