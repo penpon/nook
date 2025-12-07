@@ -108,3 +108,8 @@ venv/
 *.gif
 *.webp
 *.svg
+
+# Agent Artifacts
+task.md
+walkthrough.md
+pr_info.json
