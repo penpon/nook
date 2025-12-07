@@ -40,7 +40,6 @@
    - [ ] Insufficient tests for new implementations
    - [ ] **Test deletion** (deleting tests to maintain coverage is strictly prohibited)
    - [ ] Missing test design matrix (see structure.md)
-   - [ ] Missing Given/When/Then comments
    - [ ] Insufficient error case tests (normal cases ≥ error cases is a violation)
    - [ ] Missing exception validation (validate exception type and message with pytest.raises)
    - [ ] Coverage below 80% (require additional tests)
@@ -133,22 +132,19 @@ from modules.scraper.rapras_scraper import RaprasScraper
 
 ### Test Design
 ```python
-# ❌ Bad Example: No Given/When/Then, only normal cases
+# ❌ Bad Example: Only normal cases, no error handling test
 def test_login():
     scraper.login("valid_user", "valid_pass")
     assert scraper.is_logged_in()
 
-# ✅ Good Example: Structured error case test
+# ✅ Good Example: Error case test with exception validation
 def test_login_failure_invalid_credentials():
     """T004: Error case - Login fails with invalid credentials"""
-    # Given: Invalid credentials are provided
     scraper = RaprasScraper()
 
-    # When: Attempting to login
     with pytest.raises(LoginError) as exc_info:
         scraper.login("invalid_user", "wrong_pass")
 
-    # Then: LoginError is raised with appropriate message
     assert "Invalid credentials" in str(exc_info.value)
 ```
 
