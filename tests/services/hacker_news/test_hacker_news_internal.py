@@ -27,7 +27,6 @@ from nook.services.hacker_news.hacker_news import (
     Story,
     SCORE_THRESHOLD,
     MIN_TEXT_LENGTH,
-    MAX_TEXT_LENGTH,
 )
 
 
