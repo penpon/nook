@@ -395,11 +395,10 @@ def test_call_gpt5_returns_output_text(dummy_openai):
 
 
 def test_call_gpt5_with_previous_response_id(dummy_openai):
-    """_call_gpt5が継続生成を試みることを確認"""
+    """_call_gpt5が現在の実装で動作することを確認"""
     # Given: 最初の呼び出しで空を返し、2回目で成功するレスポンス
     _, responses = dummy_openai
     call_count = [0]
-    original_create = responses.create
 
     def mock_create(**params):
         call_count[0] += 1
@@ -420,10 +419,10 @@ def test_call_gpt5_with_previous_response_id(dummy_openai):
     client = GPTClient(api_key="test-key", model="gpt-5-preview")
     client.encoding = DummyEncoding()
 
-    # When: _call_gpt5を呼び出す（継続生成が発生）
+    # When: _call_gpt5を呼び出す（空文字の場合は継続して2回目が呼ばれる）
     result = client._call_gpt5("test", None, 100)
 
-    # Then: 2回呼び出され、継続生成された結果が返される
+    # Then: 2回呼び出され、継続出力が返される
     assert call_count[0] == 2
     assert result == "continued output"
 
