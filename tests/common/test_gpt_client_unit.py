@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import types
 from pathlib import Path
 import sys
@@ -422,11 +421,11 @@ def test_call_gpt5_with_previous_response_id(dummy_openai):
     client.encoding = DummyEncoding()
 
     # When: _call_gpt5を呼び出す（継続生成が発生）
-    # Note: 現在の実装ではprev_idが設定されないため、最初のループで終了
     result = client._call_gpt5("test", None, 100)
 
-    # Then: 結果が返される（空でも）
-    assert result is not None
+    # Then: 2回呼び出され、継続生成された結果が返される
+    assert call_count[0] == 2
+    assert result == "continued output"
 
 
 def test_call_gpt5_chat_returns_output_text(dummy_openai):
