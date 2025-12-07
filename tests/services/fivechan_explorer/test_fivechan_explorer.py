@@ -563,13 +563,15 @@ class TestCollect:
             popularity_score=10.0,
         )
 
+        # Configure mocks with explicit return values to avoid race conditions
         fivechan_explorer.setup_http_client = AsyncMock()
         fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[mock_thread])
-        fivechan_explorer._load_existing_titles = MagicMock(return_value=MagicMock())
+        fivechan_explorer._load_existing_titles = MagicMock(return_value=set())
         fivechan_explorer._summarize_thread = AsyncMock()
-        fivechan_explorer._store_summaries = AsyncMock(
-            return_value=[("test.json", "test.md")]
-        )
+
+        # Ensure _store_summaries always returns the expected value
+        store_summaries_mock = AsyncMock(return_value=[("test.json", "test.md")])
+        fivechan_explorer._store_summaries = store_summaries_mock
 
         with patch(
             "nook.services.fivechan_explorer.fivechan_explorer.log_processing_start"
