@@ -435,14 +435,15 @@ class TestExtractBodyText:
         When: _extract_from_html is called.
         Then: Text is extracted.
         """
-        html_content = """
-        <html>
-        <body>
-            <header>Header</header>
-            <p>This is a very long paragraph that contains the main content of the paper and should be extracted properly.</p>
-        </body>
-        </html>
-        """
+        html_content = (
+            "<html>\n"
+            "<body>\n"
+            "    <header>Header</header>\n"
+            "    <p>This is a very long paragraph that contains the main content "
+            "of the paper and should be extracted properly.</p>\n"
+            "</body>\n"
+            "</html>\n"
+        )
         with patch.object(
             summarizer, "_download_html_without_retry", new_callable=AsyncMock
         ) as mock_download:

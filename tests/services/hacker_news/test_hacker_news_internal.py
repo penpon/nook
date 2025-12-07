@@ -487,16 +487,18 @@ class TestFetchStoryContent:
         When: _fetch_story_content is called.
         Then: Paragraphs are extracted.
         """
-        html_content = """
-        <html>
-        <head></head>
-        <body>
-            <p>This is a short paragraph.</p>
-            <p>This is a much longer paragraph that contains more than fifty characters of meaningful content about the article.</p>
-            <p>Another long paragraph with sufficient content length to be considered meaningful by the extraction algorithm.</p>
-        </body>
-        </html>
-        """
+        html_content = (
+            "<html>\n"
+            "<head></head>\n"
+            "<body>\n"
+            "    <p>This is a short paragraph.</p>\n"
+            "    <p>This is a much longer paragraph that contains more than "
+            "fifty characters of meaningful content about the article.</p>\n"
+            "    <p>Another long paragraph with sufficient content length to be "
+            "considered meaningful by the extraction algorithm.</p>\n"
+            "</body>\n"
+            "</html>\n"
+        )
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = html_content
@@ -523,14 +525,15 @@ class TestFetchStoryContent:
         When: _fetch_story_content is called.
         Then: Article content is extracted.
         """
-        html_content = """
-        <html>
-        <head></head>
-        <body>
-            <article>This is the article content that should be extracted when no paragraphs are available.</article>
-        </body>
-        </html>
-        """
+        html_content = (
+            "<html>\n"
+            "<head></head>\n"
+            "<body>\n"
+            "    <article>This is the article content that should be extracted "
+            "when no paragraphs are available.</article>\n"
+            "</body>\n"
+            "</html>\n"
+        )
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = html_content
