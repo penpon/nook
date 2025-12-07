@@ -19,6 +19,24 @@ from nook.common.dedup import (
 )
 
 
+def _create_storage(
+    *,
+    load_return=None,
+    load_side_effect=None,
+    markdown_return="",
+    markdown_side_effect=None,
+):
+    storage = AsyncMock()
+    if load_side_effect is not None:
+        storage.load.side_effect = load_side_effect
+    elif load_return is not None:
+        storage.load.return_value = load_return
+    storage.load_markdown = MagicMock(return_value=markdown_return)
+    if markdown_side_effect is not None:
+        storage.load_markdown.side_effect = markdown_side_effect
+    return storage
+
+
 class TestTitleNormalizer:
     """TitleNormalizerのテスト"""
 
@@ -202,13 +220,14 @@ class TestDedupTracker:
 async def test_load_existing_titles_from_storage_json_success():
     """JSONファイルからのタイトル読み込み成功テスト"""
     # モックストレージの準備
-    mock_storage = AsyncMock()
-    mock_storage.load.return_value = json.dumps(
-        [
-            {"title": "Article 1", "content": "Content 1"},
-            {"title": "Article 2", "content": "Content 2"},
-            {"title": "Article 3", "content": "Content 3"},
-        ]
+    mock_storage = _create_storage(
+        load_return=json.dumps(
+            [
+                {"title": "Article 1", "content": "Content 1"},
+                {"title": "Article 2", "content": "Content 2"},
+                {"title": "Article 3", "content": "Content 3"},
+            ]
+        )
     )
 
     target_dates = {date(2024, 1, 1), date(2024, 1, 2)}
@@ -225,7 +244,7 @@ async def test_load_existing_titles_from_storage_json_success():
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_storage_file_not_found():
     """ファイルが存在しない場合のテスト"""
-    mock_storage = AsyncMock()
+    mock_storage = _create_storage()
     mock_storage.load.side_effect = FileNotFoundError("File not found")
 
     target_dates = {date(2024, 1, 1)}
@@ -268,7 +287,7 @@ async def test_load_existing_titles_from_storage_with_markdown_fallback():
 
     # JSONは空で、Markdownから読み込むケース
     mock_storage.load.return_value = None
-    mock_storage.load_markdown = AsyncMock(
+    mock_storage.load_markdown = MagicMock(
         return_value="""# Test Markdown
 
 ### [Article 1](http://example.com/1)
@@ -299,7 +318,7 @@ async def test_load_existing_titles_from_storage_markdown_error():
     """Markdown読み込みエラーのテスト"""
     mock_storage = AsyncMock()
     mock_storage.load.return_value = None
-    mock_storage.load_markdown = AsyncMock(side_effect=Exception("Markdown error"))
+    mock_storage.load_markdown = MagicMock(side_effect=Exception("Markdown error"))
 
     target_dates = {date(2024, 1, 1)}
 
@@ -311,8 +330,9 @@ async def test_load_existing_titles_from_storage_markdown_error():
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_storage_file_not_found_logs_debug():
     """ファイル未検出時のデバッグログテスト"""
-    mock_storage = AsyncMock()
-    mock_storage.load.side_effect = FileNotFoundError("File not found")
+    mock_storage = _create_storage(
+        load_side_effect=FileNotFoundError("File not found"), markdown_return=""
+    )
 
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
@@ -322,14 +342,15 @@ async def test_load_existing_titles_from_storage_file_not_found_logs_debug():
     )
 
     assert tracker.count() == 0
-    mock_logger.debug.assert_called_with("📂 ファイル未検出: 2024-01-01.json")
+    mock_logger.debug.assert_any_call("📂 ファイル未検出: 2024-01-01.json")
 
 
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_storage_json_decode_error_logs_warning():
     """JSON解析エラー時の警告ログテスト"""
-    mock_storage = AsyncMock()
-    mock_storage.load.side_effect = json.JSONDecodeError("Invalid JSON", "", 0)
+    mock_storage = _create_storage(
+        load_side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
+    )
 
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
@@ -345,8 +366,7 @@ async def test_load_existing_titles_from_storage_json_decode_error_logs_warning(
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_storage_general_error_logs_debug():
     """一般エラー時のデバッグログテスト"""
-    mock_storage = AsyncMock()
-    mock_storage.load.side_effect = Exception("General error")
+    mock_storage = _create_storage(load_side_effect=Exception("General error"))
 
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
@@ -366,7 +386,7 @@ async def test_load_existing_titles_from_storage_markdown_fallback_with_titles()
 
     # JSONは空で、Markdownから読み込むケース
     mock_storage.load.return_value = None
-    mock_storage.load_markdown = AsyncMock(
+    mock_storage.load_markdown = MagicMock(
         return_value="""# Test Markdown
 
 ### [Article 1](http://example.com/1)
@@ -402,7 +422,7 @@ async def test_load_existing_titles_from_storage_markdown_title_extraction():
     mock_storage = AsyncMock()
 
     mock_storage.load.return_value = None
-    mock_storage.load_markdown = AsyncMock(
+    mock_storage.load_markdown = MagicMock(
         return_value="""# Test
 
 ### [First Article](url)
@@ -492,7 +512,7 @@ async def test_load_existing_titles_from_storage_multiple_dates():
         return None
 
     mock_storage.load.side_effect = load_side_effect
-    mock_storage.load_markdown.return_value = ""
+    mock_storage.load_markdown = MagicMock(return_value="")
 
     target_dates = {date(2024, 1, 1), date(2024, 1, 2)}
 

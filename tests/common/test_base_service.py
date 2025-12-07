@@ -373,13 +373,19 @@ async def test_setup_http_client_logs_debug_message(monkeypatch, caplog):
         return MagicMock()
 
     monkeypatch.setattr("nook.common.http_client.get_http_client", fake_get_http_client)
-    caplog.set_level("DEBUG")
+    caplog.set_level("DEBUG", logger="dummy")
 
     # When
     await service.setup_http_client()
 
     # Then
-    assert "HTTP client setup completed" in caplog.text
+    debug_records = [
+        record
+        for record in caplog.records
+        if record.levelname == "DEBUG"
+        and "HTTP client setup completed" in record.message
+    ]
+    assert len(debug_records) == 1
 
 
 @pytest.mark.asyncio

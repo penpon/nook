@@ -265,7 +265,8 @@ class TestParseEntryDatetime:
         entry.published = "2024-01-01T12:00:00+09:00"
 
         result = parse_entry_datetime(entry)
-        expected = datetime(2024, 1, 1, 12, 0, 0)  # JSTなので変換なし
+        # すでにJSTのタイムゾーン情報を含む場合はそのままの時刻になる
+        expected = datetime(2024, 1, 1, 12, 0, 0)
         assert result == expected
 
     def test_parse_entry_datetime_edge_case_struct_time_exception(self):

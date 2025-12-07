@@ -130,7 +130,7 @@ async def test_handle_logs_warning_and_error(caplog):
     # エラーログが1回記録される
     errors = [record for record in caplog.records if record.levelname == "ERROR"]
     assert len(errors) == 1
-    assert "Failed after 2 attempts" in errors[0].message
+    assert "Function async_func failed after 2 attempts" in errors[0].message
 
 
 @pytest.mark.asyncio
@@ -151,15 +151,17 @@ async def test_handle_error_with_long_message_truncates():
             await async_func()
 
         # 警告ログでメッセージが切り捨てられていることを確認
-        warning_calls = [
-            call for call in mock_logger.warning.call_args_list if "error" in str(call)
-        ]
+        warning_calls = mock_logger.warning.call_args_list
         assert len(warning_calls) == 1
 
-        warning_message = str(warning_calls[0])
-        assert "..." in warning_message  # 切り捨てマークが存在
+        warning_args, _ = warning_calls[0]
+        warning_message = warning_args[0]
+        assert warning_message.endswith("...")  # 切り捨てマークが存在
         # メッセージ長が制限されていることを確認（元のメッセージ + 100文字以下）
-        assert len(warning_message) < len(long_message) + 150
+        assert (
+            len(warning_message)
+            <= len("Function async_func failed (attempt 1/1): ValueError: ") + 103
+        )
 
 
 @pytest.mark.asyncio
