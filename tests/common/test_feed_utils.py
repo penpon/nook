@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import calendar
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from pathlib import Path
 import sys
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -16,8 +13,6 @@ from nook.common.feed_utils import (
     parse_entry_datetime,
     _get_entry_value,
     _parse_iso_datetime,
-    _STRUCT_TIME_FIELDS,
-    _STRING_FIELDS,
 )
 
 
