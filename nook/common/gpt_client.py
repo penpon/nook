@@ -177,6 +177,7 @@ class GPTClient:
             ) or self._extract_text_from_response(resp)
             if output_text:
                 return output_text
+            prev_id = getattr(resp, "id", None)
 
     def _call_gpt5_chat(
         self,

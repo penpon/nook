@@ -289,8 +289,8 @@ def test_tiktoken_keyerror_fallback(monkeypatch):
         ),
     )
 
-    # When: GPTClientを初期化
-    client = GPTClient(api_key="test-key", model="unknown-model")
+    # When: GPTClientを初期化（フォールバック経路を通すだけでよい）
+    GPTClient(api_key="test-key", model="unknown-model")
 
     # Then: フォールバックエンコーディングが使用される
     assert "cl100k_base" in fallback_called
@@ -399,9 +399,11 @@ def test_call_gpt5_with_previous_response_id(dummy_openai):
     # Given: 最初の呼び出しで空を返し、2回目で成功するレスポンス
     _, responses = dummy_openai
     call_count = [0]
+    call_params: list[dict] = []
 
     def mock_create(**params):
         call_count[0] += 1
+        call_params.append(params)
         if call_count[0] == 1:
             return types.SimpleNamespace(
                 output_text="",
@@ -425,6 +427,8 @@ def test_call_gpt5_with_previous_response_id(dummy_openai):
     # Then: 2回呼び出され、継続出力が返される
     assert call_count[0] == 2
     assert result == "continued output"
+    # 2回目の呼び出しではprevious_response_idが設定されていることを確認
+    assert call_params[1]["previous_response_id"] == "resp-1"
 
 
 def test_call_gpt5_chat_returns_output_text(dummy_openai):
@@ -472,8 +476,9 @@ def test_call_gpt5_chat_with_continuation(dummy_openai):
     # When: _call_gpt5_chatを呼び出す
     result = client._call_gpt5_chat(messages, None, 100)
 
-    # Then: 継続生成が試みられる
-    assert call_count[0] >= 1
+    # Then: 最大3回まで継続生成が試みられ、最終的な出力が返される
+    assert call_count[0] == 3
+    assert result == "final output"
 
 
 def test_get_calling_service_returns_unknown_for_non_services(monkeypatch, client):
@@ -600,8 +605,6 @@ def test_send_message_uses_gpt5_path(monkeypatch, dummy_openai):
     client.encoding = DummyEncoding()
 
     called = {}
-
-    original_call = client._call_gpt5_chat
 
     def fake_call_gpt5_chat(messages, system_instruction, max_tokens):
         called["args"] = (messages, system_instruction, max_tokens)

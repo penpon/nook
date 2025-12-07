@@ -293,6 +293,8 @@ async def test_close_logs_duration(monkeypatch, caplog):
 
     # Then: クライアントがクローズされている
     assert client._client is None
+    # And: セッション時間のログが出力されている
+    assert any("closed after" in r.message for r in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -325,17 +327,23 @@ async def test_get_auto_starts_client():
     async def handler(request: httpx.Request):
         return make_response(200, json={"ok": True}, request=request)
 
-    try:
-        # クライアントを手動で設定
+    start_called = {"value": False}
+
+    async def fake_start():
+        start_called["value"] = True
         client._client = httpx.AsyncClient(
             transport=httpx.MockTransport(handler),
             follow_redirects=True,
         )
 
-        # When: getを呼び出す
+    client.start = fake_start  # type: ignore[assignment]
+
+    try:
+        # When: getを呼び出す（自動開始）
         resp = await client.get("https://example.com/auto")
 
-        # Then: 成功する
+        # Then: startが呼び出され、成功する
+        assert start_called["value"] is True
         assert resp.status_code == 200
     finally:
         await client.close()
@@ -344,7 +352,6 @@ async def test_get_auto_starts_client():
 @pytest.mark.asyncio
 async def test_stream_error_non_reset_raises(client_factory):
     """StreamErrorがreset以外の場合は例外を発生させる"""
-    from nook.common.exceptions import RetryException
 
     # Given: reset以外のStreamErrorを発生させるハンドラー
     async def http2_handler(request: httpx.Request):
@@ -356,15 +363,15 @@ async def test_stream_error_non_reset_raises(client_factory):
     # When: リクエストを実行
     client = client_factory(http2_handler, http1_handler)
 
-    # Then: RetryExceptionが発生
-    with pytest.raises(RetryException):
+    # Then: RetryExceptionが発生し、メッセージも検証
+    with pytest.raises(RetryException) as exc_info:
         await client.get("https://example.com/stream-error")
+    assert "connection closed" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
 async def test_get_request_error_raises(client_factory):
     """RequestErrorが発生した場合に例外を発生させる"""
-    from nook.common.exceptions import RetryException
 
     # Given: RequestErrorを発生させるハンドラー
     async def http2_handler(request: httpx.Request):
@@ -374,14 +381,14 @@ async def test_get_request_error_raises(client_factory):
     client = client_factory(http2_handler)
 
     # Then: RetryExceptionが発生
-    with pytest.raises(RetryException):
+    with pytest.raises(RetryException) as exc_info:
         await client.get("https://example.com/request-error")
+    assert "connection failed" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
 async def test_post_request_error_raises(client_factory):
     """POSTでRequestErrorが発生した場合に例外を発生させる"""
-    from nook.common.exceptions import RetryException
 
     # Given: RequestErrorを発生させるハンドラー
     async def http2_handler(request: httpx.Request):
@@ -391,14 +398,14 @@ async def test_post_request_error_raises(client_factory):
     client = client_factory(http2_handler)
 
     # Then: RetryExceptionが発生
-    with pytest.raises(RetryException):
+    with pytest.raises(RetryException) as exc_info:
         await client.post("https://example.com/post-error", json={"x": 1})
+    assert "connection failed" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
 async def test_browser_retry_http_error(client_factory):
     """_browser_retry_with_http1がHTTPエラーを処理することを確認"""
-    from nook.common.exceptions import APIException
 
     # Given: 403を返すHTTP/2ハンドラーと500を返すHTTP/1.1ハンドラー
     async def http2_handler(request: httpx.Request):
@@ -411,14 +418,14 @@ async def test_browser_retry_http_error(client_factory):
     client = client_factory(http2_handler, http1_handler)
 
     # Then: RetryExceptionが発生（リトライ後も失敗）
-    with pytest.raises(RetryException):
+    with pytest.raises(RetryException) as exc_info:
         await client.get("https://example.com/browser-retry-fail")
+    assert "server error" in str(exc_info.value) or "500" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
 async def test_browser_retry_request_error(client_factory):
     """_browser_retry_with_http1がRequestErrorを処理することを確認"""
-    from nook.common.exceptions import RetryException
 
     # Given: 403を返すHTTP/2ハンドラーとRequestErrorを発生させるHTTP/1.1ハンドラー
     async def http2_handler(request: httpx.Request):
@@ -431,8 +438,9 @@ async def test_browser_retry_request_error(client_factory):
     client = client_factory(http2_handler, http1_handler)
 
     # Then: RetryExceptionが発生
-    with pytest.raises(RetryException):
+    with pytest.raises(RetryException) as exc_info:
         await client.get("https://example.com/browser-retry-request-error")
+    assert "connection failed" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -637,7 +645,6 @@ async def test_get_without_browser_headers(client_factory):
 @pytest.mark.asyncio
 async def test_browser_retry_starts_http1_client():
     """_browser_retry_with_http1がHTTP/1.1クライアントを自動開始することを確認"""
-    from nook.common.exceptions import APIException
 
     # Given: HTTP/1.1クライアントが未開始のクライアント
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
@@ -664,6 +671,3 @@ async def test_browser_retry_starts_http1_client():
         assert resp.status_code == 200
     finally:
         await client.close()
-
-
-from nook.common.http_client import AsyncHTTPClient
