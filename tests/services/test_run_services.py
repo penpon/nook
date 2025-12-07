@@ -171,7 +171,7 @@ async def test_run_sync_service_dispatch_logic():
 
 @pytest.mark.asyncio
 async def test_run_sync_service_handles_error(monkeypatch):
-    """Verify exceptions are propatated/logged"""
+    """Verify exceptions are propagated/logged"""
     service_mock = AsyncMock()
     service_mock.collect.side_effect = Exception("Service Crash")
 
