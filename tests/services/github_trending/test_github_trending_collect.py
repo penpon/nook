@@ -103,7 +103,7 @@ class TestRetrieveRepositories:
         # Is that correct? The code seems to use "any" as a language parameter.
 
         await trending._retrieve_repositories("any", 5, dedup_tracker)
-        trending.http_client.get.assert_called_with("https://github.com/trending/any")
+        trending.http_client.get.assert_called_with("https://github.com/trending")
 
     async def test_skips_duplicates(
         self, trending: GithubTrending, mock_html: str

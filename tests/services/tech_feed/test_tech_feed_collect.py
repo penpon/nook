@@ -1,17 +1,14 @@
 """Tests for TechFeed collect flow and article retrieval logic."""
 
 import asyncio
-from datetime import date, datetime, timezone
-from pathlib import Path
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from bs4 import BeautifulSoup
-import feedparser
 
 from nook.services.tech_feed.tech_feed import TechFeed
 from nook.services.base_feed_service import Article
-from nook.common.exceptions import APIException
 
 
 @pytest.fixture

@@ -242,7 +242,7 @@ class GithubTrending(BaseService):
             取得したリポジトリのリスト。
         """
         url = self.base_url
-        if language:
+        if language and language != "any":
             url += f"/{language}"
 
         try:

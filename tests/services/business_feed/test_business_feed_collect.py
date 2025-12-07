@@ -1,7 +1,7 @@
 """Tests for BusinessFeed collect flow and article retrieval logic."""
 
 import asyncio
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
