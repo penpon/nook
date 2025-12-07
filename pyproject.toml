@@ -49,6 +49,12 @@ lint.per-file-ignores."tests/*" = ["S101", "S105", "S106"]  # テストファイ
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+    "ignore::RuntimeWarning:_pytest.unraisableexception",
+    "ignore::RuntimeWarning:coverage.debug",
+    "ignore::RuntimeWarning:unittest.mock",
+    "ignore::RuntimeWarning:pydantic_settings.main",
+]
 
 [tool.mypy]
 ignore_missing_imports = true
