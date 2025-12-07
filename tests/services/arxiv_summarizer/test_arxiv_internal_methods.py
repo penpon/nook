@@ -15,7 +15,6 @@ by the existing test_arxiv_helpers.py and test_arxiv_collect_flow.py:
 """
 
 from datetime import date, datetime, timezone
-from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
