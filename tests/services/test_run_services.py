@@ -129,7 +129,6 @@ async def test_run_sync_service_dispatch_logic():
     service_mock.collect.return_value = []
 
     runner = ServiceRunner.__new__(ServiceRunner)
-    runner.logger = MagicMock()  # mock logger
 
     # --- Case 1: hacker_news ---
     # Expected: limit=15, target_dates=...
@@ -195,7 +194,6 @@ async def test_run_sync_service_handles_error(monkeypatch):
 async def test_run_continuous(monkeypatch):
     """Verify continuous execution loop"""
     runner = ServiceRunner.__new__(ServiceRunner)
-    runner.logger = MagicMock()
     runner.running = True
 
     # Mock run_all to eventually stop the runner
@@ -216,3 +214,6 @@ async def test_run_continuous(monkeypatch):
     # Then
     assert run_count == 2
     assert asyncio.sleep.call_count == 2
+    from unittest.mock import call
+
+    asyncio.sleep.assert_has_calls([call(10), call(10)])
