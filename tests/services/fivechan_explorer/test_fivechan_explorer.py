@@ -531,6 +531,10 @@ class TestCollect:
         fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[])
         fivechan_explorer._load_existing_titles = MagicMock(return_value=set())
 
+        # Disable request delay for faster test execution
+        fivechan_explorer.min_request_delay = 0
+        fivechan_explorer.max_request_delay = 0
+
         with patch(
             "nook.services.fivechan_explorer.fivechan_explorer.log_processing_start"
         ):
@@ -568,6 +572,10 @@ class TestCollect:
         fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[mock_thread])
         fivechan_explorer._load_existing_titles = MagicMock(return_value=set())
         fivechan_explorer._summarize_thread = AsyncMock()
+
+        # Disable request delay for faster test execution
+        fivechan_explorer.min_request_delay = 0
+        fivechan_explorer.max_request_delay = 0
 
         # Ensure _store_summaries always returns the expected value
         store_summaries_mock = AsyncMock(return_value=[("test.json", "test.md")])
