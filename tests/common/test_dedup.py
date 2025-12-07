@@ -259,6 +259,7 @@ async def test_load_existing_titles_from_storage_json_decode_error():
     """JSONデコードエラーのテスト"""
     mock_storage = AsyncMock()
     mock_storage.load.return_value = "invalid json"
+    mock_storage.load_markdown = MagicMock(return_value="")
 
     target_dates = {date(2024, 1, 1)}
 
@@ -272,6 +273,7 @@ async def test_load_existing_titles_from_storage_general_error():
     """一般エラーのテスト"""
     mock_storage = AsyncMock()
     mock_storage.load.side_effect = Exception("General error")
+    mock_storage.load_markdown = MagicMock(return_value="")
 
     target_dates = {date(2024, 1, 1)}
 
@@ -453,6 +455,7 @@ async def test_load_existing_titles_from_storage_with_logger():
     """ロガー付きのテスト"""
     mock_storage = AsyncMock()
     mock_storage.load.return_value = json.dumps([{"title": "Test Article"}])
+    mock_storage.load_markdown = MagicMock(return_value="")
 
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
@@ -471,6 +474,7 @@ async def test_load_existing_titles_from_storage_empty_articles():
     """空の記事リストのテスト"""
     mock_storage = AsyncMock()
     mock_storage.load.return_value = json.dumps([])
+    mock_storage.load_markdown = MagicMock(return_value="")
 
     target_dates = {date(2024, 1, 1)}
 
@@ -483,6 +487,7 @@ async def test_load_existing_titles_from_storage_empty_articles():
 async def test_load_existing_titles_from_storage_articles_without_titles():
     """タイトルなし記事のテスト"""
     mock_storage = AsyncMock()
+    mock_storage.load_markdown = MagicMock(return_value="")
     mock_storage.load.return_value = json.dumps(
         [
             {"content": "Content without title"},
