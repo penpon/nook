@@ -515,8 +515,8 @@ class TestCollect:
         """Create a FiveChanExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = FiveChanExplorer()
-        explorer.http_client = AsyncMock()
-        explorer.gpt_client = AsyncMock()
+        explorer.http_client = MagicMock()
+        explorer.gpt_client = MagicMock()
         return explorer
 
     async def test_collect_no_threads_returns_empty(
@@ -529,7 +529,11 @@ class TestCollect:
         """
         fivechan_explorer.setup_http_client = AsyncMock()
         fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[])
-        fivechan_explorer._load_existing_titles = AsyncMock(return_value=MagicMock())
+        fivechan_explorer._load_existing_titles = MagicMock(return_value=set())
+
+        # Disable request delay for faster test execution
+        fivechan_explorer.min_request_delay = 0
+        fivechan_explorer.max_request_delay = 0
 
         with patch(
             "nook.services.fivechan_explorer.fivechan_explorer.log_processing_start"
@@ -568,6 +572,10 @@ class TestCollect:
         fivechan_explorer._retrieve_ai_threads = AsyncMock(return_value=[mock_thread])
         fivechan_explorer._load_existing_titles = MagicMock(return_value=set())
         fivechan_explorer._summarize_thread = AsyncMock()
+
+        # Disable request delay for faster test execution
+        fivechan_explorer.min_request_delay = 0
+        fivechan_explorer.max_request_delay = 0
 
         # Ensure _store_summaries always returns the expected value
         store_summaries_mock = AsyncMock(return_value=[("test.json", "test.md")])
@@ -608,18 +616,19 @@ class TestRun:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_run_calls_asyncio_run(self, fivechan_explorer: FiveChanExplorer) -> None:
+    def test_run_calls_collect_via_asyncio_run(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: run is called.
-        Then: asyncio.run is called with collect.
+        Then: collect coroutine is dispatched via asyncio.run with the provided limit.
         """
-        with patch("asyncio.run", new_callable=MagicMock) as mock_run:
-            fivechan_explorer.run(thread_limit=10)
-            mock_run.assert_called_once()
-            # Verify that collect method is the target
-            args, kwargs = mock_run.call_args
-            assert args[0].__name__ == "collect"
+        fivechan_explorer.collect = AsyncMock()
+
+        fivechan_explorer.run(thread_limit=10)
+
+        fivechan_explorer.collect.assert_awaited_once_with(10)
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import time
 from collections.abc import Callable
 from datetime import datetime
 from typing import TypeVar, cast
@@ -78,7 +79,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     )
 
                     if attempt < retries - 1:
-                        asyncio.sleep(wait_time)
+                        time.sleep(wait_time)
                     else:
                         logger.error(
                             f"Function {func.__name__} failed after {retries} attempts"

@@ -496,14 +496,13 @@ class TestRedditExplorer:
         """
         Given: A RedditExplorer instance.
         When: run is called.
-        Then: asyncio.run is called with collect.
+        Then: collect coroutine is executed via asyncio.run and receives limit.
         """
-        with patch("asyncio.run", new_callable=MagicMock) as mock_run:
-            reddit_explorer.run(limit=10)
+        reddit_explorer.collect = AsyncMock()
 
-            mock_run.assert_called_once()
-            args, kwargs = mock_run.call_args
-            assert args[0].__name__ == "collect"
+        reddit_explorer.run(limit=10)
+
+        reddit_explorer.collect.assert_awaited_once_with(10)
 
     @pytest.mark.asyncio
     async def test_collect_no_posts_returns_empty(
