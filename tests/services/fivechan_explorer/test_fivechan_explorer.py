@@ -599,7 +599,14 @@ class TestCollect:
                             with patch(
                                 "nook.services.fivechan_explorer.fivechan_explorer.log_storage_complete"
                             ):
-                                result = await fivechan_explorer.collect()
+                                # Pass explicit target_dates to ensure filtering logic matches the thread's date
+                                # regardless of timezone differences between JST (default in collect) and execution environment
+                                expected_date = datetime.fromtimestamp(
+                                    current_timestamp
+                                ).date()
+                                result = await fivechan_explorer.collect(
+                                    target_dates=[expected_date]
+                                )
                                 assert result == [("test.json", "test.md")]
                                 # _summarize_thread is called for each thread (4 boards x 1 thread each)
                                 assert (
