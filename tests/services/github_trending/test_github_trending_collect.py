@@ -1,6 +1,5 @@
 """Tests for GithubTrending collect flow and repository retrieval logic."""
 
-import asyncio
 from datetime import date, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 

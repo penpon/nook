@@ -1,6 +1,5 @@
 """Tests for TechFeed collect flow and article retrieval logic."""
 
-import asyncio
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
