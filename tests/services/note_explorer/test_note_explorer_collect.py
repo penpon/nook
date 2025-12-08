@@ -138,6 +138,7 @@ class TestCollect:
     @pytest.mark.asyncio
     async def test_collect_flow(self, note_explorer):
         note_explorer.setup_http_client = AsyncMock()
+        note_explorer.feed_config = {"design": ["http://url"]}
         note_explorer._get_all_existing_dates = AsyncMock(return_value=[])
 
         mock_dedup = MagicMock()
@@ -197,7 +198,7 @@ class TestCollect:
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
             note_explorer._group_articles_by_date.assert_called_once_with(
-                [mock_article, mock_article]
+                [mock_article]
             )
 
     @pytest.mark.asyncio

@@ -166,6 +166,7 @@ class TestCollect:
     async def test_collect_flow(self, zenn_explorer):
         # Mock dependencies
         zenn_explorer.setup_http_client = AsyncMock()
+        zenn_explorer.feed_config = {"tech": ["http://url"]}
         zenn_explorer._get_all_existing_dates = AsyncMock(return_value=[])
 
         # Mock DedupTracker
@@ -246,7 +247,7 @@ class TestCollect:
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
             zenn_explorer._group_articles_by_date.assert_called_once_with(
-                [mock_article, mock_article]
+                [mock_article]
             )
             zenn_explorer._summarize_article.assert_awaited()
             zenn_explorer._store_summaries_for_date.assert_awaited()

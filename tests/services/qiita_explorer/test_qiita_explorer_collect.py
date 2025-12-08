@@ -180,6 +180,7 @@ class TestCollect:
     @pytest.mark.asyncio
     async def test_collect_flow(self, qiita_explorer):
         qiita_explorer.setup_http_client = AsyncMock()
+        qiita_explorer.feed_config = {"python": ["http://url"]}
         qiita_explorer._get_all_existing_dates = AsyncMock(return_value=[])
 
         mock_dedup = MagicMock()
@@ -241,7 +242,7 @@ class TestCollect:
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
             qiita_explorer._group_articles_by_date.assert_called_once_with(
-                [mock_article, mock_article]
+                [mock_article]
             )
 
     @pytest.mark.asyncio
