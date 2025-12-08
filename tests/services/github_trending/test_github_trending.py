@@ -441,7 +441,7 @@ class TestRenderMarkdown:
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
         # 操作 / Then
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="name"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_missing_link_field_raises_key_error(
@@ -462,7 +462,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="link"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_missing_stars_field_raises_key_error(
@@ -483,7 +483,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="stars"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_string_stars_raises_type_error(
@@ -505,7 +505,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="must be numeric"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_language_none_raises_value_error(
@@ -527,7 +527,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="must not be None"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_language_non_string_raises_type_error(
@@ -549,7 +549,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="must be a string"):
             trending._render_markdown(records, today)
 
 
