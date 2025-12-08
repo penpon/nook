@@ -210,6 +210,10 @@ class TestCollect:
                 popularity_score=10,
                 feed_name="Feed",
             )
+            # Setup _filter_entries to pass everything
+            zenn_explorer._filter_entries = MagicMock(side_effect=lambda e, *a: list(e))
+
+            # Setup _retrieve_article
             zenn_explorer._retrieve_article = AsyncMock(return_value=mock_article)
 
             # Setup _summarize_article
@@ -241,6 +245,9 @@ class TestCollect:
 
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
+            zenn_explorer._group_articles_by_date.assert_called_once_with(
+                [mock_article, mock_article]
+            )
             zenn_explorer._summarize_article.assert_awaited()
             zenn_explorer._store_summaries_for_date.assert_awaited()
 
@@ -288,9 +295,12 @@ class TestCollect:
             patch(
                 "nook.services.zenn_explorer.zenn_explorer.is_within_target_dates"
             ) as mock_date_check,
-            patch("nook.services.zenn_explorer.zenn_explorer.target_dates_set"),
+            patch(
+                "nook.services.zenn_explorer.zenn_explorer.target_dates_set"
+            ) as mock_target_dates_set,
         ):
             mock_load.return_value = mock_dedup
+            mock_target_dates_set.return_value = {date(2023, 1, 1)}
 
             entry1 = MagicMock(title="Valid", link="http://1")
             entry2 = MagicMock(title="Dup", link="http://2")
@@ -345,8 +355,10 @@ class TestCollect:
             zenn_explorer._retrieve_article = AsyncMock(
                 side_effect=[article1, article2, article3]
             )
+            zenn_explorer._filter_entries = MagicMock(side_effect=lambda e, *a: list(e))
 
             # Date check mock
+            zenn_explorer.storage.load.return_value = None
             mock_date_check.side_effect = [
                 True,
                 True,
@@ -357,17 +369,18 @@ class TestCollect:
             # First article is Valid (True), second is Invalid (False)
             mock_date_check.side_effect = [True, False]
 
-            await zenn_explorer.collect(days=1)
-
-            # Only article1 should be added to candidates
-            # And since it's valid, it goes through. We didn't mock summarize so it might fail if we don't mock it
-            # But collect logic: groups by date and proceeds
-            # We need to ensure _summarize_article is mocked
+            # Move mock setup before the call
             zenn_explorer._summarize_article = AsyncMock()
             zenn_explorer._store_summaries_for_date = AsyncMock(return_value=("a", "b"))
             zenn_explorer._group_articles_by_date = MagicMock(
                 return_value={"2023-01-01": [article1]}
             )
+
+            await zenn_explorer.collect(days=1)
+
+            # Assertion
+            zenn_explorer._group_articles_by_date.assert_called_once_with([article1])
+            zenn_explorer._summarize_article.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_collect_existing_files_no_new(self, zenn_explorer):
@@ -398,6 +411,7 @@ class TestCollect:
             # Should append existing file path
             assert len(saved) == 1
             assert "data/zenn_explorer/2023-01-01.json" in saved[0][0]
+            zenn_explorer._group_articles_by_date.assert_called_once_with([])
 
 
 class TestOtherMethods:

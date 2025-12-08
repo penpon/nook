@@ -179,6 +179,7 @@ class TestCollect:
                 feed_name="Feed",
             )
             note_explorer._retrieve_article = AsyncMock(return_value=mock_article)
+            note_explorer._filter_entries = MagicMock(side_effect=lambda e, *a: list(e))
 
             note_explorer._summarize_article = AsyncMock()
             note_explorer._store_summaries_for_date = AsyncMock(
@@ -195,6 +196,9 @@ class TestCollect:
 
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
+            note_explorer._group_articles_by_date.assert_called_once_with(
+                [mock_article, mock_article]
+            )
 
     @pytest.mark.asyncio
     async def test_collect_skip_duplicates(self, note_explorer):
@@ -236,15 +240,14 @@ class TestCollect:
                 feed_name="Feed",
             )
             note_explorer._retrieve_article = AsyncMock(return_value=mock_article)
+            note_explorer._filter_entries = MagicMock(side_effect=lambda e, *a: list(e))
 
             note_explorer._group_articles_by_date = MagicMock(return_value={})
 
             await note_explorer.collect(days=1)
 
             # Should skip adding to candidate_articles, implying _group_articles_by_date receives empty list (if only duplicates)
-            # We mock _group_articles_by_date, so we check call args
-            args, _ = note_explorer._group_articles_by_date.call_args
-            assert len(args[0]) == 0
+            note_explorer._group_articles_by_date.assert_called_once_with([])
 
     @pytest.mark.asyncio
     async def test_collect_existing_files(self, note_explorer):
@@ -277,6 +280,7 @@ class TestCollect:
 
             assert len(saved) == 0
             note_explorer.storage.load.assert_awaited_with("2023-01-01.json")
+            note_explorer._group_articles_by_date.assert_called_once_with([])
 
     @pytest.mark.asyncio
     async def test_store_summaries(self, note_explorer):

@@ -165,6 +165,7 @@ class TestCollect:
 
         assert len(saved) == 1
         assert saved[0] == ("path.json", "path.md")
+        fourchan_explorer._store_summaries.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_collect_no_threads(self, fourchan_explorer):

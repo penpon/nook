@@ -175,6 +175,7 @@ class TestCollect:
 
             # But we verified that storage.load was called for "2023-01-01.json"
             qiita_explorer.storage.load.assert_awaited_with("2023-01-01.json")
+            qiita_explorer._group_articles_by_date.assert_called_once_with([])
 
     @pytest.mark.asyncio
     async def test_collect_flow(self, qiita_explorer):
@@ -220,6 +221,9 @@ class TestCollect:
                 feed_name="Feed",
             )
             qiita_explorer._retrieve_article = AsyncMock(return_value=mock_article)
+            qiita_explorer._filter_entries = MagicMock(
+                side_effect=lambda e, *a: list(e)
+            )
 
             qiita_explorer._summarize_article = AsyncMock()
             qiita_explorer._store_summaries_for_date = AsyncMock(
@@ -236,6 +240,9 @@ class TestCollect:
 
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
+            qiita_explorer._group_articles_by_date.assert_called_once_with(
+                [mock_article, mock_article]
+            )
 
     @pytest.mark.asyncio
     async def test_collect_skip_duplicates(self, qiita_explorer):
@@ -280,6 +287,9 @@ class TestCollect:
                 feed_name="Feed",
             )
             qiita_explorer._retrieve_article = AsyncMock(return_value=mock_article)
+            qiita_explorer._filter_entries = MagicMock(
+                side_effect=lambda e, *a: list(e)
+            )
             qiita_explorer._unique_articles = []  # Reset ? No, collect creates local list
 
             # Assuming no other articles, result should be empty if skipped
@@ -290,10 +300,8 @@ class TestCollect:
 
             assert len(result) == 0
             # Ensure _retrieve_article was called but added to candidates = NO
-            # How to check candidates? It's local variable.
             # We can check _group_articles_by_date call args
-            args, _ = qiita_explorer._group_articles_by_date.call_args
-            assert args[0] == []  # candidate_articles should be empty
+            qiita_explorer._group_articles_by_date.assert_called_once_with([])
 
     @pytest.mark.asyncio
     async def test_store_summaries(self, qiita_explorer):

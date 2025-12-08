@@ -168,7 +168,7 @@ class BusinessFeed(BaseFeedService):
             # 日付ごとに上位N件を選択して要約
             saved_files: list[tuple[str, str]] = []
             for date_str in sorted(articles_by_date.keys()):
-                _date_key, date_articles = date_str, articles_by_date[date_str]
+                date_articles = articles_by_date[date_str]
 
                 # その日の既存記事タイトルを取得
                 existing_titles_for_date = set()
