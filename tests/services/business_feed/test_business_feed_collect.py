@@ -19,7 +19,7 @@ def business_feed(monkeypatch: pytest.MonkeyPatch) -> BusinessFeed:
     feed.gpt_client = AsyncMock()
     feed.storage = AsyncMock()
     feed.logger = MagicMock()
-    # Mock dedup tracker loading
+    # 重複排除トラッカーの読み込みをモック化
     feed._get_all_existing_dates = AsyncMock(return_value=[])
     return feed
 
@@ -46,7 +46,7 @@ class TestRetrieveArticle:
             text="<html><body>English Content</body></html>"
         )
 
-        # Mock _detect_japanese_content to return False
+        # _detect_japanese_contentがFalseを返すようにモック化
         with patch.object(
             business_feed, "_detect_japanese_content", return_value=False
         ):
@@ -145,18 +145,18 @@ class TestCollect:
                 return_value=True,
             ),
         ):
-            # Setup dedup tracker
+            # 重複排除トラッカーをセットアップ
             mock_tracker = MagicMock()
             mock_tracker.is_duplicate.return_value = (False, "New Business Article")
             mock_load_dedup.return_value = mock_tracker
 
-            # Setup store return
+            # storeの戻り値をセットアップ
             mock_store.return_value = ("data/business.json", "data/business.md")
 
-            # Execute
+            # 実行
             results = await mock_feed_config.collect(days=1)
 
-            # Verification
+            # 検証
             assert len(results) == 1
             assert results[0] == ("data/business.json", "data/business.md")
 
@@ -198,16 +198,16 @@ class TestCollect:
                 mock_feed_config, "_summarize_article", new_callable=AsyncMock
             ) as mock_summarize,
         ):
-            # Setup dedup tracker
+            # 重複排除トラッカーをセットアップ
             mock_tracker = MagicMock()
             mock_tracker.is_duplicate.return_value = (True, "Duplicate Biz News")
             mock_tracker.get_original_title.return_value = "Original Biz News"
             mock_load_dedup.return_value = mock_tracker
 
-            # Execute
+            # 実行
             await mock_feed_config.collect(days=1)
 
-            # Verification
+            # 検証
             mock_retrieve.assert_called_once()
             mock_summarize.assert_not_called()
 

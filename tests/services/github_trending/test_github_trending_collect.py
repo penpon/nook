@@ -1,19 +1,19 @@
 """Tests for GithubTrending collect flow and repository retrieval logic."""
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from bs4 import BeautifulSoup
 
 from nook.services.github_trending.github_trending import GithubTrending, Repository
-from nook.common.exceptions import APIException
+from nook.common.exceptions import APIException, RetryException
 from nook.common.dedup import DedupTracker
 
 
 @pytest.fixture
 def trending(monkeypatch: pytest.MonkeyPatch) -> GithubTrending:
     """Create a GithubTrending instance with mocked dependencies."""
+    # モック化された依存関係を持つGithubTrendingインスタンスを作成
     monkeypatch.setenv("OPENAI_API_KEY", "test-api-key")
     service = GithubTrending()
     service.http_client = AsyncMock()
@@ -21,12 +21,12 @@ def trending(monkeypatch: pytest.MonkeyPatch) -> GithubTrending:
     service.storage = AsyncMock()
     service.logger = MagicMock()
 
-    # Mock rate_limit
+    # rate_limitをモック化
     service.rate_limit = AsyncMock()
 
-    # Mock config loading by overriding attributes if necessary,
-    # but normally __init__ loads them.
-    # For testing collect flow, we might need to mock languages_config
+    # 必要に応じて設定の属性をオーバーライド
+    # 通常は__init__で読み込まれる
+    # collectフローをテストする場合、languages_configをモック化する必要がある場合がある
 
     return service
 
@@ -78,7 +78,7 @@ class TestRetrieveRepositories:
         assert repos[1].description is None
         assert repos[1].stars == 500
 
-        # Verify URL construction
+        # URL構築の検証
         trending.http_client.get.assert_called_with(
             "https://github.com/trending/python"
         )
@@ -90,16 +90,7 @@ class TestRetrieveRepositories:
         trending.http_client.get.return_value = MagicMock(text=mock_html)
         dedup_tracker = DedupTracker()
 
-        # "any" maps to empty string in method call usually?
-        # Wait, the method takes `language`. If language is "any", it appends "/any"?
-        # Actually in collect: `await self._retrieve_repositories("any", ...)`
-        # Then in _retrieve_repositories: `if language: url += f"/{language}"`
-        # So "any" -> "https://github.com/trending/any" which is valid?
-        # Actually GitHub trending URL for "all languages" is just "https://github.com/trending".
-        # But the code says: `_retrieve_repositories("any", ...)`
-        # Let's check logic: `url = self.base_url; if language: url += ...`
-        # If "any" is passed, it becomes `/trending/any`.
-        # Is that correct? The code seems to use "any" as a language parameter.
+        # "any"の場合、正しいURLが呼ばれるか確認
 
         await trending._retrieve_repositories("any", 5, dedup_tracker)
         trending.http_client.get.assert_called_with("https://github.com/trending")
@@ -110,7 +101,7 @@ class TestRetrieveRepositories:
         """Should skip repositories already in dedup_tracker."""
         trending.http_client.get.return_value = MagicMock(text=mock_html)
         dedup_tracker = DedupTracker()
-        dedup_tracker.add("owner/repo1")  # Already exists
+        dedup_tracker.add("owner/repo1")  # 既に存在
 
         repos = await trending._retrieve_repositories("python", 5, dedup_tracker)
 
@@ -118,14 +109,14 @@ class TestRetrieveRepositories:
         assert repos[0].name == "owner/repo2"
 
     async def test_handles_exception_and_retry(self, trending: GithubTrending) -> None:
-        """Should raise Exception on extraction error (likely wrapped in retry logic)."""
+        """Should raise RetryException on extraction error."""
         trending.http_client.get.side_effect = Exception("Connection Refused")
         dedup_tracker = DedupTracker()
 
-        # Depending on implementation it might raise APIException or let RetryException bubble up
-        # We accept generic Exception here to be safe across implementations
-        with pytest.raises(Exception):
+        with pytest.raises(RetryException) as exc_info:
             await trending._retrieve_repositories("python", 5, dedup_tracker)
+
+        assert "Failed to retrieve repositories" in str(exc_info.value)
 
     async def test_handles_invalid_star_count(self, trending: GithubTrending) -> None:
         """Should handle invalid star count gracefully (default to 0)."""
@@ -158,7 +149,7 @@ class TestStoreSummaries:
         repos_by_lang = [("python", [repo])]
         target_date = date(2024, 1, 1)
 
-        # Mock dependencies used inside _store_summaries_for_date
+        # _store_summaries_for_date内で使用される依存関係をモック化
         with (
             patch(
                 "nook.services.github_trending.github_trending.store_daily_snapshots",
@@ -236,7 +227,7 @@ class TestLoadExistingRepositoriesByDate:
         names = {r["name"] for r in result}
         assert "py_repo" in names
         assert "rs_repo" in names
-        # Check language field injection
+        # languageフィールドの注入を確認
         py_repo = next(r for r in result if r["name"] == "py_repo")
         assert py_repo["language"] == "python"
 
@@ -248,7 +239,7 @@ class TestLoadExistingRepositoriesByDate:
         trending.load_json = AsyncMock(return_value=None)
         trending.storage.load.return_value = "# Markdown Content"
 
-        # Mock _parse_markdown to verify it's called
+        # _parse_markdownが呼ばれることを検証するためモック化
         with patch.object(
             trending, "_parse_markdown", return_value=[{"name": "md_repo"}]
         ) as mock_parse:
@@ -294,7 +285,7 @@ class TestTranslateRepositories:
 
         trending.gpt_client.generate_async.side_effect = Exception("GPT Error")
 
-        # Must verify safe exception handling
+        # 安全な例外処理を検証
         result = await trending._translate_repositories(repos_by_lang)
 
         assert result[0][1][0].description == "Original"
@@ -310,14 +301,14 @@ class TestCollect:
         trending.languages_config = {"general": ["python"], "specific": ["rust"]}
         return trending
 
-    # FIX: mock_load must be async mock
+    # 修正: mock_loadはasync mockである必要がある
     async def test_collect_flow_success(self, mock_trending_configured: GithubTrending):
         """Test successful collection flow."""
         repo_py = Repository(name="o/py", description="desc", link="l", stars=100)
         repo_rs = Repository(name="o/rs", description="desc", link="l", stars=200)
         repo_any = Repository(name="o/any", description="desc", link="l", stars=50)
 
-        # Mock dependencies
+        # 依存関係をモック化
         with (
             patch.object(
                 mock_trending_configured,
@@ -359,9 +350,9 @@ class TestCollect:
             assert len(results) == 1
             assert results[0] == ("path/json", "path/md")
 
-            # Check calls
+            # 呼び出し確認
             assert mock_retrieve.call_count == 3  # any, python, rust
-            # Verify rate limit calls: 3 retrievals + translation (calls inside translation)
+            # レート制限の呼び出しを確認: 3回の取得 + 翻訳
             assert mock_trending_configured.rate_limit.call_count >= 3
 
     async def test_no_new_repositories(self, mock_trending_configured: GithubTrending):
@@ -387,7 +378,7 @@ class TestCollect:
                 new_callable=AsyncMock,
             ) as mock_translate,
         ):
-            # Setup existing to match retrieved
+            # 取得したものと一致するように既存のものをセットアップ
             mock_load.return_value = [{"name": "o/exist"}]
 
             results = await mock_trending_configured.collect(
@@ -395,4 +386,4 @@ class TestCollect:
             )
 
             assert len(results) == 0
-            mock_translate.assert_not_called()  # Translation should be skipped
+            mock_translate.assert_not_called()  # 翻訳はスキップされるべき

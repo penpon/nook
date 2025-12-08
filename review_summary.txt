@@ -1,0 +1,1226 @@
+ID: 3550612711
+User: copilot-pull-request-reviewer[bot]
+State: COMMENTED
+Body: ## Pull request overview
+
+Copilot reviewed 4 out of 4 changed files in this pull request and generated 1 comment.
+
+
+
+
+--------------------
+ID: 3550647685
+User: coderabbitai[bot]
+State: COMMENTED
+Body: **Actionable comments posted: 2**
+
+<details>
+<summary>♻️ Duplicate comments (6)</summary><blockquote>
+
+<details>
+<summary>tests/services/github_trending/test_github_trending_collect.py (4)</summary><blockquote>
+
+`3-11`: **未使用インポートを削除して Ruff の警告を解消してください**
+
+`timezone`, `BeautifulSoup`, `APIException` がこのテスト内で使用されていないため、Ruff の未使用インポート警告の原因になります。削除することを推奨します。
+
+```diff
+-from datetime import date, datetime, timezone
++from datetime import date, datetime
+@@
+-import pytest
+-from bs4 import BeautifulSoup
+-
+-from nook.services.github_trending.github_trending import GithubTrending, Repository
+-from nook.common.exceptions import APIException
++import pytest
++
++from nook.services.github_trending.github_trending import GithubTrending, Repository
+ from nook.common.dedup import DedupTracker
+```
+
+---
+
+`86-105`: **`test_retrieve_any_language` の長い推測的コメントは削除し、テストの意図だけを短く残すと読みやすくなります**
+
+現在のコメント（93–103 行目）は実装の推測や疑問が多く、実際のロジック（`language == "any"` の場合はベース URL のみを使う）とずれている可能性があります。テストとしては「`"any"` を渡した場合に `https://github.com/trending` が呼ばれる」ことだけ分かれば十分なので、コメントは削除／簡素化する方が保守しやすいです。
+
+```diff
+     async def test_retrieve_any_language(
+         self, trending: GithubTrending, mock_html: str
+     ) -> None:
+         """Should handle retrieval for 'any' language (empty string in logic)."""
+         trending.http_client.get.return_value = MagicMock(text=mock_html)
+         dedup_tracker = DedupTracker()
+ 
+-        # "any" maps to empty string in method call usually?
+-        # Wait, the method takes `language`. If language is "any", it appends "/any"?
+-        # Actually in collect: `await self._retrieve_repositories("any", ...)`
+-        # Then in _retrieve_repositories: `if language: url += f"/{language}"`
+-        # So "any" -> "https://github.com/trending/any" which is valid?
+-        # Actually GitHub trending URL for "all languages" is just "https://github.com/trending".
+-        # But the code says: `_retrieve_repositories("any", ...)`
+-        # Let's check logic: `url = self.base_url; if language: url += ...`
+-        # If "any" is passed, it becomes `/trending/any`.
+-        # Is that correct? The code seems to use "any" as a language parameter.
+-
+         await trending._retrieve_repositories("any", 5, dedup_tracker)
+         trending.http_client.get.assert_called_with("https://github.com/trending")
+```
+
+---
+
+`120-129`: **例外テストでは `APIException` とメッセージを明示的に検証した方がよいです**
+
+実装側では `_retrieve_repositories` 内で例外をキャッチして `APIException` を送出しているため、`pytest.raises(Exception)` だと雑すぎます。ガイドラインにもある通り、例外型とメッセージを明示的に検証することを推奨します。
+
+```diff
+-    async def test_handles_exception_and_retry(self, trending: GithubTrending) -> None:
+-        """Should raise Exception on extraction error (likely wrapped in retry logic)."""
++    async def test_handles_exception_and_retry(self, trending: GithubTrending) -> None:
++        """Should raise APIException on extraction error."""
+         trending.http_client.get.side_effect = Exception("Connection Refused")
+         dedup_tracker = DedupTracker()
+ 
+-        # Depending on implementation it might raise APIException or let RetryException bubble up
+-        # We accept generic Exception here to be safe across implementations
+-        with pytest.raises(Exception):
+-            await trending._retrieve_repositories("python", 5, dedup_tracker)
++        with pytest.raises(APIException) as exc_info:
++            await trending._retrieve_repositories("python", 5, dedup_tracker)
++
++        assert "Connection Refused" in str(exc_info.value)
+```
+
+
+
+
+```shell
+#!/bin/bash
+# _retrieve_repositories が実際に APIException を送出しているか確認するための補助スクリプト
+
+rg -n "async def _retrieve_repositories" nook/services/github_trending/github_trending.py -n -C5
+rg -n "raise APIException" nook/services/github_trending/github_trending.py -n -C3
+```
+
+---
+
+`34-80`: **Remove unused imports that prevent test execution: `BeautifulSoup`, `APIException`, and `timezone`**
+
+The test file imports three modules that are never used in the code:
+- Line 7: `BeautifulSoup` from `bs4`
+- Line 10: `APIException` from `nook.common.exceptions`  
+- Line 3: `timezone` from `datetime`
+
+These unused imports prevent pytest from collecting and running the tests. While the test design and mock structure are well-conceived with good coverage of happy paths, edge cases, and error scenarios, these imports must be removed for the tests to execute.
+
+Note: The project's Ruff configuration only enables security checks (`"S"` flag) and does not include standard code quality checks that would flag unused imports.
+
+</blockquote></details>
+<details>
+<summary>tests/services/tech_feed/test_tech_feed_collect.py (2)</summary><blockquote>
+
+`90-99`: **ロガーメッセージの検証をもう少し明確にするとテスト意図が伝わりやすくなります**
+
+現在は `str(tech_feed.logger.error.call_args)` から文字列を検索していますが、最初の引数だけを取り出して確認した方が、ログメッセージの検証として明確です（機能は変わりませんが可読性向上になります）。
+
+```diff
+-        assert result is None
+-        tech_feed.logger.error.assert_called_once()
+-        assert "Network Error" in str(tech_feed.logger.error.call_args)
++        assert result is None
++        tech_feed.logger.error.assert_called_once()
++        # エラーメッセージの先頭引数を直接検証
++        call_msg = tech_feed.logger.error.call_args[0][0]
++        assert "Network Error" in call_msg
+```
+
+---
+
+`238-262`: **テスト名と実際の検証内容が一致していない／コメントが混乱を招いている**
+
+このテストは実際には「`http_client` が `None` の場合に `setup_http_client` が呼ばれること」を `real_feed` で検証していますが、テスト名は「すでにセットされている場合に `setup_http_client` が呼ばれない」と読めるため、意図とずれています。また、`tech_feed` フィクスチャに対する設定は後続の検証には使われておらず、コメントも英語でやや分かりにくいです。
+
+テスト名／docstring を挙動に合わせて修正し、コメントを簡潔にすると読みやすくなります。
+
+```diff
+-    async def test_no_setup_http_client_called_if_already_set(
+-        self, tech_feed: TechFeed
+-    ):
+-        """Should check http_client initialization."""
+-        tech_feed.http_client = AsyncMock()  # Already set
+-        tech_feed.collect = AsyncMock()  # to avoid running full logic
+-
+-        # We need to test the logic inside collect about setup_http_client
+-        # but since we mock collect, we can't.
+-        # Instead, verify setup_http_client is called if http_client is None in integration style
++    async def test_setup_http_client_called_if_not_set(
++        self, tech_feed: TechFeed
++    ) -> None:
++        """http_client が None の場合に setup_http_client が 1 回呼ばれることを確認する。"""
++        # フィクスチャを使うことで OPENAI_API_KEY などの環境は整えておく
++        tech_feed.http_client = AsyncMock()  # このテストでは実際には使用しない
++        tech_feed.collect = AsyncMock()  # collect 本体はここでは検証しない
+@@
+-        real_feed.feed_config = {}  # Empty config to finish quickly
++        real_feed.feed_config = {}  # 空の設定ですぐに終了させる
+```
+
+</blockquote></details>
+
+</blockquote></details>
+
+<details>
+<summary>📜 Review details</summary>
+
+**Configuration used**: Path: .coderabbit.yaml
+
+**Review profile**: CHILL
+
+**Plan**: Pro
+
+<details>
+<summary>📥 Commits</summary>
+
+Reviewing files that changed from the base of the PR and between ace424265fc04c91bcaad83d95923e24de49f3c0 and e7f8edca4cc9ce3361194ad520dcb012ea480713.
+
+</details>
+
+<details>
+<summary>📒 Files selected for processing (3)</summary>
+
+* `tests/services/business_feed/test_business_feed_collect.py` (1 hunks)
+* `tests/services/github_trending/test_github_trending_collect.py` (1 hunks)
+* `tests/services/tech_feed/test_tech_feed_collect.py` (1 hunks)
+
+</details>
+
+<details>
+<summary>🚧 Files skipped from review as they are similar to previous changes (1)</summary>
+
+* tests/services/business_feed/test_business_feed_collect.py
+
+</details>
+
+<details>
+<summary>🧰 Additional context used</summary>
+
+<details>
+<summary>📓 Path-based instructions (3)</summary>
+
+<details>
+<summary>**/*.{py,txt,json}</summary>
+
+
+**📄 CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> Hardcoded credentials (RAPRAS_USERNAME, RAPRAS_PASSWORD, PROXY_PASSWORD, etc.) are strictly prohibited - use environment variables instead
+
+Files:
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+<details>
+<summary>**/*.py</summary>
+
+
+**📄 CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> `**/*.py`: Do not log passwords or phone numbers in any log statements
+> Address all bandit High severity security warnings
+> Maintain module boundary compliance - do not reverse the Scraper → Analyzer → Storage dependency order
+> Use constructor dependency injection instead of directly instantiating external dependencies within class methods
+> Use absolute imports instead of relative imports (avoid `from .module import`)
+> Avoid wildcard imports (`from module import *`) - always use explicit imports
+> Format all code to comply with Black formatter standards (line length ≤ 100 characters)
+> Resolve all Ruff linter errors including unused imports, unused variables, and other code quality issues
+> Include complete type hints for all function parameters and return types
+> Include comprehensive Google-style docstrings for all functions and methods with Args, Returns, and Raises sections
+> Maintain minimum test coverage of 80% for all new code
+> Keep files to a maximum of 500 lines of code
+> Keep individual functions to a maximum of 50 lines of code
+> Limit nesting depth to a maximum of 3 levels
+> Limit classes to a maximum of 15 methods
+> Use PascalCase for all class names
+> Use snake_case for all function and variable names
+> Use UPPER_SNAKE_CASE for all constant names
+> Prefix private methods with underscore using `_snake_case` naming convention
+> Avoid exception swallowing - never use bare `except:` or `except: pass` statements
+> Use specific exception types instead of generic Exception class in except statements
+> Implement exponential backoff strategy when implementing retry logic
+> Use async/await pattern appropriately for asynchronous operations and Playwright browser operations
+> Use proper asyncio patterns - avoid inappropriate use of `asyncio.run()` in async contexts
+
+Files:
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+---
+
+**⚙️ CodeRabbit configuration file**
+
+> 行の長さが88文字以内であれば指摘しない。プロジェクトはRuffで88文字の行長制限を使用している。
+
+Files:
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+<details>
+<summary>**/*test*.py</summary>
+
+
+**📄 CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> `**/*test*.py`: Write sufficient tests for all new implementations - do not delete existing tests to maintain coverage
+> Follow test design matrix structure when creating test cases for new implementations
+> Ensure error case tests are at least as numerous as normal case tests (error cases ≥ normal cases)
+> Validate exception type and message using pytest.raises context manager in all error case tests
+
+Files:
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+
+</details><details>
+<summary>🧠 Learnings (5)</summary>
+
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: All code review comments must be written in Japanese regardless of internal thinking language
+```
+
+**Applied to files:**
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*.py : Use proper asyncio patterns - avoid inappropriate use of `asyncio.run()` in async contexts
+```
+
+**Applied to files:**
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*.py : Use async/await pattern appropriately for asynchronous operations and Playwright browser operations
+```
+
+**Applied to files:**
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*.py : Resolve all Ruff linter errors including unused imports, unused variables, and other code quality issues
+```
+
+**Applied to files:**
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*test*.py : Validate exception type and message using pytest.raises context manager in all error case tests
+```
+
+**Applied to files:**
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+
+</details><details>
+<summary>🧬 Code graph analysis (2)</summary>
+
+<details>
+<summary>tests/services/tech_feed/test_tech_feed_collect.py (2)</summary><blockquote>
+
+<details>
+<summary>nook/services/base_feed_service.py (2)</summary>
+
+* `Article` (18-46)
+* `_get_all_existing_dates` (66-91)
+
+</details>
+<details>
+<summary>nook/common/dedup.py (2)</summary>
+
+* `is_duplicate` (101-117)
+* `get_original_title` (139-153)
+
+</details>
+
+</blockquote></details>
+<details>
+<summary>tests/services/github_trending/test_github_trending_collect.py (6)</summary><blockquote>
+
+<details>
+<summary>nook/services/github_trending/github_trending.py (7)</summary>
+
+* `GithubTrending` (53-619)
+* `Repository` (31-50)
+* `_retrieve_repositories` (226-305)
+* `_store_summaries_for_date` (391-432)
+* `_load_existing_repositories_by_date` (499-518)
+* `_translate_repositories` (320-389)
+* `collect` (81-223)
+
+</details>
+<details>
+<summary>nook/common/exceptions.py (1)</summary>
+
+* `APIException` (13-21)
+
+</details>
+<details>
+<summary>nook/common/dedup.py (2)</summary>
+
+* `DedupTracker` (89-164)
+* `add` (119-137)
+
+</details>
+<details>
+<summary>nook/common/base_service.py (1)</summary>
+
+* `rate_limit` (50-52)
+
+</details>
+<details>
+<summary>nook/common/storage.py (1)</summary>
+
+* `load` (157-164)
+
+</details>
+<details>
+<summary>nook/common/gpt_client.py (1)</summary>
+
+* `generate_async` (341-378)
+
+</details>
+
+</blockquote></details>
+
+</details>
+
+</details>
+
+<details>
+<summary>⏰ Context from checks skipped due to timeout of 90000ms. You can increase the timeout in your CodeRabbit configuration to a maximum of 15 minutes (900000ms). (1)</summary>
+
+* GitHub Check: Agent
+
+</details>
+
+<details>
+<summary>🔇 Additional comments (1)</summary><blockquote>
+
+<details>
+<summary>tests/services/tech_feed/test_tech_feed_collect.py (1)</summary><blockquote>
+
+`13-24`: **`tech_feed`フィクスチャの構成は妥当です**
+
+依存関係をすべてモック化しており、実ネットワークやストレージに依存しない形で TechFeed をテストできているので、このセットアップはそのままで問題ないと思います。
+
+</blockquote></details>
+
+</blockquote></details>
+
+</details>
+
+<!-- This is an auto-generated comment by CodeRabbit for review status -->
+--------------------
+ID: 3550664184
+User: coderabbitai[bot]
+State: COMMENTED
+Body: **Actionable comments posted: 3**
+
+<details>
+<summary>♻️ Duplicate comments (28)</summary><blockquote>
+
+<details>
+<summary>tests/services/tech_feed/test_tech_feed_collect.py (11)</summary><blockquote>
+
+`22-22`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。プロジェクトのコーディング規約に従い、日本語で記述することが必要です。
+
+修正例:
+```python
+# 重複排除トラッカーの読み込みをモック化
+```
+
+---
+
+`42-42`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+del entry.summary  # summaryが存在しない場合のフェッチをトリガー
+```
+
+---
+
+`59-59`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+# summaryをNoneに明示的に設定し、メタディスクリプションまたは本文へのフォールバックを確認
+del entry.summary
+```
+
+---
+
+`79-79`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+entry.summary = "Entry Summary"  # summaryを明示的に設定
+```
+
+---
+
+`114-118`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# feedparserをモック化
+mock_entry = MagicMock(title="New Article", link="http://example.com/new")
+# _filter_entriesの日付フィルタをバイパスする必要がある
+# _filter_entriesをモック化するか、target_datesを適切に設定する
+# 簡略化のため_filter_entriesをモック化
+```
+
+---
+
+`154-176`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# 重複排除トラッカーのモックをセットアップ
+mock_tracker = MagicMock()
+mock_tracker.is_duplicate.return_value = (False, "New Article")
+mock_load_dedup.return_value = mock_tracker
+
+# storeの戻り値をセットアップ
+mock_store.return_value = ("path/to/json", "path/to/md")
+```
+
+---
+
+`221-221`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+mock_summarize.assert_not_called()  # 要約されるべきではない
+```
+
+---
+
+`234-236`: **コメントを日本語で記述してください。**
+
+英語コメントが含まれています。
+
+修正例:
+```python
+# エラーがログに記録されているはず
+mock_feed_config.logger.error.assert_called()
+assert "Feed Error" in str(mock_feed_config.logger.error.call_args)
+```
+
+---
+
+`144-146`: **`_retrieve_article`を`AsyncMock`でモック化してください。**
+
+`_retrieve_article`は`async def`として定義されており、`collect()`内で`await`されます。通常の`MagicMock`を使用すると、`collect()`が結果を`await`しようとしたときに`TypeError`が発生します。
+
+修正方法:
+```python
+patch.object(
+    mock_feed_config,
+    "_retrieve_article",
+    new_callable=AsyncMock,
+) as mock_retrieve,
+```
+
+その後、モック設定後に`mock_retrieve.return_value = mock_article`を設定してください。
+
+---
+
+`203-205`: **`_retrieve_article`を`AsyncMock`でモック化してください。**
+
+`_retrieve_article`は非同期メソッドであり、`new_callable=AsyncMock`を使用する必要があります。
+
+---
+
+`238-262`: **テスト名が実際の動作と一致していません。**
+
+テスト名は「既に設定されている場合にsetup_http_clientが呼ばれない」ことを示唆していますが、実際には「http_clientがNoneの場合にsetup_http_clientが呼ばれる」ことを検証しています。
+
+また、複数の英語コメントが含まれています。日本語での記述が必要です。
+
+修正例:
+```python
+async def test_setup_http_client_called_when_none(
+    self, tech_feed: TechFeed
+):
+    """http_clientがNoneの場合にsetup_http_clientが呼ばれることを確認。"""
+    real_feed = TechFeed()
+    real_feed.http_client = None
+    real_feed.setup_http_client = AsyncMock()
+    real_feed.feed_config = {}  # 空の設定ですぐに終了
+    real_feed._get_all_existing_dates = AsyncMock(return_value=[])
+    real_feed.logger = MagicMock()
+
+    with patch(
+        "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
+        new_callable=AsyncMock,
+    ):
+        await real_feed.collect()
+
+    real_feed.setup_http_client.assert_awaited_once()
+```
+
+</blockquote></details>
+<details>
+<summary>tests/services/business_feed/test_business_feed_collect.py (4)</summary><blockquote>
+
+`22-22`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+# 重複排除トラッカーの読み込みをモック化
+```
+
+---
+
+`44-44`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+del entry.summary  # 記事本文のフェッチをトリガーするため
+```
+
+---
+
+`148-165`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# 重複排除トラッカーをセットアップ
+mock_tracker = MagicMock()
+mock_tracker.is_duplicate.return_value = (False, "New Business Article")
+mock_load_dedup.return_value = mock_tracker
+
+# storeの戻り値をセットアップ
+mock_store.return_value = ("data/business.json", "data/business.md")
+
+# 実行
+results = await mock_feed_config.collect(days=1)
+
+# 検証
+assert len(results) == 1
+```
+
+---
+
+`201-212`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# 重複排除トラッカーをセットアップ
+mock_tracker = MagicMock()
+mock_tracker.is_duplicate.return_value = (True, "Duplicate Biz News")
+mock_tracker.get_original_title.return_value = "Original Biz News"
+mock_load_dedup.return_value = mock_tracker
+
+# 実行
+await mock_feed_config.collect(days=1)
+
+# 検証
+mock_retrieve.assert_called_once()
+mock_summarize.assert_not_called()
+```
+
+</blockquote></details>
+<details>
+<summary>tests/services/github_trending/test_github_trending_collect.py (13)</summary><blockquote>
+
+`24-29`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# rate_limitをモック化
+service.rate_limit = AsyncMock()
+
+# 必要に応じて設定の属性をオーバーライド
+# 通常は__init__で読み込まれる
+# collectフローをテストする場合、languages_configをモック化する必要がある場合がある
+```
+
+---
+
+`81-84`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+# URL構築の検証
+trending.http_client.get.assert_called_with(
+    "https://github.com/trending/python"
+)
+```
+
+---
+
+`113-113`: **コメントを日本語で記述してください。**
+
+インラインコメントが英語で記述されています。
+
+修正例:
+```python
+dedup_tracker.add("owner/repo1")  # 既に存在
+```
+
+---
+
+`161-169`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# _store_summaries_for_date内で使用される依存関係をモック化
+with (
+    patch(
+        "nook.services.github_trending.github_trending.store_daily_snapshots",
+        new_callable=AsyncMock,
+    ) as mock_store_snapshots,
+```
+
+---
+
+`239-241`: **コメントを日本語で記述してください。**
+
+英語コメントが含まれています。
+
+修正例:
+```python
+# language フィールドの注入を確認
+py_repo = next(r for r in result if r["name"] == "py_repo")
+assert py_repo["language"] == "python"
+```
+
+---
+
+`251-259`: **コメントを日本語で記述してください。**
+
+英語コメントが含まれています。
+
+修正例:
+```python
+# _parse_markdownが呼ばれることを検証するためモック化
+with patch.object(
+    trending, "_parse_markdown", return_value=[{"name": "md_repo"}]
+) as mock_parse:
+```
+
+---
+
+`320-365`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# 依存関係をモック化
+with (
+    patch.object(
+        mock_trending_configured,
+        "_load_existing_repositories_by_date",
+        new_callable=AsyncMock,
+    ) as mock_load,
+    # ...
+
+# 呼び出しを確認
+assert mock_retrieve.call_count == 3  # any, python, rust
+# rate limitの呼び出しを検証: 3回の取得 + 翻訳内の呼び出し
+assert mock_trending_configured.rate_limit.call_count >= 3
+```
+
+---
+
+`390-398`: **コメントを日本語で記述してください。**
+
+複数の英語コメントが含まれています。
+
+修正例:
+```python
+# 既存のリポジトリが取得したものと一致するように設定
+mock_load.return_value = [{"name": "o/exist"}]
+
+results = await mock_trending_configured.collect(
+    limit=1, target_dates=[date(2024, 1, 1)]
+)
+
+assert len(results) == 0
+mock_translate.assert_not_called()  # 翻訳はスキップされるべき
+```
+
+---
+
+`93-105`: **冗長なコメントブロックを削除してください。**
+
+Lines 93-102の長いコメントブロックは、実装の検証ではなく推測や疑問を記述しており、テストコードの可読性を下げています。
+
+実装が正しく動作することを確認した上で、必要最小限の説明のみを残してください。
+
+修正例:
+```python
+async def test_retrieve_any_language(
+    self, trending: GithubTrending, mock_html: str
+) -> None:
+    """Should handle retrieval for 'any' language."""
+    trending.http_client.get.return_value = MagicMock(text=mock_html)
+    dedup_tracker = DedupTracker()
+
+    await trending._retrieve_repositories("any", 5, dedup_tracker)
+    trending.http_client.get.assert_called_with("https://github.com/trending")
+```
+
+---
+
+`120-128`: **例外の型とメッセージを明示的に検証してください。**
+
+プロジェクトのコーディング規約では、`pytest.raises`を使用して例外の型とメッセージを検証することが求められています。
+
+修正例:
+```python
+async def test_handles_exception_and_retry(self, trending: GithubTrending) -> None:
+    """Should raise APIException on extraction error."""
+    trending.http_client.get.side_effect = Exception("Connection Refused")
+    dedup_tracker = DedupTracker()
+
+    with pytest.raises(APIException, match="Connection Refused"):
+        await trending._retrieve_repositories("python", 5, dedup_tracker)
+```
+
+実装を確認し、実際に発生する例外の型（`APIException`など）を特定して使用してください。
+
+---
+
+`313-313`: **開発中のコメントを削除してください。**
+
+コメント「FIX: mock_load must be async mock」は開発中のメモと思われます。`mock_load`は既に`AsyncMock`として正しく設定されているため、このコメントは不要です。
+
+---
+
+`328-335`: **`_retrieve_repositories`を`AsyncMock`でモック化してください。**
+
+`_retrieve_repositories`は`async def`として定義されており、`collect()`内で`await`されます（lines 135, 143, 151）。通常の`Mock`を使用すると、`await`実行時に不正な動作を引き起こします。
+
+修正方法:
+```python
+patch.object(
+    mock_trending_configured,
+    "_retrieve_repositories",
+    new_callable=AsyncMock,
+) as mock_retrieve,
+```
+
+その後、with-block内で`mock_retrieve.side_effect = [...]`を設定してください。
+
+---
+
+`380-382`: **`_retrieve_repositories`を`AsyncMock`でモック化してください。**
+
+`_retrieve_repositories`は非同期メソッドであり、`new_callable=AsyncMock`を使用する必要があります。
+
+修正方法:
+```python
+patch.object(
+    mock_trending_configured,
+    "_retrieve_repositories",
+    new_callable=AsyncMock,
+) as mock_retrieve,
+```
+
+その後、`mock_retrieve.return_value = [repo_existing]`を設定してください。
+
+</blockquote></details>
+
+</blockquote></details>
+
+<details>
+<summary>📜 Review details</summary>
+
+**Configuration used**: Path: .coderabbit.yaml
+
+**Review profile**: CHILL
+
+**Plan**: Pro
+
+<details>
+<summary>📥 Commits</summary>
+
+Reviewing files that changed from the base of the PR and between 2909a434eba8d66374e711d845ec170f299d7d28 and e7f8edca4cc9ce3361194ad520dcb012ea480713.
+
+</details>
+
+<details>
+<summary>📒 Files selected for processing (4)</summary>
+
+* `nook/services/github_trending/github_trending.py` (1 hunks)
+* `tests/services/business_feed/test_business_feed_collect.py` (1 hunks)
+* `tests/services/github_trending/test_github_trending_collect.py` (1 hunks)
+* `tests/services/tech_feed/test_tech_feed_collect.py` (1 hunks)
+
+</details>
+
+<details>
+<summary>🧰 Additional context used</summary>
+
+<details>
+<summary>📓 Path-based instructions (3)</summary>
+
+<details>
+<summary>**/*.{py,txt,json}</summary>
+
+
+**📄 CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> Hardcoded credentials (RAPRAS_USERNAME, RAPRAS_PASSWORD, PROXY_PASSWORD, etc.) are strictly prohibited - use environment variables instead
+
+Files:
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+- `nook/services/github_trending/github_trending.py`
+
+</details>
+<details>
+<summary>**/*.py</summary>
+
+
+**📄 CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> `**/*.py`: Do not log passwords or phone numbers in any log statements
+> Address all bandit High severity security warnings
+> Maintain module boundary compliance - do not reverse the Scraper → Analyzer → Storage dependency order
+> Use constructor dependency injection instead of directly instantiating external dependencies within class methods
+> Use absolute imports instead of relative imports (avoid `from .module import`)
+> Avoid wildcard imports (`from module import *`) - always use explicit imports
+> Format all code to comply with Black formatter standards (line length ≤ 100 characters)
+> Resolve all Ruff linter errors including unused imports, unused variables, and other code quality issues
+> Include complete type hints for all function parameters and return types
+> Include comprehensive Google-style docstrings for all functions and methods with Args, Returns, and Raises sections
+> Maintain minimum test coverage of 80% for all new code
+> Keep files to a maximum of 500 lines of code
+> Keep individual functions to a maximum of 50 lines of code
+> Limit nesting depth to a maximum of 3 levels
+> Limit classes to a maximum of 15 methods
+> Use PascalCase for all class names
+> Use snake_case for all function and variable names
+> Use UPPER_SNAKE_CASE for all constant names
+> Prefix private methods with underscore using `_snake_case` naming convention
+> Avoid exception swallowing - never use bare `except:` or `except: pass` statements
+> Use specific exception types instead of generic Exception class in except statements
+> Implement exponential backoff strategy when implementing retry logic
+> Use async/await pattern appropriately for asynchronous operations and Playwright browser operations
+> Use proper asyncio patterns - avoid inappropriate use of `asyncio.run()` in async contexts
+
+Files:
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+- `nook/services/github_trending/github_trending.py`
+
+---
+
+**⚙️ CodeRabbit configuration file**
+
+> 行の長さが88文字以内であれば指摘しない。プロジェクトはRuffで88文字の行長制限を使用している。
+
+Files:
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+- `nook/services/github_trending/github_trending.py`
+
+</details>
+<details>
+<summary>**/*test*.py</summary>
+
+
+**📄 CodeRabbit inference engine (.github/copilot-instructions.md)**
+
+> `**/*test*.py`: Write sufficient tests for all new implementations - do not delete existing tests to maintain coverage
+> Follow test design matrix structure when creating test cases for new implementations
+> Ensure error case tests are at least as numerous as normal case tests (error cases ≥ normal cases)
+> Validate exception type and message using pytest.raises context manager in all error case tests
+
+Files:
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+
+</details>
+
+</details><details>
+<summary>🧠 Learnings (5)</summary>
+
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: All code review comments must be written in Japanese regardless of internal thinking language
+```
+
+**Applied to files:**
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*test*.py : Validate exception type and message using pytest.raises context manager in all error case tests
+```
+
+**Applied to files:**
+- `tests/services/github_trending/test_github_trending_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*.py : Use proper asyncio patterns - avoid inappropriate use of `asyncio.run()` in async contexts
+```
+
+**Applied to files:**
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*.py : Use async/await pattern appropriately for asynchronous operations and Playwright browser operations
+```
+
+**Applied to files:**
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+
+</details>
+<details>
+<summary>📚 Learning: 2025-12-07T05:48:32.422Z</summary>
+
+```
+Learnt from: CR
+Repo: penpon/nook PR: 0
+File: .github/copilot-instructions.md:0-0
+Timestamp: 2025-12-07T05:48:32.422Z
+Learning: Applies to **/*.py : Resolve all Ruff linter errors including unused imports, unused variables, and other code quality issues
+```
+
+**Applied to files:**
+- `tests/services/github_trending/test_github_trending_collect.py`
+- `tests/services/tech_feed/test_tech_feed_collect.py`
+- `tests/services/business_feed/test_business_feed_collect.py`
+
+</details>
+
+</details><details>
+<summary>🧬 Code graph analysis (3)</summary>
+
+<details>
+<summary>tests/services/github_trending/test_github_trending_collect.py (5)</summary><blockquote>
+
+<details>
+<summary>nook/services/github_trending/github_trending.py (7)</summary>
+
+* `GithubTrending` (53-619)
+* `Repository` (31-50)
+* `_retrieve_repositories` (226-305)
+* `_store_summaries_for_date` (391-432)
+* `_load_existing_repositories_by_date` (499-518)
+* `_translate_repositories` (320-389)
+* `collect` (81-223)
+
+</details>
+<details>
+<summary>nook/common/exceptions.py (1)</summary>
+
+* `APIException` (13-21)
+
+</details>
+<details>
+<summary>nook/common/dedup.py (2)</summary>
+
+* `DedupTracker` (89-164)
+* `add` (119-137)
+
+</details>
+<details>
+<summary>nook/common/base_service.py (1)</summary>
+
+* `rate_limit` (50-52)
+
+</details>
+<details>
+<summary>nook/common/storage.py (1)</summary>
+
+* `load` (157-164)
+
+</details>
+
+</blockquote></details>
+<details>
+<summary>tests/services/tech_feed/test_tech_feed_collect.py (3)</summary><blockquote>
+
+<details>
+<summary>nook/services/tech_feed/tech_feed.py (1)</summary>
+
+* `TechFeed` (28-445)
+
+</details>
+<details>
+<summary>nook/services/base_feed_service.py (2)</summary>
+
+* `Article` (18-46)
+* `_get_all_existing_dates` (66-91)
+
+</details>
+<details>
+<summary>nook/common/dedup.py (2)</summary>
+
+* `is_duplicate` (101-117)
+* `get_original_title` (139-153)
+
+</details>
+
+</blockquote></details>
+<details>
+<summary>tests/services/business_feed/test_business_feed_collect.py (2)</summary><blockquote>
+
+<details>
+<summary>nook/services/base_feed_service.py (2)</summary>
+
+* `Article` (18-46)
+* `_get_all_existing_dates` (66-91)
+
+</details>
+<details>
+<summary>nook/common/dedup.py (1)</summary>
+
+* `is_duplicate` (101-117)
+
+</details>
+
+</blockquote></details>
+
+</details>
+
+</details>
+
+<details>
+<summary>🔇 Additional comments (1)</summary><blockquote>
+
+<details>
+<summary>nook/services/github_trending/github_trending.py (1)</summary><blockquote>
+
+`245-246`: **変更内容を承認します。**
+
+`language == "any"` の場合にベースURLを使用するようにロジックが修正されており、GitHubのトレンドURL構造と一致しています。テストでも適切にカバーされています。
+
+</blockquote></details>
+
+</blockquote></details>
+
+</details>
+
+<!-- This is an auto-generated comment by CodeRabbit for review status -->
+--------------------
