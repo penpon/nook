@@ -434,9 +434,9 @@ class ZennExplorer(BaseFeedService):
 
         # 4. フィードエントリに含まれる既知フィールド
         try:
-            like_candidate = getattr(entry, "likes", None) or getattr(
-                entry, "likes_count", None
-            )
+            like_candidate = getattr(entry, "likes", None)
+            if like_candidate is None:
+                like_candidate = getattr(entry, "likes_count", None)
             if like_candidate is None:
                 like_candidate = getattr(entry, "zenn_likes_count", None)
             value = self._safe_parse_int(like_candidate)
