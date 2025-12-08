@@ -383,7 +383,7 @@ class TestGetSummaryPromptTemplate:
 
         result = tech_feed._get_summary_prompt_template(article)
 
-        # Text should be truncated to 2000 characters
+        # テキストは2000文字に切り詰められるべき
         assert len(result) < len(long_text)
 
 

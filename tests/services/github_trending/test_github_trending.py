@@ -37,7 +37,7 @@ class TestRepositoryDataclass:
         When: Repository is created.
         Then: All fields are correctly set.
         """
-        # Given / When
+        # 前提 / When
         repo = Repository(
             name="owner/repo-name",
             description="A test repository",
@@ -45,7 +45,7 @@ class TestRepositoryDataclass:
             stars=1000,
         )
 
-        # Then
+        # 確認
         assert repo.name == "owner/repo-name"
         assert repo.description == "A test repository"
         assert repo.link == "https://github.com/owner/repo-name"
@@ -57,7 +57,7 @@ class TestRepositoryDataclass:
         When: Repository is created with description=None.
         Then: Description is None.
         """
-        # Given / When
+        # 前提 / When
         repo = Repository(
             name="owner/repo-name",
             description=None,
@@ -65,7 +65,7 @@ class TestRepositoryDataclass:
             stars=500,
         )
 
-        # Then
+        # 確認
         assert repo.description is None
 
     def test_repository_with_zero_stars(self) -> None:
@@ -74,7 +74,7 @@ class TestRepositoryDataclass:
         When: Repository is created with stars=0.
         Then: Stars is 0.
         """
-        # Given / When
+        # 前提 / When
         repo = Repository(
             name="owner/new-repo",
             description="Brand new repository",
@@ -82,7 +82,7 @@ class TestRepositoryDataclass:
             stars=0,
         )
 
-        # Then
+        # 確認
         assert repo.stars == 0
 
 
@@ -97,17 +97,17 @@ class TestRepositorySortKey:
         When: _repository_sort_key is called.
         Then: A tuple of (stars, published_at) is returned.
         """
-        # Given
+        # 前提
         record = {
             "name": "owner/repo",
             "stars": 1000,
             "published_at": "2024-01-15T00:00:00+00:00",
         }
 
-        # When
+        # 操作
         result = trending._repository_sort_key(record)
 
-        # Then
+        # 確認
         assert result[0] == 1000
         assert result[1] == datetime(2024, 1, 15, tzinfo=timezone.utc)
 
@@ -117,16 +117,16 @@ class TestRepositorySortKey:
         When: _repository_sort_key is called.
         Then: Stars defaults to 0.
         """
-        # Given
+        # 前提
         record = {
             "name": "owner/repo",
             "published_at": "2024-01-15T00:00:00+00:00",
         }
 
-        # When
+        # 操作
         result = trending._repository_sort_key(record)
 
-        # Then
+        # 確認
         assert result[0] == 0
 
     def test_sort_key_handles_none_stars(self, trending: GithubTrending) -> None:
@@ -135,17 +135,17 @@ class TestRepositorySortKey:
         When: _repository_sort_key is called.
         Then: Stars defaults to 0.
         """
-        # Given
+        # 前提
         record = {
             "name": "owner/repo",
             "stars": None,
             "published_at": "2024-01-15T00:00:00+00:00",
         }
 
-        # When
+        # 操作
         result = trending._repository_sort_key(record)
 
-        # Then
+        # 確認
         assert result[0] == 0
 
     def test_sort_key_handles_missing_published_at(
@@ -156,16 +156,16 @@ class TestRepositorySortKey:
         When: _repository_sort_key is called.
         Then: published_at defaults to datetime.min.
         """
-        # Given
+        # 前提
         record = {
             "name": "owner/repo",
             "stars": 500,
         }
 
-        # When
+        # 操作
         result = trending._repository_sort_key(record)
 
-        # Then
+        # 確認
         assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
 
     def test_sort_key_handles_invalid_published_at(
@@ -176,17 +176,17 @@ class TestRepositorySortKey:
         When: _repository_sort_key is called.
         Then: published_at defaults to datetime.min.
         """
-        # Given
+        # 前提
         record = {
             "name": "owner/repo",
             "stars": 500,
             "published_at": "invalid-date",
         }
 
-        # When
+        # 操作
         result = trending._repository_sort_key(record)
 
-        # Then
+        # 確認
         assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
 
     def test_sort_key_orders_multiple_repositories(
@@ -197,7 +197,7 @@ class TestRepositorySortKey:
         When: Records are sorted using _repository_sort_key.
         Then: Records are ordered by stars descending then published_at descending.
         """
-        # Given
+        # 前提
         now = datetime(2024, 1, 15, tzinfo=timezone.utc)
         later = datetime(2024, 1, 16, tzinfo=timezone.utc)
         records = [
@@ -218,14 +218,14 @@ class TestRepositorySortKey:
             },
         ]
 
-        # When
+        # 操作
         sorted_records = sorted(
             records,
             key=trending._repository_sort_key,
             reverse=True,
         )
 
-        # Then
+        # 確認
         assert [record["name"] for record in sorted_records] == [
             "owner/repo-high-stars-new",
             "owner/repo-high-stars-old",
@@ -240,7 +240,7 @@ class TestRepositorySortKey:
         When: Sorting by _repository_sort_key.
         Then: Newer published_at ranks ahead of older ones.
         """
-        # Given
+        # 前提
         now = datetime(2024, 1, 15, tzinfo=timezone.utc)
         later = datetime(2024, 1, 17, tzinfo=timezone.utc)
         records = [
@@ -248,14 +248,14 @@ class TestRepositorySortKey:
             {"stars": 300, "published_at": now.isoformat(), "name": "older"},
         ]
 
-        # When
+        # 操作
         sorted_records = sorted(
             records,
             key=trending._repository_sort_key,
             reverse=True,
         )
 
-        # Then
+        # 確認
         assert [record["name"] for record in sorted_records] == ["newer", "older"]
 
     def test_sort_key_with_different_stars_prioritizes_stars(
@@ -266,7 +266,7 @@ class TestRepositorySortKey:
         When: Sorting by _repository_sort_key.
         Then: Higher stars rank ahead regardless of published_at.
         """
-        # Given
+        # 前提
         older = datetime(2024, 1, 10, tzinfo=timezone.utc)
         newer = datetime(2024, 1, 20, tzinfo=timezone.utc)
         records = [
@@ -274,14 +274,14 @@ class TestRepositorySortKey:
             {"stars": 500, "published_at": older.isoformat(), "name": "many-stars"},
         ]
 
-        # When
+        # 操作
         sorted_records = sorted(
             records,
             key=trending._repository_sort_key,
             reverse=True,
         )
 
-        # Then
+        # 確認
         assert [record["name"] for record in sorted_records] == [
             "many-stars",
             "few-stars",
@@ -297,7 +297,7 @@ class TestRenderMarkdown:
         When: _render_markdown is called.
         Then: Properly formatted markdown is returned.
         """
-        # Given
+        # 前提
         records = [
             {
                 "language": "python",
@@ -309,10 +309,10 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When
+        # 操作
         result = trending._render_markdown(records, today)
 
-        # Then
+        # 確認
         assert "# GitHub トレンドリポジトリ (2024-01-15)" in result
         assert "## Python" in result
         assert "### [owner/python-repo](https://github.com/owner/python-repo)" in result
@@ -325,7 +325,7 @@ class TestRenderMarkdown:
         When: _render_markdown is called.
         Then: Each language has its own section.
         """
-        # Given
+        # 前提
         records = [
             {
                 "language": "python",
@@ -344,10 +344,10 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When
+        # 操作
         result = trending._render_markdown(records, today)
 
-        # Then
+        # 確認
         assert "## Python" in result
         assert "## Javascript" in result
 
@@ -359,7 +359,7 @@ class TestRenderMarkdown:
         When: _render_markdown is called.
         Then: Language is displayed as 'すべての言語'.
         """
-        # Given
+        # 前提
         records = [
             {
                 "language": "all",
@@ -371,10 +371,10 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When
+        # 操作
         result = trending._render_markdown(records, today)
 
-        # Then
+        # 確認
         assert "## すべての言語" in result
 
     def test_render_markdown_no_description(self, trending: GithubTrending) -> None:
@@ -383,7 +383,7 @@ class TestRenderMarkdown:
         When: _render_markdown is called.
         Then: No description line is added.
         """
-        # Given
+        # 前提
         records = [
             {
                 "language": "python",
@@ -395,10 +395,10 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When
+        # 操作
         result = trending._render_markdown(records, today)
 
-        # Then
+        # 確認
         assert "### [owner/repo]" in result
         assert "⭐ スター数: 100" in result
 
@@ -410,16 +410,16 @@ class TestRenderMarkdown:
         When: _render_markdown is called.
         Then: Only the header is returned.
         """
-        # Given
+        # 前提
         records: list[dict[str, object]] = []
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When
+        # 操作
         result = trending._render_markdown(records, today)
 
-        # Then
+        # 確認
         assert "# GitHub トレンドリポジトリ (2024-01-15)" in result
-        assert "##" not in result  # No language sections
+        assert "##" not in result  # 言語セクションなし
 
     def test_render_markdown_missing_name_field_raises_key_error(
         self, trending: GithubTrending
@@ -429,7 +429,7 @@ class TestRenderMarkdown:
         When: _render_markdown is called.
         Then: KeyError is raised when accessing repo['name'].
         """
-        # Given
+        # 前提
         records = [
             {
                 "language": "python",
@@ -440,8 +440,8 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # When / Then
-        with pytest.raises(KeyError):
+        # 操作 / 確認
+        with pytest.raises(KeyError, match="name"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_missing_link_field_raises_key_error(
@@ -462,7 +462,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="link"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_missing_stars_field_raises_key_error(
@@ -483,7 +483,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="stars"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_string_stars_raises_type_error(
@@ -505,7 +505,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="must be numeric"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_language_none_raises_value_error(
@@ -527,7 +527,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="must not be None"):
             trending._render_markdown(records, today)
 
     def test_render_markdown_language_non_string_raises_type_error(
@@ -549,7 +549,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="must be a string"):
             trending._render_markdown(records, today)
 
 
@@ -562,7 +562,7 @@ class TestParseMarkdown:
         When: _parse_markdown is called.
         Then: A list of repository records is returned.
         """
-        # Given
+        # 前提
         content = """# GitHub トレンドリポジトリ (2024-01-15)
 
 ## Python
@@ -577,10 +577,10 @@ A Python repository
 
 """
 
-        # When
+        # 操作
         result = trending._parse_markdown(content)
 
-        # Then
+        # 確認
         assert len(result) == 1
         assert result[0]["name"] == "owner/python-repo"
         assert result[0]["link"] == "https://github.com/owner/python-repo"
@@ -594,7 +594,7 @@ A Python repository
         When: _parse_markdown is called.
         Then: Language is parsed as 'all'.
         """
-        # Given
+        # 前提
         content = """# GitHub トレンドリポジトリ (2024-01-15)
 
 ## すべての言語
@@ -609,10 +609,10 @@ A repository
 
 """
 
-        # When
+        # 操作
         result = trending._parse_markdown(content)
 
-        # Then
+        # 確認
         assert len(result) == 1
         assert result[0]["language"] == "all"
 
@@ -622,7 +622,7 @@ A repository
         When: _parse_markdown is called.
         Then: All repositories are parsed.
         """
-        # Given
+        # 前提
         content = """# GitHub トレンドリポジトリ (2024-01-15)
 
 ## Python
@@ -645,10 +645,10 @@ Second repo
 
 """
 
-        # When
+        # 操作
         result = trending._parse_markdown(content)
 
-        # Then
+        # 確認
         assert len(result) == 2
         assert result[0]["name"] == "owner/repo1"
         assert result[1]["name"] == "owner/repo2"
@@ -663,7 +663,7 @@ class TestSerializeRepositories:
         When: _serialize_repositories is called.
         Then: A list of serialized records is returned.
         """
-        # Given
+        # 前提
         repo = Repository(
             name="owner/repo",
             description="A repository",
@@ -673,12 +673,12 @@ class TestSerializeRepositories:
         repositories_by_language = [("python", [repo])]
         default_date = date(2024, 1, 15)
 
-        # When
+        # 操作
         result = trending._serialize_repositories(
             repositories_by_language, default_date
         )
 
-        # Then
+        # 確認
         assert len(result) == 1
         assert result[0]["language"] == "python"
         assert result[0]["name"] == "owner/repo"
@@ -695,7 +695,7 @@ class TestSerializeRepositories:
         When: _serialize_repositories is called.
         Then: All repositories are serialized with correct language.
         """
-        # Given
+        # 前提
         python_repo = Repository(
             name="owner/python-repo",
             description="Python repo",
@@ -714,12 +714,12 @@ class TestSerializeRepositories:
         ]
         default_date = date(2024, 1, 15)
 
-        # When
+        # 操作
         result = trending._serialize_repositories(
             repositories_by_language, default_date
         )
 
-        # Then
+        # 確認
         assert len(result) == 2
         python_record = next(r for r in result if r["language"] == "python")
         js_record = next(r for r in result if r["language"] == "javascript")
@@ -734,7 +734,7 @@ class TestSerializeRepositories:
         When: _serialize_repositories is called.
         Then: published_at is in ISO format with UTC timezone.
         """
-        # Given
+        # 前提
         repo = Repository(
             name="owner/repo",
             description="A repository",
@@ -744,12 +744,12 @@ class TestSerializeRepositories:
         repositories_by_language = [("python", [repo])]
         default_date = date(2024, 1, 15)
 
-        # When
+        # 操作
         result = trending._serialize_repositories(
             repositories_by_language, default_date
         )
 
-        # Then
+        # 確認
         published_at = result[0]["published_at"]
         assert "2024-01-15" in published_at
         assert "+00:00" in published_at
@@ -760,16 +760,16 @@ class TestSerializeRepositories:
         When: _serialize_repositories is called.
         Then: An empty list is returned.
         """
-        # Given
+        # 前提
         repositories_by_language: list[tuple[str, list[Repository]]] = []
         default_date = date(2024, 1, 15)
 
-        # When
+        # 操作
         result = trending._serialize_repositories(
             repositories_by_language, default_date
         )
 
-        # Then
+        # 確認
         assert result == []
 
     def test_serialize_repositories_with_none_description(
@@ -780,7 +780,7 @@ class TestSerializeRepositories:
         When: _serialize_repositories is called.
         Then: Description is None in the serialized record.
         """
-        # Given
+        # 前提
         repo = Repository(
             name="owner/repo",
             description=None,
@@ -790,10 +790,10 @@ class TestSerializeRepositories:
         repositories_by_language = [("python", [repo])]
         default_date = date(2024, 1, 15)
 
-        # When
+        # 操作
         result = trending._serialize_repositories(
             repositories_by_language, default_date
         )
 
-        # Then
+        # 確認
         assert result[0]["description"] is None

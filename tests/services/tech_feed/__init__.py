@@ -1,1 +1,1 @@
-# Tests for tech_feed service domain logic
+# tech_feedサービスのドメインロジックのテスト
