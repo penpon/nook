@@ -437,8 +437,8 @@ class ZennExplorer(BaseFeedService):
             like_candidate = getattr(entry, "likes", None) or getattr(
                 entry, "likes_count", None
             )
-            if like_candidate is None and hasattr(entry, "zenn_likes_count"):
-                like_candidate = entry.zenn_likes_count
+            if like_candidate is None:
+                like_candidate = getattr(entry, "zenn_likes_count", None)
             value = self._safe_parse_int(like_candidate)
             if value is not None:
                 return float(value)

@@ -45,7 +45,6 @@ class BaseService(ABC):
     async def fetch_with_retry(self, url: str) -> str:  # noqa: B027
         """リトライ機能付きのHTTP取得"""
         # AsyncHTTPClientを使用（後で実装）
-        # AsyncHTTPClientを使用（後で実装）
         return ""
 
     async def rate_limit(self) -> None:
