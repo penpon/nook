@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from bs4 import BeautifulSoup
 
-from nook.services.business_feed.business_feed import BusinessFeed
 from nook.services.base_feed_service import Article
+from nook.services.business_feed.business_feed import BusinessFeed
 
 
 @pytest.fixture

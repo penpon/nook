@@ -42,10 +42,11 @@ class BaseService(ABC):
         return file_path
 
     @handle_errors(retries=3)
-    async def fetch_with_retry(self, url: str) -> str:
+    async def fetch_with_retry(self, url: str) -> str:  # noqa: B027
         """リトライ機能付きのHTTP取得"""
         # AsyncHTTPClientを使用（後で実装）
-        pass
+        # AsyncHTTPClientを使用（後で実装）
+        return ""
 
     async def rate_limit(self) -> None:
         """レート制限のための待機"""
@@ -91,7 +92,7 @@ class BaseService(ABC):
             self.http_client = await get_http_client()
             self.logger.debug("HTTP client setup completed")
 
-    async def cleanup(self):
+    async def cleanup(self):  # noqa: B027
         """クリーンアップ処理（オーバーライド可能）"""
         # グローバルクライアントの場合はクローズ不要
         # サブクラスで追加のクリーンアップが必要な場合はオーバーライドする

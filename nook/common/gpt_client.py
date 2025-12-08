@@ -2,10 +2,8 @@
 
 import asyncio
 import inspect
-import json
 import logging
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -305,11 +303,11 @@ class GPTClient:
         messages.append({"role": "user", "content": prompt})
 
         # トークン数の計算
-        service = service_name or self._get_calling_service()
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
+        # service = service_name or self._get_calling_service()
+        # input_text = ""
+        # for msg in messages:
+        #     input_text += msg["content"] + " "
+        # input_tokens = self._count_tokens(input_text.strip())
         # モデルに応じて適切なAPIを使用
         if self._is_gpt5_model():
             # Responses API（継続生成込み）
@@ -331,10 +329,10 @@ class GPTClient:
             output_text = response.choices[0].message.content
 
         # 出力トークン数の計算
-        output_tokens = self._count_tokens(output_text)
+        # output_tokens = self._count_tokens(output_text)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # cost = self._calculate_cost(input_tokens, output_tokens)
 
         return output_text
 
@@ -433,11 +431,11 @@ class GPTClient:
         chat_session["messages"].append({"role": "user", "content": message})
 
         # トークン数の計算
-        service = self._get_calling_service()
-        input_text = ""
-        for msg in chat_session["messages"]:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
+        # service = self._get_calling_service()
+        # input_text = ""
+        # for msg in chat_session["messages"]:
+        #     input_text += msg["content"] + " "
+        # input_tokens = self._count_tokens(input_text.strip())
 
         # モデルに応じて適切なAPIを使用
         if self._is_gpt5_model():
@@ -457,10 +455,10 @@ class GPTClient:
 
             response = self.client.chat.completions.create(**completion_params)
             assistant_message = response.choices[0].message.content
-        output_tokens = self._count_tokens(assistant_message)
+        # output_tokens = self._count_tokens(assistant_message)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # cost = self._calculate_cost(input_tokens, output_tokens)
 
         chat_session["messages"].append(
             {"role": "assistant", "content": assistant_message}
@@ -515,11 +513,11 @@ class GPTClient:
         )
 
         # トークン数の計算
-        service = self._get_calling_service()
-        input_text = ""
-        for msg in messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
+        # service = self._get_calling_service()
+        # input_text = ""
+        # for msg in messages:
+        #     input_text += msg["content"] + " "
+        # input_tokens = self._count_tokens(input_text.strip())
 
         # モデルに応じて適切なAPIを使用
         if self._is_gpt5_model():
@@ -540,10 +538,10 @@ class GPTClient:
             response = self.client.chat.completions.create(**completion_params)
             # 出力トークン数の計算
             output_text = response.choices[0].message.content
-        output_tokens = self._count_tokens(output_text)
+        # output_tokens = self._count_tokens(output_text)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # cost = self._calculate_cost(input_tokens, output_tokens)
 
         return output_text
 
@@ -581,11 +579,11 @@ class GPTClient:
         all_messages.extend(messages)
 
         # トークン数の計算
-        service = self._get_calling_service()
-        input_text = ""
-        for msg in all_messages:
-            input_text += msg["content"] + " "
-        input_tokens = self._count_tokens(input_text.strip())
+        # service = self._get_calling_service()
+        # input_text = ""
+        # for msg in all_messages:
+        #     input_text += msg["content"] + " "
+        # input_tokens = self._count_tokens(input_text.strip())
 
         # モデルに応じて適切なAPIを使用
         if self._is_gpt5_model():
@@ -606,9 +604,9 @@ class GPTClient:
             response = self.client.chat.completions.create(**completion_params)
             # 出力トークン数の計算
             output_text = response.choices[0].message.content
-        output_tokens = self._count_tokens(output_text)
+        # output_tokens = self._count_tokens(output_text)
 
         # 料金計算
-        cost = self._calculate_cost(input_tokens, output_tokens)
+        # cost = self._calculate_cost(input_tokens, output_tokens)
 
         return output_text

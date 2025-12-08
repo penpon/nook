@@ -7,9 +7,6 @@ This module tests the pure logic helper functions in arxiv_summarizer.py:
 - _is_valid_body_line
 """
 
-import os
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from nook.services.arxiv_summarizer.arxiv_summarizer import (

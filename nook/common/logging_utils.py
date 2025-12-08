@@ -1,7 +1,7 @@
 """サービス共通のログ出力ユーティリティ関数。"""
 
-from typing import List, Any
 from datetime import date
+from typing import Any, List
 
 
 def log_processing_start(logger, date_str: str) -> None:

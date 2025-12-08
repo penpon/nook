@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from pathlib import Path
 import sys
-from unittest.mock import AsyncMock, MagicMock, patch
 import time
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,8 +13,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.decorators import handle_errors, log_execution_time
-from nook.common.exceptions import RetryException
+from nook.common.decorators import handle_errors, log_execution_time  # noqa: E402
+from nook.common.exceptions import RetryException  # noqa: E402
 
 
 def test_handle_errors_sync_success():

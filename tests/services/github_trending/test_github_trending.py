@@ -8,7 +8,7 @@ This module tests the pure logic functions in github_trending.py:
 - _serialize_repositories
 """
 
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 

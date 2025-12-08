@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
 from typing import Any
 
 import pytest
@@ -13,9 +13,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.api.main import app
-from nook.api.routers import content as content_module
-from nook.common.storage import LocalStorage
+from nook.api.main import app  # noqa: E402
+from nook.api.routers import content as content_module  # noqa: E402
+from nook.common.storage import LocalStorage  # noqa: E402
 
 
 def _make_client() -> TestClient:

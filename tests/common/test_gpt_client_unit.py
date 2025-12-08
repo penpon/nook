@@ -1,18 +1,17 @@
 from __future__ import annotations
 
+import sys
 import types
 from pathlib import Path
-import sys
 
 import openai
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.gpt_client import GPTClient
+from nook.common.gpt_client import GPTClient  # noqa: E402
 
 
 class DummyEncoding:

@@ -6,10 +6,6 @@ This module tests the pure logic helper functions in fourchan_explorer.py:
 - _load_boards
 """
 
-from datetime import datetime, timezone
-from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
-
 import pytest
 
 from nook.services.fourchan_explorer.fourchan_explorer import (

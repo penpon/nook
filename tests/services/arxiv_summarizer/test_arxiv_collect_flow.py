@@ -10,7 +10,7 @@ external dependencies:
 """
 
 from datetime import date, datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -59,9 +59,7 @@ class TestCollectFlow:
         # Given
         target_dates = [date(2024, 1, 15)]
 
-        with patch.object(
-            summarizer, "setup_http_client", new_callable=AsyncMock
-        ) as mock_setup:
+        with patch.object(summarizer, "setup_http_client", new_callable=AsyncMock):
             with patch.object(
                 summarizer, "_get_curated_paper_ids", new_callable=AsyncMock
             ) as mock_get_ids:
@@ -121,7 +119,7 @@ class TestCollectFlow:
                 ) as mock_retrieve:
                     with patch.object(
                         summarizer, "_summarize_paper_info", new_callable=AsyncMock
-                    ) as mock_summarize:
+                    ):
                         with patch.object(
                             summarizer, "_store_summaries", new_callable=AsyncMock
                         ) as mock_store:
@@ -189,9 +187,7 @@ class TestCollectFlow:
                             mock_store.return_value = []
 
                             # When
-                            result = await summarizer.collect(
-                                limit=5, target_dates=target_dates
-                            )
+                            await summarizer.collect(limit=5, target_dates=target_dates)
 
                             # Then
                             # Paper is filtered out because published_at is outside target dates

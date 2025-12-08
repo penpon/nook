@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import calendar
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any, Iterable
-
 
 __all__ = ["parse_entry_datetime"]
 

@@ -8,12 +8,13 @@ This module tests the pure logic helper functions in reddit_explorer.py:
 
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 # Skip tests if asyncpraw is not installed (optional dependency)
 pytest.importorskip("asyncpraw")
 
-from nook.services.reddit_explorer.reddit_explorer import RedditPost, RedditExplorer
+from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
 
 
 class TestRedditPostDataclass:

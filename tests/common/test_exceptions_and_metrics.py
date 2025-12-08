@@ -1,32 +1,31 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-import sys
 
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.exceptions import APIException, ServiceException
-from nook.common.error_metrics import ErrorMetrics
-from nook.common.logging_utils import (
+from nook.common.error_metrics import ErrorMetrics  # noqa: E402
+from nook.common.exceptions import APIException, ServiceException  # noqa: E402
+from nook.common.logging_utils import (  # noqa: E402
     log_article_counts,
     log_multiple_dates_processing,
     log_no_new_articles,
     log_processing_start,
     log_storage_complete,
-    log_summary_candidates,
     log_summarization_progress,
     log_summarization_start,
+    log_summary_candidates,
 )
-from nook.common.rate_limiter import RateLimiter
-from nook.common.service_errors import ServiceErrorHandler
+from nook.common.rate_limiter import RateLimiter  # noqa: E402
+from nook.common.service_errors import ServiceErrorHandler  # noqa: E402
 
 
 def _run(coro):

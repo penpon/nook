@@ -1,22 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 import sys
 from datetime import timedelta
+from pathlib import Path
 
 import httpx
 import pytest
 import pytest_asyncio
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.config import BaseConfig
-from nook.common.exceptions import RetryException
-from nook.common.http_client import AsyncHTTPClient
+from nook.common.config import BaseConfig  # noqa: E402
+from nook.common.exceptions import RetryException  # noqa: E402
+from nook.common.http_client import AsyncHTTPClient  # noqa: E402
 
 
 def make_response(
