@@ -269,7 +269,7 @@ class TestNeedsJapaneseCheck:
         When: _needs_japanese_check is called multiple times.
         Then: Consistently returns True for Japanese content validation.
         """
-        # Multiple calls should return the same result
+        # 複数回呼び出しても同じ結果が返るべき
         for _ in range(3):
             result = business_feed._needs_japanese_check()
             assert result is True
@@ -282,7 +282,7 @@ class TestNeedsJapaneseCheck:
         When: _needs_japanese_check is called.
         Then: True is returned indicating Japanese check is required.
         """
-        # Even for mixed content, Japanese check should be required
+        # 混合コンテンツであっても、日本語チェックは必須であるべき
         result = business_feed._needs_japanese_check()
         assert result is True
 

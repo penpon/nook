@@ -189,7 +189,7 @@ class TestStoreSummaries:
                 "nook.services.github_trending.github_trending.group_records_by_date"
             ),
         ):
-            mock_store_snapshots.return_value = []  # No files saved
+            mock_store_snapshots.return_value = []  # ファイルが保存されなかった
 
             with pytest.raises(ValueError, match="保存に失敗しました"):
                 await trending._store_summaries_for_date(
@@ -319,9 +319,9 @@ class TestCollect:
                 mock_trending_configured,
                 "_retrieve_repositories",
                 side_effect=[
-                    [repo_any],  # for "any"
-                    [repo_py],  # for "python"
-                    [repo_rs],  # for "rust"
+                    [repo_any],  # "any"用
+                    [repo_py],  # "python"用
+                    [repo_rs],  # "rust"用
                 ],
             ) as mock_retrieve,
             patch.object(
@@ -351,7 +351,7 @@ class TestCollect:
             assert results[0] == ("path/json", "path/md")
 
             # 呼び出し確認
-            assert mock_retrieve.call_count == 3  # any, python, rust
+            assert mock_retrieve.call_count == 3  # any, python, rustの3回
             # レート制限の呼び出しを確認: 3回の取得 + 翻訳
             assert mock_trending_configured.rate_limit.call_count >= 3
 
