@@ -39,7 +39,12 @@ dev = [
 [tool.ruff]
 line-length = 88
 lint.select = [
-    "S",  # flake8-bandit (セキュリティチェック)
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "S",  # flake8-bandit (security)
 ]
 lint.ignore = [
     "E501",  # line too long
