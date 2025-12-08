@@ -440,7 +440,7 @@ class TestRenderMarkdown:
         ]
         today = datetime(2024, 1, 15, tzinfo=timezone.utc)
 
-        # 操作 / Then
+        # 操作 / 確認
         with pytest.raises(KeyError, match="name"):
             trending._render_markdown(records, today)
 
