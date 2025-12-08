@@ -6,6 +6,7 @@ Nookの各サービスを非同期で実行するスクリプト。
 import asyncio
 import signal
 import sys
+import traceback
 from datetime import date, datetime
 from typing import Set
 
@@ -134,7 +135,9 @@ class ServiceRunner:
                 )
 
         except Exception as e:
-            logger.error(f"\n❌ Service {service_name} failed: {e}", exc_info=True)
+            logger.error(
+                f"Error executing {service_name}: {e}\n{traceback.format_exc()}"
+            )
             raise
 
     async def run_all(self, days: int = 1) -> None:

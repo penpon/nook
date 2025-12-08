@@ -187,7 +187,7 @@ async def test_run_sync_service_handles_error(monkeypatch):
     # verify logger.error was called
     assert mock_logger.error.called
     args, kwargs = mock_logger.error.call_args
-    assert "fail_service failed" in args[0]
+    assert "Error executing fail_service" in args[0]
 
 
 @pytest.mark.asyncio
