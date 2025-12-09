@@ -46,6 +46,48 @@ async def test_acquire_wait():
 
 
 @pytest.mark.asyncio
+async def test_acquire_wait_burst_cap_after_wait():
+    """Test that burst cap is applied after waiting when allowance recovery exceeds burst."""
+    # We need to mock datetime.now to simulate time passing during the wait
+    # The acquire method calls datetime.now multiple times:
+    # 1. At __init__ (line 26) to set last_check
+    # 2. Initial check in acquire (line 32)
+    # 3. After sleep (line 54) - this is where elapsed time matters for line 59
+    base_time = datetime(2025, 1, 1, 0, 0, 0, tzinfo=UTC)
+    call_count = [0]
+
+    def mock_now(tz=None):
+        call_count[0] += 1
+        if call_count[0] <= 2:
+            # First two calls: __init__ and initial check in acquire
+            return base_time
+        else:
+            # Third call: after sleep - simulate 1 second elapsed
+            # This will cause recovery of 100 tokens (100 rate * 1 sec),
+            # which exceeds burst of 10, triggering line 59
+            return base_time + timedelta(seconds=1)
+
+    with (
+        patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep,
+        patch("nook.common.rate_limiter.datetime") as mock_datetime,
+    ):
+        mock_datetime.now = mock_now
+        # Allow timedelta to work (used in RateLimiter constructor default)
+        mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+
+        # Create rate limiter with high rate (100 tokens/sec, burst=10)
+        rl = RateLimiter(rate=100, per=timedelta(seconds=1), burst=10)
+        rl.allowance = 0.0  # Force wait since we need 1 token
+
+        await rl.acquire(1)
+
+        mock_sleep.assert_called_once()
+        # After recovery of 100 tokens (100 rate * 1 second), should be capped at burst (10)
+        # Then 1 token consumed, so allowance should be 9
+        assert rl.allowance == 9.0
+
+
+@pytest.mark.asyncio
 async def test_burst_cap():
     rl = RateLimiter(rate=10, burst=10, per=timedelta(seconds=1))
     rl.allowance = 0.0
