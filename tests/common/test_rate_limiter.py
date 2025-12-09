@@ -73,7 +73,7 @@ async def test_acquire_wait_burst_cap_after_wait():
     ):
         mock_datetime.now = mock_now
         # Allow timedelta to work (used in RateLimiter constructor default)
-        mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+        mock_datetime.timedelta = timedelta
 
         # Create rate limiter with high rate (100 tokens/sec, burst=10)
         rl = RateLimiter(rate=100, per=timedelta(seconds=1), burst=10)
