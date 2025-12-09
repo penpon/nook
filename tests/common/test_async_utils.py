@@ -157,6 +157,14 @@ async def test_manager_wait_timeout():
     with pytest.raises(asyncio.TimeoutError):
         await manager.wait_for("slow", timeout=0.01)
 
+    # Cleanup: cancel the long-running task
+    if "slow" in manager.tasks:
+        manager.tasks["slow"].cancel()
+        try:
+            await manager.tasks["slow"]
+        except asyncio.CancelledError:
+            pass
+
 
 @pytest.mark.asyncio
 async def test_manager_wait_error():
