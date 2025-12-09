@@ -139,7 +139,7 @@ async def test_manager_duplicate_submit():
         try:
             await manager.tasks["t1"]
         except asyncio.CancelledError:
-            # Expected: task was cancelled for cleanup
+            # テスト終了後に非同期タスクが残ると他のテストに影響するため、明示的にキャンセルして例外を握りつぶしています
             pass
 
 
@@ -164,7 +164,7 @@ async def test_manager_wait_timeout():
         try:
             await manager.tasks["slow"]
         except asyncio.CancelledError:
-            # Expected: task was cancelled for cleanup
+            # テスト終了後に非同期タスクが残ると他のテストに影響するため、明示的にキャンセルして例外を握りつぶしています
             pass
 
 
