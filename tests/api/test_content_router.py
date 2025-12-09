@@ -229,7 +229,7 @@ def test_get_content_fallback_to_latest_date(
 def test_get_content_github_empty_title(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test github source returns empty title in aggregated title logic."""
+    """Test that GitHub source items result in an empty title field after aggregation logic."""
     client = _make_client()
     storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
 

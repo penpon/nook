@@ -33,7 +33,9 @@ def test_get_weather_success(monkeypatch: pytest.MonkeyPatch) -> None:
         "weather": [{"icon": "10d"}],
     }
 
-    with patch("requests.get", return_value=mock_response) as mock_get:
+    with patch(
+        "nook.api.routers.weather.requests.get", return_value=mock_response
+    ) as mock_get:
         resp = client.get("/api/weather")
 
         assert resp.status_code == 200
@@ -70,7 +72,7 @@ def test_get_weather_api_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_response = MagicMock()
     mock_response.status_code = 404
 
-    with patch("requests.get", return_value=mock_response):
+    with patch("nook.api.routers.weather.requests.get", return_value=mock_response):
         resp = client.get("/api/weather")
         assert resp.status_code == 500
         assert "Failed to fetch weather data" in resp.json()["detail"]
@@ -84,7 +86,8 @@ def test_get_weather_request_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     import requests
 
     with patch(
-        "requests.get", side_effect=requests.RequestException("Connection error")
+        "nook.api.routers.weather.requests.get",
+        side_effect=requests.RequestException("Connection error"),
     ):
         resp = client.get("/api/weather")
         assert resp.status_code == 500
