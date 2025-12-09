@@ -129,9 +129,11 @@ async def test_manager_duplicate_submit():
     t = asyncio.ensure_future(asyncio.sleep(1))  # Keep it running
     manager.tasks["t1"] = t
 
-    with pytest.raises(ValueError, match="already exists"):
-        await manager.submit("t1", asyncio.sleep(0))
-    t.cancel()
+    try:
+        with pytest.raises(ValueError, match="already exists"):
+            await manager.submit("t1", asyncio.sleep(0))
+    finally:
+        t.cancel()
 
 
 @pytest.mark.asyncio
