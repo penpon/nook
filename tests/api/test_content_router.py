@@ -142,6 +142,11 @@ def test_get_content_all_aggregates_multiple_sources(
     gh_dir.mkdir(parents=True, exist_ok=True)
     (gh_dir / f"{date_str}.md").write_text("GitHub content", encoding="utf-8")
 
+    # Add Arxiv for coverage in "all" loop
+    arxiv_dir = storage.base_dir / "arxiv_summarizer"
+    arxiv_dir.mkdir(parents=True, exist_ok=True)
+    (arxiv_dir / f"{date_str}.md").write_text("Arxiv content", encoding="utf-8")
+
     # When
     resp = client.get(f"/api/content/all?date={date_str}")
 
@@ -152,3 +157,127 @@ def test_get_content_all_aggregates_multiple_sources(
     sources = {item["source"] for item in data["items"]}
     assert "hacker-news" in sources
     assert "github" in sources
+    assert "arxiv" in sources
+
+
+def test_get_content_explicit_date_empty_returns_empty_list(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test requesting a specific date with no content returns empty list, not 404."""
+    client = _make_client()
+    _patch_storage_to_tmp(tmp_path, monkeypatch)
+
+    # Request future date with no data
+    resp = client.get("/api/content/hacker-news?date=2099-01-01")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["items"] == []
+
+
+def test_get_content_response_headers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test response headers for cache control."""
+    client = _make_client()
+    storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
+
+    # Need data to return 200 OK
+    date_str = "2024-01-01"
+    service_dir = storage.base_dir / "hacker_news"
+    service_dir.mkdir(parents=True, exist_ok=True)
+    stories = [{"title": "T", "score": 1, "url": "u"}]
+    (service_dir / f"{date_str}.json").write_text(json.dumps(stories), encoding="utf-8")
+
+    resp = client.get(f"/api/content/hacker-news?date={date_str}")
+    assert resp.status_code == 200
+    assert (
+        resp.headers["Cache-Control"]
+        == "no-store, no-cache, must-revalidate, max-age=0"
+    )
+    assert resp.headers["Pragma"] == "no-cache"
+    assert resp.headers["Expires"] == "0"
+
+
+def test_get_content_fallback_to_latest_date(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test fallback to latest available date when no date provided."""
+    client = _make_client()
+    storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
+
+    # Prepare data for an old date
+    old_date = "2023-01-01"
+    service_dir = storage.base_dir / "hacker_news"
+    service_dir.mkdir(parents=True, exist_ok=True)
+    # Create dummy .md because storage.list_dates only checks for .md files
+    (service_dir / f"{old_date}.md").write_text("", encoding="utf-8")
+
+    # We need valid data to return something
+    stories = [{"title": "Old", "summary": "sum", "score": 1, "url": "u"}]
+    (service_dir / f"{old_date}.json").write_text(json.dumps(stories), encoding="utf-8")
+
+    # Request without date (triggers fallback logic)
+    resp = client.get("/api/content/hacker-news")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["items"]) == 1
+    assert data["items"][0]["title"] == "Old"
+
+
+def test_get_content_github_empty_title(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test github source returns empty title in aggregated title logic."""
+    client = _make_client()
+    storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
+
+    date_str = "2024-01-01"
+    service_dir = storage.base_dir / "github_trending"
+    service_dir.mkdir(parents=True, exist_ok=True)
+    (service_dir / f"{date_str}.md").write_text("content", encoding="utf-8")
+
+    resp = client.get(f"/api/content/github?date={date_str}")
+    assert resp.status_code == 200
+    item = resp.json()["items"][0]
+    # In content.py: title = "" if source == "github" else ...
+    assert item["title"] == ""
+
+
+def test_get_content_hacker_news_text_preview(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test hacker news uses text preview if summary is missing."""
+    client = _make_client()
+    storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
+
+    date_str = "2024-01-01"
+    service_dir = storage.base_dir / "hacker_news"
+    service_dir.mkdir(parents=True, exist_ok=True)
+
+    long_text = "a" * 1200
+    stories = [
+        {"title": "No Sum", "text": long_text, "score": 10, "url": "u"},
+    ]
+    (service_dir / f"{date_str}.json").write_text(json.dumps(stories), encoding="utf-8")
+
+    resp = client.get(f"/api/content/hacker-news?date={date_str}")
+    item = resp.json()["items"][0]
+    # Check truncation
+    assert len(item["content"]) < 1200
+    assert "..." in item["content"]
+    assert "スコア: 10" in item["content"]
+
+
+def test_get_content_no_content_raises_404(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test 404 raised when absolutely no content available."""
+    client = _make_client()
+    _patch_storage_to_tmp(tmp_path, monkeypatch)
+    # No files created
+
+    resp = client.get("/api/content/hacker-news")
+    assert resp.status_code == 404
+    assert "No content available" in resp.json()["detail"]
