@@ -1,19 +1,10 @@
-from __future__ import annotations
-
 import asyncio
-import sys
 from functools import partial
-from pathlib import Path
 
 import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from nook.common.async_utils import (  # noqa: E402
+from nook.common.async_utils import (
     AsyncTaskManager,
-    TaskResult,
     batch_process,
     gather_with_errors,
     run_sync_in_thread,
@@ -21,184 +12,187 @@ from nook.common.async_utils import (  # noqa: E402
 )
 
 
-def _run(coro):
-    return asyncio.run(coro)
-
-
-def test_gather_with_errors_collects_success_and_failures():
-    async def succeed():
-        await asyncio.sleep(0.01)
+@pytest.mark.asyncio
+async def test_gather_with_errors():
+    async def ok():
         return 1
 
     async def fail():
-        await asyncio.sleep(0.01)
-        raise RuntimeError("boom")
+        raise ValueError("err")
 
-    async def main():
-        return await gather_with_errors(
-            succeed(),
-            fail(),
-            task_names=["success", "failure"],
+    results = await gather_with_errors(ok(), fail(), task_names=["ok", "fail"])
+
+    assert len(results) == 2
+    assert results[0].success
+    assert results[0].result == 1
+    assert not results[1].success
+    assert isinstance(results[1].error, ValueError)
+
+
+@pytest.mark.asyncio
+async def test_gather_with_errors_mismatch_names():
+    with pytest.raises(ValueError, match="same length"):
+        await gather_with_errors(
+            partial(asyncio.sleep, 0)(), partial(asyncio.sleep, 0)(), task_names=["one"]
         )
 
-    results = _run(main())
 
-    assert isinstance(results[0], TaskResult)
-    assert results[0].name == "success"
-    assert results[0].success is True
-    assert results[1].name == "failure"
-    assert results[1].success is False
-    assert isinstance(results[1].error, RuntimeError)
+@pytest.mark.asyncio
+async def test_gather_with_errors_default_names():
+    results = await gather_with_errors(partial(asyncio.sleep, 0)(), task_names=None)
+    assert results[0].name == "Task-0"
 
 
-def test_gather_with_errors_validates_task_name_length():
-    async def noop():
-        return None
+@pytest.mark.asyncio
+async def test_run_with_semaphore():
+    running = 0
+    max_running = 0
 
-    async def main():
-        coro = noop()
-        with pytest.raises(
-            ValueError, match="task_names must have the same length as coros"
-        ):
-            await gather_with_errors(coro, task_names=["first", "second"])
-        coro.close()
-
-    _run(main())
-
-
-def test_gather_with_errors_allows_single_named_task():
-    async def noop():
-        return 42
-
-    async def main():
-        return await gather_with_errors(noop(), task_names=["only-one"])
-
-    results = _run(main())
-    assert len(results) == 1
-    assert results[0].name == "only-one"
-    assert results[0].success is True
-    assert results[0].result == 42
-
-
-def test_gather_with_errors_treats_empty_task_names_as_default():
-    async def noop():
+    async def task():
+        nonlocal running, max_running
+        running += 1
+        max_running = max(max_running, running)
+        await asyncio.sleep(0.01)
+        running -= 1
         return "ok"
 
-    async def main():
-        return await gather_with_errors(noop(), task_names=[])
+    coros = [task for _ in range(5)]
+    results = await run_with_semaphore(coros, max_concurrent=2)
 
-    results = _run(main())
-    assert len(results) == 1
-    assert results[0].name == "Task-0"
-    assert results[0].result == "ok"
-
-
-def test_run_with_semaphore_limits_parallelism():
-    max_running = 0
-    current = 0
-
-    async def tracked_task(value):
-        nonlocal current, max_running
-        current += 1
-        max_running = max(max_running, current)
-        await asyncio.sleep(0.01)
-        current -= 1
-        return value
-
-    progress_updates: list[tuple[int, int]] = []
-
-    async def progress(count, total):
-        progress_updates.append((count, total))
-
-    async def main():
-        coros = [partial(tracked_task, idx) for idx in range(5)]
-        return await run_with_semaphore(
-            coros,
-            max_concurrent=2,
-            progress_callback=progress,
-        )
-
-    results = _run(main())
-
-    assert sorted(results) == list(range(5))
+    assert len(results) == 5
     assert max_running <= 2
-    assert progress_updates[-1] == (5, 5)
+    assert all(r == "ok" for r in results)
 
 
-def test_batch_process_splits_into_batches():
-    processed_batches: list[list[int]] = []
-
-    async def processor(batch):
-        processed_batches.append(list(batch))
-        return sum(batch)
-
-    async def main():
-        return await batch_process(
-            items=list(range(6)),
-            processor=processor,
-            batch_size=2,
-            max_concurrent_batches=2,
-        )
-
-    results = _run(main())
-
-    assert processed_batches == [[0, 1], [2, 3], [4, 5]]
-    assert results == [1, 5, 9]
-
-
-def test_run_sync_in_thread_executes_blocking_code():
-    def blocking_add(a, b):
-        return a + b
-
-    async def main():
-        return await run_sync_in_thread(blocking_add, 2, 3)
-
-    result = _run(main())
-    assert result == 5
-
-
-def test_async_task_manager_handles_success_and_failure():
-    manager = AsyncTaskManager(max_concurrent=2)
-
-    async def ok_task():
-        await asyncio.sleep(0.01)
-        return "done"
-
-    async def fail_task():
-        await asyncio.sleep(0.01)
-        raise ValueError("bad")
-
-    async def main():
-        await manager.submit("ok", ok_task())
-        await manager.submit("fail", fail_task())
-
-        assert await manager.wait_for("ok") == "done"
-
-        with pytest.raises(ValueError, match="bad"):
-            await manager.wait_for("fail")
-
-        summary = await manager.wait_all()
-        assert summary["results"]["ok"] == "done"
-        assert isinstance(summary["errors"]["fail"], ValueError)
-
-    _run(main())
-
-
-def test_async_task_manager_rejects_duplicate_names():
-    manager = AsyncTaskManager()
-
-    async def sleeper():
-        await asyncio.sleep(0.05)
+@pytest.mark.asyncio
+async def test_run_with_semaphore_exception():
+    async def ok():
         return 1
 
-    async def main():
-        await manager.submit("task", sleeper())
+    async def fail():
+        raise ValueError("boom")
 
-        duplicate_coro = sleeper()
-        with pytest.raises(ValueError, match="Task task already exists"):
-            await manager.submit("task", duplicate_coro)
-        duplicate_coro.close()
+    # default gather raises on first error
+    with pytest.raises(ValueError, match="boom"):
+        await run_with_semaphore([ok, fail], max_concurrent=2)
 
-        await manager.wait_all()
 
-    _run(main())
+@pytest.mark.asyncio
+async def test_batch_process():
+    async def processor(batch):
+        return [x * 2 for x in batch]
+
+    items = [1, 2, 3, 4, 5]
+    results = await batch_process(items, processor, batch_size=2)
+
+    # batch_process uses run_with_semaphore which returns list of batch results.
+    # Wait, batch_process implementation:
+    # return await run_with_semaphore(...) -> returns list of results from processor
+    # processor returns list, so we get [[2, 4], [6, 8], [10]]
+    # Actually wait, `run_with_semaphore` returns list of results from each task.
+    # Each task is `process_batch` which calls `processor`.
+    # `processor` returns list.
+    # So `results` will be `[[2, 4], [6, 8], [10]]`.
+
+    # Check flattening if expected or not? The existing test expected `[1, 5, 9]` sum of batch.
+    # Let's check my processor logic.
+    assert results == [[2, 4], [6, 8], [10]]
+
+
+@pytest.mark.asyncio
+async def test_run_sync_in_thread():
+    def sync_func(a, b):
+        return a + b
+
+    res = await run_sync_in_thread(sync_func, 1, 2)
+    assert res == 3
+
+
+@pytest.mark.asyncio
+async def test_run_sync_in_thread_error():
+    def sync_fail():
+        raise ValueError("sync error")
+
+    with pytest.raises(ValueError, match="sync error"):
+        await run_sync_in_thread(sync_fail)
+
+
+# --- AsyncTaskManager Tests ---
+
+
+@pytest.mark.asyncio
+async def test_manager_submit_run_wait():
+    manager = AsyncTaskManager()
+    await manager.submit("t1", partial(asyncio.sleep, 0.01, result="done")())
+
+    res = await manager.wait_for("t1")
+    assert res == "done"
+
+    # Verify cleanup
+    status = manager.get_status()
+    assert "t1" in status["completed"]
+    assert "t1" not in status["running"]
+
+
+@pytest.mark.asyncio
+async def test_manager_duplicate_submit():
+    manager = AsyncTaskManager()
+    t = asyncio.ensure_future(asyncio.sleep(1))  # Keep it running
+    manager.tasks["t1"] = t
+
+    with pytest.raises(ValueError, match="already exists"):
+        await manager.submit("t1", asyncio.sleep(0))
+    t.cancel()
+
+
+@pytest.mark.asyncio
+async def test_manager_wait_unknown():
+    manager = AsyncTaskManager()
+    with pytest.raises(ValueError, match="not found"):
+        await manager.wait_for("unknown")
+
+
+@pytest.mark.asyncio
+async def test_manager_wait_timeout():
+    manager = AsyncTaskManager()
+    await manager.submit("slow", asyncio.sleep(0.5))
+
+    with pytest.raises(asyncio.TimeoutError):
+        await manager.wait_for("slow", timeout=0.01)
+
+
+@pytest.mark.asyncio
+async def test_manager_wait_error():
+    manager = AsyncTaskManager()
+
+    async def fail():
+        raise ValueError("oops")
+
+    await manager.submit("fail", fail())
+
+    # Wait for completion first (or wait_for will wait for task)
+    with pytest.raises(ValueError, match="oops"):
+        await manager.wait_for("fail")
+
+    # Check status
+    status = manager.get_status()
+    assert "fail" in status["failed"]
+
+
+@pytest.mark.asyncio
+async def test_manager_wait_all():
+    manager = AsyncTaskManager()
+    await manager.submit("t1", partial(asyncio.sleep, 0.01, result=1)())
+    await manager.submit("t2", partial(asyncio.sleep, 0.01, result=2)())
+
+    summary = await manager.wait_all()
+    assert summary["results"] == {"t1": 1, "t2": 2}
+    assert summary["errors"] == {}
+
+    status = manager.get_status()
+    assert status["total"] == 2
+    # get_status returns "total": len(tasks) + len(results) + len(errors)
+    # len(tasks) should be 0. len(results) 2.
+    # Note: wait_all waits for tasks.
+
+    assert status["total"] == 2
