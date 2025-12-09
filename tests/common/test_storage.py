@@ -1,67 +1,115 @@
-from __future__ import annotations
-
-import sys
+import json
 from datetime import datetime
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+import pytest
 
-from nook.common.storage import LocalStorage  # noqa: E402
+from nook.common.storage import LocalStorage
 
 
-def _run(coro):
-    import asyncio
+@pytest.fixture
+def storage(tmp_path):
+    return LocalStorage(str(tmp_path))
 
-    return asyncio.run(coro)
+
+def test_init_creates_dir(tmp_path):
+    sub = tmp_path / "sub"
+    assert not sub.exists()
+    LocalStorage(str(sub))
+    assert sub.exists()
 
 
-def test_save_and_load_markdown(tmp_path):
-    storage = LocalStorage(str(tmp_path))
-    date = datetime(2024, 11, 1)
+def test_save_markdown_defaults(storage):
+    content = "md content"
+    service = "myservice"
+    path = storage.save_markdown(content, service)
 
-    path = storage.save_markdown("content", "service", date=date)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    assert path.name == f"{today_str}.md"
+    assert path.read_text(encoding="utf-8") == content
+
+
+def test_load_markdown_defaults(storage):
+    service = "myservice"
+    content = "default date content"
+    storage.save_markdown(content, service)
+    loaded = storage.load_markdown(service)
+    assert loaded == content
+
+
+def test_load_markdown_missing(storage):
+    assert storage.load_markdown("unknown_service") is None
+
+
+def test_list_dates_missing_dir(storage):
+    assert storage.list_dates("non_existent") == []
+
+
+def test_list_dates_invalid_files(storage, tmp_path):
+    service = "mixed_files"
+    (tmp_path / service).mkdir()
+    (tmp_path / service / "2025-01-01.md").touch()
+    (tmp_path / service / "not_a_date.md").touch()
+    (tmp_path / service / "junk.txt").touch()
+
+    dates = storage.list_dates(service)
+    assert len(dates) == 1
+    assert dates[0] == datetime(2025, 1, 1)
+
+
+@pytest.mark.asyncio
+async def test_async_save_text(storage):
+    await storage.save("simple text", "test.txt")
+    path = Path(storage.base_dir) / "test.txt"
     assert path.exists()
-
-    loaded = storage.load_markdown("service", date=date)
-    assert loaded == "content"
+    assert path.read_text(encoding="utf-8") == "simple text"
 
 
-def test_list_dates_returns_sorted_desc(tmp_path):
-    storage = LocalStorage(str(tmp_path))
-
-    storage.save_markdown("a", "svc", date=datetime(2024, 11, 1))
-    storage.save_markdown("b", "svc", date=datetime(2024, 10, 30))
-
-    dates = storage.list_dates("svc")
-    assert [d.date() for d in dates] == [
-        datetime(2024, 11, 1).date(),
-        datetime(2024, 10, 30).date(),
-    ]
+@pytest.mark.asyncio
+async def test_async_save_json(storage):
+    data = {"k": "v"}
+    await storage.save(data, "test.json")
+    path = Path(storage.base_dir) / "test.json"
+    assert path.exists()
+    assert json.loads(path.read_text(encoding="utf-8")) == data
 
 
-def test_async_save_load_exists_and_rename(tmp_path):
-    storage = LocalStorage(str(tmp_path))
+@pytest.mark.asyncio
+async def test_async_load_exists_rename(storage):
+    data = {"val": 123}
+    await storage.save(data, "a.json")
 
-    async def main():
-        await storage.save({"hello": "world"}, "data.json")
-        assert await storage.exists("data.json") is True
+    assert await storage.exists("a.json")
+    assert not await storage.exists("b.json")
 
-        content = await storage.load("data.json")
-        assert "hello" in content
+    loaded = await storage.load("a.json")
+    assert json.loads(loaded) == data
 
-        await storage.rename("data.json", "renamed.json")
-        assert await storage.exists("data.json") is False
-        assert await storage.exists("renamed.json") is True
+    await storage.rename("a.json", "b.json")
+    assert not await storage.exists("a.json")
+    assert await storage.exists("b.json")
 
-    _run(main())
+    # Safe rename non-exists
+    await storage.rename("phantom.json", "phantom2.json")
 
 
-def test_load_returns_none_when_missing(tmp_path):
-    storage = LocalStorage(str(tmp_path))
+@pytest.mark.asyncio
+async def test_load_missing(storage):
+    assert await storage.load("missing.txt") is None
 
-    async def main():
-        assert await storage.load("nothing.json") is None
 
-    _run(main())
+def test_load_json_methods(storage):
+    service = "jsonsvc"
+    data = {"key": "val"}
+
+    test_date = datetime(2025, 1, 15)
+    today_str = test_date.strftime("%Y-%m-%d")
+    s_dir = Path(storage.base_dir) / service
+    s_dir.mkdir()
+    with open(s_dir / f"{today_str}.json", "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+    loaded = storage.load_json(service, date=test_date)
+    assert loaded == data
+
+    assert storage.load_json("unknown") is None
