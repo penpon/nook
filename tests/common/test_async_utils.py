@@ -85,17 +85,6 @@ async def test_batch_process():
     items = [1, 2, 3, 4, 5]
     results = await batch_process(items, processor, batch_size=2)
 
-    # batch_process uses run_with_semaphore which returns list of batch results.
-    # Wait, batch_process implementation:
-    # return await run_with_semaphore(...) -> returns list of results from processor
-    # processor returns list, so we get [[2, 4], [6, 8], [10]]
-    # Actually wait, `run_with_semaphore` returns list of results from each task.
-    # Each task is `process_batch` which calls `processor`.
-    # `processor` returns list.
-    # So `results` will be `[[2, 4], [6, 8], [10]]`.
-
-    # Check flattening if expected or not? The existing test expected `[1, 5, 9]` sum of batch.
-    # Let's check my processor logic.
     assert results == [[2, 4], [6, 8], [10]]
 
 
@@ -190,9 +179,4 @@ async def test_manager_wait_all():
     assert summary["errors"] == {}
 
     status = manager.get_status()
-    assert status["total"] == 2
-    # get_status returns "total": len(tasks) + len(results) + len(errors)
-    # len(tasks) should be 0. len(results) 2.
-    # Note: wait_all waits for tasks.
-
     assert status["total"] == 2

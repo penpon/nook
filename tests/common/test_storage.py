@@ -102,13 +102,14 @@ def test_load_json_methods(storage):
     service = "jsonsvc"
     data = {"key": "val"}
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    test_date = datetime(2025, 1, 15)
+    today_str = test_date.strftime("%Y-%m-%d")
     s_dir = Path(storage.base_dir) / service
     s_dir.mkdir()
     with open(s_dir / f"{today_str}.json", "w", encoding="utf-8") as f:
         json.dump(data, f)
 
-    loaded = storage.load_json(service)
+    loaded = storage.load_json(service, date=test_date)
     assert loaded == data
 
     assert storage.load_json("unknown") is None

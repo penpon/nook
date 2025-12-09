@@ -45,7 +45,7 @@ def test_log_summary_candidates_empty():
     logger.info.assert_not_called()
 
 
-class SimpleItem:
+class ItemWithStrMethod:
     def __str__(self):
         return "Simple String"
 
@@ -55,7 +55,7 @@ def test_log_summary_candidates_items():
     items = [
         MockItem(title="Title A", score=100),
         MockItem(name="Name B", score=50.5),  # float score
-        SimpleItem(),
+        ItemWithStrMethod(),
     ]
 
     log_summary_candidates(logger, items)
@@ -117,7 +117,6 @@ def test_log_multiple_dates_processing():
     # 1 date case
     dates = [date(2025, 1, 1)]
     log_multiple_dates_processing(logger, dates)
-    # Use assert_called check on args to be safe against exact string match issues if invisible chars
     args = logger.info.call_args[0]
     assert "2025-01-01" in args[0]
     assert "記事を処理中" in args[0]

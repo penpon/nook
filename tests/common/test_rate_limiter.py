@@ -6,8 +6,6 @@ import pytest
 from nook.common.config import BaseConfig
 from nook.common.rate_limiter import RateLimitedHTTPClient, RateLimiter
 
-# ... (rest of file)
-
 # --- RateLimiter Tests ---
 
 
@@ -37,7 +35,7 @@ async def test_acquire_wait():
     rl = RateLimiter(rate=1, per=timedelta(seconds=1))
     rl.allowance = 0.0  # Force wait
 
-    with patch("asyncio.sleep") as mock_sleep:
+    with patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep:
         # Need 1 token, rate is 1/sec. Deficit 1. Wait should be 1 sec.
         await rl.acquire(1)
 
@@ -115,14 +113,7 @@ async def test_acquire_rate_limit_selection(mock_config):
 @pytest.mark.asyncio
 async def test_get_method(mock_config):
     client = RateLimitedHTTPClient(config=mock_config)
-    # Mock _acquire_rate_limit
     client._acquire_rate_limit = AsyncMock(return_value=None)
-
-    # Mock super().get. Since we can't easily patch super(), we'll patch the parent class method
-    # Or simpler: verify _acquire_rate_limit is called and then it calls super logic (which we mocked via http client internals usually, but here we just want to ensure flow)
-    # Since checking super() call is hard, let's just assume if it returns what we mock in generic http client it's fine.
-    # But AsyncHTTPClient.get calls self.client.get usually.
-    # Let's patch AsyncHTTPClient.get
 
     with patch(
         "nook.common.http_client.AsyncHTTPClient.get", new_callable=AsyncMock
