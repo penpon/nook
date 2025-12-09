@@ -10,20 +10,20 @@ import feedparser
 import tomli
 from bs4 import BeautifulSoup
 
-from nook.services.base_feed_service import BaseFeedService, Article
-from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
-from nook.common.daily_snapshot import group_records_by_date
+from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import is_within_target_dates, target_dates_set
+from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
 from nook.common.feed_utils import parse_entry_datetime
 from nook.common.logging_utils import (
-    log_processing_start,
     log_article_counts,
-    log_summary_candidates,
-    log_summarization_start,
-    log_summarization_progress,
-    log_storage_complete,
     log_no_new_articles,
+    log_processing_start,
+    log_storage_complete,
+    log_summarization_progress,
+    log_summarization_start,
+    log_summary_candidates,
 )
+from nook.services.base_feed_service import Article, BaseFeedService
 
 
 class ZennExplorer(BaseFeedService):
@@ -191,7 +191,7 @@ class ZennExplorer(BaseFeedService):
 
                 # 既存/新規記事数をカウント
                 existing_count = len(existing_titles_for_date)
-                new_count = len(date_articles)
+                # new_count = len(date_articles)
 
                 # ログ改善：真に新規の記事を確認
                 truly_new_articles = [
@@ -434,11 +434,11 @@ class ZennExplorer(BaseFeedService):
 
         # 4. フィードエントリに含まれる既知フィールド
         try:
-            like_candidate = getattr(entry, "likes", None) or getattr(
-                entry, "likes_count", None
-            )
-            if like_candidate is None and hasattr(entry, "zenn_likes_count"):
-                like_candidate = getattr(entry, "zenn_likes_count")
+            like_candidate = getattr(entry, "likes", None)
+            if like_candidate is None:
+                like_candidate = getattr(entry, "likes_count", None)
+            if like_candidate is None:
+                like_candidate = getattr(entry, "zenn_likes_count", None)
             value = self._safe_parse_int(like_candidate)
             if value is not None:
                 return float(value)

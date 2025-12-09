@@ -16,17 +16,16 @@ by the existing test_hacker_news.py:
 """
 
 import json
-import os
 from datetime import date, datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, mock_open
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
 
 from nook.services.hacker_news.hacker_news import (
+    MIN_TEXT_LENGTH,
+    SCORE_THRESHOLD,
     HackerNewsRetriever,
     Story,
-    SCORE_THRESHOLD,
-    MIN_TEXT_LENGTH,
 )
 
 

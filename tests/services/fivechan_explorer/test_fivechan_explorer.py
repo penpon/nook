@@ -16,6 +16,7 @@ This module tests the pure logic helper functions in fivechan_explorer.py:
 
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 # Skip tests if dateutil is not installed (optional dependency)
@@ -552,7 +553,6 @@ class TestCollect:
         When: collect is called.
         Then: Threads are processed and saved.
         """
-        from datetime import datetime, timezone
 
         # Use current timestamp so thread matches target_dates
         current_timestamp = int(datetime.now(timezone.utc).timestamp())

@@ -6,10 +6,11 @@ This module tests the API server startup script:
 - Default values and command line argument handling
 """
 
-from unittest.mock import MagicMock, patch
-import pytest
 import os
 import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add the parent directory to sys.path to import the module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))

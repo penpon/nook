@@ -10,7 +10,6 @@ from typing import Any, Awaitable, Callable, Iterable, Mapping, Sequence
 from nook.common.daily_merge import merge_records
 from nook.common.date_utils import normalize_datetime_to_local
 
-
 Record = dict[str, Any]
 
 

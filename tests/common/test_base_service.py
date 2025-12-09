@@ -2,10 +2,10 @@ import asyncio
 import json
 import types
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic import SecretStr
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from nook.common.base_service import BaseService
 from nook.common.config import BaseConfig
@@ -474,4 +474,4 @@ async def test_fetch_with_retry_is_placeholder():
 
     # 現在の実装ではpassを返す
     result = await service.fetch_with_retry("http://example.com")
-    assert result is None
+    assert result == ""

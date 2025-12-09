@@ -9,7 +9,7 @@ This module tests the pure logic helper functions in tech_feed.py:
 """
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from bs4 import BeautifulSoup

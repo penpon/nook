@@ -14,11 +14,11 @@ from datetime import datetime, timezone
 import pytest
 
 from nook.services.hacker_news.hacker_news import (
+    MAX_TEXT_LENGTH,
+    MIN_TEXT_LENGTH,
+    SCORE_THRESHOLD,
     HackerNewsRetriever,
     Story,
-    SCORE_THRESHOLD,
-    MIN_TEXT_LENGTH,
-    MAX_TEXT_LENGTH,
 )
 
 

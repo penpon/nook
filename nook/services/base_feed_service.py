@@ -8,6 +8,7 @@ from datetime import date, datetime, time
 from pathlib import Path
 
 from bs4 import BeautifulSoup
+
 from nook.common.base_service import BaseService
 from nook.common.daily_merge import merge_records
 from nook.common.date_utils import is_within_target_dates, normalize_datetime_to_local
@@ -351,7 +352,7 @@ class BaseFeedService(BaseService):
 
         # 各日独立で上位記事を選択
         selected_articles = []
-        for date_key, date_articles in articles_by_date.items():
+        for _date_key, date_articles in articles_by_date.items():
             if len(date_articles) <= self.TOTAL_LIMIT:
                 selected_articles.extend(date_articles)
             else:

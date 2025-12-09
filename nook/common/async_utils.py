@@ -41,7 +41,7 @@ async def gather_with_errors(
     results = await asyncio.gather(*coros, return_exceptions=return_exceptions)
 
     task_results = []
-    for i, (name, result) in enumerate(zip(task_names, results, strict=False)):
+    for _i, (name, result) in enumerate(zip(task_names, results, strict=False)):
         if isinstance(result, Exception):
             logger.error(f"Task {name} failed: {result}")
             task_results.append(TaskResult(name, False, error=result))

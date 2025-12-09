@@ -10,24 +10,24 @@ import cloudscraper
 from dateutil import parser
 
 from nook.common.base_service import BaseService
-from nook.common.dedup import DedupTracker
 from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
 from nook.common.date_utils import (
     is_within_target_dates,
     normalize_datetime_to_local,
     target_dates_set,
 )
+from nook.common.dedup import DedupTracker
 from nook.common.gpt_client import GPTClient
-from nook.common.storage import LocalStorage
 from nook.common.logging_utils import (
-    log_processing_start,
     log_article_counts,
-    log_summary_candidates,
-    log_summarization_start,
-    log_summarization_progress,
-    log_storage_complete,
     log_no_new_articles,
+    log_processing_start,
+    log_storage_complete,
+    log_summarization_progress,
+    log_summarization_start,
+    log_summary_candidates,
 )
+from nook.common.storage import LocalStorage
 
 
 @dataclass
@@ -1091,12 +1091,12 @@ class FiveChanExplorer(BaseService):
 
         板: /{thread.board}/
         {thread_content}
-        
+
         要約は以下の形式で行い、日本語で回答してください:
         1. スレッドの主な内容（1-2文）
         2. 議論の主要ポイント（箇条書き3-5点）
         3. スレッドの全体的な論調
-        
+
         注意：攻撃的な内容やヘイトスピーチは緩和し、主要な技術的議論に焦点を当ててください。
         """
 

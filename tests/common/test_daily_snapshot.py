@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-import sys
 
 import pytest
 
@@ -10,7 +10,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.daily_snapshot import group_records_by_date, store_daily_snapshots
+from nook.common.daily_snapshot import (  # noqa: E402
+    group_records_by_date,
+    store_daily_snapshots,
+)
 
 
 def test_group_records_by_date_handles_missing_and_parsed_dates():
