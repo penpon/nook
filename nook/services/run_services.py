@@ -253,8 +253,12 @@ def run_service_sync(service_name: str):
         print(f"{service_name}を実行しています...")
         try:
             # 遅延ロード
-            service = runner.service_classes[service_name]()
-            service.run()
+            if service_name not in runner.sync_services:
+                runner.sync_services[service_name] = runner.service_classes[
+                    service_name
+                ]()
+
+            runner.sync_services[service_name].run()
             print(f"{service_name}の実行が完了しました。")
         except Exception as e:
             print(f"{service_name}の実行中にエラーが発生しました: {str(e)}")

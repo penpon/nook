@@ -1,0 +1,8 @@
+以下を確認しました。
+
+**Summary**
+- 主なロジック変更は `run_service_sync` の初期化経路変更のみで、他はテスト追加です。
+
+**Issues**
+1. 🔴 `run_service_sync` が `runner.sync_services` ではなく `runner.service_classes` から直接インスタンス化するように変わり、`ServiceRunner.__init__` で行われる依存注入（設定・クライアント共有など）や同期サービス限定のフィルタをバイパスしています。コンストラクタ引数を要求するサービスや非同期 `run` を返すサービスでは実行時エラーや未awaitのコルーチン警告につながるため、従来通り `sync_services` 経由（または同等の初期化ヘルパ）を用いるべきです。
+

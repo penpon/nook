@@ -20,6 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from nook.common.exceptions import RetryException
 from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer, PaperInfo
 
 
@@ -178,6 +179,24 @@ class TestGetCuratedPaperIds:
         assert "2401.00001" not in result
         assert "2401.00002" in result
 
+    @pytest.mark.asyncio
+    async def test_raises_on_non_404_error(self, summarizer: ArxivSummarizer) -> None:
+        """
+        Given: Hugging Face page returns 500 error.
+        When: _get_curated_paper_ids is called.
+        Then: Exception is raised.
+        """
+        summarizer.http_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        error = httpx.HTTPStatusError(
+            "Server Error", request=MagicMock(), response=mock_response
+        )
+        summarizer.http_client.get = AsyncMock(side_effect=error)
+
+        with pytest.raises(RetryException):
+            await summarizer._get_curated_paper_ids(5, date(2024, 1, 15))
+
 
 class TestProcessedIds:
     """Tests for ID processing methods."""
@@ -234,6 +253,48 @@ class TestProcessedIds:
             result = await summarizer._load_ids_from_file("test.txt")
 
         assert result == []
+
+    @pytest.mark.asyncio
+    async def test_save_processed_ids_groups_by_date(
+        self, summarizer: ArxivSummarizer
+    ) -> None:
+        """
+        Given: List of paper IDs with published dates.
+        When: _save_processed_ids_by_date is called.
+        Then: IDs are grouped by date and saved correctly.
+        """
+        paper_ids = ["2401.00001", "2401.00002", "2401.00003", "2401.00004"]
+
+        # Mapping from ID to Date
+        id_date_map = {
+            "2401.00001": date(2024, 1, 15),
+            "2401.00002": date(2024, 1, 15),
+            "2401.00003": date(2024, 1, 16),
+            "2401.00004": None,
+        }
+
+        async def mock_get_date(pid):
+            return id_date_map.get(pid)
+
+        # Mock _get_processed_ids to return empty list so nothing is filtered out as already processed
+        with patch.object(
+            summarizer, "_get_processed_ids", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = []
+
+            with patch.object(
+                summarizer.storage, "save", new_callable=AsyncMock
+            ) as mock_save:
+                with patch.object(
+                    summarizer, "_get_paper_date", side_effect=mock_get_date
+                ):
+                    await summarizer._save_processed_ids_by_date(
+                        paper_ids, [date(2024, 1, 15), date(2024, 1, 16)]
+                    )
+
+                # Verify save was called for both dates (plus potentially one for the None date -> today)
+                # At least calls for 2024-01-15 and 2024-01-16
+                assert mock_save.call_count >= 2
 
 
 class TestGetPaperDate:
@@ -523,6 +584,101 @@ class TestExtractBodyText:
             result = await summarizer._extract_from_pdf("2401.00001")
 
         assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_download_html_without_retry_returns_empty_on_404(
+        self, summarizer: ArxivSummarizer
+    ) -> None:
+        """
+        Given: 404 response.
+        When: _download_html_without_retry is called.
+        Then: Empty string is returned.
+        """
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        error = httpx.HTTPStatusError(
+            "Not Found", request=MagicMock(), response=mock_response
+        )
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = error
+            mock_client_cls.return_value.__aenter__.return_value = mock_client
+
+            result = await summarizer._download_html_without_retry("http://example.com")
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_download_html_without_retry_raises_on_other_errors(
+        self, summarizer: ArxivSummarizer
+    ) -> None:
+        """
+        Given: 500 response.
+        When: _download_html_without_retry is called.
+        Then: Exception is raised.
+        """
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        error = httpx.HTTPStatusError(
+            "Server Error", request=MagicMock(), response=mock_response
+        )
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = error
+            mock_client_cls.return_value.__aenter__.return_value = mock_client
+
+            with pytest.raises(httpx.HTTPStatusError):
+                await summarizer._download_html_without_retry("http://example.com")
+
+    @pytest.mark.asyncio
+    async def test_extract_from_html_handles_exception(
+        self, summarizer: ArxivSummarizer
+    ) -> None:
+        """
+        Given: _download_html_without_retry raises generic exception.
+        When: _extract_from_html is called.
+        Then: Empty string is returned.
+        """
+        with patch.object(
+            summarizer, "_download_html_without_retry", new_callable=AsyncMock
+        ) as mock_download:
+            mock_download.side_effect = Exception("Unexpected error")
+            result = await summarizer._extract_from_html("2401.00001")
+
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_extract_from_pdf_handles_extraction_error(
+        self, summarizer: ArxivSummarizer
+    ) -> None:
+        """
+        Given: pdfplumber raises error on page extraction.
+        When: _extract_from_pdf is called.
+        Then: Error is ignored and valid content is returned (or empty if all fail).
+        """
+        mock_response = MagicMock()
+        mock_response.content = b"pdf content"
+
+        with patch.object(
+            summarizer, "_download_pdf_without_retry", new_callable=AsyncMock
+        ) as mock_download:
+            mock_download.return_value = mock_response
+            with patch("pdfplumber.open") as mock_pdfplumber:
+                mock_pdf = MagicMock()
+                mock_page1 = MagicMock()
+                mock_page1.extract_text.side_effect = Exception("Extraction failed")
+                mock_page2 = MagicMock()
+                mock_page2.extract_text.return_value = "Page 2 content" + "a" * 100
+
+                mock_pdf.pages = [mock_page1, mock_page2]
+                mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+                mock_pdf.__exit__ = MagicMock(return_value=False)
+                mock_pdfplumber.return_value = mock_pdf
+
+                result = await summarizer._extract_from_pdf("2401.00001")
+
+        assert "Page 2 content" in result
 
 
 class TestSummarizePaperInfo:
