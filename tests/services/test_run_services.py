@@ -250,8 +250,8 @@ def test_service_runner_init_loads_service_classes():
 
 
 @pytest.mark.asyncio
-async def test_run_sync_service_multiple_dates_display(monkeypatch):
-    """Test _run_sync_service displays date range when multiple dates (lines 84-86)."""
+async def test__run_sync_service_multiple_dates_display(monkeypatch):
+    """Test _run_sync_service (private method) displays date range when multiple dates (lines 84-86)."""
     service_mock = AsyncMock()
     service_mock.collect.return_value = []
 
