@@ -35,7 +35,7 @@ async def test_acquire_wait():
     rl = RateLimiter(rate=1, per=timedelta(seconds=1))
     rl.allowance = 0.0  # Force wait
 
-    with patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep:
+    with patch("nook.core.clients.rate_limiter.asyncio.sleep") as mock_sleep:
         # Need 1 token, rate is 1/sec. Deficit 1. Wait should be 1 sec.
         await rl.acquire(1)
 
@@ -54,22 +54,17 @@ async def test_acquire_wait_burst_cap_after_wait():
     # 2. Initial check in acquire (line 32)
     # 3. After sleep (line 54) - this is where elapsed time matters for line 59
     base_time = datetime(2025, 1, 1, 0, 0, 0, tzinfo=UTC)
-    call_count = [0]
-
-    def mock_now(tz=None):
-        call_count[0] += 1
-        if call_count[0] <= 2:
-            # First two calls: __init__ and initial check in acquire
-            return base_time
-        else:
-            # Third call: after sleep - simulate 1 second elapsed
-            # This will cause recovery of 100 tokens (100 rate * 1 sec),
-            # which exceeds burst of 10, triggering line 59
-            return base_time + timedelta(seconds=1)
+    # Mock return values for datetime.now()
+    # 1. __init__: base_time
+    # 2. acquire start: base_time (elapsed=0)
+    # 3. acquire after sleep: base_time + 1s (elapsed=1s)
+    mock_now = MagicMock(
+        side_effect=[base_time, base_time, base_time + timedelta(seconds=1.0)]
+    )
 
     with (
-        patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep,
-        patch("nook.common.rate_limiter.datetime") as mock_datetime,
+        patch("nook.core.clients.rate_limiter.asyncio.sleep") as mock_sleep,
+        patch("nook.core.clients.rate_limiter.datetime") as mock_datetime,
     ):
         mock_datetime.now = mock_now
         # Allow timedelta to work (used in RateLimiter constructor default)
