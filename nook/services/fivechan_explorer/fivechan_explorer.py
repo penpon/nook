@@ -1050,7 +1050,7 @@ class FiveChanExplorer(BaseService):
             return threads
 
         def sort_key(thread: Thread):
-            created = datetime.fromtimestamp(thread.timestamp)
+            created = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
             return (thread.popularity_score, created)
 
         sorted_threads = sorted(threads, key=sort_key, reverse=True)

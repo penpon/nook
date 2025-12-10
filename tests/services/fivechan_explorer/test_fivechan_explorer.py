@@ -1399,7 +1399,7 @@ class TestRetrieveAIThreads:
         """
         from nook.common.dedup import DedupTracker
 
-        current_timestamp = int(datetime.now().timestamp())
+        current_timestamp = int(datetime.now(timezone.utc).timestamp())
 
         fivechan_explorer._get_subject_txt_data = AsyncMock(
             return_value=[
@@ -1423,7 +1423,7 @@ class TestRetrieveAIThreads:
         fivechan_explorer._get_thread_posts_from_dat = AsyncMock(
             return_value=(
                 [{"no": 1, "com": "テスト投稿", "date": "2024/01/01 12:00:00"}],
-                datetime.now(),
+                datetime.now(timezone.utc),
             )
         )
 
@@ -1484,7 +1484,9 @@ class TestLoadExistingThreads:
             return_value=[{"thread_id": 1, "title": "Test"}]
         )
 
-        result = await fivechan_explorer._load_existing_threads(datetime.now())
+        result = await fivechan_explorer._load_existing_threads(
+            datetime.now(timezone.utc)
+        )
         assert len(result) == 1
         assert result[0]["thread_id"] == 1
 
@@ -1503,7 +1505,9 @@ class TestLoadExistingThreads:
             }
         )
 
-        result = await fivechan_explorer._load_existing_threads(datetime.now())
+        result = await fivechan_explorer._load_existing_threads(
+            datetime.now(timezone.utc)
+        )
         assert len(result) == 2
         assert result[0]["board"] == "ai"
         assert result[1]["board"] == "prog"
@@ -1519,5 +1523,7 @@ class TestLoadExistingThreads:
         fivechan_explorer.load_json = AsyncMock(return_value=None)
         fivechan_explorer.storage.load = AsyncMock(return_value=None)
 
-        result = await fivechan_explorer._load_existing_threads(datetime.now())
+        result = await fivechan_explorer._load_existing_threads(
+            datetime.now(timezone.utc)
+        )
         assert result == []
