@@ -278,7 +278,7 @@ async def test_retrieve_top_comments_missing_created_at(mock_reddit_explorer):
         url="u",
         upvotes=1,
         text="t",
-        # created_at defaults to None
+        created_at=None,
     )
 
     mock_submission = AsyncMock()
