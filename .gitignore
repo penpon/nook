@@ -17,6 +17,7 @@ uv.lock
 
 # Coverage artifacts
 .coverage
+coverage.json
 
 
 # Project-specific data (keep in git)
