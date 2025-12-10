@@ -469,32 +469,46 @@ def test_stop_method():
     assert runner.running is False
 
 
-def test_run_service_sync_always_not_found(monkeypatch, capsys):
-    """Test run_service_sync always prints 'not found' message.
-
-    ServiceRunner.__init__ always initializes sync_services as empty dict (line 59),
-    so 'service_name in runner.sync_services' is always False (line 252),
-    and the 'not found' message is always displayed (line 260).
-    """
+def test_run_service_sync_success(monkeypatch, capsys):
+    """Test run_service_sync successfully executes a service."""
     from nook.services.run_services import run_service_sync
 
-    # No need to mock __init__ - the actual behavior is what we're testing
-    run_service_sync("any_service")
+    # Mock the service class
+    mock_service_class = MagicMock()
+    mock_service_instance = MagicMock()
+    mock_service_class.return_value = mock_service_instance
+
+    # Patch ServiceRunner to use our mock service
+    def mock_init(self):
+        self.service_classes = {"test_service": mock_service_class}
+        self.sync_services = {}
+        self.task_manager = None
+        self.running = False
+
+    monkeypatch.setattr(ServiceRunner, "__init__", mock_init)
+
+    run_service_sync("test_service")
 
     captured = capsys.readouterr()
-    assert "見つかりません" in captured.out
+    assert "test_serviceを実行しています" in captured.out
+    assert "完了しました" in captured.out
+    mock_service_instance.run.assert_called_once()
 
 
 def test_run_service_sync_with_error(monkeypatch, capsys):
     """Test run_service_sync error handling (lines 257-258)."""
     from nook.services.run_services import run_service_sync
 
-    mock_service = MagicMock()
-    mock_service.run.side_effect = RuntimeError("Service crashed")
+    # Mock the service class to raise an error
+    mock_service_class = MagicMock()
+    mock_service_instance = MagicMock()
+    mock_service_instance.run.side_effect = RuntimeError("Service crashed")
+    mock_service_class.return_value = mock_service_instance
 
+    # Patch ServiceRunner to use our mock service
     def mock_init(self):
-        self.sync_services = {"crash_service": mock_service}
-        self.service_classes = {"crash_service": object}
+        self.service_classes = {"crash_service": mock_service_class}
+        self.sync_services = {}
         self.task_manager = None
         self.running = False
 
@@ -504,6 +518,16 @@ def test_run_service_sync_with_error(monkeypatch, capsys):
 
     captured = capsys.readouterr()
     assert "エラーが発生しました" in captured.out
+
+
+def test_run_service_sync_not_found(capsys):
+    """Test run_service_sync with unknown service name."""
+    from nook.services.run_services import run_service_sync
+
+    run_service_sync("unknown_service")
+
+    captured = capsys.readouterr()
+    assert "見つかりません" in captured.out
 
 
 def test_backward_compat_functions(monkeypatch, capsys):
