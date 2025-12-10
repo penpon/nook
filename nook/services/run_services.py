@@ -249,10 +249,12 @@ class ServiceRunner:
 def run_service_sync(service_name: str):
     """特定のサービスを同期的に実行（後方互換性のため）"""
     runner = ServiceRunner()
-    if service_name in runner.sync_services:
+    if service_name in runner.service_classes:
         print(f"{service_name}を実行しています...")
         try:
-            runner.sync_services[service_name].run()
+            # 遅延ロード
+            service = runner.service_classes[service_name]()
+            service.run()
             print(f"{service_name}の実行が完了しました。")
         except Exception as e:
             print(f"{service_name}の実行中にエラーが発生しました: {str(e)}")
