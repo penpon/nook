@@ -11,6 +11,9 @@ uv.lock
 
 # CodeRabbit review logs
 .coderabbit_review_*
+.copilot_review_*
+.diff_tmp_*
+.prompt_full*
 
 # Coverage artifacts
 .coverage

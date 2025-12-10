@@ -1,6 +1,0 @@
-✔ $ cd /home/bob/nook/feature/stream-q-arxiv && git --no-pager diff
-    └ 18 lines...
-
-✔ Read nook/services/run_services.py:220-290
-   └ 76 lines read
-
