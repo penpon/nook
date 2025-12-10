@@ -20,7 +20,13 @@ from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer, 
 
 
 def _jst_date_now() -> date:
-    """Return the current date in JST timezone."""
+    """Return the current date in JST timezone.
+
+    Note: Uses datetime.now() rather than a fixed date because:
+    1. Tests verify behavior with 'current' timestamps (created_utc)
+    2. Fixed dates would fail when combined with datetime.now() timestamps
+    3. is_within_target_dates() compares JST-converted dates, so we need matching JST dates
+    """
     jst = timezone(timedelta(hours=9))
     return datetime.now(jst).date()
 
@@ -712,7 +718,6 @@ class TestGetWith403Tolerance:
                 "https://test.5ch.net/board/", "board"
             )
 
-        # Should accept 403 with long content
         # Should accept 403 with long content (treated as valid, not Cloudflare)
         assert result is not None
         assert result.status_code == 403
@@ -808,6 +813,7 @@ class TestTryAlternativeEndpoints:
             )
 
         assert result is not None
+        assert result.status_code == 403
 
     @pytest.mark.asyncio
     async def test_alternative_endpoint_cloudflare_content(
