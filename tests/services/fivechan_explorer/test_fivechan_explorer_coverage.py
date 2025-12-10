@@ -11,12 +11,18 @@ This module adds tests for previously uncovered code paths:
 - collect: Thread sorting when > limit
 """
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer, Thread
+
+
+def _jst_date_now() -> date:
+    """Return the current date in JST timezone."""
+    jst = timezone(timedelta(hours=9))
+    return datetime.now(jst).date()
 
 
 @pytest.fixture
@@ -210,7 +216,7 @@ class TestCollectThreadSorting:
         mock_fivechan_explorer.TOTAL_LIMIT = 5
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            await mock_fivechan_explorer.collect(target_dates=[date.today()])
+            await mock_fivechan_explorer.collect(target_dates=[_jst_date_now()])
 
         # Verify summarize was called for limited threads
         assert mock_fivechan_explorer._summarize_thread.call_count <= 5
@@ -241,7 +247,9 @@ class TestCollectNoSavedFiles:
         mock_fivechan_explorer.target_boards = {"ai": "人工知能"}
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer.collect(target_dates=[date.today()])
+            result = await mock_fivechan_explorer.collect(
+                target_dates=[_jst_date_now()]
+            )
 
         assert result == []
 
@@ -263,7 +271,7 @@ class TestBoardError:
         mock_fivechan_explorer._store_summaries = AsyncMock(return_value=[])
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            await mock_fivechan_explorer.collect(target_dates=[date.today()])
+            await mock_fivechan_explorer.collect(target_dates=[_jst_date_now()])
 
         # Should have tried both boards
         assert mock_fivechan_explorer._retrieve_ai_threads.call_count == 2
@@ -542,7 +550,7 @@ class TestRetrieveAiThreadsDuplicateSkip:
         )
 
         result = await mock_fivechan_explorer._retrieve_ai_threads(
-            "ai", None, mock_tracker, [date.today()]
+            "ai", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(result) == 0
@@ -584,7 +592,7 @@ class TestRetrieveAiThreadsLimit:
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await mock_fivechan_explorer._retrieve_ai_threads(
-                "ai", 2, mock_tracker, [date.today()]
+                "ai", 2, mock_tracker, [_jst_date_now()]
             )
 
         assert len(result) == 2
@@ -623,7 +631,7 @@ class TestRetrieveAiThreadsNoPostsWarning:
         mock_tracker.is_duplicate.return_value = (False, "norm")
 
         result = await mock_fivechan_explorer._retrieve_ai_threads(
-            "ai", None, mock_tracker, [date.today()]
+            "ai", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(result) == 0

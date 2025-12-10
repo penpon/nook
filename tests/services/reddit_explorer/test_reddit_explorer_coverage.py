@@ -9,12 +9,18 @@ This module adds tests for previously uncovered code paths:
 - Empty permalink handling
 """
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+
+
+def _jst_date_now() -> date:
+    """Return the current date in JST timezone."""
+    jst = timezone(timedelta(hours=9))
+    return datetime.now(jst).date()
 
 
 @pytest.fixture
@@ -62,7 +68,7 @@ class TestPostTypeDetection:
         mock_tracker.is_duplicate.return_value = (False, "norm")
 
         posts, total_found = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 0
@@ -107,7 +113,7 @@ class TestPostTypeDetection:
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
         posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 1
@@ -151,7 +157,7 @@ class TestPostTypeDetection:
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
         posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 1
@@ -196,7 +202,7 @@ class TestPostTypeDetection:
         )
 
         posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 1
@@ -240,7 +246,7 @@ class TestPostTypeDetection:
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
         posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 1
@@ -284,7 +290,7 @@ class TestPostTypeDetection:
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
         posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 1
@@ -328,7 +334,7 @@ class TestPostTypeDetection:
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
         posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 1
@@ -374,7 +380,7 @@ class TestDuplicateSkipping:
         mock_tracker.get_original_title.return_value = "Original Title"
 
         posts, total_found = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [date.today()]
+            "test", None, mock_tracker, [_jst_date_now()]
         )
 
         assert len(posts) == 0
@@ -470,7 +476,7 @@ class TestStoreEmptyPosts:
         When: _store_summaries is called
         Then: Returns empty list
         """
-        result = await mock_reddit_explorer._store_summaries([], [date.today()])
+        result = await mock_reddit_explorer._store_summaries([], [_jst_date_now()])
         assert result == []
 
 

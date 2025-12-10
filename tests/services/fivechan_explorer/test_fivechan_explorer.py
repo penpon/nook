@@ -14,7 +14,7 @@ This module tests the pure logic helper functions in fivechan_explorer.py:
 - run method
 """
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -26,6 +26,12 @@ from nook.services.fivechan_explorer.fivechan_explorer import (
     FiveChanExplorer,
     Thread,
 )
+
+
+def _jst_date_now() -> date:
+    """Return the current date in JST timezone."""
+    jst = timezone(timedelta(hours=9))
+    return datetime.now(jst).date()
 
 
 class TestThreadDataclass:
@@ -1361,7 +1367,7 @@ class TestRetrieveAIThreads:
             board_id="ai",
             limit=10,
             dedup_tracker=dedup_tracker,
-            target_dates=[date.today()],
+            target_dates=[_jst_date_now()],
         )
 
         assert result == []
@@ -1385,7 +1391,7 @@ class TestRetrieveAIThreads:
             board_id="ai",
             limit=10,
             dedup_tracker=dedup_tracker,
-            target_dates=[date.today()],
+            target_dates=[_jst_date_now()],
         )
 
         assert result == []
@@ -1433,7 +1439,7 @@ class TestRetrieveAIThreads:
             board_id="ai",
             limit=10,
             dedup_tracker=dedup_tracker,
-            target_dates=[date.today()],
+            target_dates=[_jst_date_now()],
         )
 
         # Only the ChatGPT thread should be matched
@@ -1459,7 +1465,7 @@ class TestStoreSummaries:
         When: _store_summaries is called.
         Then: Empty list is returned.
         """
-        result = await fivechan_explorer._store_summaries([], [date.today()])
+        result = await fivechan_explorer._store_summaries([], [_jst_date_now()])
         assert result == []
 
     async def test_store_summaries_with_threads(
@@ -1484,7 +1490,7 @@ class TestStoreSummaries:
 
         fivechan_explorer.storage.save = AsyncMock(return_value=None)
 
-        result = await fivechan_explorer._store_summaries(threads, [date.today()])
+        result = await fivechan_explorer._store_summaries(threads, [_jst_date_now()])
 
         assert len(result) > 0
         fivechan_explorer.storage.save.assert_called()
