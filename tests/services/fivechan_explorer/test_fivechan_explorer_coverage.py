@@ -681,7 +681,7 @@ class TestGetWith403Tolerance:
             )
 
         # Should have tried multiple times
-        assert mock_client.get.call_count >= 1
+        assert mock_client.get.call_count >= 2
 
     @pytest.mark.asyncio
     async def test_403_tolerance_403_with_valid_content(self, mock_fivechan_explorer):
@@ -828,7 +828,7 @@ class TestTryAlternativeEndpoints:
             )
 
         # Should have tried multiple alternatives
-        assert mock_client.get.call_count >= 1
+        assert mock_client.get.call_count >= 2
 
     @pytest.mark.asyncio
     async def test_alternative_endpoint_all_fail(self, mock_fivechan_explorer):
