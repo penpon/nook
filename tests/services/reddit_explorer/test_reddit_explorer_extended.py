@@ -96,6 +96,15 @@ async def test_collect_flow(mock_reddit_explorer):
 
     assert len(result) > 0  # Should have processed posts
 
+    # Check that created_at is correctly populated by inspecting the call to _store_summaries
+    # _store_summaries(posts, target_dates)
+    # posts is list of (category, subreddit, RedditPost)
+    mock_reddit_explorer._store_summaries.assert_called()
+    call_args = mock_reddit_explorer._store_summaries.call_args
+    posts_arg = call_args[0][0]
+    post = posts_arg[0][2]
+    assert post.created_at == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+
 
 @pytest.mark.asyncio
 async def test_store_summaries(mock_reddit_explorer):
@@ -257,3 +266,51 @@ async def test_retrieve_top_comments(mock_reddit_explorer):
     assert len(comments) == 1
     assert comments[0]["text"] == "Japanese Comment"
     assert comments[0]["score"] == 10
+
+
+@pytest.mark.asyncio
+async def test_collect_flow_missing_created_at(mock_reddit_explorer):
+    """Test collect ignores posts without created_utc."""
+    # Mock asyncpraw.Reddit
+    mock_reddit_instance = MagicMock()
+    mock_reddit_instance.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
+    mock_reddit_instance.__aexit__ = AsyncMock(return_value=None)
+
+    mock_subreddit = MagicMock()
+    mock_reddit_instance.subreddit = AsyncMock(return_value=mock_subreddit)
+
+    # Mock submission without created_utc
+    m = MagicMock()
+    m.stickied = False
+    m.title = "No Date Post"
+    m.is_self = True
+    m.selftext = "Text"
+    m.id = "nodate"
+    m.score = 100
+    m.permalink = "/r/test/comments/nodate/"
+    m.url = "https://reddit.com/nodate"
+    # Ensure created_utc is missing so created_at becomes None
+    del m.created_utc
+
+    # Mock async iterator for hot()
+    async def async_iter(*args, **kwargs):
+        yield m
+
+    mock_subreddit.hot.side_effect = async_iter
+
+    # Mock dependencies to avoid errors if code proceeds
+    mock_reddit_explorer._load_existing_titles = AsyncMock(
+        return_value=MagicMock(
+            count=lambda: 0, is_duplicate=lambda x: (False, x), add=lambda x: None
+        )
+    )
+    mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="Translated")
+
+    with patch("asyncpraw.Reddit", return_value=mock_reddit_instance):
+        target_dates = [date(2023, 1, 1)]
+        # Since created_at is None, is_within_target_dates checks logic.
+        # If created_at is None, is_within_target_dates returns False, thus skipping the post.
+        result = await mock_reddit_explorer.collect(limit=5, target_dates=target_dates)
+
+    # Assert valid result list is empty because the post was skipped
+    assert len(result) == 0
