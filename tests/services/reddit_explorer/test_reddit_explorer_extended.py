@@ -224,7 +224,15 @@ def test_extract_post_id(mock_reddit_explorer):
 @pytest.mark.asyncio
 async def test_retrieve_top_comments(mock_reddit_explorer):
     """Test comment retrieval and translation."""
-    post = RedditPost(type="text", id="1", title="T", url="u", upvotes=1, text="t")
+    post = RedditPost(
+        type="text",
+        id="1",
+        title="T",
+        url="u",
+        upvotes=1,
+        text="t",
+        created_at=datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+    )
 
     mock_submission = AsyncMock()
     mock_comment = MagicMock()
