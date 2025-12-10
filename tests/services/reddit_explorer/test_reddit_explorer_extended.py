@@ -269,6 +269,40 @@ async def test_retrieve_top_comments(mock_reddit_explorer):
 
 
 @pytest.mark.asyncio
+async def test_retrieve_top_comments_missing_created_at(mock_reddit_explorer):
+    """Test comment retrieval works even when created_at is missing (None)."""
+    post = RedditPost(
+        type="text",
+        id="1",
+        title="T",
+        url="u",
+        upvotes=1,
+        text="t",
+        # created_at defaults to None
+    )
+
+    mock_submission = AsyncMock()
+    mock_comment = MagicMock()
+    mock_comment.body = "English Comment"
+    mock_comment.score = 10
+
+    mock_submission.comments.replace_more = AsyncMock()
+    mock_submission.comments.list = MagicMock(return_value=[mock_comment])
+
+    mock_reddit_explorer.reddit = MagicMock()
+    mock_reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
+
+    mock_reddit_explorer._translate_to_japanese = AsyncMock(
+        return_value="Japanese Comment"
+    )
+
+    comments = await mock_reddit_explorer._retrieve_top_comments_of_post(post)
+
+    assert len(comments) == 1
+    assert comments[0]["text"] == "Japanese Comment"
+
+
+@pytest.mark.asyncio
 async def test_collect_flow_missing_created_at(mock_reddit_explorer):
     """Test collect ignores posts without created_utc."""
     # Mock asyncpraw.Reddit
