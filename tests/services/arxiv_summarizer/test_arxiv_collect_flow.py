@@ -293,6 +293,24 @@ class TestCollectFlow:
                                 # Paper should only be retrieved once due to deduplication
                                 assert mock_retrieve.call_count == 1
 
+    @pytest.mark.asyncio
+    async def test_collect_returns_empty_when_target_dates_is_empty(
+        self, summarizer: ArxivSummarizer
+    ) -> None:
+        """
+        Given: target_dates is empty.
+        When: collect is called.
+        Then: Empty list is returned immediately.
+        """
+        # Given
+        target_dates = []
+
+        # When
+        result = await summarizer.collect(limit=5, target_dates=target_dates)
+
+        # Then
+        assert result == []
+
 
 class TestPaperInfoDataclass:
     """Tests for PaperInfo dataclass."""
