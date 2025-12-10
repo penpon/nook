@@ -18,7 +18,7 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs) -> T:
             logger = logging.getLogger(func.__module__)
-            last_exception = None
+            # last_exception variables removed as they are unused
 
             for attempt in range(retries):
                 try:
@@ -30,7 +30,6 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     return result
 
                 except Exception as e:
-                    last_exception = e
                     wait_time = delay * (backoff**attempt)
 
                     logger.warning(
@@ -54,12 +53,10 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                             f"Failed after {retries} attempts: {e}"
                         ) from e
 
-            raise last_exception
-
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs) -> T:
             logger = logging.getLogger(func.__module__)
-            last_exception = None
+            # last_exception variables removed as they are unused
 
             for attempt in range(retries):
                 try:
@@ -71,7 +68,6 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                     return result
 
                 except Exception as e:
-                    last_exception = e
                     wait_time = delay * (backoff**attempt)
 
                     logger.warning(
@@ -87,8 +83,6 @@ def handle_errors(retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
                         raise RetryException(
                             f"Failed after {retries} attempts: {e}"
                         ) from e
-
-            raise last_exception
 
         # 非同期関数か同期関数かを判定
         if asyncio.iscoroutinefunction(func):
@@ -117,7 +111,7 @@ def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
             )
             return result
 
-        except Exception as e:
+        except Exception:
             execution_time = (datetime.now() - start_time).total_seconds()
             logger.error(
                 f"Function {func.__name__} failed",
@@ -126,7 +120,7 @@ def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
                     "execution_time": execution_time,
                 },
             )
-            raise e  # トレースバック出力を抑制するために、raise eに変更
+            raise
 
     if asyncio.iscoroutinefunction(func):
         return cast(Callable[..., T], async_wrapper)
