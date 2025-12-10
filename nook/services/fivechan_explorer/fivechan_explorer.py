@@ -1033,8 +1033,8 @@ class FiveChanExplorer(BaseService):
     ) -> float:
         recency_bonus = 0.0
         try:
-            now = datetime.now()
-            created = datetime.fromtimestamp(timestamp)
+            now = datetime.now(timezone.utc)
+            created = datetime.fromtimestamp(timestamp, tz=timezone.utc)
             hours = (now - created).total_seconds() / 3600
             recency_bonus = 24 / max(1.0, hours)
         except Exception as exc:
@@ -1050,7 +1050,7 @@ class FiveChanExplorer(BaseService):
             return threads
 
         def sort_key(thread: Thread):
-            created = datetime.fromtimestamp(thread.timestamp)
+            created = datetime.fromtimestamp(thread.timestamp, tz=timezone.utc)
             return (thread.popularity_score, created)
 
         sorted_threads = sorted(threads, key=sort_key, reverse=True)
