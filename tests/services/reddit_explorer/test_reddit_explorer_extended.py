@@ -29,8 +29,8 @@ async def test_collect_flow(mock_reddit_explorer):
     """Test the collect method flow with mocked reddit API."""
     # Mock asyncpraw.Reddit
     mock_reddit_instance = MagicMock()  # Use MagicMock for context manager
-    mock_reddit_instance.__aenter__.return_value = mock_reddit_instance
-    mock_reddit_instance.__aexit__.return_value = None
+    mock_reddit_instance.__aenter__ = AsyncMock(return_value=mock_reddit_instance)
+    mock_reddit_instance.__aexit__ = AsyncMock(return_value=None)
 
     mock_subreddit = MagicMock()
     # Correctly mock subreddit method as async
