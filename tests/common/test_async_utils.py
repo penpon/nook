@@ -31,10 +31,14 @@ async def test_gather_with_errors():
 
 @pytest.mark.asyncio
 async def test_gather_with_errors_mismatch_names():
-    with pytest.raises(ValueError, match="same length"):
-        await gather_with_errors(
-            partial(asyncio.sleep, 0)(), partial(asyncio.sleep, 0)(), task_names=["one"]
-        )
+    coro1 = partial(asyncio.sleep, 0)()
+    coro2 = partial(asyncio.sleep, 0)()
+    try:
+        with pytest.raises(ValueError, match="same length"):
+            await gather_with_errors(coro1, coro2, task_names=["one"])
+    finally:
+        coro1.close()
+        coro2.close()
 
 
 @pytest.mark.asyncio
@@ -130,8 +134,12 @@ async def test_manager_duplicate_submit():
     await manager.submit("t1", asyncio.sleep(10))
 
     # Attempt to submit duplicate while first task is still running
-    with pytest.raises(ValueError, match="already exists"):
-        await manager.submit("t1", asyncio.sleep(0))
+    coro = asyncio.sleep(0)
+    try:
+        with pytest.raises(ValueError, match="already exists"):
+            await manager.submit("t1", coro)
+    finally:
+        coro.close()
 
     # Cleanup: cancel the long-running task
     if "t1" in manager.tasks:
