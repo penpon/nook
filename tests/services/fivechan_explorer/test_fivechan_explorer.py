@@ -788,6 +788,7 @@ class TestGetThreadPostsFromDat:
 
                 # Content has "Just a moment" so it's logged as Cloudflare
                 assert posts == []
+                assert latest_post_at is None
 
     async def test_dat_exception_handling(
         self, fivechan_explorer: FiveChanExplorer
@@ -1460,6 +1461,33 @@ class TestStoreSummaries:
         """
         result = await fivechan_explorer._store_summaries([], [date.today()])
         assert result == []
+
+    async def test_store_summaries_with_threads(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Non-empty thread list.
+        When: _store_summaries is called.
+        Then: Storage methods are called and file paths returned.
+        """
+        threads = [
+            Thread(
+                thread_id=1234567890,
+                title="Test Thread",
+                url="https://example.com/1",
+                board="ai",
+                posts=[],
+                timestamp=1609459200,
+                summary="Test summary",
+            )
+        ]
+
+        fivechan_explorer.storage.save = AsyncMock(return_value=None)
+
+        result = await fivechan_explorer._store_summaries(threads, [date.today()])
+
+        assert len(result) > 0
+        fivechan_explorer.storage.save.assert_called()
 
 
 @pytest.mark.asyncio
