@@ -1,0 +1,1585 @@
+あなたはシニアコードレビュアーです。以下の差分をレビューしてください。
+
+.github/copilot-instructions.md の指示に厳密に従ってください。
+特に以下の点に注意してレビューしてください：
+- 🔴 Critical: セキュリティ、バグ、アーキテクチャ違反
+- 🟡 High: ロバストネス、保守性、テストギャップ
+- 🟢 Medium: 型ヒント（公開インターフェースのみ）、最適化
+
+全てのコメントは日本語で記述してください。
+
+差分:
+diff --git a/nook/services/run_services.py b/nook/services/run_services.py
+index 9c6b93a..dd70b10 100644
+--- a/nook/services/run_services.py
++++ b/nook/services/run_services.py
+@@ -249,10 +249,12 @@ class ServiceRunner:
+ def run_service_sync(service_name: str):
+     """特定のサービスを同期的に実行（後方互換性のため）"""
+     runner = ServiceRunner()
+-    if service_name in runner.sync_services:
++    if service_name in runner.service_classes:
+         print(f"{service_name}を実行しています...")
+         try:
+-            runner.sync_services[service_name].run()
++            # 遅延ロード
++            service = runner.service_classes[service_name]()
++            service.run()
+             print(f"{service_name}の実行が完了しました。")
+         except Exception as e:
+             print(f"{service_name}の実行中にエラーが発生しました: {str(e)}")
+diff --git a/tests/common/test_async_utils.py b/tests/common/test_async_utils.py
+index c5b0122..2c8a724 100644
+--- a/tests/common/test_async_utils.py
++++ b/tests/common/test_async_utils.py
+@@ -1,19 +1,10 @@
+-from __future__ import annotations
+-
+ import asyncio
+-import sys
+ from functools import partial
+-from pathlib import Path
+ 
+ import pytest
+ 
+-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+-if str(PROJECT_ROOT) not in sys.path:
+-    sys.path.insert(0, str(PROJECT_ROOT))
+-
+-from nook.common.async_utils import (  # noqa: E402
++from nook.common.async_utils import (
+     AsyncTaskManager,
+-    TaskResult,
+     batch_process,
+     gather_with_errors,
+     run_sync_in_thread,
+@@ -21,184 +12,189 @@ from nook.common.async_utils import (  # noqa: E402
+ )
+ 
+ 
+-def _run(coro):
+-    return asyncio.run(coro)
+-
+-
+-def test_gather_with_errors_collects_success_and_failures():
+-    async def succeed():
+-        await asyncio.sleep(0.01)
++@pytest.mark.asyncio
++async def test_gather_with_errors():
++    async def ok():
+         return 1
+ 
+     async def fail():
+-        await asyncio.sleep(0.01)
+-        raise RuntimeError("boom")
++        raise ValueError("err")
+ 
+-    async def main():
+-        return await gather_with_errors(
+-            succeed(),
+-            fail(),
+-            task_names=["success", "failure"],
+-        )
++    results = await gather_with_errors(ok(), fail(), task_names=["ok", "fail"])
+ 
+-    results = _run(main())
++    assert len(results) == 2
++    assert results[0].success
++    assert results[0].result == 1
++    assert not results[1].success
++    assert isinstance(results[1].error, ValueError)
+ 
+-    assert isinstance(results[0], TaskResult)
+-    assert results[0].name == "success"
+-    assert results[0].success is True
+-    assert results[1].name == "failure"
+-    assert results[1].success is False
+-    assert isinstance(results[1].error, RuntimeError)
+ 
++@pytest.mark.asyncio
++async def test_gather_with_errors_mismatch_names():
++    with pytest.raises(ValueError, match="same length"):
++        await gather_with_errors(
++            partial(asyncio.sleep, 0)(), partial(asyncio.sleep, 0)(), task_names=["one"]
++        )
+ 
+-def test_gather_with_errors_validates_task_name_length():
+-    async def noop():
+-        return None
+ 
+-    async def main():
+-        coro = noop()
+-        with pytest.raises(
+-            ValueError, match="task_names must have the same length as coros"
+-        ):
+-            await gather_with_errors(coro, task_names=["first", "second"])
+-        coro.close()
++@pytest.mark.asyncio
++async def test_gather_with_errors_default_names():
++    results = await gather_with_errors(partial(asyncio.sleep, 0)(), task_names=None)
++    assert results[0].name == "Task-0"
+ 
+-    _run(main())
+ 
++@pytest.mark.asyncio
++async def test_run_with_semaphore():
++    running = 0
++    max_running = 0
+ 
+-def test_gather_with_errors_allows_single_named_task():
+-    async def noop():
+-        return 42
++    async def task():
++        nonlocal running, max_running
++        running += 1
++        max_running = max(max_running, running)
++        await asyncio.sleep(0.01)
++        running -= 1
++        return "ok"
+ 
+-    async def main():
+-        return await gather_with_errors(noop(), task_names=["only-one"])
++    coros = [task for _ in range(5)]
++    results = await run_with_semaphore(coros, max_concurrent=2)
+ 
+-    results = _run(main())
+-    assert len(results) == 1
+-    assert results[0].name == "only-one"
+-    assert results[0].success is True
+-    assert results[0].result == 42
++    assert len(results) == 5
++    assert max_running <= 2
++    assert all(r == "ok" for r in results)
+ 
+ 
+-def test_gather_with_errors_treats_empty_task_names_as_default():
+-    async def noop():
+-        return "ok"
++@pytest.mark.asyncio
++async def test_run_with_semaphore_exception():
++    async def ok():
++        return 1
+ 
+-    async def main():
+-        return await gather_with_errors(noop(), task_names=[])
++    async def fail():
++        raise ValueError("boom")
+ 
+-    results = _run(main())
+-    assert len(results) == 1
+-    assert results[0].name == "Task-0"
+-    assert results[0].result == "ok"
++    # default gather raises on first error
++    with pytest.raises(ValueError, match="boom"):
++        await run_with_semaphore([ok, fail], max_concurrent=2)
+ 
+ 
+-def test_run_with_semaphore_limits_parallelism():
+-    max_running = 0
+-    current = 0
++@pytest.mark.asyncio
++async def test_batch_process():
++    async def processor(batch):
++        return [x * 2 for x in batch]
+ 
+-    async def tracked_task(value):
+-        nonlocal current, max_running
+-        current += 1
+-        max_running = max(max_running, current)
+-        await asyncio.sleep(0.01)
+-        current -= 1
+-        return value
++    items = [1, 2, 3, 4, 5]
++    results = await batch_process(items, processor, batch_size=2)
+ 
+-    progress_updates: list[tuple[int, int]] = []
++    assert results == [[2, 4], [6, 8], [10]]
+ 
+-    async def progress(count, total):
+-        progress_updates.append((count, total))
+ 
+-    async def main():
+-        coros = [partial(tracked_task, idx) for idx in range(5)]
+-        return await run_with_semaphore(
+-            coros,
+-            max_concurrent=2,
+-            progress_callback=progress,
+-        )
++@pytest.mark.asyncio
++async def test_run_sync_in_thread():
++    def sync_func(a, b):
++        return a + b
+ 
+-    results = _run(main())
++    res = await run_sync_in_thread(sync_func, 1, 2)
++    assert res == 3
+ 
+-    assert sorted(results) == list(range(5))
+-    assert max_running <= 2
+-    assert progress_updates[-1] == (5, 5)
+ 
++@pytest.mark.asyncio
++async def test_run_sync_in_thread_error():
++    def sync_fail():
++        raise ValueError("sync error")
+ 
+-def test_batch_process_splits_into_batches():
+-    processed_batches: list[list[int]] = []
++    with pytest.raises(ValueError, match="sync error"):
++        await run_sync_in_thread(sync_fail)
+ 
+-    async def processor(batch):
+-        processed_batches.append(list(batch))
+-        return sum(batch)
+-
+-    async def main():
+-        return await batch_process(
+-            items=list(range(6)),
+-            processor=processor,
+-            batch_size=2,
+-            max_concurrent_batches=2,
+-        )
+ 
+-    results = _run(main())
++# --- AsyncTaskManager Tests ---
+ 
+-    assert processed_batches == [[0, 1], [2, 3], [4, 5]]
+-    assert results == [1, 5, 9]
+ 
++@pytest.mark.asyncio
++async def test_manager_submit_run_wait():
++    manager = AsyncTaskManager()
++    await manager.submit("t1", partial(asyncio.sleep, 0.01, result="done")())
+ 
+-def test_run_sync_in_thread_executes_blocking_code():
+-    def blocking_add(a, b):
+-        return a + b
++    res = await manager.wait_for("t1")
++    assert res == "done"
+ 
+-    async def main():
+-        return await run_sync_in_thread(blocking_add, 2, 3)
++    # Verify cleanup
++    status = manager.get_status()
++    assert "t1" in status["completed"]
++    assert "t1" not in status["running"]
+ 
+-    result = _run(main())
+-    assert result == 5
+ 
++@pytest.mark.asyncio
++async def test_manager_duplicate_submit():
++    manager = AsyncTaskManager()
++    # Submit a long-running task
++    await manager.submit("t1", asyncio.sleep(10))
+ 
+-def test_async_task_manager_handles_success_and_failure():
+-    manager = AsyncTaskManager(max_concurrent=2)
++    # Attempt to submit duplicate while first task is still running
++    with pytest.raises(ValueError, match="already exists"):
++        await manager.submit("t1", asyncio.sleep(0))
+ 
+-    async def ok_task():
+-        await asyncio.sleep(0.01)
+-        return "done"
++    # Cleanup: cancel the long-running task
++    if "t1" in manager.tasks:
++        manager.tasks["t1"].cancel()
++        try:
++            await manager.tasks["t1"]
++        except asyncio.CancelledError:
++            # テスト終了後に非同期タスクが残ると他のテストに影響するため、明示的にキャンセルして例外を握りつぶしています
++            pass
+ 
+-    async def fail_task():
+-        await asyncio.sleep(0.01)
+-        raise ValueError("bad")
+ 
+-    async def main():
+-        await manager.submit("ok", ok_task())
+-        await manager.submit("fail", fail_task())
++@pytest.mark.asyncio
++async def test_manager_wait_unknown():
++    manager = AsyncTaskManager()
++    with pytest.raises(ValueError, match="not found"):
++        await manager.wait_for("unknown")
+ 
+-        assert await manager.wait_for("ok") == "done"
+ 
+-        with pytest.raises(ValueError, match="bad"):
+-            await manager.wait_for("fail")
++@pytest.mark.asyncio
++async def test_manager_wait_timeout():
++    manager = AsyncTaskManager()
++    await manager.submit("slow", asyncio.sleep(0.5))
+ 
+-        summary = await manager.wait_all()
+-        assert summary["results"]["ok"] == "done"
+-        assert isinstance(summary["errors"]["fail"], ValueError)
++    with pytest.raises(asyncio.TimeoutError):
++        await manager.wait_for("slow", timeout=0.01)
+ 
+-    _run(main())
++    # Cleanup: cancel the long-running task
++    if "slow" in manager.tasks:
++        manager.tasks["slow"].cancel()
++        try:
++            await manager.tasks["slow"]
++        except asyncio.CancelledError:
++            # テスト終了後に非同期タスクが残ると他のテストに影響するため、明示的にキャンセルして例外を握りつぶしています
++            pass
+ 
+ 
+-def test_async_task_manager_rejects_duplicate_names():
++@pytest.mark.asyncio
++async def test_manager_wait_error():
+     manager = AsyncTaskManager()
+ 
+-    async def sleeper():
+-        await asyncio.sleep(0.05)
+-        return 1
++    async def fail():
++        raise ValueError("oops")
+ 
+-    async def main():
+-        await manager.submit("task", sleeper())
++    await manager.submit("fail", fail())
+ 
+-        duplicate_coro = sleeper()
+-        with pytest.raises(ValueError, match="Task task already exists"):
+-            await manager.submit("task", duplicate_coro)
+-        duplicate_coro.close()
++    # Wait for completion first (or wait_for will wait for task)
++    with pytest.raises(ValueError, match="oops"):
++        await manager.wait_for("fail")
++
++    # Check status
++    status = manager.get_status()
++    assert "fail" in status["failed"]
++
++
++@pytest.mark.asyncio
++async def test_manager_wait_all():
++    manager = AsyncTaskManager()
++    await manager.submit("t1", partial(asyncio.sleep, 0.01, result=1)())
++    await manager.submit("t2", partial(asyncio.sleep, 0.01, result=2)())
+ 
+-        await manager.wait_all()
++    summary = await manager.wait_all()
++    assert summary["results"] == {"t1": 1, "t2": 2}
++    assert summary["errors"] == {}
+ 
+-    _run(main())
++    status = manager.get_status()
++    assert status["total"] == 2
+diff --git a/tests/common/test_logging_utils.py b/tests/common/test_logging_utils.py
+new file mode 100644
+index 0000000..28d69c0
+--- /dev/null
++++ b/tests/common/test_logging_utils.py
+@@ -0,0 +1,132 @@
++from datetime import date
++from unittest.mock import MagicMock
++
++from nook.common.logging_utils import (
++    log_article_counts,
++    log_multiple_dates_processing,
++    log_no_new_articles,
++    log_processing_start,
++    log_storage_complete,
++    log_summarization_progress,
++    log_summarization_start,
++    log_summary_candidates,
++)
++
++
++class MockItem:
++    def __init__(self, title=None, name=None, score=None):
++        if title:
++            self.title = title
++        if name:
++            self.name = name
++        if score is not None:
++            self.popularity_score = score
++
++
++def test_log_processing_start():
++    logger = MagicMock()
++    log_processing_start(logger, "2025-01-01")
++    logger.info.assert_called_once()
++    assert "2025-01-01" in logger.info.call_args[0][0]
++
++
++def test_log_article_counts():
++    logger = MagicMock()
++    log_article_counts(logger, 10, 5)
++    logger.info.assert_called_once()
++    msg = logger.info.call_args[0][0]
++    assert "既存: 10" in msg
++    assert "新規: 5" in msg
++
++
++def test_log_summary_candidates_empty():
++    logger = MagicMock()
++    log_summary_candidates(logger, [])
++    logger.info.assert_not_called()
++
++
++class ItemWithStrMethod:
++    def __str__(self):
++        return "Simple String"
++
++
++def test_log_summary_candidates_items():
++    logger = MagicMock()
++    items = [
++        MockItem(title="Title A", score=100),
++        MockItem(name="Name B", score=50.5),  # float score
++        ItemWithStrMethod(),
++    ]
++
++    log_summary_candidates(logger, items)
++
++    # Expected calls: 1 (header) + 3 (items)
++    assert logger.info.call_count == 4
++
++    calls = [args[0] for args, _ in logger.info.call_args_list]
++    assert "要約対象: 3件" in calls[0]
++    assert "Title A" in calls[1]
++    assert "100" in calls[1]
++    assert "Name B" in calls[2]
++    assert "50" in calls[2]  # 50.5 -> 50 format is {:.0f}
++    assert "Simple String" in calls[3]
++
++
++def test_log_summarization_start():
++    logger = MagicMock()
++    log_summarization_start(logger)
++    logger.info.assert_called_once()
++    assert "要約生成中" in logger.info.call_args[0][0]
++
++
++def test_log_summarization_progress():
++    logger = MagicMock()
++    # Test title truncation
++    long_title = "A" * 60
++    log_summarization_progress(logger, 1, 10, long_title)
++
++    msg = logger.info.call_args[0][0]
++    assert "1/10" in msg
++    assert "AAAA..." in msg
++    assert len(msg) < 100  # Rough check
++
++    # Short title
++    log_summarization_progress(logger, 2, 10, "Short")
++    assert "Short" in logger.info.call_args_list[1][0][0]
++
++
++def test_log_storage_complete():
++    logger = MagicMock()
++    log_storage_complete(logger, "a.json", "a.md")
++    logger.info.assert_called_once()
++    msg = logger.info.call_args[0][0]
++    assert "a.json" in msg
++    assert "a.md" in msg
++
++
++def test_log_no_new_articles():
++    logger = MagicMock()
++    log_no_new_articles(logger)
++    logger.info.assert_called()
++    assert "新規記事がありません" in logger.info.call_args[0][0]
++
++
++def test_log_multiple_dates_processing():
++    logger = MagicMock()
++
++    # 1 date case
++    dates = [date(2025, 1, 1)]
++    log_multiple_dates_processing(logger, dates)
++    args = logger.info.call_args[0]
++    assert "2025-01-01" in args[0]
++    assert "記事を処理中" in args[0]
++
++    # Many dates case
++    dates = [date(2025, 1, 1), date(2025, 1, 5)]
++    log_multiple_dates_processing(logger, dates)
++
++    # Check second call
++    args = logger.info.call_args_list[1][0]
++    assert "対象期間: %s 〜 %s" in args[0]
++    assert args[1] == "2025-01-01"
++    assert args[2] == "2025-01-05"
+diff --git a/tests/common/test_rate_limiter.py b/tests/common/test_rate_limiter.py
+new file mode 100644
+index 0000000..600e0a7
+--- /dev/null
++++ b/tests/common/test_rate_limiter.py
+@@ -0,0 +1,186 @@
++from datetime import UTC, datetime, timedelta
++from unittest.mock import AsyncMock, MagicMock, patch
++
++import pytest
++
++from nook.common.config import BaseConfig
++from nook.common.rate_limiter import RateLimitedHTTPClient, RateLimiter
++
++# --- RateLimiter Tests ---
++
++
++@pytest.mark.asyncio
++async def test_rate_limiter_init():
++    rl = RateLimiter(rate=10, per=timedelta(seconds=1))
++    assert rl.rate == 10
++    assert rl.per == timedelta(seconds=1)
++    assert rl.burst == 10
++    assert rl.allowance == 10.0
++
++    rl2 = RateLimiter(rate=10, burst=20)
++    assert rl2.burst == 20
++    assert rl2.allowance == 20.0
++
++
++@pytest.mark.asyncio
++async def test_acquire_no_wait():
++    rl = RateLimiter(rate=10, per=timedelta(seconds=1))
++    # Initially full (10)
++    await rl.acquire(1)
++    assert rl.allowance == 9.0
++
++
++@pytest.mark.asyncio
++async def test_acquire_wait():
++    rl = RateLimiter(rate=1, per=timedelta(seconds=1))
++    rl.allowance = 0.0  # Force wait
++
++    with patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep:
++        # Need 1 token, rate is 1/sec. Deficit 1. Wait should be 1 sec.
++        await rl.acquire(1)
++
++        mock_sleep.assert_called_once()
++        args, _ = mock_sleep.call_args
++        wait_time = args[0]
++        assert 0.99 <= wait_time <= 1.01
++
++
++@pytest.mark.asyncio
++async def test_acquire_wait_burst_cap_after_wait():
++    """Test that burst cap is applied after waiting when allowance recovery exceeds burst."""
++    # We need to mock datetime.now to simulate time passing during the wait
++    # The acquire method calls datetime.now multiple times:
++    # 1. At __init__ (line 26) to set last_check
++    # 2. Initial check in acquire (line 32)
++    # 3. After sleep (line 54) - this is where elapsed time matters for line 59
++    base_time = datetime(2025, 1, 1, 0, 0, 0, tzinfo=UTC)
++    call_count = [0]
++
++    def mock_now(tz=None):
++        call_count[0] += 1
++        if call_count[0] <= 2:
++            # First two calls: __init__ and initial check in acquire
++            return base_time
++        else:
++            # Third call: after sleep - simulate 1 second elapsed
++            # This will cause recovery of 100 tokens (100 rate * 1 sec),
++            # which exceeds burst of 10, triggering line 59
++            return base_time + timedelta(seconds=1)
++
++    with (
++        patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep,
++        patch("nook.common.rate_limiter.datetime") as mock_datetime,
++    ):
++        mock_datetime.now = mock_now
++        # Allow timedelta to work (used in RateLimiter constructor default)
++        mock_datetime.timedelta = timedelta
++
++        # Create rate limiter with high rate (100 tokens/sec, burst=10)
++        rl = RateLimiter(rate=100, per=timedelta(seconds=1), burst=10)
++        rl.allowance = 0.0  # Force wait since we need 1 token
++
++        await rl.acquire(1)
++
++        mock_sleep.assert_called_once()
++        # After recovery of 100 tokens (100 rate * 1 second), should be capped at burst (10)
++        # Then 1 token consumed, so allowance should be 9
++        assert rl.allowance == 9.0
++
++
++@pytest.mark.asyncio
++async def test_burst_cap():
++    rl = RateLimiter(rate=10, burst=10, per=timedelta(seconds=1))
++    rl.allowance = 0.0
++    rl.last_check = datetime.now(UTC) - timedelta(seconds=100)  # Long time ago
++
++    await rl.acquire(0)  # Just trigger update
++    assert rl.allowance == 10.0  # Should be capped at burst
++
++
++# --- RateLimitedHTTPClient Tests ---
++
++
++@pytest.fixture
++def mock_config():
++    config = MagicMock(spec=BaseConfig)
++    config.REQUEST_TIMEOUT = 30.0
++    return config
++
++
++@pytest.mark.asyncio
++async def test_client_init(mock_config):
++    client = RateLimitedHTTPClient(config=mock_config)
++    assert client.default_rate_limit is not None
++    assert client.default_rate_limit.rate == 60
++
++
++@pytest.mark.asyncio
++async def test_add_domain_rate_limit(mock_config):
++    client = RateLimitedHTTPClient(config=mock_config)
++    client.add_domain_rate_limit("example.com", rate=5)
++    assert "example.com" in client.domain_rate_limits
++    assert client.domain_rate_limits["example.com"].rate == 5
++
++
++@pytest.mark.asyncio
++async def test_get_domain(mock_config):
++    client = RateLimitedHTTPClient(config=mock_config)
++    assert client._get_domain("https://example.com/api/v1") == "example.com"
++    assert client._get_domain("http://sub.test.org") == "sub.test.org"
++
++
++@pytest.mark.asyncio
++async def test_acquire_rate_limit_selection(mock_config):
++    client = RateLimitedHTTPClient(config=mock_config)
++    default_rl = MagicMock(spec=RateLimiter)
++    default_rl.acquire = AsyncMock(return_value=None)
++    client.default_rate_limit = default_rl
++
++    specific_rl = MagicMock(spec=RateLimiter)
++    specific_rl.acquire = AsyncMock(return_value=None)
++    client.domain_rate_limits["special.com"] = specific_rl
++
++    # Case 1: Use specific
++    await client._acquire_rate_limit("https://special.com/foo")
++    specific_rl.acquire.assert_called_once()
++    default_rl.acquire.assert_not_called()
++
++    # Case 2: Use default
++    specific_rl.acquire.reset_mock()
++    await client._acquire_rate_limit("https://other.com/bar")
++    default_rl.acquire.assert_called_once()
++    specific_rl.acquire.assert_not_called()
++
++
++@pytest.mark.asyncio
++async def test_get_method(mock_config):
++    client = RateLimitedHTTPClient(config=mock_config)
++    client._acquire_rate_limit = AsyncMock(return_value=None)
++
++    with patch(
++        "nook.common.http_client.AsyncHTTPClient.get", new_callable=AsyncMock
++    ) as mock_super_get:
++        mock_super_get.return_value = "response"
++
++        resp = await client.get("https://example.com")
++
++        client._acquire_rate_limit.assert_called_with("https://example.com")
++        mock_super_get.assert_called_with("https://example.com")
++        assert resp == "response"
++
++
++@pytest.mark.asyncio
++async def test_post_method(mock_config):
++    client = RateLimitedHTTPClient(config=mock_config)
++    client._acquire_rate_limit = AsyncMock(return_value=None)
++
++    with patch(
++        "nook.common.http_client.AsyncHTTPClient.post", new_callable=AsyncMock
++    ) as mock_super_post:
++        mock_super_post.return_value = "response"
++
++        resp = await client.post("https://example.com", json={"a": 1})
++
++        client._acquire_rate_limit.assert_called_with("https://example.com")
++        mock_super_post.assert_called_with("https://example.com", json={"a": 1})
++        assert resp == "response"
+diff --git a/tests/common/test_storage.py b/tests/common/test_storage.py
+index ebff754..65ff4bd 100644
+--- a/tests/common/test_storage.py
++++ b/tests/common/test_storage.py
+@@ -1,67 +1,115 @@
+-from __future__ import annotations
+-
+-import sys
++import json
+ from datetime import datetime
+ from pathlib import Path
+ 
+-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+-if str(PROJECT_ROOT) not in sys.path:
+-    sys.path.insert(0, str(PROJECT_ROOT))
++import pytest
++
++from nook.common.storage import LocalStorage
++
++
++@pytest.fixture
++def storage(tmp_path):
++    return LocalStorage(str(tmp_path))
++
++
++def test_init_creates_dir(tmp_path):
++    sub = tmp_path / "sub"
++    assert not sub.exists()
++    LocalStorage(str(sub))
++    assert sub.exists()
++
+ 
+-from nook.common.storage import LocalStorage  # noqa: E402
++def test_save_markdown_defaults(storage):
++    content = "md content"
++    service = "myservice"
++    path = storage.save_markdown(content, service)
+ 
++    today_str = datetime.now().strftime("%Y-%m-%d")
++    assert path.name == f"{today_str}.md"
++    assert path.read_text(encoding="utf-8") == content
+ 
+-def _run(coro):
+-    import asyncio
+ 
+-    return asyncio.run(coro)
++def test_load_markdown_defaults(storage):
++    service = "myservice"
++    content = "default date content"
++    storage.save_markdown(content, service)
++    loaded = storage.load_markdown(service)
++    assert loaded == content
+ 
+ 
+-def test_save_and_load_markdown(tmp_path):
+-    storage = LocalStorage(str(tmp_path))
+-    date = datetime(2024, 11, 1)
++def test_load_markdown_missing(storage):
++    assert storage.load_markdown("unknown_service") is None
+ 
+-    path = storage.save_markdown("content", "service", date=date)
++
++def test_list_dates_missing_dir(storage):
++    assert storage.list_dates("non_existent") == []
++
++
++def test_list_dates_invalid_files(storage, tmp_path):
++    service = "mixed_files"
++    (tmp_path / service).mkdir()
++    (tmp_path / service / "2025-01-01.md").touch()
++    (tmp_path / service / "not_a_date.md").touch()
++    (tmp_path / service / "junk.txt").touch()
++
++    dates = storage.list_dates(service)
++    assert len(dates) == 1
++    assert dates[0] == datetime(2025, 1, 1)
++
++
++@pytest.mark.asyncio
++async def test_async_save_text(storage):
++    await storage.save("simple text", "test.txt")
++    path = Path(storage.base_dir) / "test.txt"
+     assert path.exists()
++    assert path.read_text(encoding="utf-8") == "simple text"
+ 
+-    loaded = storage.load_markdown("service", date=date)
+-    assert loaded == "content"
+ 
++@pytest.mark.asyncio
++async def test_async_save_json(storage):
++    data = {"k": "v"}
++    await storage.save(data, "test.json")
++    path = Path(storage.base_dir) / "test.json"
++    assert path.exists()
++    assert json.loads(path.read_text(encoding="utf-8")) == data
+ 
+-def test_list_dates_returns_sorted_desc(tmp_path):
+-    storage = LocalStorage(str(tmp_path))
+ 
+-    storage.save_markdown("a", "svc", date=datetime(2024, 11, 1))
+-    storage.save_markdown("b", "svc", date=datetime(2024, 10, 30))
++@pytest.mark.asyncio
++async def test_async_load_exists_rename(storage):
++    data = {"val": 123}
++    await storage.save(data, "a.json")
+ 
+-    dates = storage.list_dates("svc")
+-    assert [d.date() for d in dates] == [
+-        datetime(2024, 11, 1).date(),
+-        datetime(2024, 10, 30).date(),
+-    ]
++    assert await storage.exists("a.json")
++    assert not await storage.exists("b.json")
+ 
++    loaded = await storage.load("a.json")
++    assert json.loads(loaded) == data
+ 
+-def test_async_save_load_exists_and_rename(tmp_path):
+-    storage = LocalStorage(str(tmp_path))
++    await storage.rename("a.json", "b.json")
++    assert not await storage.exists("a.json")
++    assert await storage.exists("b.json")
+ 
+-    async def main():
+-        await storage.save({"hello": "world"}, "data.json")
+-        assert await storage.exists("data.json") is True
++    # Safe rename non-exists
++    await storage.rename("phantom.json", "phantom2.json")
+ 
+-        content = await storage.load("data.json")
+-        assert "hello" in content
+ 
+-        await storage.rename("data.json", "renamed.json")
+-        assert await storage.exists("data.json") is False
+-        assert await storage.exists("renamed.json") is True
++@pytest.mark.asyncio
++async def test_load_missing(storage):
++    assert await storage.load("missing.txt") is None
+ 
+-    _run(main())
+ 
++def test_load_json_methods(storage):
++    service = "jsonsvc"
++    data = {"key": "val"}
+ 
+-def test_load_returns_none_when_missing(tmp_path):
+-    storage = LocalStorage(str(tmp_path))
++    test_date = datetime(2025, 1, 15)
++    today_str = test_date.strftime("%Y-%m-%d")
++    s_dir = Path(storage.base_dir) / service
++    s_dir.mkdir()
++    with open(s_dir / f"{today_str}.json", "w", encoding="utf-8") as f:
++        json.dump(data, f)
+ 
+-    async def main():
+-        assert await storage.load("nothing.json") is None
++    loaded = storage.load_json(service, date=test_date)
++    assert loaded == data
+ 
+-    _run(main())
++    assert storage.load_json("unknown") is None
+diff --git a/tests/services/arxiv_summarizer/test_arxiv_collect_flow.py b/tests/services/arxiv_summarizer/test_arxiv_collect_flow.py
+index 15b0dec..62bbbd3 100644
+--- a/tests/services/arxiv_summarizer/test_arxiv_collect_flow.py
++++ b/tests/services/arxiv_summarizer/test_arxiv_collect_flow.py
+@@ -293,6 +293,24 @@ class TestCollectFlow:
+                                 # Paper should only be retrieved once due to deduplication
+                                 assert mock_retrieve.call_count == 1
+ 
++    @pytest.mark.asyncio
++    async def test_collect_returns_empty_when_target_dates_is_empty(
++        self, summarizer: ArxivSummarizer
++    ) -> None:
++        """
++        Given: target_dates is empty.
++        When: collect is called.
++        Then: Empty list is returned immediately.
++        """
++        # Given
++        target_dates = []
++
++        # When
++        result = await summarizer.collect(limit=5, target_dates=target_dates)
++
++        # Then
++        assert result == []
++
+ 
+ class TestPaperInfoDataclass:
+     """Tests for PaperInfo dataclass."""
+diff --git a/tests/services/arxiv_summarizer/test_arxiv_internal_methods.py b/tests/services/arxiv_summarizer/test_arxiv_internal_methods.py
+index c475cf4..07c5bf1 100644
+--- a/tests/services/arxiv_summarizer/test_arxiv_internal_methods.py
++++ b/tests/services/arxiv_summarizer/test_arxiv_internal_methods.py
+@@ -20,6 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
+ import httpx
+ import pytest
+ 
++from nook.common.exceptions import RetryException
+ from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer, PaperInfo
+ 
+ 
+@@ -178,6 +179,24 @@ class TestGetCuratedPaperIds:
+         assert "2401.00001" not in result
+         assert "2401.00002" in result
+ 
++    @pytest.mark.asyncio
++    async def test_raises_on_non_404_error(self, summarizer: ArxivSummarizer) -> None:
++        """
++        Given: Hugging Face page returns 500 error.
++        When: _get_curated_paper_ids is called.
++        Then: Exception is raised.
++        """
++        summarizer.http_client = AsyncMock()
++        mock_response = MagicMock()
++        mock_response.status_code = 500
++        error = httpx.HTTPStatusError(
++            "Server Error", request=MagicMock(), response=mock_response
++        )
++        summarizer.http_client.get = AsyncMock(side_effect=error)
++
++        with pytest.raises(RetryException):
++            await summarizer._get_curated_paper_ids(5, date(2024, 1, 15))
++
+ 
+ class TestProcessedIds:
+     """Tests for ID processing methods."""
+@@ -235,6 +254,48 @@ class TestProcessedIds:
+ 
+         assert result == []
+ 
++    @pytest.mark.asyncio
++    async def test_save_processed_ids_groups_by_date(
++        self, summarizer: ArxivSummarizer
++    ) -> None:
++        """
++        Given: List of paper IDs with published dates.
++        When: _save_processed_ids_by_date is called.
++        Then: IDs are grouped by date and saved correctly.
++        """
++        paper_ids = ["2401.00001", "2401.00002", "2401.00003", "2401.00004"]
++
++        # Mapping from ID to Date
++        id_date_map = {
++            "2401.00001": date(2024, 1, 15),
++            "2401.00002": date(2024, 1, 15),
++            "2401.00003": date(2024, 1, 16),
++            "2401.00004": None,
++        }
++
++        async def mock_get_date(pid):
++            return id_date_map.get(pid)
++
++        # Mock _get_processed_ids to return empty list so nothing is filtered out as already processed
++        with patch.object(
++            summarizer, "_get_processed_ids", new_callable=AsyncMock
++        ) as mock_get:
++            mock_get.return_value = []
++
++            with patch.object(
++                summarizer.storage, "save", new_callable=AsyncMock
++            ) as mock_save:
++                with patch.object(
++                    summarizer, "_get_paper_date", side_effect=mock_get_date
++                ):
++                    await summarizer._save_processed_ids_by_date(
++                        paper_ids, [date(2024, 1, 15), date(2024, 1, 16)]
++                    )
++
++                # Verify save was called for both dates (plus potentially one for the None date -> today)
++                # At least calls for 2024-01-15 and 2024-01-16
++                assert mock_save.call_count >= 2
++
+ 
+ class TestGetPaperDate:
+     """Tests for ArxivSummarizer._get_paper_date method."""
+@@ -524,6 +585,101 @@ class TestExtractBodyText:
+ 
+         assert result == ""
+ 
++    @pytest.mark.asyncio
++    async def test_download_html_without_retry_returns_empty_on_404(
++        self, summarizer: ArxivSummarizer
++    ) -> None:
++        """
++        Given: 404 response.
++        When: _download_html_without_retry is called.
++        Then: Empty string is returned.
++        """
++        mock_response = MagicMock()
++        mock_response.status_code = 404
++        error = httpx.HTTPStatusError(
++            "Not Found", request=MagicMock(), response=mock_response
++        )
++
++        with patch("httpx.AsyncClient") as mock_client_cls:
++            mock_client = AsyncMock()
++            mock_client.get.side_effect = error
++            mock_client_cls.return_value.__aenter__.return_value = mock_client
++
++            result = await summarizer._download_html_without_retry("http://example.com")
++        assert result == ""
++
++    @pytest.mark.asyncio
++    async def test_download_html_without_retry_raises_on_other_errors(
++        self, summarizer: ArxivSummarizer
++    ) -> None:
++        """
++        Given: 500 response.
++        When: _download_html_without_retry is called.
++        Then: Exception is raised.
++        """
++        mock_response = MagicMock()
++        mock_response.status_code = 500
++        error = httpx.HTTPStatusError(
++            "Server Error", request=MagicMock(), response=mock_response
++        )
++
++        with patch("httpx.AsyncClient") as mock_client_cls:
++            mock_client = AsyncMock()
++            mock_client.get.side_effect = error
++            mock_client_cls.return_value.__aenter__.return_value = mock_client
++
++            with pytest.raises(httpx.HTTPStatusError):
++                await summarizer._download_html_without_retry("http://example.com")
++
++    @pytest.mark.asyncio
++    async def test_extract_from_html_handles_exception(
++        self, summarizer: ArxivSummarizer
++    ) -> None:
++        """
++        Given: _download_html_without_retry raises generic exception.
++        When: _extract_from_html is called.
++        Then: Empty string is returned.
++        """
++        with patch.object(
++            summarizer, "_download_html_without_retry", new_callable=AsyncMock
++        ) as mock_download:
++            mock_download.side_effect = Exception("Unexpected error")
++            result = await summarizer._extract_from_html("2401.00001")
++
++        assert result == ""
++
++    @pytest.mark.asyncio
++    async def test_extract_from_pdf_handles_extraction_error(
++        self, summarizer: ArxivSummarizer
++    ) -> None:
++        """
++        Given: pdfplumber raises error on page extraction.
++        When: _extract_from_pdf is called.
++        Then: Error is ignored and valid content is returned (or empty if all fail).
++        """
++        mock_response = MagicMock()
++        mock_response.content = b"pdf content"
++
++        with patch.object(
++            summarizer, "_download_pdf_without_retry", new_callable=AsyncMock
++        ) as mock_download:
++            mock_download.return_value = mock_response
++            with patch("pdfplumber.open") as mock_pdfplumber:
++                mock_pdf = MagicMock()
++                mock_page1 = MagicMock()
++                mock_page1.extract_text.side_effect = Exception("Extraction failed")
++                mock_page2 = MagicMock()
++                mock_page2.extract_text.return_value = "Page 2 content" + "a" * 100
++
++                mock_pdf.pages = [mock_page1, mock_page2]
++                mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
++                mock_pdf.__exit__ = MagicMock(return_value=False)
++                mock_pdfplumber.return_value = mock_pdf
++
++                result = await summarizer._extract_from_pdf("2401.00001")
++
++        assert "Page 2 content" in result
++
+ 
+ class TestSummarizePaperInfo:
+     """Tests for ArxivSummarizer._summarize_paper_info method."""
+diff --git a/tests/services/test_run_services.py b/tests/services/test_run_services.py
+index e7b89b6..fd7869b 100644
+--- a/tests/services/test_run_services.py
++++ b/tests/services/test_run_services.py
+@@ -217,3 +217,498 @@ async def test_run_continuous(monkeypatch):
+     from unittest.mock import call
+ 
+     asyncio.sleep.assert_has_calls([call(10), call(10)])
++
++
++# --- Additional tests for coverage improvement ---
++
++
++def test_service_runner_init_loads_service_classes():
++    """Test that ServiceRunner.__init__ properly imports all service classes."""
++    # This test actually creates a real ServiceRunner to cover lines 31-62
++    runner = ServiceRunner()
++
++    # Verify all service classes are loaded
++    expected_services = [
++        "github_trending",
++        "hacker_news",
++        "reddit",
++        "zenn",
++        "qiita",
++        "note",
++        "tech_news",
++        "business_news",
++        "arxiv",
++        "4chan",
++        "5chan",
++    ]
++    for service in expected_services:
++        assert service in runner.service_classes
++
++    # Verify task_manager is created
++    assert runner.task_manager is not None
++    assert runner.running is False
++
++
++@pytest.mark.asyncio
++async def test__run_sync_service_multiple_dates_display(monkeypatch):
++    """Test _run_sync_service (private method) displays date range when multiple dates (lines 84-86)."""
++    service_mock = AsyncMock()
++    service_mock.collect.return_value = []
++
++    runner = ServiceRunner.__new__(ServiceRunner)
++    mock_logger = MagicMock()
++    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
++
++    # Multiple dates to trigger lines 84-86
++    dates = [date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 3)]
++
++    await runner._run_sync_service(
++        "test_service", service_mock, days=3, target_dates=dates
++    )
++
++    # Check that logger.info was called with date range info
++    calls = [str(c) for c in mock_logger.info.call_args_list]
++    date_range_logged = any("対象期間" in str(c) and "3日間" in str(c) for c in calls)
++    assert date_range_logged, f"Expected date range log, got: {calls}"
++
++
++@pytest.mark.asyncio
++async def test_run_sync_service_with_saved_files(monkeypatch):
++    """Test _run_sync_service displays file summary when files are saved (lines 126-133)."""
++    service_mock = AsyncMock()
++    # Return saved files to trigger lines 126-133
++    service_mock.collect.return_value = [
++        ("/path/to/file1.json", "/path/to/file1.md"),
++        ("/path/to/file2.json", "/path/to/file2.md"),
++    ]
++
++    runner = ServiceRunner.__new__(ServiceRunner)
++    mock_logger = MagicMock()
++    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
++
++    dates = [date(2024, 1, 1)]
++    await runner._run_sync_service(
++        "test_service", service_mock, days=1, target_dates=dates
++    )
++
++    # Check that logger.info was called with file paths
++    calls = [str(c) for c in mock_logger.info.call_args_list]
++    file_logged = any("/path/to/file1.json" in str(c) for c in calls)
++    assert file_logged, f"Expected file path log, got: {calls}"
++
++
++@pytest.mark.asyncio
++async def test_run_all_lazy_loading(monkeypatch):
++    """Test that run_all lazy loads services (line 151)."""
++    # Create a runner with mocked service_classes (avoiding real imports)
++    runner = ServiceRunner.__new__(ServiceRunner)
++    runner.service_classes = {"svc_a": MagicMock, "svc_b": MagicMock}
++    runner.sync_services = {}  # Empty to trigger lazy loading
++    runner.task_manager = None
++    runner.running = False
++
++    # Mock the _run_sync_service to avoid actual service execution
++    async def fake_run_sync(self, service_name, service, days, target_dates):
++        pass
++
++    async def fake_gather(*coros, task_names=None):
++        await asyncio.gather(*coros)
++        return [DummyTaskResult(name, True) for name in (task_names or [])]
++
++    async def fake_close_http_client():
++        pass
++
++    monkeypatch.setattr(
++        runner,
++        "_run_sync_service",
++        types.MethodType(fake_run_sync, runner),
++    )
++    monkeypatch.setattr("nook.services.run_services.gather_with_errors", fake_gather)
++    monkeypatch.setattr(
++        "nook.services.run_services.close_http_client", fake_close_http_client
++    )
++
++    await runner.run_all(days=1)
++
++    # After run_all, sync_services should be populated (lazy loading occurred)
++    assert len(runner.sync_services) == len(runner.service_classes)
++
++
++@pytest.mark.asyncio
++async def test_run_all_with_failed_services(monkeypatch):
++    """Test run_all logs errors for failed services (lines 188-195)."""
++    runner = _make_runner(["success_svc", "fail_svc"])
++
++    async def fake_run_sync(self, service_name, service, days, target_dates):
++        if service_name == "fail_svc":
++            raise ValueError("Service failed!")
++
++    async def fake_gather(*coros, task_names=None):
++        results = []
++        for i, coro in enumerate(coros):
++            name = task_names[i] if task_names else str(i)
++            try:
++                await coro
++                results.append(DummyTaskResult(name, True))
++            except Exception as e:
++                results.append(DummyTaskResult(name, False, e))
++        return results
++
++    async def fake_close_http_client():
++        pass
++
++    mock_logger = MagicMock()
++    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
++    monkeypatch.setattr(
++        runner,
++        "_run_sync_service",
++        types.MethodType(fake_run_sync, runner),
++    )
++    monkeypatch.setattr("nook.services.run_services.gather_with_errors", fake_gather)
++    monkeypatch.setattr(
++        "nook.services.run_services.close_http_client", fake_close_http_client
++    )
++    monkeypatch.setattr("nook.services.run_services.target_dates_set", lambda days: {1})
++
++    await runner.run_all(days=1)
++
++    # Check that error was logged for failed service
++    error_calls = [str(c) for c in mock_logger.error.call_args_list]
++    assert any("fail_svc" in str(c) for c in error_calls)
++
++
++@pytest.mark.asyncio
++async def test_run_service_lazy_loading(monkeypatch):
++    """Test run_service lazy loads the service (line 208)."""
++    # Create a runner without real imports
++    runner = ServiceRunner.__new__(ServiceRunner)
++    runner.service_classes = {"github_trending": MagicMock}
++    runner.sync_services = {}  # Empty to trigger lazy loading
++    runner.task_manager = None
++    runner.running = False
++
++    async def fake_run_sync(self, service_name, service, days, target_dates):
++        pass
++
++    monkeypatch.setattr(
++        runner,
++        "_run_sync_service",
++        types.MethodType(fake_run_sync, runner),
++    )
++
++    await runner.run_service("github_trending", days=1)
++
++    # The service should be lazily loaded
++    assert "github_trending" in runner.sync_services
++
++
++@pytest.mark.asyncio
++async def test_run_service_error_handling(monkeypatch):
++    """Test run_service error handling (lines 223-225)."""
++    # Create a runner without real imports
++    runner = ServiceRunner.__new__(ServiceRunner)
++    runner.service_classes = {"github_trending": MagicMock}
++    runner.sync_services = {}
++    runner.task_manager = None
++    runner.running = False
++
++    async def fake_run_sync(self, service_name, service, days, target_dates):
++        raise RuntimeError("Test error")
++
++    mock_logger = MagicMock()
++    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
++    monkeypatch.setattr(
++        runner,
++        "_run_sync_service",
++        types.MethodType(fake_run_sync, runner),
++    )
++
++    with pytest.raises(RuntimeError):
++        await runner.run_service("github_trending", days=1)
++
++    # Check that error was logged
++    assert mock_logger.error.called
++
++
++@pytest.mark.asyncio
++async def test_run_continuous_error_handling(monkeypatch):
++    """Test run_continuous continues after errors (lines 236-237)."""
++    runner = ServiceRunner.__new__(ServiceRunner)
++    runner.running = True
++
++    run_count = [0]
++
++    async def fake_run_all(days):
++        run_count[0] += 1
++        if run_count[0] == 1:
++            raise ValueError("First run failed!")
++        elif run_count[0] >= 3:
++            runner.running = False
++
++    mock_logger = MagicMock()
++    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
++    monkeypatch.setattr(runner, "run_all", fake_run_all)
++    monkeypatch.setattr(asyncio, "sleep", AsyncMock())
++
++    await runner.run_continuous(interval_seconds=1, days=1)
++
++    # Should have run 3 times (first failed, second succeeded, third stopped)
++    assert run_count[0] == 3
++    # Error should have been logged
++    error_calls = [str(c) for c in mock_logger.error.call_args_list]
++    assert any("First run failed" in str(c) for c in error_calls)
++
++
++def test_stop_method():
++    """Test stop method (lines 245-246)."""
++    runner = ServiceRunner()
++    runner.running = True
++
++    runner.stop()
++
++    assert runner.running is False
++
++
++def test_run_service_sync_success(monkeypatch, capsys):
++    """Test run_service_sync successfully executes a service."""
++    from nook.services.run_services import run_service_sync
++
++    # Mock the service class
++    mock_service_class = MagicMock()
++    mock_service_instance = MagicMock()
++    mock_service_class.return_value = mock_service_instance
++
++    # Patch ServiceRunner to use our mock service
++    def mock_init(self):
++        self.service_classes = {"test_service": mock_service_class}
++        self.sync_services = {}
++        self.task_manager = None
++        self.running = False
++
++    monkeypatch.setattr(ServiceRunner, "__init__", mock_init)
++
++    run_service_sync("test_service")
++
++    captured = capsys.readouterr()
++    assert "test_serviceを実行しています" in captured.out
++    assert "完了しました" in captured.out
++    mock_service_instance.run.assert_called_once()
++
++
++def test_run_service_sync_with_error(monkeypatch, capsys):
++    """Test run_service_sync error handling (lines 257-258)."""
++    from nook.services.run_services import run_service_sync
++
++    # Mock the service class to raise an error
++    mock_service_class = MagicMock()
++    mock_service_instance = MagicMock()
++    mock_service_instance.run.side_effect = RuntimeError("Service crashed")
++    mock_service_class.return_value = mock_service_instance
++
++    # Patch ServiceRunner to use our mock service
++    def mock_init(self):
++        self.service_classes = {"crash_service": mock_service_class}
++        self.sync_services = {}
++        self.task_manager = None
++        self.running = False
++
++    monkeypatch.setattr(ServiceRunner, "__init__", mock_init)
++
++    run_service_sync("crash_service")
++
++    captured = capsys.readouterr()
++    assert "エラーが発生しました" in captured.out
++
++
++def test_run_service_sync_not_found(capsys):
++    """Test run_service_sync with unknown service name."""
++    from nook.services.run_services import run_service_sync
++
++    run_service_sync("unknown_service")
++
++    captured = capsys.readouterr()
++    assert "見つかりません" in captured.out
++
++
++def test_backward_compat_functions(monkeypatch, capsys):
++    """Test backward compatibility functions (lines 329-374)."""
++    from nook.services import run_services
++
++    # Mock run_service_sync
++    called_services = []
++
++    def mock_run_service_sync(service_name):
++        called_services.append(service_name)
++
++    monkeypatch.setattr(run_services, "run_service_sync", mock_run_service_sync)
++
++    # Test each backward compat function
++    run_services.run_github_trending()
++    run_services.run_hacker_news()
++    run_services.run_reddit_explorer()
++    run_services.run_zenn_explorer()
++    run_services.run_qiita_explorer()
++    run_services.run_note_explorer()
++    run_services.run_tech_feed()
++    run_services.run_business_feed()
++    run_services.run_arxiv_summarizer()
++    run_services.run_fourchan_explorer()
++    run_services.run_fivechan_explorer()
++
++    assert called_services == [
++        "github_trending",
++        "hacker_news",
++        "reddit",
++        "zenn",
++        "qiita",
++        "note",
++        "tech_news",
++        "business_news",
++        "arxiv",
++        "4chan",
++        "5chan",
++    ]
++
++
++def test_run_all_services(monkeypatch):
++    """Test run_all_services backward compat function (line 374)."""
++    from nook.services import run_services
++
++    run_all_called = {"flag": False}
++
++    async def mock_run_all(self):
++        run_all_called["flag"] = True
++
++    # Mock ServiceRunner.run_all
++    monkeypatch.setattr(ServiceRunner, "run_all", mock_run_all)
++
++    run_services.run_all_services()
++
++    assert run_all_called["flag"] is True
++
++
++@pytest.mark.asyncio
++async def test_run_all_exception_handling(monkeypatch):
++    """Test run_all exception handling (lines 193-195)."""
++    runner = _make_runner(["svc"])
++
++    async def fake_run_sync(self, service_name, service, days, target_dates):
++        pass
++
++    async def fake_gather(*coros, task_names=None):
++        raise RuntimeError("Gather failed!")
++
++    async def fake_close_http_client():
++        pass
++
++    mock_logger = MagicMock()
++    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
++    monkeypatch.setattr(
++        runner,
++        "_run_sync_service",
++        types.MethodType(fake_run_sync, runner),
++    )
++    monkeypatch.setattr("nook.services.run_services.gather_with_errors", fake_gather)
++    monkeypatch.setattr(
++        "nook.services.run_services.close_http_client", fake_close_http_client
++    )
++    monkeypatch.setattr("nook.services.run_services.target_dates_set", lambda days: {1})
++
++    with pytest.raises(RuntimeError, match="Gather failed"):
++        await runner.run_all(days=1)
++
++    # Verify error was logged
++    assert mock_logger.error.called
++
++
++@pytest.mark.asyncio
++async def test_main_run_all(monkeypatch):
++    """Test main function with default args (run all services)."""
++    from nook.services import run_services
++
++    run_all_called = {"days": None}
++
++    async def mock_run_all(self, days):
++        run_all_called["days"] = days
++
++    def mock_init(self):
++        self.running = False
++
++    def mock_stop(self):
++        pass
++
++    # Mock argparse to return default args
++    mock_args = MagicMock()
++    mock_args.service = "all"
++    mock_args.continuous = False
++    mock_args.interval = 3600
++    mock_args.days = 2
++
++    monkeypatch.setattr("argparse.ArgumentParser.parse_args", lambda self: mock_args)
++    monkeypatch.setattr(ServiceRunner, "__init__", mock_init)
++    monkeypatch.setattr(ServiceRunner, "run_all", mock_run_all)
++    monkeypatch.setattr(ServiceRunner, "stop", mock_stop)
++
++    await run_services.main()
++
++    assert run_all_called["days"] == 2
++
++
++@pytest.mark.asyncio
++async def test_main_run_single_service(monkeypatch):
++    """Test main function with single service."""
++    from nook.services import run_services
++
++    run_service_called = {"service": None, "days": None}
++
++    async def mock_run_service(self, service_name, days):
++        run_service_called["service"] = service_name
++        run_service_called["days"] = days
++
++    def mock_init(self):
++        self.running = False
++
++    mock_args = MagicMock()
++    mock_args.service = "github_trending"
++    mock_args.continuous = False
++    mock_args.interval = 3600
++    mock_args.days = 3
++
++    monkeypatch.setattr("argparse.ArgumentParser.parse_args", lambda self: mock_args)
++    monkeypatch.setattr(ServiceRunner, "__init__", mock_init)
++    monkeypatch.setattr(ServiceRunner, "run_service", mock_run_service)
++
++    await run_services.main()
++
++    assert run_service_called["service"] == "github_trending"
++    assert run_service_called["days"] == 3
++
++
++@pytest.mark.asyncio
++async def test_main_continuous_mode(monkeypatch):
++    """Test main function in continuous mode."""
++    from nook.services import run_services
++
++    run_continuous_called = {"interval": None, "days": None}
++
++    async def mock_run_continuous(self, interval_seconds, days):
++        run_continuous_called["interval"] = interval_seconds
++        run_continuous_called["days"] = days
++
++    def mock_init(self):
++        self.running = False
++
++    mock_args = MagicMock()
++    mock_args.service = "all"
++    mock_args.continuous = True
++    mock_args.interval = 1800
++    mock_args.days = 1
++
++    monkeypatch.setattr("argparse.ArgumentParser.parse_args", lambda self: mock_args)
++    monkeypatch.setattr(ServiceRunner, "__init__", mock_init)
++    monkeypatch.setattr(ServiceRunner, "run_continuous", mock_run_continuous)
++
++    await run_services.main()
++
++    assert run_continuous_called["interval"] == 1800
++    assert run_continuous_called["days"] == 1
