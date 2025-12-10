@@ -267,7 +267,7 @@ class TestRedditExplorer:
         mock_submission.comments.replace_more = AsyncMock()
         mock_submission.comments.list.return_value = [mock_comment]
 
-        reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
+        reddit_explorer.reddit.submission = MagicMock(return_value=mock_submission)
         reddit_explorer._translate_to_japanese = AsyncMock(
             return_value="テストコメント"
         )
