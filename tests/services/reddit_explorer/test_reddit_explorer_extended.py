@@ -1,5 +1,5 @@
 from datetime import date, datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -324,7 +324,8 @@ async def test_collect_flow_missing_created_at(mock_reddit_explorer):
     m.permalink = "/r/test/comments/nodate/"
     m.url = "https://reddit.com/nodate"
     # Ensure created_utc is missing so created_at becomes None
-    del m.created_utc
+    # Use PropertyMock to raise AttributeError when accessed, as MagicMock would otherwise recreate it
+    type(m).created_utc = PropertyMock(side_effect=AttributeError("created_utc"))
 
     # Mock async iterator for hot()
     async def async_iter(*args, **kwargs):
