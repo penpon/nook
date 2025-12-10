@@ -14,7 +14,7 @@ This module tests the pure logic helper functions in fivechan_explorer.py:
 - run method
 """
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -673,3 +673,849 @@ class TestSummarizeThread:
 
         assert thread.summary == "テスト要約"
         fivechan_explorer.gpt_client.generate_content.assert_called_once()
+
+
+@pytest.mark.asyncio
+class TestGetThreadPostsFromDat:
+    """Tests for FiveChanExplorer._get_thread_posts_from_dat method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    async def test_successful_dat_parsing(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A valid dat response.
+        When: _get_thread_posts_from_dat is called.
+        Then: Posts are correctly parsed.
+        """
+        # dat format: name<>mail<>date ID<>message<>title(first line only)
+        mock_content = (
+            "名無しさん<><>2024/01/01(月) 12:00:00 ID:abc123<>テスト投稿1<>スレッドタイトル\n"
+            "名無しさん<><>2024/01/01(月) 12:05:00 ID:def456<>テスト投稿2<>\n"
+            "名無しさん<><>2024/01/01(月) 12:10:00 ID:ghi789<>テスト投稿3<>"
+        )
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = mock_content.encode("shift_jis")
+        mock_response.text = mock_content
+
+        with patch("cloudscraper.create_scraper") as mock_scraper_class:
+            mock_scraper = MagicMock()
+            mock_scraper.get.return_value = mock_response
+            mock_scraper_class.return_value = mock_scraper
+
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+                mock_to_thread.return_value = mock_response
+
+                (
+                    posts,
+                    latest_post_at,
+                ) = await fivechan_explorer._get_thread_posts_from_dat(
+                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
+                )
+
+                assert len(posts) == 3
+                assert posts[0]["com"] == "テスト投稿1"
+                assert posts[0]["title"] == "スレッドタイトル"
+                assert posts[1]["com"] == "テスト投稿2"
+                assert posts[2]["com"] == "テスト投稿3"
+
+    async def test_dat_http_error(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: An HTTP error response.
+        When: _get_thread_posts_from_dat is called.
+        Then: Empty list is returned.
+        """
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_response.text = "Not Found"
+
+        with patch("cloudscraper.create_scraper") as mock_scraper_class:
+            mock_scraper = MagicMock()
+            mock_scraper.get.return_value = mock_response
+            mock_scraper_class.return_value = mock_scraper
+
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+                mock_to_thread.return_value = mock_response
+
+                (
+                    posts,
+                    latest_post_at,
+                ) = await fivechan_explorer._get_thread_posts_from_dat(
+                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
+                )
+
+                assert posts == []
+                assert latest_post_at is None
+
+    async def test_dat_cloudflare_detection(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A Cloudflare challenge response.
+        When: _get_thread_posts_from_dat is called.
+        Then: Empty list is returned.
+        """
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = b""
+        mock_response.text = (
+            "Just a moment... Please wait while we verify your browser."
+        )
+
+        with patch("cloudscraper.create_scraper") as mock_scraper_class:
+            mock_scraper = MagicMock()
+            mock_scraper.get.return_value = mock_response
+            mock_scraper_class.return_value = mock_scraper
+
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+                mock_to_thread.return_value = mock_response
+
+                (
+                    posts,
+                    latest_post_at,
+                ) = await fivechan_explorer._get_thread_posts_from_dat(
+                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
+                )
+
+                # Content has "Just a moment" so it's logged as Cloudflare
+                assert posts == []
+
+    async def test_dat_exception_handling(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: An exception occurs during request.
+        When: _get_thread_posts_from_dat is called.
+        Then: Empty list is returned.
+        """
+        with patch("cloudscraper.create_scraper") as mock_scraper_class:
+            mock_scraper = MagicMock()
+            mock_scraper_class.return_value = mock_scraper
+
+            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+                mock_to_thread.side_effect = Exception("Network error")
+
+                (
+                    posts,
+                    latest_post_at,
+                ) = await fivechan_explorer._get_thread_posts_from_dat(
+                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
+                )
+
+                assert posts == []
+                assert latest_post_at is None
+
+
+class TestLoadExistingTitles:
+    """Tests for FiveChanExplorer._load_existing_titles method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_load_existing_titles_no_content(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: No existing markdown content.
+        When: _load_existing_titles is called.
+        Then: Empty tracker is returned.
+        """
+        fivechan_explorer.storage.load_markdown = MagicMock(return_value=None)
+
+        tracker = fivechan_explorer._load_existing_titles()
+
+        assert not tracker.is_duplicate("新しいスレッド")[0]
+
+    def test_load_existing_titles_with_content(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Existing markdown content with titles.
+        When: _load_existing_titles is called.
+        Then: Tracker contains the titles.
+        """
+        markdown_content = """# 5chan AI関連スレッド
+
+### [ChatGPT総合スレ](https://example.com/1)
+
+### [AI技術について語るスレ](https://example.com/2)
+"""
+        fivechan_explorer.storage.load_markdown = MagicMock(
+            return_value=markdown_content
+        )
+
+        tracker = fivechan_explorer._load_existing_titles()
+
+        assert tracker.is_duplicate("ChatGPT総合スレ")[0]
+        assert tracker.is_duplicate("AI技術について語るスレ")[0]
+        assert not tracker.is_duplicate("新しいスレッド")[0]
+
+    def test_load_existing_titles_exception_handling(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: An exception occurs during loading.
+        When: _load_existing_titles is called.
+        Then: Empty tracker is returned.
+        """
+        fivechan_explorer.storage.load_markdown = MagicMock(
+            side_effect=Exception("Storage error")
+        )
+
+        tracker = fivechan_explorer._load_existing_titles()
+
+        assert not tracker.is_duplicate("テスト")[0]
+
+
+class TestCalculatePopularity:
+    """Tests for FiveChanExplorer._calculate_popularity method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_calculate_popularity_basic(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Post count, sample count, and timestamp.
+        When: _calculate_popularity is called.
+        Then: A popularity score is returned.
+        """
+        # Recent timestamp (1 hour ago)
+        recent_timestamp = int(datetime.now().timestamp()) - 3600
+
+        score = fivechan_explorer._calculate_popularity(
+            post_count=100,
+            sample_count=10,
+            timestamp=recent_timestamp,
+        )
+
+        # Should be at least post_count + sample_count
+        assert score >= 110.0
+
+    def test_calculate_popularity_old_thread(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: An old thread timestamp.
+        When: _calculate_popularity is called.
+        Then: Recency bonus is lower.
+        """
+        # Old timestamp (100 hours ago)
+        old_timestamp = int(datetime.now().timestamp()) - (100 * 3600)
+
+        score = fivechan_explorer._calculate_popularity(
+            post_count=100,
+            sample_count=10,
+            timestamp=old_timestamp,
+        )
+
+        # Should be close to post_count + sample_count (low recency bonus)
+        assert 110.0 <= score < 111.0
+
+
+class TestSelectTopThreads:
+    """Tests for FiveChanExplorer._select_top_threads method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_select_top_threads_empty_list(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Empty thread list.
+        When: _select_top_threads is called.
+        Then: Empty list is returned.
+        """
+        result = fivechan_explorer._select_top_threads([], 10)
+        assert result == []
+
+    def test_select_top_threads_under_limit(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Thread list smaller than limit.
+        When: _select_top_threads is called.
+        Then: All threads are returned.
+        """
+        threads = [
+            Thread(
+                thread_id=1,
+                title="Thread 1",
+                url="https://example.com/1",
+                board="ai",
+                posts=[],
+                timestamp=1609459200,
+                popularity_score=100.0,
+            ),
+            Thread(
+                thread_id=2,
+                title="Thread 2",
+                url="https://example.com/2",
+                board="ai",
+                posts=[],
+                timestamp=1609459200,
+                popularity_score=50.0,
+            ),
+        ]
+
+        result = fivechan_explorer._select_top_threads(threads, 10)
+        assert len(result) == 2
+
+    def test_select_top_threads_over_limit(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Thread list larger than limit.
+        When: _select_top_threads is called.
+        Then: Top threads by popularity are returned.
+        """
+        threads = [
+            Thread(
+                thread_id=1,
+                title="Low popularity",
+                url="https://example.com/1",
+                board="ai",
+                posts=[],
+                timestamp=1609459200,
+                popularity_score=10.0,
+            ),
+            Thread(
+                thread_id=2,
+                title="High popularity",
+                url="https://example.com/2",
+                board="ai",
+                posts=[],
+                timestamp=1609459200,
+                popularity_score=100.0,
+            ),
+            Thread(
+                thread_id=3,
+                title="Medium popularity",
+                url="https://example.com/3",
+                board="ai",
+                posts=[],
+                timestamp=1609459200,
+                popularity_score=50.0,
+            ),
+        ]
+
+        result = fivechan_explorer._select_top_threads(threads, 2)
+        assert len(result) == 2
+        assert result[0].title == "High popularity"
+        assert result[1].title == "Medium popularity"
+
+
+class TestSerializeThreads:
+    """Tests for FiveChanExplorer._serialize_threads method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_serialize_threads(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: A list of Thread objects.
+        When: _serialize_threads is called.
+        Then: A list of dictionaries is returned.
+        """
+        threads = [
+            Thread(
+                thread_id=1234567890,
+                title="AIスレッド",
+                url="https://example.com/1",
+                board="ai",
+                posts=[{"com": "テスト"}],
+                timestamp=1609459200,
+                summary="テスト要約",
+                popularity_score=100.0,
+            ),
+        ]
+
+        records = fivechan_explorer._serialize_threads(threads)
+
+        assert len(records) == 1
+        assert records[0]["thread_id"] == 1234567890
+        assert records[0]["title"] == "AIスレッド"
+        assert records[0]["url"] == "https://example.com/1"
+        assert records[0]["board"] == "ai"
+        assert records[0]["summary"] == "テスト要約"
+        assert records[0]["popularity_score"] == 100.0
+        assert "published_at" in records[0]
+
+
+class TestThreadSortKey:
+    """Tests for FiveChanExplorer._thread_sort_key method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_thread_sort_key_with_published_at(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A record with published_at.
+        When: _thread_sort_key is called.
+        Then: Correct sort key is returned.
+        """
+        record = {
+            "popularity_score": 100.0,
+            "published_at": "2024-01-01T12:00:00+00:00",
+        }
+
+        key = fivechan_explorer._thread_sort_key(record)
+
+        assert key[0] == 100.0
+        assert isinstance(key[1], datetime)
+
+    def test_thread_sort_key_with_timestamp(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A record with only timestamp.
+        When: _thread_sort_key is called.
+        Then: Correct sort key is returned.
+        """
+        record = {
+            "popularity_score": 50.0,
+            "timestamp": 1609459200,
+        }
+
+        key = fivechan_explorer._thread_sort_key(record)
+
+        assert key[0] == 50.0
+        assert isinstance(key[1], datetime)
+
+    def test_thread_sort_key_no_date(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: A record without any date fields.
+        When: _thread_sort_key is called.
+        Then: Minimum datetime is used.
+        """
+        record = {
+            "popularity_score": 25.0,
+        }
+
+        key = fivechan_explorer._thread_sort_key(record)
+
+        assert key[0] == 25.0
+        assert key[1] == datetime.min.replace(tzinfo=timezone.utc)
+
+    def test_thread_sort_key_invalid_published_at(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A record with invalid published_at.
+        When: _thread_sort_key is called.
+        Then: Minimum datetime is used.
+        """
+        record = {
+            "popularity_score": 75.0,
+            "published_at": "invalid-date",
+        }
+
+        key = fivechan_explorer._thread_sort_key(record)
+
+        assert key[0] == 75.0
+        assert key[1] == datetime.min.replace(tzinfo=timezone.utc)
+
+
+class TestRenderMarkdown:
+    """Tests for FiveChanExplorer._render_markdown method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_render_markdown_basic(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: A list of records.
+        When: _render_markdown is called.
+        Then: Proper markdown format is returned.
+        """
+        records = [
+            {
+                "thread_id": 1234567890,
+                "title": "AIスレッド",
+                "url": "https://example.com/1",
+                "board": "ai",
+                "summary": "テスト要約",
+                "published_at": "2024-01-01T12:00:00+00:00",
+            },
+        ]
+
+        today = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        content = fivechan_explorer._render_markdown(records, today)
+
+        assert "# 5chan AI関連スレッド (2024-01-01)" in content
+        assert "## " in content  # Board section
+        assert "### [AIスレッド](https://example.com/1)" in content
+        assert "テスト要約" in content
+
+    def test_render_markdown_with_timestamp(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A record with only timestamp (no published_at).
+        When: _render_markdown is called.
+        Then: Timestamp is converted properly.
+        """
+        records = [
+            {
+                "thread_id": 1234567890,
+                "title": "テストスレッド",
+                "url": "https://example.com/1",
+                "board": "ai",
+                "summary": "要約",
+                "timestamp": 1704110400,  # 2024-01-01 12:00:00 UTC
+            },
+        ]
+
+        today = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        content = fivechan_explorer._render_markdown(records, today)
+
+        assert "テストスレッド" in content
+        assert "作成日時:" in content
+
+    def test_render_markdown_no_date(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: A record without any date fields.
+        When: _render_markdown is called.
+        Then: N/A is shown for date.
+        """
+        records = [
+            {
+                "thread_id": 1234567890,
+                "title": "日付なしスレッド",
+                "url": "https://example.com/1",
+                "board": "ai",
+                "summary": "要約",
+            },
+        ]
+
+        today = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        content = fivechan_explorer._render_markdown(records, today)
+
+        assert "作成日時: N/A" in content
+
+    def test_render_markdown_no_title(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: A record without title.
+        When: _render_markdown is called.
+        Then: Default title is used.
+        """
+        records = [
+            {
+                "thread_id": 1234567890,
+                "url": "https://example.com/1",
+                "board": "ai",
+                "summary": "要約",
+            },
+        ]
+
+        today = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        content = fivechan_explorer._render_markdown(records, today)
+
+        assert "無題スレッド #1234567890" in content
+
+
+class TestParseMarkdown:
+    """Tests for FiveChanExplorer._parse_markdown method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    def test_parse_markdown_basic(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: Valid markdown content.
+        When: _parse_markdown is called.
+        Then: Records are parsed correctly.
+        """
+        markdown = """# 5chan AI関連スレッド (2024-01-01)
+
+## AI (総合) (/ai/)
+
+### [AIスレッド](https://example.com/1)
+
+作成日時: 2024-01-01 12:00:00
+
+**要約**:
+テスト要約です。
+
+---
+
+"""
+        records = fivechan_explorer._parse_markdown(markdown)
+
+        assert len(records) == 1
+        assert records[0]["title"] == "AIスレッド"
+        assert records[0]["url"] == "https://example.com/1"
+        assert records[0]["board"] == "ai"
+        assert records[0]["summary"] == "テスト要約です。"
+
+    def test_parse_markdown_multiple_boards(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Markdown with multiple boards.
+        When: _parse_markdown is called.
+        Then: Records from all boards are parsed.
+        """
+        markdown = """# 5chan AI関連スレッド (2024-01-01)
+
+## AI (総合) (/ai/)
+
+### [AIスレッド1](https://example.com/1)
+
+作成日時: 2024-01-01 12:00:00
+
+**要約**:
+要約1
+
+---
+
+## プログラミング (/prog/)
+
+### [プログラミングスレッド](https://example.com/2)
+
+作成日時: 2024-01-01 13:00:00
+
+**要約**:
+要約2
+
+---
+
+"""
+        records = fivechan_explorer._parse_markdown(markdown)
+
+        assert len(records) == 2
+        assert records[0]["board"] == "ai"
+        assert records[1]["board"] == "prog"
+
+    def test_parse_markdown_empty(self, fivechan_explorer: FiveChanExplorer) -> None:
+        """
+        Given: Empty markdown content.
+        When: _parse_markdown is called.
+        Then: Empty list is returned.
+        """
+        records = fivechan_explorer._parse_markdown("")
+        assert records == []
+
+
+@pytest.mark.asyncio
+class TestRetrieveAIThreads:
+    """Tests for FiveChanExplorer._retrieve_ai_threads method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    async def test_retrieve_ai_threads_empty_subject(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Empty subject.txt data.
+        When: _retrieve_ai_threads is called.
+        Then: Empty list is returned.
+        """
+        from nook.common.dedup import DedupTracker
+
+        fivechan_explorer._get_subject_txt_data = AsyncMock(return_value=[])
+
+        dedup_tracker = DedupTracker()
+        result = await fivechan_explorer._retrieve_ai_threads(
+            board_id="ai",
+            limit=10,
+            dedup_tracker=dedup_tracker,
+            target_dates=[date.today()],
+        )
+
+        assert result == []
+
+    async def test_retrieve_ai_threads_exception_handling(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: An exception occurs during processing.
+        When: _retrieve_ai_threads is called.
+        Then: Empty list is returned.
+        """
+        from nook.common.dedup import DedupTracker
+
+        fivechan_explorer._get_subject_txt_data = AsyncMock(
+            side_effect=Exception("Network error")
+        )
+
+        dedup_tracker = DedupTracker()
+        result = await fivechan_explorer._retrieve_ai_threads(
+            board_id="ai",
+            limit=10,
+            dedup_tracker=dedup_tracker,
+            target_dates=[date.today()],
+        )
+
+        assert result == []
+
+    async def test_retrieve_ai_threads_filters_by_keywords(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Subject data with AI and non-AI threads.
+        When: _retrieve_ai_threads is called.
+        Then: Only AI-related threads are processed.
+        """
+        from nook.common.dedup import DedupTracker
+
+        current_timestamp = int(datetime.now().timestamp())
+
+        fivechan_explorer._get_subject_txt_data = AsyncMock(
+            return_value=[
+                {
+                    "title": "ChatGPT総合スレ",
+                    "timestamp": str(current_timestamp),
+                    "post_count": 100,
+                    "dat_url": "https://example.com/dat/1.dat",
+                    "html_url": "https://example.com/1",
+                },
+                {
+                    "title": "料理について語るスレ",
+                    "timestamp": str(current_timestamp),
+                    "post_count": 50,
+                    "dat_url": "https://example.com/dat/2.dat",
+                    "html_url": "https://example.com/2",
+                },
+            ]
+        )
+
+        fivechan_explorer._get_thread_posts_from_dat = AsyncMock(
+            return_value=(
+                [{"no": 1, "com": "テスト投稿", "date": "2024/01/01 12:00:00"}],
+                datetime.now(),
+            )
+        )
+
+        dedup_tracker = DedupTracker()
+        result = await fivechan_explorer._retrieve_ai_threads(
+            board_id="ai",
+            limit=10,
+            dedup_tracker=dedup_tracker,
+            target_dates=[date.today()],
+        )
+
+        # Only the ChatGPT thread should be matched
+        assert len(result) == 1
+        assert "ChatGPT" in result[0].title
+
+
+@pytest.mark.asyncio
+class TestStoreSummaries:
+    """Tests for FiveChanExplorer._store_summaries method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    async def test_store_summaries_empty_threads(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: Empty thread list.
+        When: _store_summaries is called.
+        Then: Empty list is returned.
+        """
+        result = await fivechan_explorer._store_summaries([], [date.today()])
+        assert result == []
+
+
+@pytest.mark.asyncio
+class TestLoadExistingThreads:
+    """Tests for FiveChanExplorer._load_existing_threads method."""
+
+    @pytest.fixture
+    def fivechan_explorer(self, monkeypatch: pytest.MonkeyPatch) -> FiveChanExplorer:
+        """Create a FiveChanExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return FiveChanExplorer()
+
+    async def test_load_existing_threads_json_list(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: JSON list format.
+        When: _load_existing_threads is called.
+        Then: Direct list is returned.
+        """
+        fivechan_explorer.load_json = AsyncMock(
+            return_value=[{"thread_id": 1, "title": "Test"}]
+        )
+
+        result = await fivechan_explorer._load_existing_threads(datetime.now())
+        assert len(result) == 1
+        assert result[0]["thread_id"] == 1
+
+    async def test_load_existing_threads_json_dict(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: JSON dict format (grouped by board).
+        When: _load_existing_threads is called.
+        Then: Flattened list is returned.
+        """
+        fivechan_explorer.load_json = AsyncMock(
+            return_value={
+                "ai": [{"thread_id": 1, "title": "AI Thread"}],
+                "prog": [{"thread_id": 2, "title": "Prog Thread"}],
+            }
+        )
+
+        result = await fivechan_explorer._load_existing_threads(datetime.now())
+        assert len(result) == 2
+        assert result[0]["board"] == "ai"
+        assert result[1]["board"] == "prog"
+
+    async def test_load_existing_threads_markdown_fallback(
+        self, fivechan_explorer: FiveChanExplorer
+    ) -> None:
+        """
+        Given: No JSON but markdown exists.
+        When: _load_existing_threads is called.
+        Then: Markdown is parsed.
+        """
+        fivechan_explorer.load_json = AsyncMock(return_value=None)
+        fivechan_explorer.storage.load = AsyncMock(return_value=None)
+
+        result = await fivechan_explorer._load_existing_threads(datetime.now())
+        assert result == []
