@@ -130,7 +130,9 @@ class ArxivSummarizer(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        effective_target_dates = target_dates or target_dates_set(1)
+        effective_target_dates = (
+            target_dates if target_dates is not None else target_dates_set(1)
+        )
         sorted_dates = sorted(effective_target_dates)
 
         # 対象期間のログ出力
