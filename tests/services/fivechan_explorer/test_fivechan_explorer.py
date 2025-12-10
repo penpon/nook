@@ -693,11 +693,12 @@ class TestGetThreadPostsFromDat:
         When: _get_thread_posts_from_dat is called.
         Then: Posts are correctly parsed.
         """
-        # dat format: name<>mail<>date ID<>message<>title(first line only)
+        # dat format: name<>email<>date ID<>message<>title(first line only)
+        # Using parseable date format (without Japanese day-of-week)
         mock_content = (
-            "名無しさん<><>2024/01/01(月) 12:00:00 ID:abc123<>テスト投稿1<>スレッドタイトル\n"
-            "名無しさん<><>2024/01/01(月) 12:05:00 ID:def456<>テスト投稿2<>\n"
-            "名無しさん<><>2024/01/01(月) 12:10:00 ID:ghi789<>テスト投稿3<>"
+            "名無しさん<><>2024/01/01 12:00:00<>テスト投稿1<>スレッドタイトル\n"
+            "名無しさん<><>2024/01/01 12:05:00<>テスト投稿2<>\n"
+            "名無しさん<><>2024/01/01 12:10:00<>テスト投稿3<>"
         )
 
         mock_response = MagicMock()
@@ -725,6 +726,7 @@ class TestGetThreadPostsFromDat:
                 assert posts[0]["title"] == "スレッドタイトル"
                 assert posts[1]["com"] == "テスト投稿2"
                 assert posts[2]["com"] == "テスト投稿3"
+                assert latest_post_at is not None  # Verify date was parsed
 
     async def test_dat_http_error(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
@@ -895,7 +897,7 @@ class TestCalculatePopularity:
         Then: A popularity score is returned.
         """
         # Recent timestamp (1 hour ago)
-        recent_timestamp = int(datetime.now().timestamp()) - 3600
+        recent_timestamp = int(datetime.now(timezone.utc).timestamp()) - 3600
 
         score = fivechan_explorer._calculate_popularity(
             post_count=100,
@@ -915,7 +917,7 @@ class TestCalculatePopularity:
         Then: Recency bonus is lower.
         """
         # Old timestamp (100 hours ago)
-        old_timestamp = int(datetime.now().timestamp()) - (100 * 3600)
+        old_timestamp = int(datetime.now(timezone.utc).timestamp()) - (100 * 3600)
 
         score = fivechan_explorer._calculate_popularity(
             post_count=100,
