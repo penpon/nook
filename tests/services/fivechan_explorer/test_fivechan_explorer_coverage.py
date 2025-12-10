@@ -705,10 +705,9 @@ class TestGetWith403Tolerance:
             )
 
         # Should accept 403 with long content
-        assert (
-            result is not None
-            or mock_fivechan_explorer._try_alternative_endpoints.called
-        )
+        # Should accept 403 with long content (treated as valid, not Cloudflare)
+        assert result is not None
+        assert result.status_code == 403
 
     @pytest.mark.asyncio
     async def test_403_tolerance_all_strategies_fail(self, mock_fivechan_explorer):
