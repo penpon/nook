@@ -443,7 +443,7 @@ class RedditExplorer(BaseService):
         List[Dict[str, str | int]]
             取得したコメントのリスト。
         """
-        submission = await self.reddit.submission(id=post.id)
+        submission = self.reddit.submission(id=post.id)
 
         # コメントを取得する前にソート順を設定
         await submission.comments.replace_more(limit=0)
