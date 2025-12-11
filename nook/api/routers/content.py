@@ -5,10 +5,11 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Response
 
 from nook.api.models.schemas import ContentItem, ContentResponse
+from nook.core.config import BaseConfig
 from nook.core.storage import LocalStorage
 
 router = APIRouter()
-storage = LocalStorage("data")
+storage = LocalStorage(BaseConfig().DATA_DIR)
 
 # 論文要約の質問文を読みやすいタイトルに変換するマッピング
 PAPER_SUMMARY_TITLE_MAPPING = {
