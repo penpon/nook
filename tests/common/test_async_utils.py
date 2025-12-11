@@ -153,15 +153,9 @@ async def test_manager_duplicate_submit():
     finally:
         coro.close()
 
-    # Cleanup: signal the task to stop and cancel it
+    # Cleanup
     stop.set()
-    if "t1" in manager.tasks:
-        manager.tasks["t1"].cancel()
-        try:
-            await manager.tasks["t1"]
-        except asyncio.CancelledError:
-            # テスト終了後に非同期タスクが残ると他のテストに影響するため、明示的にキャンセルして例外を握りつぶしています
-            pass
+    await manager.shutdown()
 
 
 @pytest.mark.asyncio
@@ -180,13 +174,7 @@ async def test_manager_wait_timeout():
         await manager.wait_for("slow", timeout=0.01)
 
     # Cleanup: cancel the long-running task
-    if "slow" in manager.tasks:
-        manager.tasks["slow"].cancel()
-        try:
-            await manager.tasks["slow"]
-        except asyncio.CancelledError:
-            # テスト終了後に非同期タスクが残ると他のテストに影響するため、明示的にキャンセルして例外を握りつぶしています
-            pass
+    await manager.shutdown()
 
 
 @pytest.mark.asyncio

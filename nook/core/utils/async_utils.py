@@ -133,6 +133,10 @@ class AsyncTaskManager:
             async with self._lock:
                 self.results[name] = result
                 logger.info(f"Task {name} completed successfully")
+        except asyncio.CancelledError:
+            async with self._lock:
+                logger.info(f"Task {name} was cancelled")
+                raise
         except Exception as e:
             async with self._lock:
                 self.errors[name] = e
@@ -141,6 +145,23 @@ class AsyncTaskManager:
             async with self._lock:
                 if name in self.tasks:
                     del self.tasks[name]
+
+    async def shutdown(self, wait: bool = True):
+        """全てのタスクをキャンセルして終了
+
+        Parameters
+        ----------
+        wait : bool, optional
+            タスクの終了を待つかどうか, by default True
+        """
+        async with self._lock:
+            tasks = list(self.tasks.values())
+
+        for task in tasks:
+            task.cancel()
+
+        if wait and tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def wait_for(self, name: str, timeout: float | None = None) -> Any:
         """特定のタスクの完了を待つ"""

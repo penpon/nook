@@ -289,6 +289,10 @@ async def test_close_logs_duration(monkeypatch, caplog):
     await client.start()
 
     # When: クローズする
+    # Ensure logs propagate to caplog
+    http_client_logger = logging.getLogger("nook.core.clients.http_client")
+    http_client_logger.propagate = True
+
     with caplog.at_level(logging.INFO, logger="nook.core.clients.http_client"):
         await client.close()
 
@@ -524,6 +528,7 @@ async def test_download_with_progress_callback(tmp_path):
 async def test_get_http_client(monkeypatch):
     """get_http_clientがグローバルクライアントを返すことを確認"""
     import nook.core.clients.http_client as http_client_module
+    from nook.core.clients.http_client import close_http_client
 
     # Given: グローバルクライアントがない状態
     original_client = http_client_module._global_client
@@ -552,7 +557,7 @@ async def test_get_http_client(monkeypatch):
 
     finally:
         # クリーンアップ
-        await http_client_module.close_http_client()
+        await close_http_client()
         http_client_module._global_client = original_client
 
 
@@ -560,6 +565,7 @@ async def test_get_http_client(monkeypatch):
 async def test_close_http_client(monkeypatch):
     """close_http_clientがグローバルクライアントを閉じることを確認"""
     import nook.core.clients.http_client as http_client_module
+    from nook.core.clients.http_client import close_http_client
 
     # Given: グローバルクライアントがない状態
     original_client = http_client_module._global_client
@@ -578,13 +584,13 @@ async def test_close_http_client(monkeypatch):
         assert http_client_module._global_client is not None
 
         # When: close_http_clientを呼び出す
-        await http_client_module.close_http_client()
+        await close_http_client()
 
         # Then: グローバルクライアントがNoneになる
         assert http_client_module._global_client is None
 
         # When: 再度close_http_clientを呼び出す（Noneの場合）
-        await http_client_module.close_http_client()  # エラーなく完了
+        await close_http_client()  # エラーなく完了
 
     finally:
         http_client_module._global_client = original_client
