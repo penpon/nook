@@ -238,8 +238,6 @@ async def load_existing_titles_from_storage(
             )
             if markdown_content:
                 # Markdownから記事タイトルを抽出（### [タイトル](URL) 形式）
-                import re
-
                 for match in re.finditer(
                     r"^### \[(.+?)\]", markdown_content, re.MULTILINE
                 ):

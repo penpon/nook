@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from functools import partial
 from typing import Any, TypeVar
@@ -41,7 +40,7 @@ async def gather_with_errors(
     results = await asyncio.gather(*coros, return_exceptions=return_exceptions)
 
     task_results = []
-    for _i, (name, result) in enumerate(zip(task_names, results, strict=False)):
+    for name, result in zip(task_names, results, strict=False):
         if isinstance(result, Exception):
             logger.error(f"Task {name} failed: {result}")
             task_results.append(TaskResult(name, False, error=result))
@@ -99,10 +98,8 @@ def run_sync_in_thread(
     sync_func: Callable[..., T], *args, **kwargs
 ) -> asyncio.Future[T]:
     """同期関数を別スレッドで実行"""
-    loop = asyncio.get_event_loop()
-    executor = ThreadPoolExecutor(max_workers=1)
-
-    return loop.run_in_executor(executor, partial(sync_func, *args, **kwargs))
+    loop = asyncio.get_running_loop()
+    return loop.run_in_executor(None, partial(sync_func, *args, **kwargs))
 
 
 class AsyncTaskManager:
@@ -144,14 +141,15 @@ class AsyncTaskManager:
 
     async def wait_for(self, name: str, timeout: float | None = None) -> Any:
         """特定のタスクの完了を待つ"""
-        task = self.tasks.get(name)
-        if not task:
-            if name in self.results:
-                return self.results[name]
-            elif name in self.errors:
-                raise self.errors[name]
-            else:
-                raise ValueError(f"Task {name} not found")
+        async with self._lock:
+            task = self.tasks.get(name)
+            if not task:
+                if name in self.results:
+                    return self.results[name]
+                elif name in self.errors:
+                    raise self.errors[name]
+                else:
+                    raise ValueError(f"Task {name} not found")
 
         try:
             await asyncio.wait_for(task, timeout=timeout)

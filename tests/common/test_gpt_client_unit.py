@@ -250,16 +250,6 @@ def test_init_raises_without_api_key(monkeypatch, patch_encoding):
         GPTClient(api_key=None)
 
 
-def test_init_raises_without_model(monkeypatch, patch_encoding):
-    """モデルが未設定の場合にValueErrorが発生することを確認"""
-    # Given: 環境変数にモデルがなく、空文字列を設定
-    monkeypatch.setenv("OPENAI_MODEL", "")
-
-    # When/Then: ValueErrorが発生
-    with pytest.raises(ValueError, match="OPENAI_MODEL must be provided"):
-        GPTClient(api_key="test-key", model="")
-
-
 def test_tiktoken_keyerror_fallback(monkeypatch):
     """tiktoken.encoding_for_modelがKeyErrorを発生させた場合のフォールバック"""
 

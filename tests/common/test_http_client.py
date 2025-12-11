@@ -289,7 +289,6 @@ async def test_close_logs_duration(monkeypatch, caplog):
     await client.start()
 
     # When: クローズする
-    # When: クローズする
     # Ensure logs propagate to caplog
     http_client_logger = logging.getLogger("nook.core.clients.http_client")
     http_client_logger.propagate = True

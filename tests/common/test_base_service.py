@@ -477,10 +477,12 @@ def test_base_service_is_abstract():
 
 
 @pytest.mark.asyncio
-async def test_fetch_with_retry_is_placeholder():
-    """fetch_with_retryがプレースホルダーであることのテスト"""
+async def test_fetch_with_retry_raises_not_implemented():
+    """fetch_with_retryがNotImplementedErrorを発生させることのテスト"""
+    from nook.core.errors.exceptions import RetryException
+
     service = DummyService()
 
-    # 現在の実装ではpassを返す
-    result = await service.fetch_with_retry("http://example.com")
-    assert result == ""
+    # fetch_with_retryはNotImplementedErrorを発生させ、@handle_errorsによってRetryExceptionにラップされる
+    with pytest.raises(RetryException, match="fetch_with_retry is not implemented"):
+        await service.fetch_with_retry("http://example.com")

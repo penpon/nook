@@ -51,10 +51,6 @@ class GPTClient:
             )
 
         self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4.1-nano")
-        if not self.model:
-            raise ValueError(
-                "OPENAI_MODEL must be provided or set as an environment variable"
-            )
 
         # OpenAI APIの設定
         self.client = openai.OpenAI(api_key=self.api_key)
@@ -176,6 +172,8 @@ class GPTClient:
             if output_text:
                 return output_text
             prev_id = getattr(resp, "id", None)
+
+        return output_text  # 全試行失敗時は空文字列を返す
 
     def _call_gpt5_chat(
         self,

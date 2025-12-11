@@ -34,11 +34,16 @@ class JSONFormatter(logging.Formatter):
         for key, value in record.__dict__.items():
             if key not in [
                 "message",
+                "msg",
+                "args",
                 "levelname",
+                "levelno",
                 "name",
                 "module",
                 "funcName",
                 "lineno",
+                "pathname",
+                "filename",
                 "exc_info",
                 "exc_text",
                 "stack_info",

@@ -2,6 +2,8 @@ import threading
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
+__all__ = ["ErrorMetrics", "error_metrics"]
+
 
 class ErrorMetrics:
     """エラーメトリクスの収集と集約"""

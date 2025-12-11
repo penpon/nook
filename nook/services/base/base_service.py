@@ -42,10 +42,11 @@ class BaseService(ABC):
         return file_path
 
     @handle_errors(retries=3)
-    async def fetch_with_retry(self, url: str) -> str:  # noqa: B027
+    async def fetch_with_retry(self, url: str) -> str:
         """リトライ機能付きのHTTP取得"""
-        # AsyncHTTPClientを使用（後で実装）
-        return ""
+        raise NotImplementedError(
+            "fetch_with_retry is not implemented. Use self.http_client.get() instead."
+        )
 
     async def rate_limit(self) -> None:
         """レート制限のための待機"""

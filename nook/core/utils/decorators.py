@@ -125,5 +125,25 @@ def log_execution_time(func: Callable[..., T]) -> Callable[..., T]:
     if asyncio.iscoroutinefunction(func):
         return cast(Callable[..., T], async_wrapper)
     else:
-        # 同期版も同様に実装（省略）
-        return func
+
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs) -> T:
+            logger = logging.getLogger(func.__module__)
+            start_time = datetime.now()
+            try:
+                result = func(*args, **kwargs)
+                execution_time = (datetime.now() - start_time).total_seconds()
+                logger.info(
+                    f"Function {func.__name__} completed",
+                    extra={"function": func.__name__, "execution_time": execution_time},
+                )
+                return result
+            except Exception:
+                execution_time = (datetime.now() - start_time).total_seconds()
+                logger.error(
+                    f"Function {func.__name__} failed",
+                    extra={"function": func.__name__, "execution_time": execution_time},
+                )
+                raise
+
+        return cast(Callable[..., T], sync_wrapper)

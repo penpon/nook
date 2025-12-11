@@ -126,7 +126,7 @@ class AsyncHTTPClient:
             client = self._http1_client
             logger.debug(f"GET {url} (forced HTTP/1.1)", extra={"params": params})
         else:
-            # 通常のHTTP/2クライアントを使用
+            # 通常のクライアントを使用
             if not self._client:
                 await self.start()
             client = self._client
@@ -141,7 +141,7 @@ class AsyncHTTPClient:
                 extra={
                     "status_code": response.status_code,
                     "response_time": response.elapsed.total_seconds(),
-                    "http_version": "HTTP/1.1" if force_http1 else "HTTP/2",
+                    "http_version": "HTTP/1.1",
                 },
             )
 

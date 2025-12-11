@@ -41,7 +41,7 @@ def target_dates_set(
 
 
 def normalize_datetime_to_local(dt: datetime | None) -> datetime | None:
-    """Convert ``dt`` to JST timezone, assuming UTC for naive values."""
+    """Convert ``dt`` to JST timezone, assuming JST for naive values."""
 
     if dt is None:
         return None
