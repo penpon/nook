@@ -236,8 +236,9 @@ class ZennExplorer(BaseFeedService):
                         )
                         # 既存ファイルのパスを保存ファイルリストに追加
                         try:
-                            json_path = f"data/zenn_explorer/{date_str}.json"
-                            md_path = f"data/zenn_explorer/{date_str}.md"
+                            base_dir = Path(self.storage.base_dir)
+                            json_path = str(base_dir / f"{date_str}.json")
+                            md_path = str(base_dir / f"{date_str}.md")
                             if await self.storage.load(f"{date_str}.json"):
                                 saved_files.append((json_path, md_path))
                         except Exception as exc:

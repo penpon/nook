@@ -29,7 +29,8 @@ class BaseConfig(BaseSettings):
     MAX_RETRIES: int = Field(default=3, ge=1, le=10)
 
     # データ保存関連
-    DATA_DIR: str = Field(default="data")
+    DATA_DIR: str = Field(default="var/data")
+    LOG_DIR: str = Field(default="var/logs")
 
 
 class RedditConfig(BaseConfig):

@@ -151,14 +151,14 @@ class TestCollect:
             mock_load_dedup.return_value = mock_tracker
 
             # storeの戻り値をセットアップ
-            mock_store.return_value = ("data/business.json", "data/business.md")
+            mock_store.return_value = ("var/data/business.json", "var/data/business.md")
 
             # 実行
             results = await mock_feed_config.collect(days=1)
 
             # 検証
             assert len(results) == 1
-            assert results[0] == ("data/business.json", "data/business.md")
+            assert results[0] == ("var/data/business.json", "var/data/business.md")
 
             mock_retrieve.assert_called_once()
             mock_summarize.assert_called_once_with(mock_article)

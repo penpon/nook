@@ -56,7 +56,7 @@ class JSONFormatter(logging.Formatter):
 
 
 def setup_logger(
-    name: str, level: str = "INFO", log_dir: str = "logs", use_json: bool = True
+    name: str, level: str = "INFO", log_dir: str = "var/logs", use_json: bool = True
 ) -> logging.Logger:
     """
     ロガーのセットアップ

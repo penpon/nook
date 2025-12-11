@@ -16,9 +16,12 @@ class BaseService(ABC):
     def __init__(self, service_name: str, config: BaseConfig | None = None):
         self.service_name = service_name
         self.config = config or BaseConfig()
-        self.storage = LocalStorage(f"data/{service_name}")
+        data_root = Path(self.config.DATA_DIR)
+        self.storage = LocalStorage(str(data_root / service_name))
         self.gpt_client = GPTClient()
-        self.logger = setup_logger(service_name)
+        self.logger = setup_logger(
+            service_name, level=self.config.LOG_LEVEL, log_dir=self.config.LOG_DIR
+        )
         self.request_delay = self.config.REQUEST_DELAY
         self.http_client = None  # グローバルHTTPクライアントで初期化
 

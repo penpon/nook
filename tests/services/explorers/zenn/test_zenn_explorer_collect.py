@@ -22,6 +22,7 @@ def zenn_explorer(monkeypatch, mock_feed_config):
     explorer.feed_config = mock_feed_config
     explorer.http_client = AsyncMock()
     explorer.storage = AsyncMock()
+    explorer.storage.base_dir = "var/data/zenn_explorer"
     explorer.logger = MagicMock()
     return explorer
 
@@ -411,7 +412,7 @@ class TestCollect:
 
             # Should append existing file path
             assert len(saved) == 1
-            assert "data/zenn_explorer/2023-01-01.json" in saved[0][0]
+            assert "var/data/zenn_explorer/2023-01-01.json" in saved[0][0]
             zenn_explorer._group_articles_by_date.assert_called_once_with([])
 
 

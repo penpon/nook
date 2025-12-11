@@ -25,9 +25,8 @@ services:
     expose:
       - "8000"
     volumes:
-      - ../data:/app/data
+      - ../var:/app/var
       - ../nook:/app/nook:ro
-      - ../logs:/app/logs
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Tokyo

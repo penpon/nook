@@ -3,13 +3,13 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # package.jsonをコピー（キャッシュ効率化）
-COPY nook/frontend/package*.json ./
+COPY frontend/package*.json ./
 
 # 依存関係インストール
 RUN npm ci
 
 # ソースコードをコピー
-COPY nook/frontend .
+COPY frontend .
 
 # 環境変数を設定
 ENV VITE_API_URL=/api

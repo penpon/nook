@@ -25,7 +25,7 @@ RUN uv export --frozen --format requirements-txt --output-file requirements.txt 
 COPY nook ./nook
 
 # 必要なディレクトリを作成
-RUN mkdir -p /app/data /app/logs
+RUN mkdir -p /app/var/data /app/var/logs
 
 # ディレクトリの所有権を変更
 RUN chown -R appuser:appuser /app
