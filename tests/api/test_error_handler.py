@@ -19,7 +19,7 @@ from nook.api.middleware.error_handler import (  # noqa: E402
     error_handler_middleware,
     handle_exception,
 )
-from nook.common.exceptions import (  # noqa: E402
+from nook.core.errors.exceptions import (  # noqa: E402
     APIException,
     ConfigurationException,
     DataException,

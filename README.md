@@ -18,13 +18,13 @@ Discus0434氏の[Nook](https://github.com/discus0434/nook)をベースに、大�
 ```bash
 # 1. リポジトリをクローンしてセットアップ
 git clone https://github.com/Tomatio13/nook.git && cd nook
-./setup.sh
+./scripts/setup.sh
 
 # 2. 最小限のAPIキー設定（OpenAI APIキーのみ必須）
 echo "OPENAI_API_KEY=your-api-key-here" >> .env.production
 
 # 3. Docker Composeで起動
-docker-compose up -d
+cd deploy && docker-compose up -d
 ```
 
 ブラウザで http://localhost にアクセスして利用開始！
@@ -463,21 +463,20 @@ data/
 nook/
 ├── nook/
 │   ├── api/             # FastAPI バックエンド
-│   ├── common/          # 共通モジュール
+│   ├── core/            # コアインフラ（旧: common）
 │   ├── services/        # 各種サービス実装
 │   └── frontend/        # React フロントエンド
+├── deploy/              # デプロイ関連
+│   ├── nginx/           # nginx設定
+│   ├── docker-compose.yaml
+│   ├── Dockerfile.backend
+│   └── Dockerfile.frontend
 ├── data/                # 収集データ保存
 ├── logs/                # アプリケーションログ
-├── nginx/               # nginx設定
-├── claude/work/         # タスク管理
-├── worktrees/          # Git worktree
-├── scripts/            # ユーティリティスクリプト
-├── docker-compose.yaml # 本番環境構成
-├── Dockerfile.backend  # バックエンド用
-├── Dockerfile.frontend # フロントエンド用
-├── setup.sh           # セットアップスクリプト
-├── CLAUDE.md          # 開発ガイドライン
-└── DEVELOPMENT_LOG.md # 開発履歴
+├── scripts/             # ユーティリティスクリプト
+│   └── setup.sh         # セットアップスクリプト
+├── CLAUDE.md            # 開発ガイドライン
+└── DEVELOPMENT_LOG.md   # 開発履歴
 ```
 
 ## 開発者向け情報

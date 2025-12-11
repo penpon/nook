@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 
 from nook.api.models.schemas import ChatRequest, ChatResponse
-from nook.common.gpt_client import GPTClient
+from nook.core.clients.gpt_client import GPTClient
 
 # 環境変数の読み込み
 load_dotenv()

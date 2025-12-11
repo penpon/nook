@@ -1,0 +1,44 @@
+services:
+  nginx:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+    container_name: nook-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - backend
+    networks:
+      - nook-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    container_name: nook-backend
+    restart: always
+    expose:
+      - "8000"
+    volumes:
+      - ../var:/app/var
+      - ../nook:/app/nook:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Tokyo
+    env_file:
+      - ../.env.production
+    networks:
+      - nook-network
+    user: "1000:1000"
+    command: python -m nook.api.run --host 0.0.0.0 --port 8000
+
+networks:
+  nook-network:
+    driver: bridge
+
+# volumesセクションは空になったため削除

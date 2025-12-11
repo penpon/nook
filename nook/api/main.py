@@ -11,7 +11,7 @@ from nook.api.exceptions import NookHTTPException
 from nook.api.middleware.error_handler import error_handler_middleware, handle_exception
 from nook.api.models.errors import ErrorResponse
 from nook.api.routers import chat, content, weather
-from nook.common.error_metrics import error_metrics
+from nook.core.errors.error_metrics import error_metrics
 
 # 環境変数の読み込み
 load_dotenv()
