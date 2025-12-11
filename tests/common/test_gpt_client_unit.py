@@ -531,7 +531,9 @@ def test_get_calling_service_handles_exception(monkeypatch, client):
     def raise_error():
         raise RuntimeError("frame error")
 
-    monkeypatch.setattr("nook.core.clients.gpt_client.inspect.currentframe", raise_error)
+    monkeypatch.setattr(
+        "nook.core.clients.gpt_client.inspect.currentframe", raise_error
+    )
 
     # When/Then: unknownが返される
     assert client._get_calling_service() == "unknown"

@@ -322,7 +322,8 @@ class TestCollect:
         target_dates = [date(2023, 1, 1)]
 
         with patch(
-            "nook.core.storage.daily_snapshot.store_daily_snapshots", new_callable=AsyncMock
+            "nook.core.storage.daily_snapshot.store_daily_snapshots",
+            new_callable=AsyncMock,
         ) as mock_store:
             mock_store.return_value = [("f.json", "f.md")]
             # Note: _store_summaries does local import.

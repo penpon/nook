@@ -323,7 +323,9 @@ async def test_run_all_lazy_loading(monkeypatch):
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr("nook.services.runner.run_services.gather_with_errors", fake_gather)
+    monkeypatch.setattr(
+        "nook.services.runner.run_services.gather_with_errors", fake_gather
+    )
     monkeypatch.setattr(
         "nook.services.runner.run_services.close_http_client", fake_close_http_client
     )
@@ -364,11 +366,15 @@ async def test_run_all_with_failed_services(monkeypatch):
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr("nook.services.runner.run_services.gather_with_errors", fake_gather)
+    monkeypatch.setattr(
+        "nook.services.runner.run_services.gather_with_errors", fake_gather
+    )
     monkeypatch.setattr(
         "nook.services.runner.run_services.close_http_client", fake_close_http_client
     )
-    monkeypatch.setattr("nook.services.runner.run_services.target_dates_set", lambda days: {1})
+    monkeypatch.setattr(
+        "nook.services.runner.run_services.target_dates_set", lambda days: {1}
+    )
 
     await runner.run_all(days=1)
 
@@ -611,11 +617,15 @@ async def test_run_all_exception_handling(monkeypatch):
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr("nook.services.runner.run_services.gather_with_errors", fake_gather)
+    monkeypatch.setattr(
+        "nook.services.runner.run_services.gather_with_errors", fake_gather
+    )
     monkeypatch.setattr(
         "nook.services.runner.run_services.close_http_client", fake_close_http_client
     )
-    monkeypatch.setattr("nook.services.runner.run_services.target_dates_set", lambda days: {1})
+    monkeypatch.setattr(
+        "nook.services.runner.run_services.target_dates_set", lambda days: {1}
+    )
 
     with pytest.raises(RuntimeError, match="Gather failed"):
         await runner.run_all(days=1)

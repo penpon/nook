@@ -2,6 +2,7 @@
 
 This package is deprecated. Please use nook.core instead.
 """
+
 import warnings
 
 warnings.warn(

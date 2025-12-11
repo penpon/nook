@@ -95,7 +95,9 @@ async def test_setup_http_client_called_once(monkeypatch):
         calls["count"] += 1
         return sentinel_client
 
-    monkeypatch.setattr("nook.core.clients.http_client.get_http_client", fake_get_http_client)
+    monkeypatch.setattr(
+        "nook.core.clients.http_client.get_http_client", fake_get_http_client
+    )
 
     # When
     await service.setup_http_client()
@@ -372,7 +374,9 @@ async def test_setup_http_client_logs_debug_message(monkeypatch, caplog):
     async def fake_get_http_client():
         return MagicMock()
 
-    monkeypatch.setattr("nook.core.clients.http_client.get_http_client", fake_get_http_client)
+    monkeypatch.setattr(
+        "nook.core.clients.http_client.get_http_client", fake_get_http_client
+    )
     caplog.set_level("DEBUG", logger="dummy")
 
     # When
