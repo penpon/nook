@@ -4,6 +4,7 @@ This module tests the TrendRadarClient class that communicates with
 the TrendRadar MCP server to retrieve hot topics from Chinese platforms.
 """
 
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,6 +14,12 @@ from nook.services.explorers.trendradar.trendradar_client import (
     TrendRadarClient,
     TrendRadarError,
 )
+
+
+@pytest.fixture
+def client():
+    """Fixture for TrendRadarClient."""
+    return TrendRadarClient()
 
 
 class TestTrendRadarClientInitialization:
@@ -207,6 +214,30 @@ class TestMakeRequest:
 
             assert "Invalid JSON response" in str(exc_info.value)
 
+    @pytest.mark.asyncio
+    async def test_make_request_raises_error_on_json_decode_error(self):
+        """
+        Given: Server returns malformed JSON string.
+        When: _make_request is called.
+        Then: TrendRadarError is raised with appropriate message.
+        """
+        client = TrendRadarClient()
+        mock_http_client = AsyncMock()
+        mock_response = MagicMock()
+        # Simulate JSON decode error directly from json module
+        mock_response.json.side_effect = json.JSONDecodeError("Expecting value", "", 0)
+        mock_http_client.post.return_value = mock_response
+
+        with patch.object(
+            client, "_get_http_client", new_callable=AsyncMock
+        ) as mock_get_client:
+            mock_get_client.return_value = mock_http_client
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client._make_request(method="test")
+
+            assert "Invalid JSON response" in str(exc_info.value)
+
 
 class TestConnectionErrorHandling:
     """Tests for error handling."""
@@ -240,14 +271,13 @@ class TestHealthCheck:
     """Tests for health_check method."""
 
     @pytest.mark.asyncio
-    async def test_health_check_success(self):
+    @pytest.mark.asyncio
+    async def test_health_check_success(self, client):
         """
         Given: TrendRadar server is running.
         When: health_check is called.
         Then: True is returned.
         """
-        client = TrendRadarClient()
-
         with patch.object(
             client, "_make_request", new_callable=AsyncMock
         ) as mock_request:
@@ -258,18 +288,34 @@ class TestHealthCheck:
             assert result is True
 
     @pytest.mark.asyncio
-    async def test_health_check_failure_on_exception(self):
+    @pytest.mark.asyncio
+    async def test_health_check_failure_on_exception(self, client):
         """
         Given: TrendRadar server is unreachable (raises exception).
         When: health_check is called.
         Then: False is returned.
         """
-        client = TrendRadarClient()
-
         with patch.object(
             client, "_make_request", new_callable=AsyncMock
         ) as mock_request:
             mock_request.side_effect = TrendRadarError("Connection failed")
+
+            result = await client.health_check()
+
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_health_check_failure_on_json_error(self, client):
+        """
+        Given: TrendRadar server returns invalid JSON (raises JSONDecodeError wrapped in TrendRadarError).
+        When: health_check is called.
+        Then: False is returned.
+        """
+        with patch.object(
+            client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            # _make_request wraps JSON errors in TrendRadarError
+            mock_request.side_effect = TrendRadarError("Invalid JSON response")
 
             result = await client.health_check()
 

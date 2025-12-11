@@ -4,6 +4,7 @@ This module provides a client for communicating with the TrendRadar MCP server
 to retrieve hot topics from Chinese platforms like Zhihu.
 """
 
+import json
 import logging
 from typing import Any
 
@@ -126,8 +127,8 @@ class TrendRadarClient:
             logger.error(f"TrendRadar communication failed: {e}")
             raise TrendRadarError(f"Communication failed: {e}") from e
 
-        except (ValueError, KeyError) as e:
-            # ValueError is raised by response.json() for invalid JSON
+        except (ValueError, KeyError, json.JSONDecodeError) as e:
+            # ValueError/JSONDecodeError is raised by response.json() for invalid JSON
             logger.error(f"Invalid JSON response from TrendRadar: {e}")
             raise TrendRadarError(f"Invalid JSON response from server: {e}") from e
 
