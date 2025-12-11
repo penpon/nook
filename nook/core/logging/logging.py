@@ -85,8 +85,10 @@ def setup_logger(
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level.upper()))
 
-    # 既存のハンドラーをクリア
-    logger.handlers.clear()
+    # 既存のハンドラーを適切にクローズしてからクリア
+    for handler in logger.handlers[:]:
+        handler.close()
+        logger.removeHandler(handler)
 
     # ログディレクトリの作成
     os.makedirs(log_dir, exist_ok=True)
