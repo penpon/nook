@@ -7,7 +7,7 @@ from Zhihu via the TrendRadar MCP server.
 import asyncio
 import copy
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 
 from bs4 import BeautifulSoup
@@ -139,7 +139,7 @@ class ZhihuExplorer(BaseService):
                 await self._summarize_article(article)
 
             # 日付別にグループ化して保存
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             saved_files = await self._store_articles(articles, today)
 
             return saved_files
@@ -193,17 +193,20 @@ class ZhihuExplorer(BaseService):
                 # Epoch timestamp handling
                 if isinstance(val, (int, float)):
                     try:
-                        return datetime.fromtimestamp(val)
+                        return datetime.fromtimestamp(val, tz=timezone.utc)
                     except (ValueError, OSError):
                         continue
 
                 # String parsing
                 try:
-                    return parser.parse(str(val))
+                    dt = parser.parse(str(val))
+                    if dt.tzinfo is None:
+                        return dt.replace(tzinfo=timezone.utc)
+                    return dt.astimezone(timezone.utc)
                 except (ValueError, TypeError):
                     continue
 
-        return datetime.now()
+        return datetime.now(timezone.utc)
 
     async def _summarize_article(self, article: Article) -> None:
         """記事の要約を生成.
