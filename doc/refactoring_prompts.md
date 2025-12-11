@@ -3,7 +3,7 @@
 ## 概要
 
 このドキュメントは、Nook プロジェクトのフル版リファクタリングを段階的に実施するためのプロンプト集です。
-本リファクタリングは、変更の安全性とレビューの容易さを確保するため、**5つの独立したWorktree（PR）** に分割して実行します。
+本リファクタリングは、**developブランチ** 上で段階的に実行します。
 
 **目標:**
 - `nook/common/` → `nook/core/` へ再編成（サブパッケージ化）
@@ -11,38 +11,12 @@
 - 後方互換性を維持しながら段階的移行
 
 **前提:**
-- 各タスクグループ（Worktree）ごとに、`/worktree-task` ワークフローを使用して作業環境を構築してください。
+- 作業は全て `develop` ブランチで行います。
 - 各フェーズ完了時にテスト全パスを確認してください。
-
----
-
-## 実行ガイド
-
-### Worktree/PR 分割プラン
-
-以下の5つの単位で順番に `/worktree-task` を実行し、PRを作成・マージしてください。
-
-| 順序 | Worktree名 (例) | 対象Phase | 内容 |
-|:---:|---|---|---|
-| 1 | `feature/refactor-core` | **Phase A - E** | Core層のリファクタリング（互換性維持） |
-| 2 | `feature/refactor-services-base` | **Phase F** | Services基盤の整理 |
-| 3 | `feature/refactor-services-domains` | **Phase G** | Servicesのドメイン分類（Explorers/Feeds等） |
-| 4 | `feature/refactor-services-tests` | **Phase H** | Servicesテストの再編 |
-| 5 | `feature/refactor-cleanup` | **Phase I** | 最終クリーンアップ・完全移行 |
-
-### 実行手順
-
-1. `/worktree-task` を起動し、上記表の「Worktree名」を指定して環境を作成する。
-2. 作成されたWorktreeへ移動する。
-3. 以下の各「セット」に対応するプロンプトをAIに指示する。
-4. 作業完了後、`/rabbit-copilot-review-and-pr` (または `mcp github`) でPRを作成する。
-5. PRマージ後、次のセットへ進む。
-
----
 
 ## Set 1: Core Refactoring (Phase A - E)
 
-**Worktree:** `feature/refactor-core`
+**Branch:** `develop`
 
 このセットでは、`nook/common` から `nook/core` への構造変更とファイル移動を一気通貫で行います。
 外部インターフェース（importパス）の互換性を維持することが最重要です。
@@ -50,8 +24,8 @@
 ### プロンプト: Core層リファクタリングの実行
 
 ```text
-現在、feature/refactor-core worktree で作業中と認識してください。
-このWorktreeでは、nook/common から nook/core への移行（Phase A〜E）を一括して行います。
+現在、develop ブランチで作業中と認識してください。
+このフェーズでは、nook/common から nook/core への移行（Phase A〜E）を一括して行います。
 
 前提と制約:
 - テストカバレッジ 93% を維持すること
@@ -97,14 +71,14 @@
 
 ## Set 2: Services Base Refactoring (Phase F)
 
-**Worktree:** `feature/refactor-services-base`
+**Branch:** `develop`
 
 ※ Set 1 がマージされた後に実行してください。
 
 ### プロンプト: Services基盤の整理
 
 ```text
-現在、feature/refactor-services-base worktree で作業中と認識してください。
+現在、develop ブランチで作業中と認識してください。
 Set 1 (Core Refactoring) が完了し、`nook/core` が存在している状態です。
 
 目標:
@@ -133,14 +107,14 @@ Services層の基盤（runner, base）を明確に分離・整理します。
 
 ## Set 3: Services Domains Refactoring (Phase G)
 
-**Worktree:** `feature/refactor-services-domains`
+**Branch:** `develop`
 
 ※ Set 2 がマージされた後に実行してください。
 
 ### プロンプト: サービスのドメイン分類
 
 ```text
-現在、feature/refactor-services-domains worktree で作業中と認識してください。
+現在、develop ブランチで作業中と認識してください。
 
 目標:
 フラットな `nook/services/xxx_explorer` 等の構成を、ドメイン別（explorers, feeds, analyzers）に再編します。
@@ -190,14 +164,14 @@ Services層の基盤（runner, base）を明確に分離・整理します。
 
 ## Set 4: Services Tests Refactoring (Phase H)
 
-**Worktree:** `feature/refactor-services-tests`
+**Branch:** `develop`
 
 ※ Set 3 がマージされた後に実行してください。
 
 ### プロンプト: Servicesテストの再編
 
 ```text
-現在、feature/refactor-services-tests worktree で作業中と認識してください。
+現在、develop ブランチで作業中と認識してください。
 
 目標:
 実装コード（Set 3で再編済み）に合わせて、`tests/services/` 以下の構造を同期させます。
@@ -227,14 +201,14 @@ Services層の基盤（runner, base）を明確に分離・整理します。
 
 ## Set 5: Final Cleanup (Phase I)
 
-**Worktree:** `feature/refactor-cleanup`
+**Branch:** `develop`
 
 ※ 全ての実装とテスト再編が完了した後に実行してください。
 
 ### プロンプト: 最終クリーンアップ
 
 ```text
-現在、feature/refactor-cleanup worktree で作業中と認識してください。
+現在、develop ブランチで作業中と認識してください。
 
 目標:
 リファクタリングの仕上げとして、旧互換性レイヤーの削除（可能な場合）または整理、そしてプロジェクト全体の整合性確認を行います。
