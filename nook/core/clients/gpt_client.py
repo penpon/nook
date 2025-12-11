@@ -252,6 +252,7 @@ class GPTClient:
                             if service_name in [
                                 "run_services.py",
                                 "run_services_sync.py",
+                                "runner",
                             ]:
                                 continue
                             # __pycache__や.pyファイルを除外

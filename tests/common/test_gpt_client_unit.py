@@ -508,7 +508,7 @@ def test_get_calling_service_skips_run_services_files(monkeypatch, client):
     run_services_frame = types.SimpleNamespace(
         f_back=actual_service_frame,
         f_code=types.SimpleNamespace(
-            co_filename="/home/bob/nook.services.runner.run_services.py"
+            co_filename="/home/bob/nook/services/runner/run_services.py"
         ),
     )
     caller_frame = types.SimpleNamespace(
