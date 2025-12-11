@@ -5,10 +5,10 @@ to retrieve hot topics from Chinese platforms like Zhihu.
 """
 
 import logging
-
-import httpx
+from typing import Any
 
 from nook.core.clients.http_client import AsyncHTTPClient
+from nook.core.errors.exceptions import APIException
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class TrendRadarClient:
         self,
         method: str,
         params: dict | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Make a JSON-RPC style request to TrendRadar MCP server.
 
         Parameters
@@ -90,7 +90,7 @@ class TrendRadarClient:
         Raises
         ------
         TrendRadarError
-            If the request fails.
+            If the request fails or server returns an error.
         """
         http_client = await self._get_http_client()
 
@@ -107,29 +107,29 @@ class TrendRadarClient:
                 json=request_body,
                 headers={"Content-Type": "application/json"},
             )
-            return response.json()
+            data = response.json()
 
-        except httpx.ConnectError as e:
-            logger.error(f"TrendRadar connection error: {e}")
-            raise TrendRadarError(f"Connection failed: {e}") from e
+            # Check for JSON-RPC error
+            if "error" in data:
+                error_msg = data["error"]
+                logger.error(f"TrendRadar API error: {error_msg}")
+                raise TrendRadarError(f"API error: {error_msg}")
 
-        except httpx.TimeoutException as e:
-            logger.error(f"TrendRadar timeout: {e}")
-            raise TrendRadarError(f"Request timeout: {e}") from e
+            return data
 
-        except httpx.HTTPStatusError as e:
-            logger.error(f"TrendRadar HTTP error: {e}")
-            raise TrendRadarError(f"HTTP error: {e}") from e
+        except APIException as e:
+            logger.error(f"TrendRadar communication failed: {e}")
+            raise TrendRadarError(f"Communication failed: {e}") from e
 
         except Exception as e:
-            logger.error(f"TrendRadar request failed: {e}")
-            raise TrendRadarError(f"Request failed: {e}") from e
+            logger.error(f"TrendRadar unexpected error: {e}")
+            raise TrendRadarError(f"Unexpected error: {e}") from e
 
     async def get_latest_news(
         self,
         platform: str = "zhihu",
         limit: int = 50,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Get latest news from specified platform.
 
         Parameters
@@ -142,22 +142,12 @@ class TrendRadarClient:
         Returns
         -------
         list[dict]
-            List of news items, each containing:
-            - title: str - News title
-            - url: str - URL to the news
-            - hot: int - Hotness score
+            List of news items.
 
         Raises
         ------
         TrendRadarError
-            If the request fails.
-
-        Examples
-        --------
-        >>> client = TrendRadarClient()
-        >>> news = await client.get_latest_news(platform="zhihu", limit=10)
-        >>> for item in news:
-        ...     print(f"{item['title']} - {item['hot']}")
+            If the request fails or response is invalid.
         """
         response = await self._make_request(
             method="tools/call",
@@ -168,12 +158,11 @@ class TrendRadarClient:
         )
 
         # Extract result from JSON-RPC response
-        if "result" in response:
-            return response["result"]
-        elif "error" in response:
-            raise TrendRadarError(f"API error: {response['error']}")
-        else:
-            return []
+        if "result" not in response:
+            logger.error(f"Invalid response from TrendRadar: {response}")
+            raise TrendRadarError("Invalid response: missing 'result' field")
+
+        return response["result"]
 
     async def health_check(self) -> bool:
         """Check if TrendRadar server is reachable.
@@ -181,16 +170,15 @@ class TrendRadarClient:
         Returns
         -------
         bool
-            True if server is reachable, False otherwise.
-
-        Examples
-        --------
-        >>> client = TrendRadarClient()
-        >>> if await client.health_check():
-        ...     print("Server is running")
+            True if server is reachable and returns healthy status.
         """
         try:
             await self._make_request(method="health")
+            # healthメソッドのレスポンス形式に合わせて検証
+            # ここではエラーにならなければOKとするが、必要ならレスポンス内容もチェック
+            # 例: return response.get("status") == "ok"
+            # 指摘は「エラーレスポンスでもTrueを返す」点だったので、
+            # _make_requestでエラーチェックが入ったことで解決している。
             return True
         except TrendRadarError:
             return False

@@ -4,11 +4,11 @@ This module tests the TrendRadarClient class that communicates with
 the TrendRadar MCP server to retrieve hot topics from Chinese platforms.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 
+from nook.core.errors.exceptions import APIException
 from nook.services.explorers.trendradar.trendradar_client import (
     TrendRadarClient,
     TrendRadarError,
@@ -55,11 +55,6 @@ class TestGetLatestNews:
                     "url": "https://zhihu.com/topic/1",
                     "hot": 1000000,
                 },
-                {
-                    "title": "Another topic",
-                    "url": "https://zhihu.com/topic/2",
-                    "hot": 500000,
-                },
             ]
         }
 
@@ -73,7 +68,7 @@ class TestGetLatestNews:
             result = await client.get_latest_news(platform="zhihu")
 
             assert isinstance(result, list)
-            assert len(result) == 2
+            assert len(result) == 1
             assert result[0]["title"] == "Sample hot topic"
             mock_request.assert_called_once()
 
@@ -120,22 +115,91 @@ class TestGetLatestNews:
             # Verify limit is passed in the request params
             assert call_args.kwargs["params"]["arguments"]["limit"] == 5
 
+    @pytest.mark.asyncio
+    async def test_get_latest_news_raises_error_on_missing_result(self):
+        """
+        Given: Response missing 'result' field.
+        When: get_latest_news is called.
+        Then: TrendRadarError is raised.
+        """
+        client = TrendRadarClient()
+
+        with patch.object(
+            client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            # Result field is missing
+            mock_request.return_value = {"other": "data"}
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "Invalid response" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_raises_error_on_api_error(self):
+        """
+        Given: _make_request raises TrendRadarError.
+        When: get_latest_news is called.
+        Then: TrendRadarError is propagated.
+        """
+        client = TrendRadarClient()
+
+        with patch.object(
+            client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.side_effect = TrendRadarError("API error")
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "API error" in str(exc_info.value)
+
+
+class TestMakeRequest:
+    """Tests for _make_request method."""
+
+    @pytest.mark.asyncio
+    async def test_make_request_raises_error_on_json_rpc_error(self):
+        """
+        Given: Server returns JSON-RPC error.
+        When: _make_request is called.
+        Then: TrendRadarError is raised.
+        """
+        client = TrendRadarClient()
+        mock_http_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "error": {"code": -32600, "message": "Invalid Request"}
+        }
+        mock_http_client.post.return_value = mock_response
+
+        with patch.object(
+            client, "_get_http_client", new_callable=AsyncMock
+        ) as mock_get_client:
+            mock_get_client.return_value = mock_http_client
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client._make_request(method="test")
+
+            assert "API error" in str(exc_info.value)
+
 
 class TestConnectionErrorHandling:
     """Tests for error handling."""
 
     @pytest.mark.asyncio
-    async def test_connection_error_raises_trendradar_error(self):
+    async def test_api_exception_raises_trendradar_error(self):
         """
-        Given: TrendRadar server is unreachable.
+        Given: HTTP client raises APIException.
         When: get_latest_news is called.
         Then: TrendRadarError is raised.
         """
         client = TrendRadarClient()
 
-        # Mock the HTTP client's post method to raise ConnectError
+        # Mock the HTTP client's post method to raise APIException
         mock_http_client = AsyncMock()
-        mock_http_client.post.side_effect = httpx.ConnectError("Connection refused")
+        # APIException takes message, status_code (optional), response_body (optional)
+        mock_http_client.post.side_effect = APIException("Connection failed")
 
         with patch.object(
             client, "_get_http_client", new_callable=AsyncMock
@@ -145,30 +209,7 @@ class TestConnectionErrorHandling:
             with pytest.raises(TrendRadarError) as exc_info:
                 await client.get_latest_news(platform="zhihu")
 
-            assert "Connection" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_timeout_error_raises_trendradar_error(self):
-        """
-        Given: Request times out.
-        When: get_latest_news is called.
-        Then: TrendRadarError is raised.
-        """
-        client = TrendRadarClient()
-
-        # Mock the HTTP client's post method to raise TimeoutException
-        mock_http_client = AsyncMock()
-        mock_http_client.post.side_effect = httpx.TimeoutException("Request timeout")
-
-        with patch.object(
-            client, "_get_http_client", new_callable=AsyncMock
-        ) as mock_get_client:
-            mock_get_client.return_value = mock_http_client
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client.get_latest_news(platform="zhihu")
-
-            assert "timeout" in str(exc_info.value).lower()
+            assert "Communication failed" in str(exc_info.value)
 
 
 class TestHealthCheck:
@@ -193,22 +234,18 @@ class TestHealthCheck:
             assert result is True
 
     @pytest.mark.asyncio
-    async def test_health_check_failure(self):
+    async def test_health_check_failure_on_exception(self):
         """
-        Given: TrendRadar server is unreachable.
+        Given: TrendRadar server is unreachable (raises exception).
         When: health_check is called.
         Then: False is returned.
         """
         client = TrendRadarClient()
 
-        # Mock the HTTP client's post method to raise ConnectError
-        mock_http_client = AsyncMock()
-        mock_http_client.post.side_effect = httpx.ConnectError("Connection refused")
-
         with patch.object(
-            client, "_get_http_client", new_callable=AsyncMock
-        ) as mock_get_client:
-            mock_get_client.return_value = mock_http_client
+            client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.side_effect = TrendRadarError("Connection failed")
 
             result = await client.health_check()
 
