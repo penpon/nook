@@ -39,7 +39,7 @@ logs/*.log
 # Data files - APIレスポンスやクロールデータ
 
 # BASIC認証ファイル（セキュリティ）
-nginx/.htpasswd
+*.htpasswd
 
 # Temporary files
 *.tmp
