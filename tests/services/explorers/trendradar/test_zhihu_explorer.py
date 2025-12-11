@@ -106,7 +106,7 @@ class TestZhihuExplorerTransform:
         item_epoch = {
             "title": "Article Epoch",
             "url": "http://test-epoch",
-            "timestamp": 1672531200,  # 2023-01-01 00:00:00 UTC (approx, depends on timezone)
+            "timestamp": 1672531200,  # 2023-01-01 00:00:00 UTC
         }
         article_epoch = explorer._transform_to_article(item_epoch)
         assert article_epoch.published_at.year == 2023
