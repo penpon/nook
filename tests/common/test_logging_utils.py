@@ -1,7 +1,7 @@
 from datetime import date
 from unittest.mock import MagicMock
 
-from nook.common.logging_utils import (
+from nook.core.logging.logging_utils import (
     log_article_counts,
     log_multiple_dates_processing,
     log_no_new_articles,

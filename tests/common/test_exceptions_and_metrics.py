@@ -12,9 +12,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.error_metrics import ErrorMetrics  # noqa: E402
-from nook.common.exceptions import APIException, ServiceException  # noqa: E402
-from nook.common.logging_utils import (  # noqa: E402
+from nook.core.clients.rate_limiter import RateLimiter  # noqa: E402
+from nook.core.errors.error_metrics import ErrorMetrics  # noqa: E402
+from nook.core.errors.exceptions import APIException, ServiceException  # noqa: E402
+from nook.core.errors.service_errors import ServiceErrorHandler  # noqa: E402
+from nook.core.logging.logging_utils import (  # noqa: E402
     log_article_counts,
     log_multiple_dates_processing,
     log_no_new_articles,
@@ -24,8 +26,6 @@ from nook.common.logging_utils import (  # noqa: E402
     log_summarization_start,
     log_summary_candidates,
 )
-from nook.common.rate_limiter import RateLimiter  # noqa: E402
-from nook.common.service_errors import ServiceErrorHandler  # noqa: E402
 
 
 def _run(coro):
@@ -124,7 +124,7 @@ def test_rate_limiter_waits_when_tokens_insufficient(monkeypatch):
         # simulate elapsed time so that allowance recovers
         limiter.last_check -= timedelta(seconds=duration)
 
-    monkeypatch.setattr("nook.common.rate_limiter.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr("nook.core.clients.rate_limiter.asyncio.sleep", fake_sleep)
 
     async def main():
         await limiter.acquire(tokens=3)

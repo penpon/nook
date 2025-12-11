@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from bs4 import BeautifulSoup
 
-from nook.services.base_feed_service import Article
+from nook.services.base.base_feed_service import Article
 from nook.services.feeds.tech.tech_feed import TechFeed
 
 

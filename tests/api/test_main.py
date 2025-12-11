@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from nook.api.main import app  # noqa: E402
-from nook.common.error_metrics import error_metrics  # noqa: E402
+from nook.core.errors.error_metrics import error_metrics  # noqa: E402
 
 
 def test_root_endpoint_returns_api_info() -> None:

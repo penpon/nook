@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.services.base_feed_service import Article
+from nook.services.base.base_feed_service import Article
 from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
 
 
@@ -322,11 +322,11 @@ class TestCollect:
         target_dates = [date(2023, 1, 1)]
 
         with patch(
-            "nook.common.daily_snapshot.store_daily_snapshots", new_callable=AsyncMock
+            "nook.core.storage.daily_snapshot.store_daily_snapshots", new_callable=AsyncMock
         ) as mock_store:
             mock_store.return_value = [("f.json", "f.md")]
             # Note: _store_summaries does local import.
-            # unittest.mock.patching 'nook.common.daily_snapshot.store_daily_snapshots' globally should work if it patches the module where function is defined.
+            # unittest.mock.patching 'nook.core.storage.daily_snapshot.store_daily_snapshots' globally should work if it patches the module where function is defined.
 
             res = await qiita_explorer._store_summaries(articles, target_dates)
             assert res == [("f.json", "f.md")]

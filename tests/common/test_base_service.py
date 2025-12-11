@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import SecretStr
 
-from nook.services.base.base_service import BaseService
 from nook.core.config import BaseConfig
+from nook.services.base.base_service import BaseService
 
 
 @pytest.fixture(autouse=True)

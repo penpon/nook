@@ -40,7 +40,7 @@ except Exception as e:
 
 print("\n=== GPTClient からのテスト ===")
 try:
-    from nook.common.gpt_client import GPTClient
+    from nook.core.clients.gpt_client import GPTClient
 
     gpt = GPTClient()
     print("GPTClient created successfully")

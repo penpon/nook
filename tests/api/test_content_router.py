@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from nook.api.main import app  # noqa: E402
 from nook.api.routers import content as content_module  # noqa: E402
-from nook.common.storage import LocalStorage  # noqa: E402
+from nook.core.storage import LocalStorage  # noqa: E402
 
 
 def _make_client() -> TestClient:

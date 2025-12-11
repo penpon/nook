@@ -3,7 +3,7 @@ from functools import partial
 
 import pytest
 
-from nook.common.async_utils import (
+from nook.core.utils.async_utils import (
     AsyncTaskManager,
     batch_process,
     gather_with_errors,

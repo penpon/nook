@@ -10,11 +10,7 @@ import feedparser
 import tomli
 from bs4 import BeautifulSoup
 
-from nook.common.daily_snapshot import group_records_by_date
-from nook.common.date_utils import is_within_target_dates, target_dates_set
-from nook.common.dedup import DedupTracker, load_existing_titles_from_storage
-from nook.common.feed_utils import parse_entry_datetime
-from nook.common.logging_utils import (
+from nook.core.logging.logging_utils import (
     log_article_counts,
     log_no_new_articles,
     log_processing_start,
@@ -23,7 +19,11 @@ from nook.common.logging_utils import (
     log_summarization_start,
     log_summary_candidates,
 )
-from nook.services.base_feed_service import Article, BaseFeedService
+from nook.core.storage.daily_snapshot import group_records_by_date
+from nook.core.utils.date_utils import is_within_target_dates, target_dates_set
+from nook.core.utils.dedup import DedupTracker, load_existing_titles_from_storage
+from nook.services.base.base_feed_service import Article, BaseFeedService
+from nook.services.base.feed_utils import parse_entry_datetime
 
 
 class NoteExplorer(BaseFeedService):
@@ -361,7 +361,7 @@ class NoteExplorer(BaseFeedService):
             default_date=default_date,
         )
 
-        from nook.common.daily_snapshot import store_daily_snapshots
+        from nook.core.storage.daily_snapshot import store_daily_snapshots
 
         saved_files = await store_daily_snapshots(
             records_by_date,

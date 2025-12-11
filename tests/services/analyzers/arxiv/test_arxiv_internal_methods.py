@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from nook.common.exceptions import RetryException
+from nook.core.errors.exceptions import RetryException
 from nook.services.analyzers.arxiv.arxiv_summarizer import ArxivSummarizer, PaperInfo
 
 

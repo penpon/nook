@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from nook.common.storage import LocalStorage
+from nook.core.storage import LocalStorage
 
 
 @pytest.fixture

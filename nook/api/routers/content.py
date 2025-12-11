@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Response
 
 from nook.api.models.schemas import ContentItem, ContentResponse
-from nook.common.storage import LocalStorage
+from nook.core.storage import LocalStorage
 
 router = APIRouter()
 storage = LocalStorage("data")

@@ -1069,6 +1069,9 @@ class TestRunSyncWrapper:
         with patch("asyncio.run") as mock_asyncio_run:
             hacker_news.run(limit=10)
             mock_asyncio_run.assert_called_once()
+            # Close the coroutine to avoid RuntimeWarning
+            coro = mock_asyncio_run.call_args[0][0]
+            coro.close()
 
 
 class TestLoadBlockedDomains:

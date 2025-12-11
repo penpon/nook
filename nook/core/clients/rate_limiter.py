@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 
-from nook.core.config import BaseConfig
 from nook.core.clients.http_client import AsyncHTTPClient
+from nook.core.config import BaseConfig
 
 logger = logging.getLogger(__name__)
 

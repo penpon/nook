@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.core.config import BaseConfig
 from nook.core.clients.rate_limiter import RateLimitedHTTPClient, RateLimiter
+from nook.core.config import BaseConfig
 
 # --- RateLimiter Tests ---
 

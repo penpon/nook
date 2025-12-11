@@ -12,7 +12,10 @@ from datetime import date, datetime, timezone
 
 import pytest
 
-from nook.services.analyzers.github_trending.github_trending import GithubTrending, Repository
+from nook.services.analyzers.github_trending.github_trending import (
+    GithubTrending,
+    Repository,
+)
 
 
 @pytest.fixture

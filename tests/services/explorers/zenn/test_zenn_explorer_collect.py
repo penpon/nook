@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.services.base_feed_service import Article
+from nook.services.base.base_feed_service import Article
 from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
 
 

@@ -5,9 +5,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.common.dedup import DedupTracker
-from nook.common.exceptions import RetryException
-from nook.services.analyzers.github_trending.github_trending import GithubTrending, Repository
+from nook.core.errors.exceptions import RetryException
+from nook.core.utils.dedup import DedupTracker
+from nook.services.analyzers.github_trending.github_trending import (
+    GithubTrending,
+    Repository,
+)
 
 
 @pytest.fixture

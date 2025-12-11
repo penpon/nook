@@ -19,8 +19,8 @@ _ORIGINAL_BS4 = sys.modules.get("bs4")
 if _ORIGINAL_BS4 is None:
     sys.modules["bs4"] = _DummyBS4Module()
 
-from nook.common.config import BaseConfig  # noqa: E402
-from nook.services.base_feed_service import Article, BaseFeedService  # noqa: E402
+from nook.core.config import BaseConfig  # noqa: E402
+from nook.services.base.base_feed_service import Article, BaseFeedService  # noqa: E402
 
 # import 完了後は元の状態に戻す
 if _ORIGINAL_BS4 is None:

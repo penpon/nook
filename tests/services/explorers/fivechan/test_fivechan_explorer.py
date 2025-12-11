@@ -1364,7 +1364,7 @@ class TestRetrieveAIThreads:
         When: _retrieve_ai_threads is called.
         Then: Empty list is returned.
         """
-        from nook.common.dedup import DedupTracker
+        from nook.core.utils.dedup import DedupTracker
 
         fivechan_explorer._get_subject_txt_data = AsyncMock(return_value=[])
 
@@ -1386,7 +1386,7 @@ class TestRetrieveAIThreads:
         When: _retrieve_ai_threads is called.
         Then: Empty list is returned.
         """
-        from nook.common.dedup import DedupTracker
+        from nook.core.utils.dedup import DedupTracker
 
         fivechan_explorer._get_subject_txt_data = AsyncMock(
             side_effect=Exception("Network error")
@@ -1410,7 +1410,7 @@ class TestRetrieveAIThreads:
         When: _retrieve_ai_threads is called.
         Then: Only AI-related threads are processed.
         """
-        from nook.common.dedup import DedupTracker
+        from nook.core.utils.dedup import DedupTracker
 
         current_timestamp = int(datetime.now(timezone.utc).timestamp())
 

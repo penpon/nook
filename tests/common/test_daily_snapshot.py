@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.daily_snapshot import (  # noqa: E402
+from nook.core.storage.daily_snapshot import (  # noqa: E402
     group_records_by_date,
     store_daily_snapshots,
 )

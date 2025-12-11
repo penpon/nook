@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.services.base_feed_service import Article
+from nook.services.base.base_feed_service import Article
 from nook.services.explorers.note.note_explorer import NoteExplorer
 
 
@@ -300,7 +300,7 @@ class TestCollect:
         target_dates = [date(2023, 1, 1)]
 
         with patch(
-            "nook.common.daily_snapshot.store_daily_snapshots", new_callable=AsyncMock
+            "nook.core.storage.daily_snapshot.store_daily_snapshots", new_callable=AsyncMock
         ) as mock_store:
             mock_store.return_value = [("f.json", "f.md")]
             res = await note_explorer._store_summaries(articles, target_dates)

@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.gpt_client import GPTClient  # noqa: E402
+from nook.core.clients.gpt_client import GPTClient  # noqa: E402
 
 
 class DummyEncoding:
@@ -47,11 +47,11 @@ class DummyResponses:
 @pytest.fixture(autouse=True)
 def patch_encoding(monkeypatch):
     monkeypatch.setattr(
-        "nook.common.gpt_client.tiktoken.encoding_for_model",
+        "nook.core.clients.gpt_client.tiktoken.encoding_for_model",
         lambda model: DummyEncoding(),
     )
     monkeypatch.setattr(
-        "nook.common.gpt_client.tiktoken.get_encoding",
+        "nook.core.clients.gpt_client.tiktoken.get_encoding",
         lambda name: DummyEncoding(),
     )
 
@@ -138,7 +138,7 @@ def test_get_calling_service(monkeypatch, client):
     )
 
     monkeypatch.setattr(
-        "nook.common.gpt_client.inspect.currentframe", lambda: caller_frame
+        "nook.core.clients.gpt_client.inspect.currentframe", lambda: caller_frame
     )
 
     # When/Then: サービス名を抽出できる
@@ -274,10 +274,10 @@ def test_tiktoken_keyerror_fallback(monkeypatch):
         return DummyEncoding()
 
     monkeypatch.setattr(
-        "nook.common.gpt_client.tiktoken.encoding_for_model", raise_key_error
+        "nook.core.clients.gpt_client.tiktoken.encoding_for_model", raise_key_error
     )
     monkeypatch.setattr(
-        "nook.common.gpt_client.tiktoken.get_encoding", get_encoding_mock
+        "nook.core.clients.gpt_client.tiktoken.get_encoding", get_encoding_mock
     )
     monkeypatch.setattr(
         openai,
@@ -489,7 +489,7 @@ def test_get_calling_service_returns_unknown_for_non_services(monkeypatch, clien
     )
 
     monkeypatch.setattr(
-        "nook.common.gpt_client.inspect.currentframe", lambda: non_service_frame
+        "nook.core.clients.gpt_client.inspect.currentframe", lambda: non_service_frame
     )
 
     # When/Then: unknownが返される
@@ -508,7 +508,7 @@ def test_get_calling_service_skips_run_services_files(monkeypatch, client):
     run_services_frame = types.SimpleNamespace(
         f_back=actual_service_frame,
         f_code=types.SimpleNamespace(
-            co_filename="/home/bob/nook/services/run_services.py"
+            co_filename="/home/bob/nook.services.runner.run_services.py"
         ),
     )
     caller_frame = types.SimpleNamespace(
@@ -517,7 +517,7 @@ def test_get_calling_service_skips_run_services_files(monkeypatch, client):
     )
 
     monkeypatch.setattr(
-        "nook.common.gpt_client.inspect.currentframe", lambda: caller_frame
+        "nook.core.clients.gpt_client.inspect.currentframe", lambda: caller_frame
     )
 
     # When/Then: actual_serviceが返される
@@ -531,7 +531,7 @@ def test_get_calling_service_handles_exception(monkeypatch, client):
     def raise_error():
         raise RuntimeError("frame error")
 
-    monkeypatch.setattr("nook.common.gpt_client.inspect.currentframe", raise_error)
+    monkeypatch.setattr("nook.core.clients.gpt_client.inspect.currentframe", raise_error)
 
     # When/Then: unknownが返される
     assert client._get_calling_service() == "unknown"

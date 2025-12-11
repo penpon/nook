@@ -5,8 +5,8 @@ from typing import Any
 import httpx
 
 from nook.core.config import BaseConfig
-from nook.core.utils.decorators import handle_errors
 from nook.core.errors.exceptions import APIException
+from nook.core.utils.decorators import handle_errors
 
 logger = logging.getLogger(__name__)
 

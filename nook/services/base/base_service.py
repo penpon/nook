@@ -3,11 +3,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-from nook.core.config import BaseConfig
-from nook.core.utils.decorators import handle_errors
 from nook.core.clients.gpt_client import GPTClient
+from nook.core.config import BaseConfig
 from nook.core.logging.logging import setup_logger
 from nook.core.storage.storage import LocalStorage
+from nook.core.utils.decorators import handle_errors
 
 
 class BaseService(ABC):
