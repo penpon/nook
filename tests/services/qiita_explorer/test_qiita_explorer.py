@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 from bs4 import BeautifulSoup
 
-from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
+from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
 
 
 class TestExtractPopularity:

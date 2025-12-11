@@ -22,7 +22,7 @@ import pytest
 # Skip tests if dateutil is not installed (optional dependency)
 pytest.importorskip("dateutil")
 
-from nook.services.fivechan_explorer.fivechan_explorer import (
+from nook.services.explorers.fivechan.fivechan_explorer import (
     FiveChanExplorer,
     Thread,
 )
@@ -549,10 +549,10 @@ class TestCollect:
         fivechan_explorer.max_request_delay = 0
 
         with patch(
-            "nook.services.fivechan_explorer.fivechan_explorer.log_processing_start"
+            "nook.services.explorers.fivechan.fivechan_explorer.log_processing_start"
         ):
             with patch(
-                "nook.services.fivechan_explorer.fivechan_explorer.log_no_new_articles"
+                "nook.services.explorers.fivechan.fivechan_explorer.log_no_new_articles"
             ):
                 result = await fivechan_explorer.collect()
                 assert result == []
@@ -594,22 +594,22 @@ class TestCollect:
         fivechan_explorer._store_summaries = store_summaries_mock
 
         with patch(
-            "nook.services.fivechan_explorer.fivechan_explorer.log_processing_start"
+            "nook.services.explorers.fivechan.fivechan_explorer.log_processing_start"
         ):
             with patch(
-                "nook.services.fivechan_explorer.fivechan_explorer.log_article_counts"
+                "nook.services.explorers.fivechan.fivechan_explorer.log_article_counts"
             ):
                 with patch(
-                    "nook.services.fivechan_explorer.fivechan_explorer.log_summary_candidates"
+                    "nook.services.explorers.fivechan.fivechan_explorer.log_summary_candidates"
                 ):
                     with patch(
-                        "nook.services.fivechan_explorer.fivechan_explorer.log_summarization_start"
+                        "nook.services.explorers.fivechan.fivechan_explorer.log_summarization_start"
                     ):
                         with patch(
-                            "nook.services.fivechan_explorer.fivechan_explorer.log_summarization_progress"
+                            "nook.services.explorers.fivechan.fivechan_explorer.log_summarization_progress"
                         ):
                             with patch(
-                                "nook.services.fivechan_explorer.fivechan_explorer.log_storage_complete"
+                                "nook.services.explorers.fivechan.fivechan_explorer.log_storage_complete"
                             ):
                                 # Pass explicit target_dates to ensure filtering logic matches the thread's date
                                 # regardless of timezone differences between JST (default in collect) and execution environment

@@ -7,7 +7,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from nook.services.base_feed_service import Article
-from nook.services.business_feed.business_feed import BusinessFeed
+from nook.services.feeds.business.business_feed import BusinessFeed
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ class TestCollect:
         with (
             patch("feedparser.parse", return_value=mock_feed),
             patch(
-                "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
+                "nook.services.feeds.business.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
             patch.object(
@@ -141,7 +141,7 @@ class TestCollect:
                 mock_feed_config, "_store_summaries_for_date", new_callable=AsyncMock
             ) as mock_store,
             patch(
-                "nook.services.business_feed.business_feed.is_within_target_dates",
+                "nook.services.feeds.business.business_feed.is_within_target_dates",
                 return_value=True,
             ),
         ):
@@ -185,7 +185,7 @@ class TestCollect:
         with (
             patch("feedparser.parse", return_value=mock_feed),
             patch(
-                "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
+                "nook.services.feeds.business.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
             patch.object(
@@ -216,7 +216,7 @@ class TestCollect:
         with (
             patch("feedparser.parse", side_effect=Exception("RSS Error")),
             patch(
-                "nook.services.business_feed.business_feed.load_existing_titles_from_storage",
+                "nook.services.feeds.business.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
         ):

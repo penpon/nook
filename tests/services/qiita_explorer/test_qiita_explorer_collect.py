@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from nook.services.base_feed_service import Article
-from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
+from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ class TestRetrieveArticle:
         qiita_explorer.http_client.get.return_value = mock_response
 
         with patch(
-            "nook.services.qiita_explorer.qiita_explorer.parse_entry_datetime"
+            "nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime"
         ) as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             qiita_explorer._extract_popularity = MagicMock(return_value=123.0)
@@ -95,7 +95,7 @@ class TestRetrieveArticle:
         qiita_explorer.http_client.get.return_value = mock_response
 
         with patch(
-            "nook.services.qiita_explorer.qiita_explorer.parse_entry_datetime"
+            "nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime"
         ) as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             qiita_explorer._extract_popularity = MagicMock(return_value=123.0)
@@ -116,7 +116,7 @@ class TestRetrieveArticle:
         qiita_explorer.http_client.get.return_value = mock_response
 
         with patch(
-            "nook.services.qiita_explorer.qiita_explorer.parse_entry_datetime"
+            "nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime"
         ) as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             qiita_explorer._extract_popularity = MagicMock(return_value=123.0)
@@ -146,15 +146,15 @@ class TestCollect:
 
         with (
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                "nook.services.explorers.qiita.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.target_dates_set",
+                "nook.services.explorers.qiita.qiita_explorer.target_dates_set",
                 return_value={date(2023, 1, 1)},
             ),
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.feedparser.parse"
+                "nook.services.explorers.qiita.qiita_explorer.feedparser.parse"
             ) as mock_parse,
         ):
             mock_parse.return_value = MagicMock(entries=[])
@@ -188,18 +188,18 @@ class TestCollect:
 
         with (
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                "nook.services.explorers.qiita.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.feedparser.parse"
+                "nook.services.explorers.qiita.qiita_explorer.feedparser.parse"
             ) as mock_parse,
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.is_within_target_dates",
+                "nook.services.explorers.qiita.qiita_explorer.is_within_target_dates",
                 return_value=True,
             ),
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.target_dates_set"
+                "nook.services.explorers.qiita.qiita_explorer.target_dates_set"
             ) as mock_target_dates_set,
         ):
             mock_load_dedup.return_value = mock_dedup
@@ -258,17 +258,17 @@ class TestCollect:
 
         with (
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.load_existing_titles_from_storage",
+                "nook.services.explorers.qiita.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.feedparser.parse"
+                "nook.services.explorers.qiita.qiita_explorer.feedparser.parse"
             ) as mock_parse,
             patch(
-                "nook.services.qiita_explorer.qiita_explorer.is_within_target_dates",
+                "nook.services.explorers.qiita.qiita_explorer.is_within_target_dates",
                 return_value=True,
             ),
-            patch("nook.services.qiita_explorer.qiita_explorer.target_dates_set"),
+            patch("nook.services.explorers.qiita.qiita_explorer.target_dates_set"),
         ):
             mock_load_dedup.return_value = mock_dedup
 

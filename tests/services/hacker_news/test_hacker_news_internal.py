@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
 
-from nook.services.hacker_news.hacker_news import (
+from nook.services.feeds.hacker_news.hacker_news import (
     MIN_TEXT_LENGTH,
     SCORE_THRESHOLD,
     HackerNewsRetriever,
@@ -966,7 +966,7 @@ class TestStoreSummaries:
         story.summary = "Summary"
 
         with patch(
-            "nook.services.hacker_news.hacker_news.store_daily_snapshots",
+            "nook.services.feeds.hacker_news.hacker_news.store_daily_snapshots",
             new_callable=AsyncMock,
         ) as mock_store:
             mock_store.return_value = [("2024-01-15.json", "2024-01-15.md")]

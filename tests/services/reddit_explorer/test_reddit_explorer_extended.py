@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 
-from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
+from nook.services.explorers.reddit.reddit_explorer import RedditExplorer, RedditPost
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ async def test_store_summaries(mock_reddit_explorer):
 
     # Mock store_daily_snapshots
     with patch(
-        "nook.services.reddit_explorer.reddit_explorer.store_daily_snapshots",
+        "nook.services.explorers.reddit.reddit_explorer.store_daily_snapshots",
         new_callable=AsyncMock,
     ) as mock_store:
         mock_store.return_value = [("file.json", "file.md")]

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer, Thread
+from nook.services.explorers.fourchan.fourchan_explorer import FourChanExplorer, Thread
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ class TestRetrieveAIThreads:
         mock_dedup.is_duplicate.return_value = (False, "title")
 
         with patch(
-            "nook.services.fourchan_explorer.fourchan_explorer.is_within_target_dates",
+            "nook.services.explorers.fourchan.fourchan_explorer.is_within_target_dates",
             return_value=True,
         ):
             threads = await fourchan_explorer._retrieve_ai_threads(
@@ -119,7 +119,7 @@ class TestRetrieveAIThreads:
         mock_dedup.get_original_title.return_value = "orig"
 
         with patch(
-            "nook.services.fourchan_explorer.fourchan_explorer.is_within_target_dates"
+            "nook.services.explorers.fourchan.fourchan_explorer.is_within_target_dates"
         ) as mock_date:
             # 1 (Dup) -> skipped before date check?
             # Logic: is_dup checked first.
@@ -191,11 +191,11 @@ class TestStoreSummaries:
 
         with (
             patch(
-                "nook.services.fourchan_explorer.fourchan_explorer.group_records_by_date",
+                "nook.services.explorers.fourchan.fourchan_explorer.group_records_by_date",
                 return_value={"2023-01-01": []},
             ),
             patch(
-                "nook.services.fourchan_explorer.fourchan_explorer.store_daily_snapshots",
+                "nook.services.explorers.fourchan.fourchan_explorer.store_daily_snapshots",
                 new_callable=AsyncMock,
             ) as mock_store,
         ):

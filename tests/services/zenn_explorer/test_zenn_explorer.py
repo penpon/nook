@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 from bs4 import BeautifulSoup
 
-from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
+from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
 
 
 class TestExtractPopularity:

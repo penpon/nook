@@ -9,7 +9,7 @@ This module tests the pure logic helper functions in arxiv_summarizer.py:
 
 import pytest
 
-from nook.services.arxiv_summarizer.arxiv_summarizer import (
+from nook.services.analyzers.arxiv.arxiv_summarizer import (
     ArxivSummarizer,
     remove_outer_markdown_markers,
     remove_outer_singlequotes,

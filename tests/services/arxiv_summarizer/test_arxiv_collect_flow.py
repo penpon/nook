@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer, PaperInfo
+from nook.services.analyzers.arxiv.arxiv_summarizer import ArxivSummarizer, PaperInfo
 
 
 @pytest.fixture

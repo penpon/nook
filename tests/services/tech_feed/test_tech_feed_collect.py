@@ -7,7 +7,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from nook.services.base_feed_service import Article
-from nook.services.tech_feed.tech_feed import TechFeed
+from nook.services.feeds.tech.tech_feed import TechFeed
 
 
 @pytest.fixture
@@ -137,7 +137,7 @@ class TestCollect:
         with (
             patch("feedparser.parse", return_value=mock_feed),
             patch(
-                "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
+                "nook.services.feeds.tech.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
             patch.object(
@@ -167,7 +167,7 @@ class TestCollect:
 
             # Articleをモック化しているためis_within_target_datesをモック化
             with patch(
-                "nook.services.tech_feed.tech_feed.is_within_target_dates",
+                "nook.services.feeds.tech.tech_feed.is_within_target_dates",
                 return_value=True,
             ):
                 # 実行
@@ -200,7 +200,7 @@ class TestCollect:
         with (
             patch("feedparser.parse", return_value=mock_feed),
             patch(
-                "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
+                "nook.services.feeds.tech.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
             patch.object(
@@ -233,7 +233,7 @@ class TestCollect:
         with (
             patch("feedparser.parse", side_effect=Exception("Feed Error")),
             patch(
-                "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
+                "nook.services.feeds.tech.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
         ):
@@ -257,7 +257,7 @@ class TestCollect:
         real_feed.logger = MagicMock()
 
         with patch(
-            "nook.services.tech_feed.tech_feed.load_existing_titles_from_storage",
+            "nook.services.feeds.tech.tech_feed.load_existing_titles_from_storage",
             new_callable=AsyncMock,
         ):
             await real_feed.collect()

@@ -14,7 +14,7 @@ import pytest
 # Skip tests if asyncpraw is not installed (optional dependency)
 pytest.importorskip("asyncpraw")
 
-from nook.services.reddit_explorer.reddit_explorer import RedditExplorer, RedditPost
+from nook.services.explorers.reddit.reddit_explorer import RedditExplorer, RedditPost
 
 
 class TestRedditPostDataclass:
@@ -536,10 +536,10 @@ class TestRedditExplorer:
             mock_reddit.subreddit = MagicMock(return_value=mock_subreddit)
 
             with patch(
-                "nook.services.reddit_explorer.reddit_explorer.log_processing_start"
+                "nook.services.explorers.reddit.reddit_explorer.log_processing_start"
             ):
                 with patch(
-                    "nook.services.reddit_explorer.reddit_explorer.log_no_new_articles"
+                    "nook.services.explorers.reddit.reddit_explorer.log_no_new_articles"
                 ):
                     result = await reddit_explorer.collect()
                     assert result == []

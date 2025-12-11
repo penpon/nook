@@ -16,7 +16,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from nook.services.base_feed_service import Article
-from nook.services.business_feed.business_feed import BusinessFeed
+from nook.services.feeds.business.business_feed import BusinessFeed
 
 
 class TestExtractPopularity:

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 from bs4 import BeautifulSoup
 
-from nook.services.note_explorer.note_explorer import NoteExplorer
+from nook.services.explorers.note.note_explorer import NoteExplorer
 
 
 class TestExtractPopularity:

@@ -8,7 +8,7 @@ This module tests the pure logic helper functions in fourchan_explorer.py:
 
 import pytest
 
-from nook.services.fourchan_explorer.fourchan_explorer import (
+from nook.services.explorers.fourchan.fourchan_explorer import (
     FourChanExplorer,
     Thread,
 )

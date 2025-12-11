@@ -7,7 +7,7 @@ import pytest
 
 from nook.common.dedup import DedupTracker
 from nook.common.exceptions import RetryException
-from nook.services.github_trending.github_trending import GithubTrending, Repository
+from nook.services.analyzers.github_trending.github_trending import GithubTrending, Repository
 
 
 @pytest.fixture
@@ -152,11 +152,11 @@ class TestStoreSummaries:
         # _store_summaries_for_date内で使用される依存関係をモック化
         with (
             patch(
-                "nook.services.github_trending.github_trending.store_daily_snapshots",
+                "nook.services.analyzers.github_trending.github_trending.store_daily_snapshots",
                 new_callable=AsyncMock,
             ) as mock_store_snapshots,
             patch(
-                "nook.services.github_trending.github_trending.group_records_by_date"
+                "nook.services.analyzers.github_trending.github_trending.group_records_by_date"
             ) as mock_group,
         ):
             mock_group.return_value = {target_date: [{"name": "o/r"}]}
@@ -182,11 +182,11 @@ class TestStoreSummaries:
 
         with (
             patch(
-                "nook.services.github_trending.github_trending.store_daily_snapshots",
+                "nook.services.analyzers.github_trending.github_trending.store_daily_snapshots",
                 new_callable=AsyncMock,
             ) as mock_store_snapshots,
             patch(
-                "nook.services.github_trending.github_trending.group_records_by_date"
+                "nook.services.analyzers.github_trending.github_trending.group_records_by_date"
             ),
         ):
             mock_store_snapshots.return_value = []  # ファイルが保存されなかった

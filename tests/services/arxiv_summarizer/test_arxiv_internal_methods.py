@@ -21,7 +21,7 @@ import httpx
 import pytest
 
 from nook.common.exceptions import RetryException
-from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer, PaperInfo
+from nook.services.analyzers.arxiv.arxiv_summarizer import ArxivSummarizer, PaperInfo
 
 
 @pytest.fixture
@@ -765,7 +765,7 @@ class TestStoreSummaries:
         papers = [paper]
 
         with patch(
-            "nook.services.arxiv_summarizer.arxiv_summarizer.store_daily_snapshots",
+            "nook.services.analyzers.arxiv.arxiv_summarizer.store_daily_snapshots",
             new_callable=AsyncMock,
         ) as mock_store:
             mock_store.return_value = [("2024-01-15.json", "2024-01-15.md")]

@@ -28,17 +28,19 @@ class ServiceRunner:
 
     def __init__(self):
         # 既存のサービスをインポート（同期版として残す）
-        from nook.services.arxiv_summarizer.arxiv_summarizer import ArxivSummarizer
-        from nook.services.business_feed.business_feed import BusinessFeed
-        from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer
-        from nook.services.fourchan_explorer.fourchan_explorer import FourChanExplorer
-        from nook.services.github_trending.github_trending import GithubTrending
-        from nook.services.hacker_news.hacker_news import HackerNewsRetriever
-        from nook.services.note_explorer.note_explorer import NoteExplorer
-        from nook.services.qiita_explorer.qiita_explorer import QiitaExplorer
-        from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
-        from nook.services.tech_feed.tech_feed import TechFeed
-        from nook.services.zenn_explorer.zenn_explorer import ZennExplorer
+        from nook.services.analyzers.arxiv.arxiv_summarizer import ArxivSummarizer
+        from nook.services.analyzers.github_trending.github_trending import (
+            GithubTrending,
+        )
+        from nook.services.explorers.fivechan.fivechan_explorer import FiveChanExplorer
+        from nook.services.explorers.fourchan.fourchan_explorer import FourChanExplorer
+        from nook.services.explorers.note.note_explorer import NoteExplorer
+        from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
+        from nook.services.explorers.reddit.reddit_explorer import RedditExplorer
+        from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
+        from nook.services.feeds.business.business_feed import BusinessFeed
+        from nook.services.feeds.hacker_news.hacker_news import HackerNewsRetriever
+        from nook.services.feeds.tech.tech_feed import TechFeed
 
         # サービスクラスを保持（遅延読み込み用）
         self.service_classes = {

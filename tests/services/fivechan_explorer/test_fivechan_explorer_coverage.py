@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.services.fivechan_explorer.fivechan_explorer import FiveChanExplorer, Thread
+from nook.services.explorers.fivechan.fivechan_explorer import FiveChanExplorer, Thread
 
 
 def _jst_date_now() -> date:

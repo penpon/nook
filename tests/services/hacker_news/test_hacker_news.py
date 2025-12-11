@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from nook.services.hacker_news.hacker_news import (
+from nook.services.feeds.hacker_news.hacker_news import (
     MAX_TEXT_LENGTH,
     MIN_TEXT_LENGTH,
     SCORE_THRESHOLD,

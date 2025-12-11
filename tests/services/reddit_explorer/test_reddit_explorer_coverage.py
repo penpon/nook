@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.services.reddit_explorer.reddit_explorer import RedditExplorer
+from nook.services.explorers.reddit.reddit_explorer import RedditExplorer
 
 
 def _jst_date_now() -> date:
