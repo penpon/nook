@@ -36,7 +36,7 @@ log() {
 
 run_service() {
     local service="$1"
-    local cmd=(python -m nook.services.run_services --service "$service" --days "$DAYS")
+    local cmd=(python -m nook.services.runner.run_services --service "$service" --days "$DAYS")
 
     if [ "$DRY_RUN" = true ]; then
         echo "DRY-RUN: ${cmd[*]}"

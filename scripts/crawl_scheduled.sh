@@ -238,25 +238,25 @@ execute_services() {
         
         # グループ1: 軽量なサービス
         log "Starting batch 1/3..."
-        python -m nook.services.run_services --service hacker_news &
-        python -m nook.services.run_services --service github_trending &
-        python -m nook.services.run_services --service reddit &
+        python -m nook.services.runner.run_services --service hacker_news &
+        python -m nook.services.runner.run_services --service github_trending &
+        python -m nook.services.runner.run_services --service reddit &
         wait
         
         # グループ2: 中程度のサービス
         log "Starting batch 2/3..."
-        python -m nook.services.run_services --service tech_news &
-        python -m nook.services.run_services --service business_news &
-        python -m nook.services.run_services --service arxiv &
-        python -m nook.services.run_services --service zenn &
+        python -m nook.services.runner.run_services --service tech_news &
+        python -m nook.services.runner.run_services --service business_news &
+        python -m nook.services.runner.run_services --service arxiv &
+        python -m nook.services.runner.run_services --service zenn &
         wait
         
         # グループ3: 残りのサービス
         log "Starting batch 3/3..."
-        python -m nook.services.run_services --service qiita &
-        python -m nook.services.run_services --service note &
-        python -m nook.services.run_services --service 4chan &
-        python -m nook.services.run_services --service 5chan &
+        python -m nook.services.runner.run_services --service qiita &
+        python -m nook.services.runner.run_services --service note &
+        python -m nook.services.runner.run_services --service 4chan &
+        python -m nook.services.runner.run_services --service 5chan &
         wait
     else
         # 指定されたサービスのみ実行
@@ -264,7 +264,7 @@ execute_services() {
         log "指定されたサービスを実行: ${SERVICE_ARRAY[*]}"
         
         for service in "${SERVICE_ARRAY[@]}"; do
-            python -m nook.services.run_services --service "$service" &
+            python -m nook.services.runner.run_services --service "$service" &
         done
         wait
     fi
