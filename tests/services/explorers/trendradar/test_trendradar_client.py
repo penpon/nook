@@ -91,7 +91,7 @@ class TestGetLatestNews:
             mock_request.assert_called_once()
             call_args = mock_request.call_args
             # Verify platform is passed in the request
-            assert "zhihu" in str(call_args) or call_args[1].get("platform") == "zhihu"
+            assert call_args.kwargs["params"]["name"] == "get_zhihu_hot"
 
     @pytest.mark.asyncio
     async def test_get_latest_news_with_limit(self):
@@ -183,6 +183,30 @@ class TestMakeRequest:
 
             assert "API error" in str(exc_info.value)
 
+    @pytest.mark.asyncio
+    async def test_make_request_raises_error_on_invalid_json(self):
+        """
+        Given: Server returns invalid JSON.
+        When: _make_request is called.
+        Then: TrendRadarError is raised with appropriate message.
+        """
+        client = TrendRadarClient()
+        mock_http_client = AsyncMock()
+        mock_response = MagicMock()
+        # Simulate JSON decode error
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_http_client.post.return_value = mock_response
+
+        with patch.object(
+            client, "_get_http_client", new_callable=AsyncMock
+        ) as mock_get_client:
+            mock_get_client.return_value = mock_http_client
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client._make_request(method="test")
+
+            assert "Invalid JSON response" in str(exc_info.value)
+
 
 class TestConnectionErrorHandling:
     """Tests for error handling."""
@@ -250,3 +274,135 @@ class TestHealthCheck:
             result = await client.health_check()
 
             assert result is False
+
+
+class TestParameterValidation:
+    """Tests for parameter validation."""
+
+    @pytest.mark.asyncio
+    async def test_invalid_platform_raises_value_error(self):
+        """
+        Given: Invalid platform parameter.
+        When: get_latest_news is called with unsupported platform.
+        Then: ValueError is raised.
+        """
+        client = TrendRadarClient()
+
+        # Test empty platform
+        with pytest.raises(ValueError) as exc_info:
+            await client.get_latest_news(platform="", limit=10)
+        assert "Invalid platform" in str(exc_info.value)
+
+        # Test unsupported platform
+        with pytest.raises(ValueError) as exc_info:
+            await client.get_latest_news(platform="unsupported", limit=10)
+        assert "Invalid platform" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_invalid_limit_raises_value_error(self):
+        """
+        Given: Invalid limit parameter.
+        When: get_latest_news is called with out-of-range limit.
+        Then: ValueError is raised.
+        """
+        client = TrendRadarClient()
+
+        # Test negative limit
+        with pytest.raises(ValueError) as exc_info:
+            await client.get_latest_news(platform="zhihu", limit=-1)
+        assert "Invalid limit" in str(exc_info.value)
+
+        # Test zero limit
+        with pytest.raises(ValueError) as exc_info:
+            await client.get_latest_news(platform="zhihu", limit=0)
+        assert "Invalid limit" in str(exc_info.value)
+
+        # Test limit > 100
+        with pytest.raises(ValueError) as exc_info:
+            await client.get_latest_news(platform="zhihu", limit=101)
+        assert "Invalid limit" in str(exc_info.value)
+
+
+class TestResultTypeValidation:
+    """Tests for result field type validation."""
+
+    @pytest.mark.asyncio
+    async def test_non_list_result_raises_error(self):
+        """
+        Given: Response with non-list result field.
+        When: get_latest_news is called.
+        Then: TrendRadarError is raised.
+        """
+        client = TrendRadarClient()
+
+        # Test dict result
+        with patch.object(
+            client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.return_value = {"result": {"data": "not a list"}}
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "must be a list" in str(exc_info.value)
+
+        # Test string result
+        with patch.object(
+            client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.return_value = {"result": "not a list"}
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "must be a list" in str(exc_info.value)
+
+        # Test null result
+        with patch.object(
+            client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.return_value = {"result": None}
+
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "must be a list" in str(exc_info.value)
+
+
+class TestClose:
+    """Tests for close method."""
+
+    @pytest.mark.asyncio
+    async def test_close_sets_http_client_to_none(self):
+        """
+        Given: Client with active HTTP client.
+        When: close is called.
+        Then: _http_client is set to None.
+        """
+        client = TrendRadarClient()
+
+        # Initialize HTTP client
+        mock_http_client = AsyncMock()
+        client._http_client = mock_http_client
+
+        await client.close()
+
+        assert client._http_client is None
+        mock_http_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_close_can_be_called_multiple_times(self):
+        """
+        Given: Client instance.
+        When: close is called multiple times.
+        Then: No error is raised.
+        """
+        client = TrendRadarClient()
+
+        # First close
+        await client.close()
+        assert client._http_client is None
+
+        # Second close should not raise error
+        await client.close()
+        assert client._http_client is None

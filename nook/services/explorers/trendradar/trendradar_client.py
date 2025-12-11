@@ -43,6 +43,7 @@ class TrendRadarClient:
     """
 
     DEFAULT_URL = "http://localhost:3333/mcp"
+    SUPPORTED_PLATFORMS = ["zhihu", "weibo"]
 
     def __init__(self, base_url: str | None = None):
         """Initialize TrendRadarClient.
@@ -54,6 +55,7 @@ class TrendRadarClient:
         """
         self.base_url = base_url or self.DEFAULT_URL
         self._http_client: AsyncHTTPClient | None = None
+        self._request_id_counter = 0
 
     async def _get_http_client(self) -> AsyncHTTPClient:
         """Get or create HTTP client instance.
@@ -94,11 +96,14 @@ class TrendRadarClient:
         """
         http_client = await self._get_http_client()
 
+        # Generate unique request ID
+        self._request_id_counter += 1
+
         request_body = {
             "jsonrpc": "2.0",
             "method": method,
             "params": params or {},
-            "id": 1,
+            "id": self._request_id_counter,
         }
 
         try:
@@ -120,6 +125,11 @@ class TrendRadarClient:
         except APIException as e:
             logger.error(f"TrendRadar communication failed: {e}")
             raise TrendRadarError(f"Communication failed: {e}") from e
+
+        except (ValueError, KeyError) as e:
+            # ValueError is raised by response.json() for invalid JSON
+            logger.error(f"Invalid JSON response from TrendRadar: {e}")
+            raise TrendRadarError(f"Invalid JSON response from server: {e}") from e
 
         except Exception as e:
             logger.error(f"TrendRadar unexpected error: {e}")
@@ -146,9 +156,24 @@ class TrendRadarClient:
 
         Raises
         ------
+        ValueError
+            If platform is not supported or limit is out of valid range.
         TrendRadarError
             If the request fails or response is invalid.
         """
+        # Validate platform parameter
+        if not platform or platform not in self.SUPPORTED_PLATFORMS:
+            raise ValueError(
+                f"Invalid platform '{platform}'. "
+                f"Supported platforms: {', '.join(self.SUPPORTED_PLATFORMS)}"
+            )
+
+        # Validate limit parameter
+        if not isinstance(limit, int) or limit < 1 or limit > 100:
+            raise ValueError(
+                f"Invalid limit {limit}. Must be an integer between 1 and 100."
+            )
+
         response = await self._make_request(
             method="tools/call",
             params={
@@ -162,6 +187,16 @@ class TrendRadarClient:
             logger.error(f"Invalid response from TrendRadar: {response}")
             raise TrendRadarError("Invalid response: missing 'result' field")
 
+        # Validate result type
+        if not isinstance(response["result"], list):
+            logger.error(
+                f"Invalid result type from TrendRadar: {type(response['result'])}"
+            )
+            raise TrendRadarError(
+                f"Invalid response: 'result' must be a list, "
+                f"got {type(response['result']).__name__}"
+            )
+
         return response["result"]
 
     async def health_check(self) -> bool:
@@ -174,11 +209,7 @@ class TrendRadarClient:
         """
         try:
             await self._make_request(method="health")
-            # healthメソッドのレスポンス形式に合わせて検証
-            # ここではエラーにならなければOKとするが、必要ならレスポンス内容もチェック
-            # 例: return response.get("status") == "ok"
-            # 指摘は「エラーレスポンスでもTrueを返す」点だったので、
-            # _make_requestでエラーチェックが入ったことで解決している。
+            # Response received successfully indicates server is healthy
             return True
         except TrendRadarError:
             return False
