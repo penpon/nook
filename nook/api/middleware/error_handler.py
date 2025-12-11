@@ -67,7 +67,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
 
     elif isinstance(exc, DataException):
         return create_error_response(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             error_type="data_error",
             message=str(exc),
             error_id=error_id,
@@ -91,7 +91,7 @@ def handle_exception(exc: Exception, request: Request) -> JSONResponse:
 
     elif isinstance(exc, RequestValidationError):
         return create_error_response(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             error_type="validation_error",
             message="Request validation failed",
             error_id=error_id,
