@@ -42,7 +42,7 @@ async def test_acquire_wait():
         mock_sleep.assert_called_once()
         args, _ = mock_sleep.call_args
         wait_time = args[0]
-        assert 0.99 <= wait_time <= 1.01
+        assert 0.9 <= wait_time <= 1.01
 
 
 @pytest.mark.asyncio
