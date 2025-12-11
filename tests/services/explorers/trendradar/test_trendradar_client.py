@@ -115,6 +115,10 @@ class TestGetLatestNews:
             result = await client.get_latest_news(platform="zhihu", limit=5)
 
             assert isinstance(result, list)
+            mock_request.assert_called_once()
+            call_args = mock_request.call_args
+            # Verify limit is passed in the request params
+            assert call_args.kwargs["params"]["arguments"]["limit"] == 5
 
 
 class TestConnectionErrorHandling:
