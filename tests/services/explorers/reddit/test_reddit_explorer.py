@@ -533,7 +533,7 @@ class TestRedditExplorer:
                     raise StopAsyncIteration
 
             mock_subreddit.hot = MagicMock(return_value=EmptyAsyncIterator())
-            mock_reddit.subreddit = MagicMock(return_value=mock_subreddit)
+            mock_reddit.subreddit = AsyncMock(return_value=mock_subreddit)
 
             with patch(
                 "nook.services.explorers.reddit.reddit_explorer.log_processing_start"
