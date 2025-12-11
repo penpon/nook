@@ -5,11 +5,13 @@ from Zhihu via the TrendRadar MCP server.
 """
 
 import asyncio
+import copy
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
 
 from bs4 import BeautifulSoup
+from dateutil import parser
 
 from nook.core.config import BaseConfig
 from nook.services.base.base_service import BaseService
@@ -68,6 +70,8 @@ class ZhihuExplorer(BaseService):
         # カスタムストレージディレクトリを設定に反映
         if config is None:
             config = BaseConfig()
+        else:
+            config = copy.copy(config)
         config.DATA_DIR = storage_dir
 
         super().__init__("trendradar-zhihu", config=config)
@@ -108,6 +112,9 @@ class ZhihuExplorer(BaseService):
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
+        if days != 1:
+            raise NotImplementedError("Multi-day collection not yet implemented")
+
         effective_limit = limit or self.TOTAL_LIMIT
 
         try:
@@ -159,8 +166,34 @@ class ZhihuExplorer(BaseService):
             text=item.get("desc", ""),
             category="hot",
             popularity_score=float(item.get("hot", 0)),
-            published_at=datetime.now(),
+            published_at=self._parse_published_at(item),
         )
+
+    def _parse_published_at(self, item: dict[str, Any]) -> datetime:
+        """記事の公開日時を解析.
+
+        Parameters
+        ----------
+        item : dict[str, Any]
+            TrendRadarアイテム。
+
+        Returns
+        -------
+        datetime
+            解析された公開日時、または現在日時。
+        """
+        # 候補フィールド
+        candidates = ["published_at", "timestamp", "pub_date", "created_at"]
+
+        for candidate_field in candidates:
+            val = item.get(candidate_field)
+            if val:
+                try:
+                    return parser.parse(str(val))
+                except (ValueError, TypeError):
+                    continue
+
+        return datetime.now()
 
     async def _summarize_article(self, article: Article) -> None:
         """記事の要約を生成.

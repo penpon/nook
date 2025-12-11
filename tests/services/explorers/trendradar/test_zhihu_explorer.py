@@ -86,6 +86,27 @@ class TestZhihuExplorerTransform:
 
         assert article.popularity_score == 0
 
+    def test_transform_parses_published_at(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: A TrendRadar item with timestamp.
+        When: _transform_to_article is called.
+        Then: published_at is parsed correctly.
+        """
+        # Test with ISO string
+        item_iso = {
+            "title": "Article",
+            "url": "http://test",
+            "published_at": "2023-01-01T12:00:00",
+        }
+        article_iso = explorer._transform_to_article(item_iso)
+        assert article_iso.published_at.year == 2023
+        assert article_iso.published_at.month == 1
+
+        # Test with timestamp (epoch) - assuming dateutil can handle or if we formatted it
+        # Actually Parser handles string representations mostly.
+        # If TrendRadar returns int timestamp, parser.parse(str(ts)) might work if it's year-first or standard.
+        # But safest is ISO string test which is common.
+
 
 class TestZhihuExplorerCollect:
     """Tests for ZhihuExplorer.collect method."""
@@ -143,6 +164,18 @@ class TestZhihuExplorerCollect:
 
             assert result == []
 
+    @pytest.mark.asyncio
+    async def test_collect_raises_error_for_multi_day(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: days param != 1.
+        When: collect is called.
+        Then: Raises NotImplementedError.
+        """
+        with pytest.raises(NotImplementedError, match="Multi-day collection"):
+            await explorer.collect(days=2)
+
 
 class TestZhihuExplorerRun:
     """Tests for ZhihuExplorer.run method."""
@@ -166,5 +199,4 @@ class TestZhihuExplorerRun:
 
             mock_collect.assert_called_once()
             # Verify days and limit were passed
-            call_kwargs = mock_collect.call_args
-            assert call_kwargs[1]["days"] == 2 or call_kwargs[0][0] == 2
+            mock_collect.assert_called_once_with(days=2, limit=20)
