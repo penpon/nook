@@ -463,7 +463,7 @@ data/
 nook/
 ├── nook/
 │   ├── api/             # FastAPI バックエンド
-│   ├── common/          # 共通モジュール
+│   ├── core/            # コアインフラ（旧: common）
 │   ├── services/        # 各種サービス実装
 │   └── frontend/        # React フロントエンド
 ├── deploy/              # デプロイ関連
@@ -473,7 +473,6 @@ nook/
 │   └── Dockerfile.frontend
 ├── data/                # 収集データ保存
 ├── logs/                # アプリケーションログ
-├── worktrees/           # Git worktree
 ├── scripts/             # ユーティリティスクリプト
 │   └── setup.sh         # セットアップスクリプト
 ├── CLAUDE.md            # 開発ガイドライン
