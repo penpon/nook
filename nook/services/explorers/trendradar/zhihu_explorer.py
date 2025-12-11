@@ -118,33 +118,35 @@ class ZhihuExplorer(BaseService):
         effective_limit = limit or self.TOTAL_LIMIT
 
         try:
-            # TrendRadarからデータ取得
-            news_items = await self.client.get_latest_news(
-                platform="zhihu", limit=effective_limit
-            )
-        except Exception as e:
-            self.logger.error(f"TrendRadarからのデータ取得に失敗: {e}")
-            return []
+            try:
+                # TrendRadarからデータ取得
+                news_items = await self.client.get_latest_news(
+                    platform="zhihu", limit=effective_limit
+                )
+            except Exception as e:
+                self.logger.error(f"TrendRadarからのデータ取得に失敗: {e}")
+                return []
 
-        if not news_items:
-            self.logger.info("取得したホットトピックがありません")
-            return []
+            if not news_items:
+                self.logger.info("取得したホットトピックがありません")
+                return []
 
-        # Article オブジェクトに変換
-        articles = [self._transform_to_article(item) for item in news_items]
+            # Article オブジェクトに変換
+            articles = [self._transform_to_article(item) for item in news_items]
 
-        # GPT要約を生成
-        for article in articles:
-            await self._summarize_article(article)
+            # GPT要約を生成
+            for article in articles:
+                await self._summarize_article(article)
 
-        # 日付別にグループ化して保存
-        today = datetime.now().strftime("%Y-%m-%d")
-        saved_files = await self._store_articles(articles, today)
+            # 日付別にグループ化して保存
+            today = datetime.now().strftime("%Y-%m-%d")
+            saved_files = await self._store_articles(articles, today)
 
-        # クライアントをクローズ
-        await self.client.close()
+            return saved_files
 
-        return saved_files
+        finally:
+            # クライアントをクローズ
+            await self.client.close()
 
     def _transform_to_article(self, item: dict[str, Any]) -> Article:
         """TrendRadar形式のアイテムをArticleオブジェクトに変換.
@@ -188,6 +190,14 @@ class ZhihuExplorer(BaseService):
         for candidate_field in candidates:
             val = item.get(candidate_field)
             if val:
+                # Epoch timestamp handling
+                if isinstance(val, (int, float)):
+                    try:
+                        return datetime.fromtimestamp(val)
+                    except (ValueError, OSError):
+                        continue
+
+                # String parsing
                 try:
                     return parser.parse(str(val))
                 except (ValueError, TypeError):

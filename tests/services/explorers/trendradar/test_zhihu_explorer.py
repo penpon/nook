@@ -102,10 +102,14 @@ class TestZhihuExplorerTransform:
         assert article_iso.published_at.year == 2023
         assert article_iso.published_at.month == 1
 
-        # Test with timestamp (epoch) - assuming dateutil can handle or if we formatted it
-        # Actually Parser handles string representations mostly.
-        # If TrendRadar returns int timestamp, parser.parse(str(ts)) might work if it's year-first or standard.
-        # But safest is ISO string test which is common.
+        # Test with timestamp (epoch)
+        item_epoch = {
+            "title": "Article Epoch",
+            "url": "http://test-epoch",
+            "timestamp": 1672531200,  # 2023-01-01 00:00:00 UTC (approx, depends on timezone)
+        }
+        article_epoch = explorer._transform_to_article(item_epoch)
+        assert article_epoch.published_at.year == 2023
 
 
 class TestZhihuExplorerCollect:
