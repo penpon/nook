@@ -1,8 +1,8 @@
 services:
   nginx:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
     container_name: nook-nginx
     restart: always
     ports:
@@ -18,21 +18,21 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.backend
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
     container_name: nook-backend
     restart: always
     expose:
       - "8000"
     volumes:
-      - ./data:/app/data
-      - ./nook:/app/nook:ro
-      - ./logs:/app/logs
+      - ../data:/app/data
+      - ../nook:/app/nook:ro
+      - ../logs:/app/logs
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Tokyo
     env_file:
-      - .env.production
+      - ../.env.production
     networks:
       - nook-network
     user: "1000:1000"

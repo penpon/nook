@@ -20,5 +20,5 @@ RUN npm run build
 # nginxイメージに統合
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
-COPY nginx/.htpasswd /etc/nginx/.htpasswd
+COPY deploy/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/nginx/.htpasswd /etc/nginx/.htpasswd

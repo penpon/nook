@@ -1,6 +1,9 @@
 #\!/bin/bash
 # Dockerイメージとボリュームを完全に再構築
 
+echo "0. ディレクトリ移動..."
+cd "$(dirname "$0")"
+
 echo "1. 既存のコンテナを停止..."
 docker-compose down -v
 
