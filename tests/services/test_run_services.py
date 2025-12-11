@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nook.services.run_services import ServiceRunner
+from nook.services.runner.run_services import ServiceRunner
 
 
 class DummyTaskResult:
@@ -54,15 +54,15 @@ async def test_run_all_invokes_each_service(monkeypatch):
         types.MethodType(fake_run_sync, runner),
     )
     monkeypatch.setattr(
-        "nook.services.run_services.gather_with_errors",
+        "nook.services.runner.run_services.gather_with_errors",
         fake_gather,
     )
     monkeypatch.setattr(
-        "nook.services.run_services.target_dates_set",
+        "nook.services.runner.run_services.target_dates_set",
         fake_target_dates_set,
     )
     monkeypatch.setattr(
-        "nook.services.run_services.close_http_client",
+        "nook.services.runner.run_services.close_http_client",
         fake_close_http_client,
     )
 
@@ -97,7 +97,7 @@ async def test_run_service_single(monkeypatch):
         types.MethodType(fake_run_sync, runner),
     )
     monkeypatch.setattr(
-        "nook.services.run_services.target_dates_set",
+        "nook.services.runner.run_services.target_dates_set",
         fake_target_dates_set,
     )
 
@@ -177,7 +177,7 @@ async def test_run_sync_service_handles_error(monkeypatch):
     runner = ServiceRunner.__new__(ServiceRunner)
     # The code uses global 'logger' from the module, not self.logger
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
 
     # It should raise exception
     with pytest.raises(Exception) as excinfo:
@@ -257,7 +257,7 @@ async def test__run_sync_service_multiple_dates_display(monkeypatch):
 
     runner = ServiceRunner.__new__(ServiceRunner)
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
 
     # Multiple dates to trigger lines 84-86
     dates = [date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 3)]
@@ -284,7 +284,7 @@ async def test_run_sync_service_with_saved_files(monkeypatch):
 
     runner = ServiceRunner.__new__(ServiceRunner)
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
 
     dates = [date(2024, 1, 1)]
     await runner._run_sync_service(
@@ -323,9 +323,9 @@ async def test_run_all_lazy_loading(monkeypatch):
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr("nook.services.run_services.gather_with_errors", fake_gather)
+    monkeypatch.setattr("nook.services.runner.run_services.gather_with_errors", fake_gather)
     monkeypatch.setattr(
-        "nook.services.run_services.close_http_client", fake_close_http_client
+        "nook.services.runner.run_services.close_http_client", fake_close_http_client
     )
 
     await runner.run_all(days=1)
@@ -358,17 +358,17 @@ async def test_run_all_with_failed_services(monkeypatch):
         pass
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
     monkeypatch.setattr(
         runner,
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr("nook.services.run_services.gather_with_errors", fake_gather)
+    monkeypatch.setattr("nook.services.runner.run_services.gather_with_errors", fake_gather)
     monkeypatch.setattr(
-        "nook.services.run_services.close_http_client", fake_close_http_client
+        "nook.services.runner.run_services.close_http_client", fake_close_http_client
     )
-    monkeypatch.setattr("nook.services.run_services.target_dates_set", lambda days: {1})
+    monkeypatch.setattr("nook.services.runner.run_services.target_dates_set", lambda days: {1})
 
     await runner.run_all(days=1)
 
@@ -416,7 +416,7 @@ async def test_run_service_error_handling(monkeypatch):
         raise RuntimeError("Test error")
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
     monkeypatch.setattr(
         runner,
         "_run_sync_service",
@@ -446,7 +446,7 @@ async def test_run_continuous_error_handling(monkeypatch):
             runner.running = False
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
     monkeypatch.setattr(runner, "run_all", fake_run_all)
     monkeypatch.setattr(asyncio, "sleep", AsyncMock())
 
@@ -471,7 +471,7 @@ def test_stop_method():
 
 def test_run_service_sync_success(monkeypatch, capsys):
     """Test run_service_sync successfully executes a service."""
-    from nook.services.run_services import run_service_sync
+    from nook.services.runner.run_services import run_service_sync
 
     # Mock the service class
     mock_service_class = MagicMock()
@@ -497,7 +497,7 @@ def test_run_service_sync_success(monkeypatch, capsys):
 
 def test_run_service_sync_with_error(monkeypatch, capsys):
     """Test run_service_sync error handling (lines 257-258)."""
-    from nook.services.run_services import run_service_sync
+    from nook.services.runner.run_services import run_service_sync
 
     # Mock the service class to raise an error
     mock_service_class = MagicMock()
@@ -522,7 +522,7 @@ def test_run_service_sync_with_error(monkeypatch, capsys):
 
 def test_run_service_sync_not_found(capsys):
     """Test run_service_sync with unknown service name."""
-    from nook.services.run_services import run_service_sync
+    from nook.services.runner.run_services import run_service_sync
 
     run_service_sync("unknown_service")
 
@@ -532,7 +532,7 @@ def test_run_service_sync_not_found(capsys):
 
 def test_backward_compat_functions(monkeypatch, capsys):
     """Test backward compatibility functions (lines 329-374)."""
-    from nook.services import run_services
+    from nook.services.runner import run_services
 
     # Mock run_service_sync
     called_services = []
@@ -572,7 +572,7 @@ def test_backward_compat_functions(monkeypatch, capsys):
 
 def test_run_all_services(monkeypatch):
     """Test run_all_services backward compat function (line 374)."""
-    from nook.services import run_services
+    from nook.services.runner import run_services
 
     run_all_called = {"flag": False}
 
@@ -602,17 +602,17 @@ async def test_run_all_exception_handling(monkeypatch):
         pass
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
     monkeypatch.setattr(
         runner,
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr("nook.services.run_services.gather_with_errors", fake_gather)
+    monkeypatch.setattr("nook.services.runner.run_services.gather_with_errors", fake_gather)
     monkeypatch.setattr(
-        "nook.services.run_services.close_http_client", fake_close_http_client
+        "nook.services.runner.run_services.close_http_client", fake_close_http_client
     )
-    monkeypatch.setattr("nook.services.run_services.target_dates_set", lambda days: {1})
+    monkeypatch.setattr("nook.services.runner.run_services.target_dates_set", lambda days: {1})
 
     with pytest.raises(RuntimeError, match="Gather failed"):
         await runner.run_all(days=1)
@@ -624,7 +624,7 @@ async def test_run_all_exception_handling(monkeypatch):
 @pytest.mark.asyncio
 async def test_main_run_all(monkeypatch):
     """Test main function with default args (run all services)."""
-    from nook.services import run_services
+    from nook.services.runner import run_services
 
     run_all_called = {"days": None}
 
@@ -657,7 +657,7 @@ async def test_main_run_all(monkeypatch):
 @pytest.mark.asyncio
 async def test_main_run_single_service(monkeypatch):
     """Test main function with single service."""
-    from nook.services import run_services
+    from nook.services.runner import run_services
 
     run_service_called = {"service": None, "days": None}
 
@@ -687,7 +687,7 @@ async def test_main_run_single_service(monkeypatch):
 @pytest.mark.asyncio
 async def test_main_continuous_mode(monkeypatch):
     """Test main function in continuous mode."""
-    from nook.services import run_services
+    from nook.services.runner import run_services
 
     run_continuous_called = {"interval": None, "days": None}
 
