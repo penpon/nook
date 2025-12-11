@@ -1,0 +1,333 @@
+import logging
+from datetime import UTC, datetime
+from typing import Any
+
+import httpx
+
+from nook.core.config import BaseConfig
+from nook.core.utils.decorators import handle_errors
+from nook.core.errors.exceptions import APIException
+
+logger = logging.getLogger(__name__)
+
+
+class AsyncHTTPClient:
+    """非同期HTTPクライアント with connection pooling"""
+
+    def __init__(self, config: BaseConfig = None):
+        self.config = config or BaseConfig()
+        self.timeout = httpx.Timeout(
+            timeout=self.config.REQUEST_TIMEOUT,
+            connect=5.0,
+            read=self.config.REQUEST_TIMEOUT,
+            write=5.0,
+            pool=5.0,
+        )
+        self.limits = httpx.Limits(
+            max_keepalive_connections=20, max_connections=100, keepalive_expiry=30.0
+        )
+        self._client: httpx.AsyncClient | None = None
+        self._http1_client: httpx.AsyncClient | None = None
+        self._session_start: datetime | None = None
+
+    @staticmethod
+    def get_browser_headers() -> dict[str, str]:
+        """最新のブラウザヘッダーを返す"""
+        return {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Cache-Control": "max-age=0",
+            "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+        }
+
+    async def __aenter__(self):
+        """コンテキストマネージャーのエントリー"""
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """コンテキストマネージャーのエグジット"""
+        await self.close()
+
+    async def start(self):
+        """クライアントセッションを開始"""
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                timeout=self.timeout,
+                limits=self.limits,
+                follow_redirects=True,
+                http2=False,  # HTTP/2を無効化してh2パッケージ依存を回避
+            )
+            self._session_start = datetime.now(UTC)
+            logger.info("HTTP client session started")
+
+    async def _start_http1_client(self):
+        """HTTP/1.1専用クライアントセッションを開始"""
+        if self._http1_client is None:
+            self._http1_client = httpx.AsyncClient(
+                timeout=self.timeout,
+                limits=self.limits,
+                follow_redirects=True,
+                http2=False,  # HTTP/1.1専用
+            )
+            logger.info("HTTP/1.1 client session started")
+
+    async def close(self):
+        """クライアントセッションを終了"""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+        if self._http1_client:
+            await self._http1_client.aclose()
+            self._http1_client = None
+
+        if self._session_start:
+            duration = (datetime.now(UTC) - self._session_start).total_seconds()
+            logger.info(f"HTTP client session closed after {duration:.2f} seconds")
+
+    @handle_errors(retries=3, delay=1.0, backoff=2.0)
+    async def get(
+        self,
+        url: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        force_http1: bool = False,
+        use_browser_headers: bool = True,
+        **kwargs,
+    ) -> httpx.Response:
+        """GET リクエスト（HTTP/1.1フォールバック対応）"""
+        retry_http1 = kwargs.pop("_retry_http1", True)
+
+        # ブラウザヘッダーを使用
+        if use_browser_headers and headers is None:
+            headers = self.get_browser_headers()
+        elif use_browser_headers and headers:
+            # ユーザー指定のヘッダーとマージ
+            browser_headers = self.get_browser_headers()
+            browser_headers.update(headers)
+            headers = browser_headers
+
+        if force_http1:
+            # HTTP/1.1を強制使用
+            if not self._http1_client:
+                await self._start_http1_client()
+            client = self._http1_client
+            logger.debug(f"GET {url} (forced HTTP/1.1)", extra={"params": params})
+        else:
+            # 通常のHTTP/2クライアントを使用
+            if not self._client:
+                await self.start()
+            client = self._client
+            logger.debug(f"GET {url}", extra={"params": params})
+
+        try:
+            response = await client.get(url, headers=headers, params=params, **kwargs)
+            response.raise_for_status()
+
+            logger.debug(
+                f"GET {url} completed",
+                extra={
+                    "status_code": response.status_code,
+                    "response_time": response.elapsed.total_seconds(),
+                    "http_version": "HTTP/1.1" if force_http1 else "HTTP/2",
+                },
+            )
+
+            return response
+
+        except httpx.StreamError as e:
+            # StreamResetエラーの場合、HTTP/1.1でリトライ
+            if not force_http1 and (
+                "stream" in str(e).lower() or "reset" in str(e).lower()
+            ):
+                logger.info(
+                    f"StreamReset error for {url}, falling back to HTTP/1.1: {e}"
+                )
+                return await self.get(
+                    url, headers=headers, params=params, force_http1=True, **kwargs
+                )
+            else:
+                logger.error(f"Stream error for {url}: {e}")
+                raise APIException(f"Stream error: {str(e)}") from e
+
+        except httpx.HTTPStatusError as e:
+            # 422エラーの場合はHTTP/1.1でフォールバック
+            if e.response.status_code == 422 and not force_http1 and retry_http1:
+                logger.info(f"422 error for {url}, retrying with HTTP/1.1")
+                return await self.get(
+                    url,
+                    headers=headers,
+                    params=params,
+                    force_http1=True,
+                    use_browser_headers=use_browser_headers,
+                    _retry_http1=False,
+                    **kwargs,
+                )
+
+            # 403エラーの場合、HTTP/1.1 + ブラウザヘッダーで再試行
+            if e.response.status_code == 403:
+                logger.info(f"403 error for {url}, retrying with browser headers")
+                return await self._browser_retry_with_http1(
+                    url,
+                    params,
+                    original_headers=headers,
+                    **kwargs,
+                )
+
+            logger.error(f"HTTP error for {url}: {e}")
+            raise APIException(
+                f"HTTP {e.response.status_code} error",
+                status_code=e.response.status_code,
+                response_body=e.response.text,
+            ) from e
+
+        except httpx.RequestError as e:
+            logger.error(f"Request error for {url}: {e}")
+            raise APIException(f"Request failed: {str(e)}") from e
+
+    @handle_errors(retries=3, delay=1.0, backoff=2.0)
+    async def post(
+        self,
+        url: str,
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | bytes | None = None,
+        headers: dict[str, str] | None = None,
+        **kwargs,
+    ) -> httpx.Response:
+        """POST リクエスト"""
+        if not self._client:
+            await self.start()
+
+        logger.debug(f"POST {url}")
+
+        try:
+            response = await self._client.post(
+                url, json=json, data=data, headers=headers, **kwargs
+            )
+            response.raise_for_status()
+
+            logger.debug(
+                f"POST {url} completed", extra={"status_code": response.status_code}
+            )
+
+            return response
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error for {url}: {e}")
+            raise APIException(
+                f"HTTP {e.response.status_code} error",
+                status_code=e.response.status_code,
+                response_body=e.response.text,
+            ) from e
+
+        except httpx.RequestError as e:
+            logger.error(f"Request error for {url}: {e}")
+            raise APIException(f"Request failed: {str(e)}") from e
+
+    async def get_json(self, url: str, **kwargs) -> dict[str, Any]:
+        """JSONレスポンスを取得"""
+        response = await self.get(url, **kwargs)
+        return response.json()
+
+    async def get_text(self, url: str, **kwargs) -> str:
+        """テキストレスポンスを取得"""
+        response = await self.get(url, **kwargs)
+        return response.text
+
+    async def _browser_retry_with_http1(
+        self,
+        url: str,
+        params: dict[str, Any] | None = None,
+        original_headers: dict[str, str] | None = None,
+        **kwargs,
+    ) -> httpx.Response:
+        """HTTP/1.1 + ブラウザヘッダーでのフォールバック処理"""
+        if not self._http1_client:
+            await self._start_http1_client()
+
+        fallback_headers = self.get_browser_headers()
+        if original_headers:
+            fallback_headers.update(original_headers)
+
+        try:
+            response = await self._http1_client.get(
+                url,
+                headers=fallback_headers,
+                params=params,
+                **kwargs,
+            )
+            response.raise_for_status()
+            logger.info(
+                f"Browser retry for {url} succeeded",
+                extra={"status_code": response.status_code},
+            )
+            return response
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Browser retry failed for {url}: {e}")
+            raise APIException(
+                f"HTTP {e.response.status_code} error",
+                status_code=e.response.status_code,
+                response_body=e.response.text,
+            ) from e
+        except httpx.RequestError as e:
+            logger.error(f"Browser retry request error for {url}: {e}")
+            raise APIException(f"Request failed: {str(e)}") from e
+
+    async def download(
+        self, url: str, output_path: str, chunk_size: int = 8192, progress_callback=None
+    ):
+        """ファイルをダウンロード"""
+        if not self._client:
+            await self.start()
+
+        async with self._client.stream("GET", url) as response:
+            response.raise_for_status()
+
+            total_size = int(response.headers.get("content-length", 0))
+            downloaded = 0
+
+            with open(output_path, "wb") as f:
+                async for chunk in response.aiter_bytes(chunk_size):
+                    f.write(chunk)
+                    downloaded += len(chunk)
+
+                    if progress_callback:
+                        await progress_callback(downloaded, total_size)
+
+            logger.info(f"Downloaded {url} to {output_path}")
+
+
+# グローバルクライアントインスタンス（シングルトン）
+_global_client: AsyncHTTPClient | None = None
+
+
+async def get_http_client() -> AsyncHTTPClient:
+    """グローバルHTTPクライアントを取得"""
+    global _global_client
+
+    if _global_client is None:
+        _global_client = AsyncHTTPClient()
+        await _global_client.start()
+
+    return _global_client
+
+
+async def close_http_client():
+    """グローバルHTTPクライアントを閉じる"""
+    global _global_client
+
+    if _global_client:
+        await _global_client.close()
+        _global_client = None

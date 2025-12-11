@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.common.config import BaseConfig
-from nook.common.rate_limiter import RateLimitedHTTPClient, RateLimiter
+from nook.core.config import BaseConfig
+from nook.core.clients.rate_limiter import RateLimitedHTTPClient, RateLimiter
 
 # --- RateLimiter Tests ---
 
@@ -35,7 +35,7 @@ async def test_acquire_wait():
     rl = RateLimiter(rate=1, per=timedelta(seconds=1))
     rl.allowance = 0.0  # Force wait
 
-    with patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep:
+    with patch("nook.core.clients.rate_limiter.asyncio.sleep") as mock_sleep:
         # Need 1 token, rate is 1/sec. Deficit 1. Wait should be 1 sec.
         await rl.acquire(1)
 
@@ -68,8 +68,8 @@ async def test_acquire_wait_burst_cap_after_wait():
             return base_time + timedelta(seconds=1)
 
     with (
-        patch("nook.common.rate_limiter.asyncio.sleep") as mock_sleep,
-        patch("nook.common.rate_limiter.datetime") as mock_datetime,
+        patch("nook.core.clients.rate_limiter.asyncio.sleep") as mock_sleep,
+        patch("nook.core.clients.rate_limiter.datetime") as mock_datetime,
     ):
         mock_datetime.now = mock_now
         # Allow timedelta to work (used in RateLimiter constructor default)
@@ -158,7 +158,7 @@ async def test_get_method(mock_config):
     client._acquire_rate_limit = AsyncMock(return_value=None)
 
     with patch(
-        "nook.common.http_client.AsyncHTTPClient.get", new_callable=AsyncMock
+        "nook.core.clients.http_client.AsyncHTTPClient.get", new_callable=AsyncMock
     ) as mock_super_get:
         mock_super_get.return_value = "response"
 
@@ -175,7 +175,7 @@ async def test_post_method(mock_config):
     client._acquire_rate_limit = AsyncMock(return_value=None)
 
     with patch(
-        "nook.common.http_client.AsyncHTTPClient.post", new_callable=AsyncMock
+        "nook.core.clients.http_client.AsyncHTTPClient.post", new_callable=AsyncMock
     ) as mock_super_post:
         mock_super_post.return_value = "response"
 

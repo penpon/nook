@@ -13,9 +13,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.common.config import BaseConfig  # noqa: E402
-from nook.common.exceptions import RetryException  # noqa: E402
-from nook.common.http_client import AsyncHTTPClient  # noqa: E402
+from nook.core.config import BaseConfig  # noqa: E402
+from nook.core.errors.exceptions import RetryException  # noqa: E402
+from nook.core.clients.http_client import AsyncHTTPClient  # noqa: E402
 
 
 def make_response(
@@ -42,8 +42,8 @@ def no_sleep(monkeypatch):
     async def _sleep(seconds: float):
         return None
 
-    monkeypatch.setattr("nook.common.decorators.asyncio.sleep", _sleep)
-    monkeypatch.setattr("nook.common.http_client.logger.debug", lambda *a, **k: None)
+    monkeypatch.setattr("nook.core.utils.decorators.asyncio.sleep", _sleep)
+    monkeypatch.setattr("nook.core.clients.http_client.logger.debug", lambda *a, **k: None)
 
 
 @pytest.fixture(autouse=True)
@@ -287,7 +287,7 @@ async def test_close_logs_duration(monkeypatch, caplog):
     await client.start()
 
     # When: クローズする
-    with caplog.at_level(logging.INFO, logger="nook.common.http_client"):
+    with caplog.at_level(logging.INFO, logger="nook.core.clients.http_client"):
         await client.close()
 
     # Then: クライアントがクローズされている
@@ -521,8 +521,8 @@ async def test_download_with_progress_callback(tmp_path):
 @pytest.mark.asyncio
 async def test_get_http_client(monkeypatch):
     """get_http_clientがグローバルクライアントを返すことを確認"""
-    import nook.common.http_client as http_client_module
-    from nook.common.http_client import close_http_client
+    import nook.core.clients.http_client as http_client_module
+    from nook.core.clients.http_client import close_http_client
 
     # Given: グローバルクライアントがない状態
     original_client = http_client_module._global_client
@@ -531,7 +531,7 @@ async def test_get_http_client(monkeypatch):
     # BaseConfigの初期化をモック
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
     monkeypatch.setattr(
-        "nook.common.http_client.AsyncHTTPClient",
+        "nook.core.clients.http_client.AsyncHTTPClient",
         lambda config=None: AsyncHTTPClient(config=cfg),
     )
 
@@ -558,8 +558,8 @@ async def test_get_http_client(monkeypatch):
 @pytest.mark.asyncio
 async def test_close_http_client(monkeypatch):
     """close_http_clientがグローバルクライアントを閉じることを確認"""
-    import nook.common.http_client as http_client_module
-    from nook.common.http_client import close_http_client
+    import nook.core.clients.http_client as http_client_module
+    from nook.core.clients.http_client import close_http_client
 
     # Given: グローバルクライアントがない状態
     original_client = http_client_module._global_client
@@ -568,7 +568,7 @@ async def test_close_http_client(monkeypatch):
     # BaseConfigの初期化をモック
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
     monkeypatch.setattr(
-        "nook.common.http_client.AsyncHTTPClient",
+        "nook.core.clients.http_client.AsyncHTTPClient",
         lambda config=None: AsyncHTTPClient(config=cfg),
     )
 
