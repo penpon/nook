@@ -130,8 +130,20 @@ async def test_manager_submit_run_wait():
 @pytest.mark.asyncio
 async def test_manager_duplicate_submit():
     manager = AsyncTaskManager()
-    # Submit a long-running task
-    await manager.submit("t1", asyncio.sleep(10))
+
+    # Create a controllable task using an Event instead of sleep
+    started = asyncio.Event()
+    stop = asyncio.Event()
+
+    async def long_running():
+        started.set()
+        await stop.wait()
+
+    # Submit the long-running task
+    await manager.submit("t1", long_running())
+
+    # Wait for task to start
+    await started.wait()
 
     # Attempt to submit duplicate while first task is still running
     coro = asyncio.sleep(0)
@@ -141,7 +153,8 @@ async def test_manager_duplicate_submit():
     finally:
         coro.close()
 
-    # Cleanup: cancel the long-running task
+    # Cleanup: signal the task to stop and cancel it
+    stop.set()
     if "t1" in manager.tasks:
         manager.tasks["t1"].cancel()
         try:

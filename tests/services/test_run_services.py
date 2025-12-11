@@ -596,6 +596,9 @@ async def test_run_all_exception_handling(monkeypatch):
         pass
 
     async def fake_gather(*coros, task_names=None):
+        # Close coroutines to avoid "coroutine was never awaited" warning
+        for coro in coros:
+            coro.close()
         raise RuntimeError("Gather failed!")
 
     async def fake_close_http_client():
