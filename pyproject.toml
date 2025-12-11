@@ -59,7 +59,6 @@ filterwarnings = [
     "ignore::RuntimeWarning:coverage.debug",
     "ignore::RuntimeWarning:unittest.mock",
     "ignore::RuntimeWarning:pydantic_settings.main",
-
 ]
 
 [tool.mypy]

@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from nook.core.clients.http_client import AsyncHTTPClient  # noqa: E402
+import nook.core.clients.http_client as http_client_module  # noqa: E402
 from nook.core.config import BaseConfig  # noqa: E402
 from nook.core.errors.exceptions import RetryException  # noqa: E402
 
@@ -59,11 +59,11 @@ def mock_elapsed(monkeypatch):
 
 @pytest_asyncio.fixture
 async def client_factory():
-    clients: list[AsyncHTTPClient] = []
+    clients: list[http_client_module.AsyncHTTPClient] = []
 
     def _make(http2_handler, http1_handler=None):
         cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-        client = AsyncHTTPClient(config=cfg)
+        client = http_client_module.AsyncHTTPClient(config=cfg)
         client._client = httpx.AsyncClient(
             transport=httpx.MockTransport(http2_handler),
             follow_redirects=True,
@@ -235,7 +235,7 @@ async def test_context_manager():
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
 
     # When: コンテキストマネージャーとして使用
-    async with AsyncHTTPClient(config=cfg) as client:
+    async with http_client_module.AsyncHTTPClient(config=cfg) as client:
         # Then: クライアントが開始されている
         assert client._client is not None
 
@@ -248,7 +248,7 @@ async def test_start_creates_client():
     """startメソッドがクライアントを作成することを確認"""
     # Given: AsyncHTTPClient
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-    client = AsyncHTTPClient(config=cfg)
+    client = http_client_module.AsyncHTTPClient(config=cfg)
 
     # When: startを呼び出す
     await client.start()
@@ -266,7 +266,7 @@ async def test_start_http1_client():
     """_start_http1_clientがHTTP/1.1クライアントを作成することを確認"""
     # Given: AsyncHTTPClient
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-    client = AsyncHTTPClient(config=cfg)
+    client = http_client_module.AsyncHTTPClient(config=cfg)
 
     # When: HTTP/1.1クライアントを開始
     await client._start_http1_client()
@@ -285,7 +285,7 @@ async def test_close_logs_duration(monkeypatch, caplog):
 
     # Given: 開始済みのクライアント
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-    client = AsyncHTTPClient(config=cfg)
+    client = http_client_module.AsyncHTTPClient(config=cfg)
     await client.start()
 
     # When: クローズする
@@ -326,7 +326,7 @@ async def test_get_auto_starts_client():
     """getがクライアント未開始の場合に自動開始することを確認"""
     # Given: 未開始のクライアント
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-    client = AsyncHTTPClient(config=cfg)
+    client = http_client_module.AsyncHTTPClient(config=cfg)
 
     # モックトランスポートを設定
     async def handler(request: httpx.Request):
@@ -463,7 +463,7 @@ async def test_download(tmp_path):
         )
 
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-    client = AsyncHTTPClient(config=cfg)
+    client = http_client_module.AsyncHTTPClient(config=cfg)
     client._client = httpx.AsyncClient(
         transport=httpx.MockTransport(handler),
         follow_redirects=True,
@@ -501,7 +501,7 @@ async def test_download_with_progress_callback(tmp_path):
         )
 
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-    client = AsyncHTTPClient(config=cfg)
+    client = http_client_module.AsyncHTTPClient(config=cfg)
     client._client = httpx.AsyncClient(
         transport=httpx.MockTransport(handler),
         follow_redirects=True,
@@ -527,7 +527,6 @@ async def test_download_with_progress_callback(tmp_path):
 @pytest.mark.asyncio
 async def test_get_http_client(monkeypatch):
     """get_http_clientがグローバルクライアントを返すことを確認"""
-    import nook.core.clients.http_client as http_client_module
 
     # Given: グローバルクライアントがない状態
     original_client = http_client_module._global_client
@@ -535,9 +534,10 @@ async def test_get_http_client(monkeypatch):
 
     # BaseConfigの初期化をモック
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
+    OriginalAsyncHTTPClient = http_client_module.AsyncHTTPClient
     monkeypatch.setattr(
         "nook.core.clients.http_client.AsyncHTTPClient",
-        lambda config=None: AsyncHTTPClient(config=cfg),
+        lambda config=None: OriginalAsyncHTTPClient(config=cfg),
     )
 
     try:
@@ -563,7 +563,6 @@ async def test_get_http_client(monkeypatch):
 @pytest.mark.asyncio
 async def test_close_http_client(monkeypatch):
     """close_http_clientがグローバルクライアントを閉じることを確認"""
-    import nook.core.clients.http_client as http_client_module
 
     # Given: グローバルクライアントがない状態
     original_client = http_client_module._global_client
@@ -571,9 +570,10 @@ async def test_close_http_client(monkeypatch):
 
     # BaseConfigの初期化をモック
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
+    OriginalAsyncHTTPClient = http_client_module.AsyncHTTPClient
     monkeypatch.setattr(
         "nook.core.clients.http_client.AsyncHTTPClient",
-        lambda config=None: AsyncHTTPClient(config=cfg),
+        lambda config=None: OriginalAsyncHTTPClient(config=cfg),
     )
 
     try:
@@ -651,7 +651,7 @@ async def test_browser_retry_starts_http1_client():
 
     # Given: HTTP/1.1クライアントが未開始のクライアント
     cfg = BaseConfig(OPENAI_API_KEY="dummy-key")
-    client = AsyncHTTPClient(config=cfg)
+    client = http_client_module.AsyncHTTPClient(config=cfg)
 
     async def handler(request: httpx.Request):
         return make_response(200, json={"ok": True}, request=request)

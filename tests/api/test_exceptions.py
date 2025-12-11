@@ -80,7 +80,7 @@ def test_validation_error_can_store_field_name() -> None:
     exc = ValidationError(detail="invalid", field="name")
 
     # Then
-    assert exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert exc.error_type == "validation_error"
     assert exc.field == "name"
 
