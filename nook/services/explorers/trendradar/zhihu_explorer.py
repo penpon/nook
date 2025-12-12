@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any
 
-from bs4 import BeautifulSoup
 from dateutil import parser
 
 from nook.core.config import BaseConfig
@@ -28,11 +27,6 @@ class Article:
     title: str
     url: str
     text: str = ""
-    # NOTE: soup フィールドは将来のスクレイピング機能拡張用に残しています。
-    # TrendRadar API は構造化 JSON を返すため、現時点では使用しません。
-    soup: BeautifulSoup = field(
-        default_factory=lambda: BeautifulSoup("", "html.parser")
-    )
     category: str | None = None
     summary: str = field(default="")
     popularity_score: float = field(default=0.0)

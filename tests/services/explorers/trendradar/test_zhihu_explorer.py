@@ -169,8 +169,8 @@ class TestZhihuExplorerCollect:
             mock_get.return_value = mock_news
             # Mock GPT client to avoid actual API calls
             explorer.gpt_client = MagicMock()
-            explorer.gpt_client.generate_content = MagicMock(
-                return_value="要約テキスト"
+            explorer.gpt_client.generate_async = AsyncMock(
+                return_value="このトピックは中国のQ&Aプラットフォームで議論されています。"
             )
 
             result = await explorer.collect(days=1, limit=10)
@@ -259,10 +259,25 @@ class TestZhihuExplorerCollect:
                 side_effect=Exception("GPT Error")
             )
 
-            result = await explorer.collect(days=1, limit=10)
+            # Patch _store_articles to capture articles before saving
+            original_store = explorer._store_articles
+            captured_articles = []
+
+            async def capture_and_store(articles, date_str):
+                captured_articles.extend(articles)
+                return await original_store(articles, date_str)
+
+            with patch.object(
+                explorer, "_store_articles", side_effect=capture_and_store
+            ):
+                result = await explorer.collect(days=1, limit=10)
 
             # Should complete and return file paths
             assert isinstance(result, list)
+            # Verify error message is set in article summary
+            assert len(captured_articles) == 1
+            assert "要約生成エラー:" in captured_articles[0].summary
+            assert "GPT Error" in captured_articles[0].summary
 
 
 class TestZhihuExplorerRun:
