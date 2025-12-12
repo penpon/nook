@@ -97,7 +97,29 @@ class ZhihuExplorer(BaseService):
         limit : int | None, default=None
             取得するトピック数。Noneの場合はデフォルト値。
         """
-        asyncio.run(self.collect(days=days, limit=limit))
+        asyncio.run(self._run_with_cleanup(days=days, limit=limit))
+
+    async def _run_with_cleanup(
+        self, days: int = 1, limit: int | None = None
+    ) -> list[tuple[str, str]]:
+        """collect実行後にクライアントをクリーンアップするラッパー.
+
+        Parameters
+        ----------
+        days : int, default=1
+            何日分のデータを処理するか。
+        limit : int | None, default=None
+            取得するトピック数。Noneの場合はデフォルト値。
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            保存されたファイルパスのリスト [(json_path, md_path), ...]
+        """
+        try:
+            return await self.collect(days=days, limit=limit)
+        finally:
+            await self.close()
 
     async def collect(
         self,
