@@ -111,6 +111,36 @@ class TestZhihuExplorerTransform:
         article_epoch = explorer._transform_to_article(item_epoch)
         assert article_epoch.published_at.year == 2023
 
+    def test_transform_parses_epoch_zero(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: A TrendRadar item with epoch timestamp 0.
+        When: _transform_to_article is called.
+        Then: published_at is 1970-01-01T00:00:00Z.
+        """
+        item = {
+            "title": "Epoch Zero Article",
+            "url": "http://test-epoch-zero",
+            "timestamp": 0,
+        }
+        article = explorer._transform_to_article(item)
+        assert article.published_at.year == 1970
+        assert article.published_at.month == 1
+        assert article.published_at.day == 1
+
+    def test_transform_handles_malformed_hot(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: A TrendRadar item with malformed hot field.
+        When: _transform_to_article is called.
+        Then: popularity_score defaults to 0.0 without raising exception.
+        """
+        item = {
+            "title": "Malformed Hot",
+            "url": "http://test-malformed",
+            "hot": "N/A",
+        }
+        article = explorer._transform_to_article(item)
+        assert article.popularity_score == 0.0
+
 
 class TestZhihuExplorerCollect:
     """Tests for ZhihuExplorer.collect method."""
@@ -146,10 +176,11 @@ class TestZhihuExplorerCollect:
             result = await explorer.collect(days=1, limit=10)
 
             mock_get.assert_called_once_with(platform="zhihu", limit=10)
-            # Result should be list of tuples
-            assert isinstance(result, list)
-            if result:  # If any files were saved
-                assert all(isinstance(item, tuple) for item in result)
+            # Result should be non-empty list of 2-tuples
+            assert result, "collect() should return non-empty list with mocked news"
+            assert all(isinstance(item, tuple) and len(item) == 2 for item in result), (
+                "Each item should be a 2-tuple (json_path, md_path)"
+            )
 
     @pytest.mark.asyncio
     async def test_collect_propagates_errors(self, explorer: ZhihuExplorer) -> None:
@@ -177,6 +208,61 @@ class TestZhihuExplorerCollect:
         """
         with pytest.raises(NotImplementedError, match="Multi-day collection"):
             await explorer.collect(days=2)
+
+    @pytest.mark.asyncio
+    async def test_collect_validates_limit(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: Invalid limit values.
+        When: collect is called.
+        Then: Raises ValueError.
+        """
+        with pytest.raises(ValueError, match="limit must be an integer"):
+            await explorer.collect(days=1, limit=0)
+        with pytest.raises(ValueError, match="limit must be an integer"):
+            await explorer.collect(days=1, limit=101)
+        with pytest.raises(ValueError, match="limit must be an integer"):
+            await explorer.collect(days=1, limit=-5)
+
+    @pytest.mark.asyncio
+    async def test_collect_returns_empty_for_no_news(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: TrendRadarClient returns empty list.
+        When: collect is called.
+        Then: Returns empty list.
+        """
+        with patch.object(
+            explorer.client, "get_latest_news", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = []
+
+            result = await explorer.collect(days=1, limit=10)
+
+            assert result == []
+
+    @pytest.mark.asyncio
+    async def test_collect_handles_gpt_error(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: GPT client raises exception during summarization.
+        When: collect is called.
+        Then: Article summary contains error message and collect completes.
+        """
+        mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
+        with patch.object(
+            explorer.client, "get_latest_news", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_news
+            # Mock gpt_client.generate_async to raise exception
+            explorer.gpt_client = MagicMock()
+            explorer.gpt_client.generate_async = AsyncMock(
+                side_effect=Exception("GPT Error")
+            )
+
+            result = await explorer.collect(days=1, limit=10)
+
+            # Should complete and return file paths
+            assert isinstance(result, list)
 
 
 class TestZhihuExplorerRun:

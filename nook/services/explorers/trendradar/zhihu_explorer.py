@@ -5,7 +5,6 @@ from Zhihu via the TrendRadar MCP server.
 """
 
 import asyncio
-import copy
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any
@@ -29,6 +28,8 @@ class Article:
     title: str
     url: str
     text: str = ""
+    # NOTE: soup フィールドは将来のスクレイピング機能拡張用に残しています。
+    # TrendRadar API は構造化 JSON を返すため、現時点では使用しません。
     soup: BeautifulSoup = field(
         default_factory=lambda: BeautifulSoup("", "html.parser")
     )
@@ -69,10 +70,10 @@ class ZhihuExplorer(BaseService):
         """
         # カスタムストレージディレクトリを設定に反映
         if config is None:
-            config = BaseConfig()
+            config = BaseConfig(DATA_DIR=storage_dir)
         else:
-            config = copy.copy(config)
-        config.DATA_DIR = storage_dir
+            # Pydantic v2 の model_copy を使用して安全にコピー
+            config = config.model_copy(update={"DATA_DIR": storage_dir})
 
         super().__init__("trendradar-zhihu", config=config)
         self.client = TrendRadarClient()
@@ -147,7 +148,15 @@ class ZhihuExplorer(BaseService):
         if days != 1:
             raise NotImplementedError("Multi-day collection not yet implemented")
 
-        effective_limit = limit or self.TOTAL_LIMIT
+        # limit のバリデーション
+        if limit is not None:
+            if not isinstance(limit, int) or limit < 1 or limit > 100:
+                raise ValueError(
+                    f"limit must be an integer between 1 and 100, got {limit}"
+                )
+            effective_limit = limit
+        else:
+            effective_limit = self.TOTAL_LIMIT
 
         # TrendRadarからデータ取得
         news_items = await self.client.get_latest_news(
@@ -161,9 +170,10 @@ class ZhihuExplorer(BaseService):
         # Article オブジェクトに変換
         articles = [self._transform_to_article(item) for item in news_items]
 
-        # GPT要約を生成
-        for article in articles:
-            await self._summarize_article(article)
+        # GPT要約を生成（並列実行でパフォーマンス向上）
+        await asyncio.gather(
+            *[self._summarize_article(article) for article in articles]
+        )
 
         # 日付別にグループ化して保存
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -190,7 +200,7 @@ class ZhihuExplorer(BaseService):
             url=item.get("url", ""),
             text=item.get("desc", ""),
             category="hot",
-            popularity_score=float(item.get("hot", 0)),
+            popularity_score=self._parse_popularity_score(item.get("hot", 0)),
             published_at=self._parse_published_at(item),
         )
 
@@ -212,24 +222,45 @@ class ZhihuExplorer(BaseService):
 
         for candidate_field in candidates:
             val = item.get(candidate_field)
-            if val:
-                # Epoch timestamp handling
-                if isinstance(val, (int, float)):
-                    try:
-                        return datetime.fromtimestamp(val, tz=timezone.utc)
-                    except (ValueError, OSError):
-                        continue
-
-                # String parsing
+            if val is None:
+                continue
+            # Epoch timestamp handling
+            if isinstance(val, (int, float)):
                 try:
-                    dt = parser.parse(str(val))
-                    if dt.tzinfo is None:
-                        return dt.replace(tzinfo=timezone.utc)
-                    return dt.astimezone(timezone.utc)
-                except (ValueError, TypeError):
+                    return datetime.fromtimestamp(val, tz=timezone.utc)
+                except (ValueError, OSError):
                     continue
 
+            # String parsing
+            try:
+                dt = parser.parse(str(val))
+                if dt.tzinfo is None:
+                    return dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(timezone.utc)
+            except (ValueError, TypeError):
+                continue
+
         return datetime.now(timezone.utc)
+
+    def _parse_popularity_score(self, value: object) -> float:
+        """人気スコアを安全にパース.
+
+        Parameters
+        ----------
+        value : object
+            パースする値。
+
+        Returns
+        -------
+        float
+            パースされた人気スコア。失敗時は0.0。
+        """
+        if value is None:
+            return 0.0
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.0
 
     async def _summarize_article(self, article: Article) -> None:
         """記事の要約を生成.
@@ -254,13 +285,15 @@ URL: {article.url}
         )
 
         try:
-            summary = self.gpt_client.generate_content(
+            # GPTClientの非同期メソッドを使用してイベントループをブロックしない
+            summary = await self.gpt_client.generate_async(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
                 max_tokens=200,
             )
-            article.summary = summary
+            # 空の要約をフォールバック
+            article.summary = summary if summary else "要約を生成できませんでした"
         except Exception as e:
             self.logger.error(f"要約生成に失敗: {e}")
             article.summary = f"要約生成エラー: {str(e)}"
