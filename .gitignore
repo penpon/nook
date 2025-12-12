@@ -20,6 +20,9 @@ uv.lock
 .coverage
 coverage.json
 
+.copilot_manual_test_result.txt
+.droid_review_result.json
+
 
 # Project-specific data (keep in git)
 !/claude/work/agents/handoffs/
