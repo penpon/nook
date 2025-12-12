@@ -6,6 +6,7 @@
 
 import asyncio
 import html
+import re
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -237,14 +238,15 @@ class ZhihuExplorer(BaseService):
                 raise result
 
             if isinstance(result, Exception):
+                # 予期せぬエラーはログ記録のみ（再送出しない）
+                # return_exceptions=True の意図（一部の失敗を許容）と一致
                 self.logger.error(
                     f"Unexpected error in summary generation for article '{articles[i].title}': {result}",
                     exc_info=(type(result), result, result.__traceback__),
                 )
                 if not articles[i].summary:
                     articles[i].summary = self.ERROR_MSG_GENERATION_FAILED
-                # 予期せぬエラーは再送出して収集処理を失敗させる
-                raise result
+                # Note: 処理を継続し、成功した記事は保存する
 
         # 日付別にグループ化して保存
         date_str = target_date.strftime("%Y-%m-%d")
@@ -314,6 +316,41 @@ class ZhihuExplorer(BaseService):
 
         return datetime.now(timezone.utc)
 
+    def _sanitize_prompt_input(self, text: str, max_length: int = 500) -> str:
+        """プロンプト入力用のサニタイズ処理.
+
+        プロンプトインジェクション対策として、外部入力を安全に処理します。
+        - 制御文字を除去
+        - 過度な改行を正規化
+        - 長さを制限
+
+        Parameters
+        ----------
+        text : str
+            サニタイズするテキスト。
+        max_length : int, default=500
+            最大文字数。超過分は切り捨て。
+
+        Returns
+        -------
+        str
+            サニタイズ済みテキスト。
+        """
+        if not text:
+            return ""
+        # 制御文字を除去（改行・タブは保持）
+        sanitized = "".join(
+            char
+            for char in text
+            if char in ("\n", "\t") or (ord(char) >= 32 and ord(char) != 127)
+        )
+        # 連続する改行を1つに正規化
+        sanitized = re.sub(r"\n{3,}", "\n\n", sanitized)
+        # 長さ制限
+        if len(sanitized) > max_length:
+            sanitized = sanitized[:max_length] + "..."
+        return sanitized.strip()
+
     def _parse_popularity_score(self, value: object) -> float:
         """人気スコアを安全にパース.
 
@@ -357,11 +394,16 @@ class ZhihuExplorer(BaseService):
         None
             戻り値なし。article.summary を直接変更します。
         """
+        # プロンプトインジェクション対策: 外部入力をサニタイズ
+        safe_title = self._sanitize_prompt_input(article.title, max_length=200)
+        safe_url = self._sanitize_prompt_input(article.url, max_length=500)
+        safe_text = self._sanitize_prompt_input(article.text or "", max_length=500)
+
         prompt = f"""以下の知乎（Zhihu）ホットトピックを日本語で簡潔に要約してください。
 
-タイトル: {article.title}
-URL: {article.url}
-説明: {(article.text or "")[:500]}
+タイトル: {safe_title}
+URL: {safe_url}
+説明: {safe_text}
 人気度（ホット値）: {article.popularity_score:,.0f}
 
 要約は1-2文で、このトピックが何について議論されているかを説明してください。"""
