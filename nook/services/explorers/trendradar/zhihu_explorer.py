@@ -87,7 +87,15 @@ class ZhihuExplorer(BaseService):
         limit : int | None, default=None
             取得するトピック数。Noneの場合はデフォルト値。
         """
-        asyncio.run(self._run_with_cleanup(days=days, limit=limit))
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(self._run_with_cleanup(days=days, limit=limit))
+        else:
+            raise RuntimeError(
+                "run() はイベントループ実行中には使用できません。"
+                "asyncコンテキストでは await collect(...) を使用してください。"
+            )
 
     async def _run_with_cleanup(
         self, days: int = 1, limit: int | None = None
@@ -212,6 +220,8 @@ class ZhihuExplorer(BaseService):
                 )
                 if not articles[i].summary:
                     articles[i].summary = self.ERROR_MSG_GENERATION_FAILED
+                # 予期せぬエラーは再送出して収集処理を失敗させる
+                raise res
 
         # 日付別にグループ化して保存
         date_str = target_date.strftime("%Y-%m-%d")
@@ -304,9 +314,9 @@ class ZhihuExplorer(BaseService):
     async def _summarize_article(self, article: Article) -> None:
         """記事の要約を生成.
 
-        Note: This method modifies the article in-place by setting its summary field.
-        While this is safe in a single-threaded asyncio loop, care should be taken
-        if sharing article objects across threads or if strict immutability is required.
+        注意: このメソッドは記事オブジェクトのsummaryフィールドを直接変更します。
+        シングルスレッドの非同期ループ内では安全ですが、スレッド間でオブジェクトを共有する場合や、
+        厳密な不変性が要求される場合は注意が必要です。
 
         Parameters
         ----------
@@ -335,7 +345,6 @@ URL: {article.url}
                 temperature=self.GPT_TEMPERATURE,
                 max_tokens=self.GPT_MAX_TOKENS,
             )
-            # 空の要約をフォールバック（エラーケースと区別するためログを追加）
             # 空の要約をフォールバック（空白のみの場合も弾く）
             if summary and summary.strip():
                 article.summary = summary
