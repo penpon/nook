@@ -52,6 +52,10 @@ class ZhihuExplorer(BaseService):
 
     TOTAL_LIMIT = 15
 
+    # エラーメッセージ定数
+    ERROR_MSG_EMPTY_SUMMARY = "要約を生成できませんでした（空のレスポンス）"
+    ERROR_MSG_GENERATION_FAILED = "要約生成エラー: {error}"
+
     def __init__(self, storage_dir: str = "data", config: BaseConfig | None = None):
         """ZhihuExplorerを初期化.
 
@@ -303,11 +307,17 @@ URL: {article.url}
                 temperature=0.3,
                 max_tokens=200,
             )
-            # 空の要約をフォールバック
-            article.summary = summary if summary else "要約を生成できませんでした"
+            # 空の要約をフォールバック（エラーケースと区別するためログを追加）
+            if summary:
+                article.summary = summary
+            else:
+                self.logger.warning(
+                    f"GPT returned empty summary for article: {article.title}"
+                )
+                article.summary = self.ERROR_MSG_EMPTY_SUMMARY
         except Exception as e:
             self.logger.error(f"要約生成に失敗: {e}")
-            article.summary = f"要約生成エラー: {str(e)}"
+            article.summary = self.ERROR_MSG_GENERATION_FAILED.format(error=str(e))
 
     async def _store_articles(
         self, articles: list[Article], date_str: str

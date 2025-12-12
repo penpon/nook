@@ -170,7 +170,10 @@ class TestZhihuExplorerCollect:
             # Mock GPT client to avoid actual API calls
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(
-                return_value="このトピックは中国のQ&Aプラットフォームで議論されています。"
+                return_value=(
+                    "このトピックは中国の技術コミュニティで活発に議論されており、"
+                    "多くのエンジニアが関心を寄せています。"
+                )
             )
 
             result = await explorer.collect(days=1, limit=10)
