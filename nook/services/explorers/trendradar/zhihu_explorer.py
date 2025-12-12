@@ -5,6 +5,7 @@ from Zhihu via the TrendRadar MCP server.
 """
 
 import asyncio
+import html
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any
@@ -50,6 +51,8 @@ class ZhihuExplorer(BaseService):
     >>> explorer.run(days=1, limit=20)
     """
 
+    # APIレート制限と処理時間のバランスを考慮し、1回あたりの取得数を制限 (Default: 15)
+    # QiitaExplorerなどと比較しても、詳細な要約生成にはコストがかかるため保守的な値を設定
     TOTAL_LIMIT = 15
 
     # エラーメッセージ定数
@@ -191,11 +194,25 @@ class ZhihuExplorer(BaseService):
         articles = [self._transform_to_article(item) for item in news_items]
 
         # GPT要約を生成（並列実行でパフォーマンス向上）
+        # Semaphoreで同時実行数を制限してAPIレート制限を回避
+        sem = asyncio.Semaphore(5)
+
+        async def bounded_summarize(a: Article) -> Any:
+            async with sem:
+                return await self._summarize_article(a)
+
         # return_exceptions=Trueで1つの要約が失敗しても他の要約を継続
-        await asyncio.gather(
-            *[self._summarize_article(article) for article in articles],
+        results = await asyncio.gather(
+            *[bounded_summarize(article) for article in articles],
             return_exceptions=True,
         )
+
+        # 例外チェック: _summarize_article内でキャッチしきれなかった想定外のエラーを確認
+        for i, res in enumerate(results):
+            if isinstance(res, Exception):
+                self.logger.error(
+                    f"Unexpected error in summary generation for article '{articles[i].title}': {res}"
+                )
 
         # 日付別にグループ化して保存
         date_str = target_date.strftime("%Y-%m-%d")
@@ -288,6 +305,8 @@ class ZhihuExplorer(BaseService):
         """記事の要約を生成.
 
         Note: This method modifies the article in-place by setting its summary field.
+        While this is safe in a single-threaded asyncio loop, care should be taken
+        if sharing article objects across threads or if strict immutability is required.
 
         Parameters
         ----------
@@ -317,7 +336,8 @@ URL: {article.url}
                 max_tokens=200,
             )
             # 空の要約をフォールバック（エラーケースと区別するためログを追加）
-            if summary:
+            # 空の要約をフォールバック（空白のみの場合も弾く）
+            if summary and summary.strip():
                 article.summary = summary
             else:
                 self.logger.warning(
@@ -400,8 +420,15 @@ URL: {article.url}
         content = f"# 知乎ホットトピック ({date_str})\n\n"
 
         for i, record in enumerate(records, 1):
-            title = record.get("title", "")
-            url = record.get("url", "")
+            # Markdownの特殊文字をエスケープ
+            raw_title = record.get("title", "")
+            # HTML特殊文字のエスケープに加え、Markdownリンクを壊す [] をエスケープ
+            title = html.escape(raw_title).replace("[", "\\[").replace("]", "\\]")
+
+            raw_url = record.get("url", "")
+            # URL内の ) がMarkdownリンクを早期に閉じてしまうのを防ぐ
+            url = raw_url.replace(")", "\\)")
+
             summary = record.get("summary", "")
             hot = record.get("popularity_score", 0)
 
