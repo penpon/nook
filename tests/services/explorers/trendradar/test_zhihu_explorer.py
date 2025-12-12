@@ -138,6 +138,7 @@ class TestZhihuExplorerCollect:
         ) as mock_get:
             mock_get.return_value = mock_news
             # Mock GPT client to avoid actual API calls
+            explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_content = MagicMock(
                 return_value="要約テキスト"
             )
@@ -151,22 +152,19 @@ class TestZhihuExplorerCollect:
                 assert all(isinstance(item, tuple) for item in result)
 
     @pytest.mark.asyncio
-    async def test_collect_handles_empty_response(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_propagates_errors(self, explorer: ZhihuExplorer) -> None:
         """
-        Given: TrendRadarClient returns empty list.
+        Given: TrendRadarClient raises an exception.
         When: collect is called.
-        Then: Returns empty list without error.
+        Then: The exception is propagated.
         """
         with patch.object(
             explorer.client, "get_latest_news", new_callable=AsyncMock
         ) as mock_get:
-            mock_get.return_value = []
+            mock_get.side_effect = Exception("API Error")
 
-            result = await explorer.collect(days=1, limit=10)
-
-            assert result == []
+            with pytest.raises(Exception, match="API Error"):
+                await explorer.collect(days=1, limit=10)
 
     @pytest.mark.asyncio
     async def test_collect_raises_error_for_multi_day(

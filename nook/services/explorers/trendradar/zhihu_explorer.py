@@ -77,6 +77,16 @@ class ZhihuExplorer(BaseService):
         super().__init__("trendradar-zhihu", config=config)
         self.client = TrendRadarClient()
 
+    async def close(self) -> None:
+        """リソースを開放."""
+        await self.client.close()
+
+    async def __aenter__(self) -> "ZhihuExplorer":
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.close()
+
     def run(self, days: int = 1, limit: int | None = None) -> None:
         """知乎のホットトピックを収集して保存（同期版）.
 
@@ -117,36 +127,27 @@ class ZhihuExplorer(BaseService):
 
         effective_limit = limit or self.TOTAL_LIMIT
 
-        try:
-            try:
-                # TrendRadarからデータ取得
-                news_items = await self.client.get_latest_news(
-                    platform="zhihu", limit=effective_limit
-                )
-            except Exception as e:
-                self.logger.error(f"TrendRadarからのデータ取得に失敗: {e}")
-                return []
+        # TrendRadarからデータ取得
+        news_items = await self.client.get_latest_news(
+            platform="zhihu", limit=effective_limit
+        )
 
-            if not news_items:
-                self.logger.info("取得したホットトピックがありません")
-                return []
+        if not news_items:
+            self.logger.info("取得したホットトピックがありません")
+            return []
 
-            # Article オブジェクトに変換
-            articles = [self._transform_to_article(item) for item in news_items]
+        # Article オブジェクトに変換
+        articles = [self._transform_to_article(item) for item in news_items]
 
-            # GPT要約を生成
-            for article in articles:
-                await self._summarize_article(article)
+        # GPT要約を生成
+        for article in articles:
+            await self._summarize_article(article)
 
-            # 日付別にグループ化して保存
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            saved_files = await self._store_articles(articles, today)
+        # 日付別にグループ化して保存
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        saved_files = await self._store_articles(articles, today)
 
-            return saved_files
-
-        finally:
-            # クライアントをクローズ
-            await self.client.close()
+        return saved_files
 
     def _transform_to_article(self, item: dict[str, Any]) -> Article:
         """TrendRadar形式のアイテムをArticleオブジェクトに変換.
