@@ -44,6 +44,8 @@ class ZhihuExplorer(BaseService):
 
     # 記事ごとにGPT要約を生成するため、APIレート制限とコストを考慮して
     # 1回のcollectあたりの取得数の上限 (15件)
+    # Note: limit パラメータは 1-100 の範囲でバリデーションされるため、
+    # TOTAL_LIMIT は 100 を超えないこと（整合性のため）
     TOTAL_LIMIT = 15
 
     # GPT設定
@@ -222,6 +224,10 @@ class ZhihuExplorer(BaseService):
         # 例外チェック: _summarize_article内でキャッチしきれなかった想定外のエラーを確認
         # Note: Python 3.8以降、CancelledError は BaseException のサブクラスで Exception ではない
         for i, result in enumerate(results):
+            # SystemExit/KeyboardInterrupt は即座に再送出（プロセス終了を意図）
+            if isinstance(result, (SystemExit, KeyboardInterrupt)):
+                raise result
+
             # CancelledError は BaseException のサブクラスなので別途チェック
             if isinstance(result, asyncio.CancelledError):
                 # キャンセルは正常なシャットダウン操作なのでdebugレベル
