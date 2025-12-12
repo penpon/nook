@@ -35,8 +35,8 @@ class ZhihuExplorer(BaseService):
     >>> explorer.run(days=1, limit=20)
     """
 
-    # APIレート制限と処理時間のバランスを考慮し、1回あたりの取得数を制限 (Default: 15)
-    # QiitaExplorerなどと比較しても、詳細な要約生成にはコストがかかるため保守的な値を設定
+    # 記事ごとにGPT要約を生成するため、APIレート制限とコストを考慮して
+    # 1回のcollectあたりの取得数を保守的に設定 (Default: 15)
     TOTAL_LIMIT = 15
 
     # GPT設定
@@ -332,6 +332,11 @@ class ZhihuExplorer(BaseService):
         ----------
         article : Article
             要約を生成する記事。
+
+        Returns
+        -------
+        None
+            戻り値なし。article.summary を直接変更します。
         """
         prompt = f"""以下の知乎（Zhihu）ホットトピックを日本語で簡潔に要約してください。
 

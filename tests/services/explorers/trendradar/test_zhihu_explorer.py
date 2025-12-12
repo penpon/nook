@@ -4,6 +4,7 @@ This module tests the ZhihuExplorer class that retrieves hot topics
 from Zhihu via the TrendRadar MCP server.
 """
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,7 +17,7 @@ class TestZhihuExplorerInitialization:
 
     @pytest.fixture
     def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
@@ -49,7 +50,7 @@ class TestZhihuExplorerTransform:
 
     @pytest.fixture
     def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
@@ -120,6 +121,9 @@ class TestZhihuExplorerTransform:
         Given: A TrendRadar item with epoch timestamp 0.
         When: _transform_to_article is called.
         Then: published_at is 1970-01-01T00:00:00Z.
+
+        Note: epoch=0 は TrendRadar 側でデフォルト値として返されることがあり、
+        パーサ回帰防止のためにこのエッジケースをテストしています。
         """
         item = {
             "title": "Epoch Zero Article",
@@ -271,7 +275,6 @@ class TestZhihuExplorerCollect:
             target_date = date(2024, 1, 15)
             result = await explorer.collect(target_dates=[target_date])
 
-            # ファイル名に指定した日付が使用されることを確認
             assert len(result) == 1
             json_path, md_path = result[0]
             assert "2024-01-15" in json_path
@@ -330,7 +333,6 @@ class TestZhihuExplorerCollect:
 
             result = await explorer.collect(target_dates=None)
 
-            # 今日の日付が使用されることを確認
             assert len(result) == 1
             json_path, md_path = result[0]
             assert expected_date_str in json_path
@@ -460,7 +462,7 @@ class TestZhihuExplorerContextManager:
 
     @pytest.fixture
     def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
@@ -503,7 +505,7 @@ class TestZhihuExplorerRenderMarkdown:
 
     @pytest.fixture
     def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
@@ -621,7 +623,7 @@ class TestZhihuExplorerParsePopularityScore:
 
     @pytest.fixture
     def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
@@ -696,7 +698,7 @@ class TestZhihuExplorerTargetDatesValidation:
 
     @pytest.fixture
     def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
