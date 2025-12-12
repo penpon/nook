@@ -9,6 +9,8 @@ feature
 .spec-workflow/
 uv.lock
 
+task_boundary
+
 # CodeRabbit review logs
 .coderabbit_review_*
 .copilot_review_*
