@@ -39,6 +39,10 @@ class ZhihuExplorer(BaseService):
     # QiitaExplorerなどと比較しても、詳細な要約生成にはコストがかかるため保守的な値を設定
     TOTAL_LIMIT = 15
 
+    # GPT設定
+    GPT_TEMPERATURE = 0.3
+    GPT_MAX_TOKENS = 200
+
     # エラーメッセージ定数
     ERROR_MSG_EMPTY_SUMMARY = "要約を生成できませんでした（空のレスポンス）"
     ERROR_MSG_GENERATION_FAILED = "要約生成に失敗しました"
@@ -196,14 +200,16 @@ class ZhihuExplorer(BaseService):
         # 例外チェック: _summarize_article内でキャッチしきれなかった想定外のエラーを確認
         for i, res in enumerate(results):
             if isinstance(res, BaseException):
-                self.logger.error(
-                    f"Unexpected error in summary generation for article '{articles[i].title}': {res}"
-                )
                 if isinstance(res, asyncio.CancelledError):
                     self.logger.warning(
                         f"Summary generation cancelled for article: {articles[i].title}"
                     )
                     raise
+
+                self.logger.error(
+                    f"Unexpected error in summary generation for article '{articles[i].title}': {res}",
+                    exc_info=res,
+                )
                 if not articles[i].summary:
                     articles[i].summary = self.ERROR_MSG_GENERATION_FAILED
 
@@ -326,8 +332,8 @@ URL: {article.url}
             summary = await self.gpt_client.generate_async(
                 prompt=prompt,
                 system_instruction=system_instruction,
-                temperature=0.3,
-                max_tokens=200,
+                temperature=self.GPT_TEMPERATURE,
+                max_tokens=self.GPT_MAX_TOKENS,
             )
             # 空の要約をフォールバック（エラーケースと区別するためログを追加）
             # 空の要約をフォールバック（空白のみの場合も弾く）
