@@ -326,7 +326,7 @@ class ZhihuExplorer(BaseService):
 
 タイトル: {article.title}
 URL: {article.url}
-説明: {article.text}
+説明: {article.text[:500]}
 人気度（ホット値）: {article.popularity_score:,.0f}
 
 要約は1-2文で、このトピックが何について議論されているかを説明してください。"""

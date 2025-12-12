@@ -405,17 +405,90 @@ class TestZhihuExplorerRun:
         explorer.storage = AsyncMock()
         return explorer
 
-    def test_run_calls_collect(self, explorer: ZhihuExplorer) -> None:
+    def test_run_calls_run_with_cleanup(self, explorer: ZhihuExplorer) -> None:
         """
         Given: A ZhihuExplorer instance.
         When: run is called.
-        Then: collect is invoked via asyncio.run.
+        Then: _run_with_cleanup is invoked via asyncio.run.
+        """
+        with patch.object(
+            explorer, "_run_with_cleanup", new_callable=AsyncMock
+        ) as mock_cleanup:
+            explorer.run(days=1, limit=20)
+
+            mock_cleanup.assert_called_once_with(days=1, limit=20)
+
+    @pytest.mark.asyncio
+    async def test_run_with_cleanup_calls_collect_and_close(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: A ZhihuExplorer instance.
+        When: _run_with_cleanup is called.
+        Then: collect is called and client.close() is ensured.
         """
         with patch.object(explorer, "collect", new_callable=AsyncMock) as mock_collect:
             mock_collect.return_value = []
+            with patch.object(
+                explorer.client, "close", new_callable=AsyncMock
+            ) as mock_close:
+                await explorer._run_with_cleanup(days=1, limit=20)
 
-            explorer.run(days=1, limit=20)
+                mock_collect.assert_called_once_with(days=1, limit=20)
+                mock_close.assert_called_once()
 
-            mock_collect.assert_called_once()
-            # Verify days and limit were passed
-            mock_collect.assert_called_once_with(days=1, limit=20)
+    @pytest.mark.asyncio
+    async def test_base_service_cleanup_on_error(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: collect raises an exception.
+        When: _run_with_cleanup is called.
+        Then: close is still called.
+        """
+        with patch.object(explorer, "collect", side_effect=ValueError("Test Error")):
+            with patch.object(
+                explorer.client, "close", new_callable=AsyncMock
+            ) as mock_close:
+                with pytest.raises(ValueError):
+                    await explorer._run_with_cleanup()
+                mock_close.assert_called_once()
+
+
+class TestZhihuExplorerContextManager:
+    """Tests for ZhihuExplorer context manager methods."""
+
+    @pytest.fixture
+    def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
+        """Create a ZhihuExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return ZhihuExplorer()
+
+    @pytest.mark.asyncio
+    async def test_context_manager_lifecycle(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: ZhihuExplorer used in async with statement.
+        When: The block is entered and exited.
+        Then: close() is called on exit.
+        """
+        with patch.object(
+            explorer.client, "close", new_callable=AsyncMock
+        ) as mock_close:
+            async with explorer as e:
+                assert e is explorer
+            mock_close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_context_manager_cleanup_on_error(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Exception occurs within async with block.
+        When: The block exits.
+        Then: close() is still called.
+        """
+        with patch.object(
+            explorer.client, "close", new_callable=AsyncMock
+        ) as mock_close:
+            with pytest.raises(ValueError):
+                async with explorer:
+                    raise ValueError("Test Error")
+            mock_close.assert_called_once()
