@@ -201,6 +201,36 @@ class TestZhihuExplorerCollect:
             assert all(isinstance(item, tuple) and len(item) == 2 for item in result)
 
     @pytest.mark.asyncio
+    async def test_collect_handles_null_fields_from_trendradar(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: TrendRadar returns items with null fields (e.g., desc/title/url).
+        When: collect is called.
+        Then: It does not crash while building the prompt and completes.
+        """
+        mock_news = [
+            {
+                "title": None,
+                "url": None,
+                "desc": None,
+                "hot": 100,
+            }
+        ]
+
+        with patch.object(
+            explorer.client, "get_latest_news", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_news
+            explorer.gpt_client = MagicMock()
+            explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
+
+            result = await explorer.collect(days=1, limit=10)
+
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+    @pytest.mark.asyncio
     async def test_collect_propagates_errors(self, explorer: ZhihuExplorer) -> None:
         """
         Given: TrendRadarClient raises an exception.
@@ -559,7 +589,7 @@ class TestZhihuExplorerRenderMarkdown:
         """
         Given: Record with parentheses in URL.
         When: _render_markdown is called.
-        Then: Closing parentheses are escaped.
+        Then: Both opening and closing parentheses are escaped.
         """
         records = [
             {
@@ -571,8 +601,8 @@ class TestZhihuExplorerRenderMarkdown:
         ]
         result = explorer._render_markdown(records, "2024-01-15")
 
-        # Closing parentheses should be escaped
-        assert "path(with\\)parens" in result
+        # Both opening and closing parentheses should be escaped
+        assert "path\\(with\\)parens" in result
 
     def test_render_markdown_escapes_summary_with_brackets(
         self, explorer: ZhihuExplorer

@@ -226,7 +226,7 @@ class ZhihuExplorer(BaseService):
 
                 self.logger.error(
                     f"Unexpected error in summary generation for article '{articles[i].title}': {res}",
-                    exc_info=res,
+                    exc_info=(type(res), res, res.__traceback__),
                 )
                 if not articles[i].summary:
                     articles[i].summary = self.ERROR_MSG_GENERATION_FAILED
@@ -254,9 +254,9 @@ class ZhihuExplorer(BaseService):
         """
         return Article(
             feed_name="zhihu",
-            title=item.get("title", ""),
-            url=item.get("url", ""),
-            text=item.get("desc", ""),
+            title=str(item.get("title") or ""),
+            url=str(item.get("url") or ""),
+            text=str(item.get("desc") or ""),
             soup=BeautifulSoup("", "html.parser"),
             category="hot",
             popularity_score=self._parse_popularity_score(item.get("hot", 0)),
@@ -287,7 +287,7 @@ class ZhihuExplorer(BaseService):
             if isinstance(val, (int, float)) and not isinstance(val, bool):
                 try:
                     return datetime.fromtimestamp(val, tz=timezone.utc)
-                except (ValueError, OverflowError):
+                except (ValueError, OverflowError, OSError):
                     continue
 
             # String parsing
@@ -342,7 +342,7 @@ class ZhihuExplorer(BaseService):
 
 タイトル: {article.title}
 URL: {article.url}
-説明: {article.text[:500]}
+説明: {(article.text or "")[:500]}
 人気度（ホット値）: {article.popularity_score:,.0f}
 
 要約は1-2文で、このトピックが何について議論されているかを説明してください。"""
@@ -453,8 +453,8 @@ URL: {article.url}
             title = html.escape(raw_title).replace("[", "\\[").replace("]", "\\]")
 
             raw_url = record.get("url", "")
-            # URL内の ) がMarkdownリンクを早期に閉じてしまうのを防ぐ
-            url = raw_url.replace(")", "\\)")
+            # URL内の () がMarkdownリンクを壊すのを防ぐ
+            url = raw_url.replace("(", "\\(").replace(")", "\\)")
 
             # summary も Markdown を壊す可能性のある文字をエスケープ
             raw_summary = record.get("summary", "")
