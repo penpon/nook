@@ -224,6 +224,30 @@ class TestZhihuExplorerCollect:
             await explorer.collect(days=1, limit=-5)
 
     @pytest.mark.asyncio
+    async def test_collect_rejects_bool_limit(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: Boolean value for limit parameter.
+        When: collect is called.
+        Then: Raises ValueError (bool is subclass of int in Python).
+        """
+        with pytest.raises(ValueError, match="limit must be an integer"):
+            await explorer.collect(days=1, limit=True)
+        with pytest.raises(ValueError, match="limit must be an integer"):
+            await explorer.collect(days=1, limit=False)
+
+    @pytest.mark.asyncio
+    async def test_collect_rejects_target_dates(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: target_dates parameter is provided.
+        When: collect is called.
+        Then: Raises NotImplementedError.
+        """
+        from datetime import date
+
+        with pytest.raises(NotImplementedError, match="target_dates parameter"):
+            await explorer.collect(days=1, target_dates=[date.today()])
+
+    @pytest.mark.asyncio
     async def test_collect_returns_empty_for_no_news(
         self, explorer: ZhihuExplorer
     ) -> None:

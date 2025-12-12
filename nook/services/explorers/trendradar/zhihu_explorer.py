@@ -142,9 +142,22 @@ class ZhihuExplorer(BaseService):
         if days != 1:
             raise NotImplementedError("Multi-day collection not yet implemented")
 
+        # target_dates のバリデーション
+        if target_dates is not None:
+            raise NotImplementedError(
+                "target_dates parameter is not yet implemented. "
+                "Please use days parameter instead."
+            )
+
         # limit のバリデーション
         if limit is not None:
-            if not isinstance(limit, int) or limit < 1 or limit > 100:
+            # boolはintのサブクラスなので明示的に除外
+            if (
+                not isinstance(limit, int)
+                or isinstance(limit, bool)
+                or limit < 1
+                or limit > 100
+            ):
                 raise ValueError(
                     f"limit must be an integer between 1 and 100, got {limit}"
                 )
@@ -165,8 +178,10 @@ class ZhihuExplorer(BaseService):
         articles = [self._transform_to_article(item) for item in news_items]
 
         # GPT要約を生成（並列実行でパフォーマンス向上）
+        # return_exceptions=Trueで1つの要約が失敗しても他の要約を継続
         await asyncio.gather(
-            *[self._summarize_article(article) for article in articles]
+            *[self._summarize_article(article) for article in articles],
+            return_exceptions=True,
         )
 
         # 日付別にグループ化して保存
@@ -222,7 +237,7 @@ class ZhihuExplorer(BaseService):
             if isinstance(val, (int, float)):
                 try:
                     return datetime.fromtimestamp(val, tz=timezone.utc)
-                except (ValueError, OSError):
+                except (ValueError, OverflowError):
                     continue
 
             # String parsing
@@ -258,6 +273,8 @@ class ZhihuExplorer(BaseService):
 
     async def _summarize_article(self, article: Article) -> None:
         """記事の要約を生成.
+
+        Note: This method modifies the article in-place by setting its summary field.
 
         Parameters
         ----------
