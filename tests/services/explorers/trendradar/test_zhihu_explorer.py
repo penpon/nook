@@ -15,10 +15,12 @@ class TestZhihuExplorerInitialization:
     """Tests for ZhihuExplorer initialization."""
 
     @pytest.fixture
-    def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
+    def explorer(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+    ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
-        return ZhihuExplorer()
+        return ZhihuExplorer(storage_dir=str(tmp_path))
 
     def test_explorer_initialization(self, explorer: ZhihuExplorer) -> None:
         """
@@ -46,10 +48,12 @@ class TestZhihuExplorerTransform:
     """Tests for TrendRadar to Article transformation."""
 
     @pytest.fixture
-    def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
+    def explorer(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+    ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
-        return ZhihuExplorer()
+        return ZhihuExplorer(storage_dir=str(tmp_path))
 
     def test_transform_trendradar_to_article(self, explorer: ZhihuExplorer) -> None:
         """
@@ -189,10 +193,8 @@ class TestZhihuExplorerCollect:
 
             mock_get.assert_called_once_with(platform="zhihu", limit=10)
             # Result should be non-empty list of 2-tuples
-            assert result, "collect() should return non-empty list with mocked news"
-            assert all(isinstance(item, tuple) and len(item) == 2 for item in result), (
-                "Each item should be a 2-tuple (json_path, md_path)"
-            )
+            assert result
+            assert all(isinstance(item, tuple) and len(item) == 2 for item in result)
 
     @pytest.mark.asyncio
     async def test_collect_propagates_errors(self, explorer: ZhihuExplorer) -> None:
@@ -315,6 +317,9 @@ class TestZhihuExplorerCollect:
         """
         from datetime import datetime, timezone
 
+        # UTC日付境界でのフレークを防ぐため、呼び出し前に期待値を確定
+        expected_date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
         with patch.object(
             explorer.client, "get_latest_news", new_callable=AsyncMock
@@ -328,9 +333,8 @@ class TestZhihuExplorerCollect:
             # 今日の日付が使用されることを確認
             assert len(result) == 1
             json_path, md_path = result[0]
-            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            assert today_str in json_path
-            assert today_str in md_path
+            assert expected_date_str in json_path
+            assert expected_date_str in md_path
 
     @pytest.mark.asyncio
     async def test_collect_returns_empty_for_no_news(
@@ -368,17 +372,15 @@ class TestZhihuExplorerCollect:
                 side_effect=Exception("GPT Error")
             )
 
-            # Patch _store_articles to capture articles before saving
-            original_store = explorer._store_articles
+            # Patch _store_articles to capture articles without real I/O
             captured_articles = []
 
-            async def capture_and_store(articles, date_str):
+            async def capture_store(articles, date_str):
                 captured_articles.extend(articles)
-                return await original_store(articles, date_str)
+                # Return mock paths without calling real storage
+                return [(f"mock/{date_str}.json", f"mock/{date_str}.md")]
 
-            with patch.object(
-                explorer, "_store_articles", side_effect=capture_and_store
-            ):
+            with patch.object(explorer, "_store_articles", side_effect=capture_store):
                 result = await explorer.collect(days=1, limit=10)
 
             # Should complete and return file paths
@@ -457,10 +459,12 @@ class TestZhihuExplorerContextManager:
     """Tests for ZhihuExplorer context manager methods."""
 
     @pytest.fixture
-    def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
+    def explorer(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+    ) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
-        return ZhihuExplorer()
+        return ZhihuExplorer(storage_dir=str(tmp_path))
 
     @pytest.mark.asyncio
     async def test_context_manager_lifecycle(self, explorer: ZhihuExplorer) -> None:
@@ -492,3 +496,224 @@ class TestZhihuExplorerContextManager:
                 async with explorer:
                     raise ValueError("Test Error")
             mock_close.assert_called_once()
+
+
+class TestZhihuExplorerRenderMarkdown:
+    """Tests for ZhihuExplorer._render_markdown method."""
+
+    @pytest.fixture
+    def explorer(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+    ) -> ZhihuExplorer:
+        """Create a ZhihuExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return ZhihuExplorer(storage_dir=str(tmp_path))
+
+    def test_render_markdown_with_normal_records(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: Normal records without special characters.
+        When: _render_markdown is called.
+        Then: Markdown is correctly generated.
+        """
+        records = [
+            {
+                "title": "Test Title",
+                "url": "https://example.com",
+                "summary": "Test summary",
+                "popularity_score": 1000,
+            }
+        ]
+        result = explorer._render_markdown(records, "2024-01-15")
+
+        assert "# 知乎ホットトピック (2024-01-15)" in result
+        assert "[Test Title](https://example.com)" in result
+        assert "**人気度**: 1,000" in result
+        assert "**要約**: Test summary" in result
+
+    def test_render_markdown_escapes_title_brackets(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Record with brackets in title.
+        When: _render_markdown is called.
+        Then: Brackets are escaped to prevent Markdown link breakage.
+        """
+        records = [
+            {
+                "title": "[Important] Test Topic",
+                "url": "https://example.com",
+                "summary": "Summary",
+                "popularity_score": 500,
+            }
+        ]
+        result = explorer._render_markdown(records, "2024-01-15")
+
+        # Brackets should be escaped
+        assert "\\[Important\\]" in result
+
+    def test_render_markdown_escapes_url_parentheses(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Record with parentheses in URL.
+        When: _render_markdown is called.
+        Then: Closing parentheses are escaped.
+        """
+        records = [
+            {
+                "title": "Test",
+                "url": "https://example.com/path(with)parens",
+                "summary": "Summary",
+                "popularity_score": 100,
+            }
+        ]
+        result = explorer._render_markdown(records, "2024-01-15")
+
+        # Closing parentheses should be escaped
+        assert "path(with\\)parens" in result
+
+    def test_render_markdown_escapes_summary_with_brackets(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Record with Markdown characters in summary.
+        When: _render_markdown is called.
+        Then: Summary is escaped to prevent rendering issues.
+        """
+        records = [
+            {
+                "title": "Test",
+                "url": "https://example.com",
+                "summary": "See [this link](url) for details",
+                "popularity_score": 100,
+            }
+        ]
+        result = explorer._render_markdown(records, "2024-01-15")
+
+        # Brackets in summary should be escaped
+        assert "\\[this link\\]" in result
+
+    def test_render_markdown_escapes_html_characters(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Record with HTML special characters.
+        When: _render_markdown is called.
+        Then: HTML characters are escaped.
+        """
+        records = [
+            {
+                "title": "Test <script>alert('xss')</script>",
+                "url": "https://example.com",
+                "summary": "<b>Bold</b> text",
+                "popularity_score": 100,
+            }
+        ]
+        result = explorer._render_markdown(records, "2024-01-15")
+
+        # HTML should be escaped
+        assert "&lt;script&gt;" in result
+        assert "&lt;b&gt;" in result
+
+
+class TestZhihuExplorerParsePopularityScore:
+    """Tests for ZhihuExplorer._parse_popularity_score method."""
+
+    @pytest.fixture
+    def explorer(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+    ) -> ZhihuExplorer:
+        """Create a ZhihuExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        return ZhihuExplorer(storage_dir=str(tmp_path))
+
+    def test_parse_popularity_score_with_int(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: Integer value.
+        When: _parse_popularity_score is called.
+        Then: Returns float of the value.
+        """
+        assert explorer._parse_popularity_score(1000) == 1000.0
+
+    def test_parse_popularity_score_with_float(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: Float value.
+        When: _parse_popularity_score is called.
+        Then: Returns the float as-is.
+        """
+        assert explorer._parse_popularity_score(1234.5) == 1234.5
+
+    def test_parse_popularity_score_with_string_number(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: String representation of a number.
+        When: _parse_popularity_score is called.
+        Then: Returns float of the parsed value.
+        """
+        assert explorer._parse_popularity_score("1500") == 1500.0
+
+    def test_parse_popularity_score_with_none(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: None value.
+        When: _parse_popularity_score is called.
+        Then: Returns 0.0.
+        """
+        assert explorer._parse_popularity_score(None) == 0.0
+
+    def test_parse_popularity_score_with_invalid_string(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Non-numeric string.
+        When: _parse_popularity_score is called.
+        Then: Returns 0.0.
+        """
+        assert explorer._parse_popularity_score("N/A") == 0.0
+        assert explorer._parse_popularity_score("invalid") == 0.0
+
+    def test_parse_popularity_score_with_negative(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Negative number.
+        When: _parse_popularity_score is called.
+        Then: Returns the negative float (no validation).
+        """
+        assert explorer._parse_popularity_score(-100) == -100.0
+
+    def test_parse_popularity_score_with_zero(self, explorer: ZhihuExplorer) -> None:
+        """
+        Given: Zero value.
+        When: _parse_popularity_score is called.
+        Then: Returns 0.0.
+        """
+        assert explorer._parse_popularity_score(0) == 0.0
+
+
+class TestZhihuExplorerTargetDatesValidation:
+    """Tests for target_dates and days parameter validation."""
+
+    @pytest.fixture
+    def explorer(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pytest.TempPathFactory
+    ) -> ZhihuExplorer:
+        """Create a ZhihuExplorer instance for testing."""
+        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
+        explorer = ZhihuExplorer(storage_dir=str(tmp_path))
+        explorer.storage = AsyncMock()
+        return explorer
+
+    @pytest.mark.asyncio
+    async def test_collect_rejects_target_dates_with_days_not_one(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: target_dates provided and days != 1.
+        When: collect is called.
+        Then: Raises ValueError explaining the conflict.
+        """
+        from datetime import date
+
+        with pytest.raises(ValueError, match="days parameter must be 1"):
+            await explorer.collect(target_dates=[date(2024, 1, 15)], days=2)

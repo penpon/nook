@@ -43,6 +43,9 @@ class ZhihuExplorer(BaseService):
     GPT_TEMPERATURE = 0.3
     GPT_MAX_TOKENS = 200
 
+    # 並列実行制限（APIレート制限対策）
+    MAX_CONCURRENT_REQUESTS = 5
+
     # エラーメッセージ定数
     ERROR_MSG_EMPTY_SUMMARY = "要約を生成できませんでした（空のレスポンス）"
     ERROR_MSG_GENERATION_FAILED = "要約生成に失敗しました"
@@ -163,6 +166,13 @@ class ZhihuExplorer(BaseService):
                 "Multi-day collection (days > 1) is not yet implemented"
             )
 
+        # target_dates 指定時に days != 1 はエラー（混乱を防ぐ）
+        if target_dates is not None and days != 1:
+            raise ValueError(
+                "days parameter must be 1 (or omitted) when target_dates is provided. "
+                "The days parameter is ignored when target_dates is specified."
+            )
+
         # limit のバリデーション
         if limit is not None:
             # boolはintのサブクラスなので明示的に除外
@@ -193,11 +203,11 @@ class ZhihuExplorer(BaseService):
 
         # GPT要約を生成（並列実行でパフォーマンス向上）
         # Semaphoreで同時実行数を制限してAPIレート制限を回避
-        sem = asyncio.Semaphore(5)
+        sem = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
 
-        async def bounded_summarize(a: Article) -> Any:
+        async def bounded_summarize(a: Article) -> None:
             async with sem:
-                return await self._summarize_article(a)
+                await self._summarize_article(a)
 
         # return_exceptions=Trueで1つの要約が失敗しても他の要約を継続
         results = await asyncio.gather(
@@ -212,7 +222,7 @@ class ZhihuExplorer(BaseService):
                     self.logger.warning(
                         f"Summary generation cancelled for article: {articles[i].title}"
                     )
-                    raise
+                    raise res
 
                 self.logger.error(
                     f"Unexpected error in summary generation for article '{articles[i].title}': {res}",
@@ -312,11 +322,11 @@ class ZhihuExplorer(BaseService):
             return 0.0
 
     async def _summarize_article(self, article: Article) -> None:
-        """記事の要約を生成.
+        """記事の要約を生成（in-place mutator）.
 
-        注意: このメソッドは記事オブジェクトのsummaryフィールドを直接変更します。
-        シングルスレッドの非同期ループ内では安全ですが、スレッド間でオブジェクトを共有する場合や、
-        厳密な不変性が要求される場合は注意が必要です。
+        このメソッドは記事オブジェクトの `summary` フィールドを直接変更します。
+        asyncio.gather等で並列実行する場合、各Articleオブジェクトが独立している
+        ことを前提としています。同一オブジェクトを複数タスクで共有しないでください。
 
         Parameters
         ----------
@@ -353,6 +363,9 @@ URL: {article.url}
                     f"GPT returned empty summary for article: {article.title}"
                 )
                 article.summary = self.ERROR_MSG_EMPTY_SUMMARY
+        except asyncio.CancelledError:
+            # キャンセルは即座に再送出して呼び出し元のキャンセル処理を有効にする
+            raise
         except Exception:
             # 詳細はログにのみ記録（スタックトレース含む）
             self.logger.exception(f"要約生成に失敗 (article: {article.title})")
@@ -438,7 +451,9 @@ URL: {article.url}
             # URL内の ) がMarkdownリンクを早期に閉じてしまうのを防ぐ
             url = raw_url.replace(")", "\\)")
 
-            summary = record.get("summary", "")
+            # summary も Markdown を壊す可能性のある文字をエスケープ
+            raw_summary = record.get("summary", "")
+            summary = html.escape(raw_summary).replace("[", "\\[").replace("]", "\\]")
             hot = record.get("popularity_score", 0)
 
             content += f"## {i}. [{title}]({url})\n\n"
