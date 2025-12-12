@@ -6,32 +6,16 @@ from Zhihu via the TrendRadar MCP server.
 
 import asyncio
 import html
-from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Any
 
+from bs4 import BeautifulSoup
 from dateutil import parser
 
 from nook.core.config import BaseConfig
+from nook.services.base.base_feed_service import Article
 from nook.services.base.base_service import BaseService
 from nook.services.explorers.trendradar.trendradar_client import TrendRadarClient
-
-
-@dataclass
-class Article:
-    """知乎記事のデータクラス.
-
-    TrendRadarから取得した知乎のホットトピックを表現します。
-    """
-
-    feed_name: str
-    title: str
-    url: str
-    text: str = ""
-    category: str | None = None
-    summary: str = field(default="")
-    popularity_score: float = field(default=0.0)
-    published_at: datetime | None = None
 
 
 class ZhihuExplorer(BaseService):
@@ -247,6 +231,7 @@ class ZhihuExplorer(BaseService):
             title=item.get("title", ""),
             url=item.get("url", ""),
             text=item.get("desc", ""),
+            soup=BeautifulSoup("", "html.parser"),
             category="hot",
             popularity_score=self._parse_popularity_score(item.get("hot", 0)),
             published_at=self._parse_published_at(item),
