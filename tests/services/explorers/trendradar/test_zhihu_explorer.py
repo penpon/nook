@@ -149,7 +149,16 @@ class TestZhihuExplorerCollect:
     def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
-        return ZhihuExplorer()
+        explorer = ZhihuExplorer()
+        # Mock storage to prevent disk I/O
+        explorer.storage = AsyncMock()
+
+        # Mock save methods to return dummy paths containing filename
+        async def save_side_effect(data, filename):
+            return f"mock/{filename}"
+
+        explorer.storage.save.side_effect = save_side_effect
+        return explorer
 
     @pytest.mark.asyncio
     async def test_collect_returns_file_paths(self, explorer: ZhihuExplorer) -> None:
@@ -267,6 +276,20 @@ class TestZhihuExplorerCollect:
             assert "2024-01-15" in md_path
 
     @pytest.mark.asyncio
+    async def test_collect_rejects_empty_target_dates(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Empty target_dates list.
+        When: collect is called.
+        Then: Raises ValueError.
+        """
+        with pytest.raises(
+            ValueError, match="target_dates must contain at least one date"
+        ):
+            await explorer.collect(target_dates=[])
+
+    @pytest.mark.asyncio
     async def test_collect_with_multiple_target_dates(
         self, explorer: ZhihuExplorer
     ) -> None:
@@ -377,7 +400,10 @@ class TestZhihuExplorerRun:
     def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
         """Create a ZhihuExplorer instance for testing."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
-        return ZhihuExplorer()
+        explorer = ZhihuExplorer()
+        # Mock storage to prevent disk I/O (though run() mocks collect, it's safer)
+        explorer.storage = AsyncMock()
+        return explorer
 
     def test_run_calls_collect(self, explorer: ZhihuExplorer) -> None:
         """
@@ -388,8 +414,8 @@ class TestZhihuExplorerRun:
         with patch.object(explorer, "collect", new_callable=AsyncMock) as mock_collect:
             mock_collect.return_value = []
 
-            explorer.run(days=2, limit=20)
+            explorer.run(days=1, limit=20)
 
             mock_collect.assert_called_once()
             # Verify days and limit were passed
-            mock_collect.assert_called_once_with(days=2, limit=20)
+            mock_collect.assert_called_once_with(days=1, limit=20)

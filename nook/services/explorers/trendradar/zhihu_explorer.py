@@ -148,6 +148,8 @@ class ZhihuExplorer(BaseService):
         """
         # target_dates のバリデーション
         if target_dates is not None:
+            if len(target_dates) == 0:
+                raise ValueError("target_dates must contain at least one date")
             if len(target_dates) > 1:
                 raise NotImplementedError(
                     "Multi-day collection (len(target_dates) > 1) is not yet implemented. "
@@ -209,10 +211,17 @@ class ZhihuExplorer(BaseService):
 
         # 例外チェック: _summarize_article内でキャッチしきれなかった想定外のエラーを確認
         for i, res in enumerate(results):
-            if isinstance(res, Exception):
+            if isinstance(res, BaseException):
                 self.logger.error(
                     f"Unexpected error in summary generation for article '{articles[i].title}': {res}"
                 )
+                if isinstance(res, asyncio.CancelledError):
+                    self.logger.warning(
+                        f"Summary generation cancelled for article: {articles[i].title}"
+                    )
+                    raise
+                if not articles[i].summary:
+                    articles[i].summary = self.ERROR_MSG_GENERATION_FAILED
 
         # 日付別にグループ化して保存
         date_str = target_date.strftime("%Y-%m-%d")
@@ -264,7 +273,7 @@ class ZhihuExplorer(BaseService):
             if val is None:
                 continue
             # Epoch timestamp handling
-            if isinstance(val, (int, float)):
+            if isinstance(val, (int, float)) and not isinstance(val, bool):
                 try:
                     return datetime.fromtimestamp(val, tz=timezone.utc)
                 except (ValueError, OverflowError):
