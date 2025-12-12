@@ -201,11 +201,11 @@ class TestZhihuExplorerCollect:
                 await explorer.collect(days=1, limit=10)
 
     @pytest.mark.asyncio
-    async def test_collect_raises_error_for_multi_day(
+    async def test_collect_raises_error_for_multi_day_with_days_param(
         self, explorer: ZhihuExplorer
     ) -> None:
         """
-        Given: days param != 1.
+        Given: days param != 1 and target_dates is None.
         When: collect is called.
         Then: Raises NotImplementedError.
         """
@@ -239,16 +239,75 @@ class TestZhihuExplorerCollect:
             await explorer.collect(days=1, limit=False)
 
     @pytest.mark.asyncio
-    async def test_collect_rejects_target_dates(self, explorer: ZhihuExplorer) -> None:
+    async def test_collect_with_single_target_date(
+        self, explorer: ZhihuExplorer
+    ) -> None:
         """
-        Given: target_dates parameter is provided.
+        Given: Single date in target_dates parameter.
+        When: collect is called.
+        Then: Accepts the date and uses it for filename.
+        """
+        from datetime import date
+
+        mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
+        with patch.object(
+            explorer.client, "get_latest_news", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_news
+            explorer.gpt_client = MagicMock()
+            explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
+
+            target_date = date(2024, 1, 15)
+            result = await explorer.collect(target_dates=[target_date])
+
+            # ファイル名に指定した日付が使用されることを確認
+            assert len(result) == 1
+            json_path, md_path = result[0]
+            assert "2024-01-15" in json_path
+            assert "2024-01-15" in md_path
+
+    @pytest.mark.asyncio
+    async def test_collect_with_multiple_target_dates(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: Multiple dates in target_dates parameter.
         When: collect is called.
         Then: Raises NotImplementedError.
         """
         from datetime import date
 
-        with pytest.raises(NotImplementedError, match="target_dates parameter"):
-            await explorer.collect(days=1, target_dates=[date.today()])
+        target_dates = [date(2024, 1, 15), date(2024, 1, 16)]
+        with pytest.raises(NotImplementedError, match="Multi-day collection"):
+            await explorer.collect(target_dates=target_dates)
+
+    @pytest.mark.asyncio
+    async def test_collect_with_none_target_dates(
+        self, explorer: ZhihuExplorer
+    ) -> None:
+        """
+        Given: target_dates is None.
+        When: collect is called.
+        Then: Uses today's date for filename.
+        """
+        from datetime import datetime, timezone
+
+        mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
+        with patch.object(
+            explorer.client, "get_latest_news", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_news
+            explorer.gpt_client = MagicMock()
+            explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
+
+            result = await explorer.collect(target_dates=None)
+
+            # 今日の日付が使用されることを確認
+            assert len(result) == 1
+            json_path, md_path = result[0]
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            assert today_str in json_path
+            assert today_str in md_path
 
     @pytest.mark.asyncio
     async def test_collect_returns_empty_for_no_news(
@@ -301,10 +360,14 @@ class TestZhihuExplorerCollect:
 
             # Should complete and return file paths
             assert isinstance(result, list)
-            # Verify error message is set in article summary
+            # Verify error message is set in article summary (fixed message, no exception details)
             assert len(captured_articles) == 1
-            assert "要約生成エラー:" in captured_articles[0].summary
-            assert "GPT Error" in captured_articles[0].summary
+            assert (
+                captured_articles[0].summary
+                == ZhihuExplorer.ERROR_MSG_GENERATION_FAILED
+            )
+            # Ensure no exception details are leaked
+            assert "GPT Error" not in captured_articles[0].summary
 
 
 class TestZhihuExplorerRun:

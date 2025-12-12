@@ -54,7 +54,7 @@ class ZhihuExplorer(BaseService):
 
     # エラーメッセージ定数
     ERROR_MSG_EMPTY_SUMMARY = "要約を生成できませんでした（空のレスポンス）"
-    ERROR_MSG_GENERATION_FAILED = "要約生成エラー: {error}"
+    ERROR_MSG_GENERATION_FAILED = "要約生成に失敗しました"
 
     def __init__(self, storage_dir: str = "data", config: BaseConfig | None = None):
         """ZhihuExplorerを初期化.
@@ -143,14 +143,23 @@ class ZhihuExplorer(BaseService):
         list[tuple[str, str]]
             保存されたファイルパスのリスト [(json_path, md_path), ...]
         """
-        if days != 1:
-            raise NotImplementedError("Multi-day collection not yet implemented")
-
         # target_dates のバリデーション
         if target_dates is not None:
+            if len(target_dates) > 1:
+                raise NotImplementedError(
+                    "Multi-day collection (len(target_dates) > 1) is not yet implemented. "
+                    "Please provide a single date or use days=1."
+                )
+            # 単一日付の場合は受け入れる
+            target_date = target_dates[0]
+        else:
+            # target_dates が None の場合は今日の日付を使用
+            target_date = datetime.now(timezone.utc).date()
+
+        # days パラメータは target_dates が None の場合のみ使用
+        if target_dates is None and days != 1:
             raise NotImplementedError(
-                "target_dates parameter is not yet implemented. "
-                "Please use days parameter instead."
+                "Multi-day collection (days > 1) is not yet implemented"
             )
 
         # limit のバリデーション
@@ -189,8 +198,8 @@ class ZhihuExplorer(BaseService):
         )
 
         # 日付別にグループ化して保存
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        saved_files = await self._store_articles(articles, today)
+        date_str = target_date.strftime("%Y-%m-%d")
+        saved_files = await self._store_articles(articles, date_str)
 
         return saved_files
 
@@ -315,9 +324,11 @@ URL: {article.url}
                     f"GPT returned empty summary for article: {article.title}"
                 )
                 article.summary = self.ERROR_MSG_EMPTY_SUMMARY
-        except Exception as e:
-            self.logger.error(f"要約生成に失敗: {e}")
-            article.summary = self.ERROR_MSG_GENERATION_FAILED.format(error=str(e))
+        except Exception:
+            # 詳細はログにのみ記録（スタックトレース含む）
+            self.logger.exception(f"要約生成に失敗 (article: {article.title})")
+            # 成果物には固定メッセージのみ
+            article.summary = self.ERROR_MSG_GENERATION_FAILED
 
     async def _store_articles(
         self, articles: list[Article], date_str: str
