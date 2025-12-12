@@ -4,6 +4,7 @@
 知乎のホットトピックを取得するZhihuExplorerクラスのテストを行います。
 """
 
+from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -224,10 +225,6 @@ class TestZhihuExplorerTransform:
         datetime.fromtimestamp をモックして確実に例外を発生させ、
         フォールバック動作を検証します。
         """
-        from datetime import datetime as real_datetime
-        from datetime import timezone
-        from unittest.mock import MagicMock, patch
-
         item_negative = {
             "timestamp": -999999999,
             "created_at": "2023-04-01T00:00:00Z",  # Should fall back to this
@@ -238,14 +235,14 @@ class TestZhihuExplorerTransform:
         ) as mock_dt:
             # datetimeモジュール全体をモック
             mock_dt.now = MagicMock(
-                return_value=real_datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+                return_value=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
             )
 
             # fromtimestamp: 負の値では例外を発生、それ以外は本物を呼ぶ
             def _mock_fromtimestamp(ts, tz=None):
                 if ts < 0:
                     raise OSError("Negative epoch not supported (forced for test)")
-                return real_datetime.fromtimestamp(ts, tz=tz)
+                return datetime.fromtimestamp(ts, tz=tz)
 
             mock_dt.fromtimestamp = _mock_fromtimestamp
 
@@ -267,9 +264,6 @@ class TestZhihuExplorerTransform:
         Note: datetime.now をモックして時間を固定し、
         テストのフレーク（月末境界でのタイムラグによる失敗）を防ぎます。
         """
-        from datetime import datetime, timezone
-        from unittest.mock import patch
-
         # 固定の日時を設定（月末境界の影響を受けない日付を選択）
         fixed_now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -453,8 +447,6 @@ class TestZhihuExplorerCollect:
         When: collect が呼ばれたとき。
         Then: 日付を受け入れ、ファイル名に使用する。
         """
-        from datetime import date
-
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
         with patch.object(
             explorer.client, "get_latest_news", new_callable=AsyncMock
@@ -492,8 +484,6 @@ class TestZhihuExplorerCollect:
         When: collect が呼ばれたとき。
         Then: NotImplementedError を発生させる。
         """
-        from datetime import date
-
         target_dates = [date(2024, 1, 15), date(2024, 1, 16)]
         with pytest.raises(NotImplementedError, match="複数日の収集"):
             await explorer.collect(target_dates=target_dates)
@@ -509,12 +499,8 @@ class TestZhihuExplorerCollect:
 
         Note: datetime.now をモック固定して日付境界のフレークを完全に排除。
         """
-        from datetime import datetime as real_datetime
-        from datetime import timezone
-        from unittest.mock import MagicMock
-
         # 固定の日時を使用（フレーク防止）
-        fixed_now = real_datetime(2024, 6, 15, 23, 59, 59, tzinfo=timezone.utc)
+        fixed_now = datetime(2024, 6, 15, 23, 59, 59, tzinfo=timezone.utc)
         expected_date_str = "2024-06-15"
 
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
@@ -525,7 +511,7 @@ class TestZhihuExplorerCollect:
             # now() を固定
             mock_dt.now.return_value = fixed_now
             # fromtimestamp は本物を使用
-            mock_dt.fromtimestamp = real_datetime.fromtimestamp
+            mock_dt.fromtimestamp = datetime.fromtimestamp
 
             with patch.object(
                 explorer.client, "get_latest_news", new_callable=AsyncMock
@@ -1102,8 +1088,6 @@ class TestZhihuExplorerTargetDatesValidation:
         When: collect が呼ばれたとき。
         Then: days != 1 の ValueError を発生させる (一貫性のため days チェックが最初に行われる)。
         """
-        from datetime import date
-
         # days != 1 チェックが最初に実行されるため、「複数日の収集」エラーが発生
         with pytest.raises(ValueError, match="複数日の収集"):
             await explorer.collect(target_dates=[date(2024, 1, 15)], days=2)
