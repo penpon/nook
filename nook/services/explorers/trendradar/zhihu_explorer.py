@@ -322,7 +322,7 @@ class ZhihuExplorer(BaseService):
             return 0.0
 
     async def _summarize_article(self, article: Article) -> None:
-        """記事の要約を生成（in-place mutator）.
+        """記事の要約を生成（破壊的変更）.
 
         このメソッドは記事オブジェクトの `summary` フィールドを直接変更します。
         asyncio.gather等で並列実行する場合、各Articleオブジェクトが独立している

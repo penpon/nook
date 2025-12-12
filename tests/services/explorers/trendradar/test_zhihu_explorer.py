@@ -13,7 +13,7 @@ from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
 
 
 class TestZhihuExplorerInitialization:
-    """Tests for ZhihuExplorer initialization."""
+    """ZhihuExplorerの初期化テスト。"""
 
     @pytest.fixture
     def explorer(
@@ -46,7 +46,7 @@ class TestZhihuExplorerInitialization:
 
 
 class TestZhihuExplorerTransform:
-    """Tests for TrendRadar to Article transformation."""
+    """TrendRadarからArticleへの変換テスト。"""
 
     @pytest.fixture
     def explorer(
@@ -151,7 +151,7 @@ class TestZhihuExplorerTransform:
 
 
 class TestZhihuExplorerCollect:
-    """Tests for ZhihuExplorer.collect method."""
+    """ZhihuExplorer.collectメソッドのテスト。"""
 
     @pytest.fixture
     def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
@@ -428,7 +428,7 @@ class TestZhihuExplorerCollect:
 
 
 class TestZhihuExplorerRun:
-    """Tests for ZhihuExplorer.run method."""
+    """ZhihuExplorer.runメソッドのテスト。"""
 
     @pytest.fixture
     def explorer(self, monkeypatch: pytest.MonkeyPatch) -> ZhihuExplorer:
@@ -488,7 +488,7 @@ class TestZhihuExplorerRun:
 
 
 class TestZhihuExplorerContextManager:
-    """Tests for ZhihuExplorer context manager methods."""
+    """ZhihuExplorerのコンテキストマネージャーメソッドのテスト。"""
 
     @pytest.fixture
     def explorer(
@@ -531,7 +531,7 @@ class TestZhihuExplorerContextManager:
 
 
 class TestZhihuExplorerRenderMarkdown:
-    """Tests for ZhihuExplorer._render_markdown method."""
+    """ZhihuExplorer._render_markdownメソッドのテスト。"""
 
     @pytest.fixture
     def explorer(
@@ -649,7 +649,7 @@ class TestZhihuExplorerRenderMarkdown:
 
 
 class TestZhihuExplorerParsePopularityScore:
-    """Tests for ZhihuExplorer._parse_popularity_score method."""
+    """ZhihuExplorer._parse_popularity_scoreメソッドのテスト。"""
 
     @pytest.fixture
     def explorer(
@@ -724,7 +724,7 @@ class TestZhihuExplorerParsePopularityScore:
 
 
 class TestZhihuExplorerTargetDatesValidation:
-    """Tests for target_dates and days parameter validation."""
+    """target_datesとdaysパラメータのバリデーションテスト。"""
 
     @pytest.fixture
     def explorer(
