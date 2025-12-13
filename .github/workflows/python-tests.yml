@@ -1,10 +1,20 @@
-name: Tests
+name: Python Tests
 
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/python-tests.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/python-tests.yml'
   workflow_dispatch:  # 手動実行を許可
 
 permissions:
@@ -90,9 +100,9 @@ jobs:
           echo ""
           if [ -f coverage.xml ] && [ "$test_status" = "success" ]; then
             echo "### カバレッジ率"
-            echo "```"
+            echo "\`\`\`"
             uv run pytest --cov=nook --cov-report=term
-            echo "```"
+            echo "\`\`\`"
           elif [ ! -f coverage.xml ]; then
             echo "⚠️ カバレッジレポート（coverage.xml）が見つかりません"
           fi
