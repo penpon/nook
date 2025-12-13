@@ -4,7 +4,6 @@ This module tests the TrendRadarClient class that communicates with
 the TrendRadar MCP server via FastMCP to retrieve hot topics from Chinese platforms.
 """
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -54,22 +53,18 @@ class TestGetLatestNews:
         When: get_latest_news is called.
         Then: A list of news items is returned.
         """
-        mock_text_content = MagicMock()
-        mock_text_content.text = json.dumps(
-            {
-                "success": True,
-                "news": [
-                    {
-                        "title": "Sample hot topic",
-                        "platform": "zhihu",
-                        "rank": 1,
-                    },
-                ],
-            }
-        )
-
         mock_result = MagicMock()
-        mock_result.content = [mock_text_content]
+        mock_result.data = {
+            "success": True,
+            "news": [
+                {
+                    "title": "Sample hot topic",
+                    "platform": "zhihu",
+                    "rank": 1,
+                },
+            ],
+        }
+        mock_result.content = []
 
         with patch(
             "nook.services.explorers.trendradar.trendradar_client.Client"
@@ -94,11 +89,9 @@ class TestGetLatestNews:
         When: get_latest_news is called with platform parameter.
         Then: Request is made with correct platform parameter.
         """
-        mock_text_content = MagicMock()
-        mock_text_content.text = json.dumps({"success": True, "news": []})
-
         mock_result = MagicMock()
-        mock_result.content = [mock_text_content]
+        mock_result.data = {"success": True, "news": []}
+        mock_result.content = []
 
         with patch(
             "nook.services.explorers.trendradar.trendradar_client.Client"
@@ -123,13 +116,9 @@ class TestGetLatestNews:
         When: get_latest_news is called with limit.
         Then: Request includes limit parameter.
         """
-        mock_text_content = MagicMock()
-        mock_text_content.text = json.dumps(
-            {"success": True, "news": [{"title": "Topic 1"}]}
-        )
-
         mock_result = MagicMock()
-        mock_result.content = [mock_text_content]
+        mock_result.data = {"success": True, "news": [{"title": "Topic 1"}]}
+        mock_result.content = []
 
         with patch(
             "nook.services.explorers.trendradar.trendradar_client.Client"
@@ -155,16 +144,12 @@ class TestGetLatestNews:
         When: get_latest_news is called.
         Then: Empty list is returned.
         """
-        mock_text_content = MagicMock()
-        mock_text_content.text = json.dumps(
-            {
-                "success": False,
-                "error": {"code": "DATA_NOT_FOUND", "message": "No data found"},
-            }
-        )
-
         mock_result = MagicMock()
-        mock_result.content = [mock_text_content]
+        mock_result.data = {
+            "success": False,
+            "error": {"code": "DATA_NOT_FOUND", "message": "No data found"},
+        }
+        mock_result.content = []
 
         with patch(
             "nook.services.explorers.trendradar.trendradar_client.Client"

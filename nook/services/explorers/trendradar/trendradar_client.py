@@ -68,6 +68,36 @@ class TrendRadarClient:
             self._client = Client(self.base_url)
         return self._client
 
+    def _extract_news_items(self, payload: Any) -> list[dict[str, Any]]:
+        """Normalize TrendRadar tool payload into list of news dicts."""
+        if payload is None:
+            return []
+
+        # TrendRadar commonly returns {"success": true, "news": [...]}
+        if isinstance(payload, dict):
+            if payload.get("success") is False:
+                error_info = payload.get("error", {})
+                error_msg = error_info.get("message", "Unknown error from TrendRadar")
+                logger.warning(f"TrendRadar error: {error_msg}")
+                return []
+
+            news = payload.get("news")
+            if isinstance(news, list):
+                return news
+
+            items = payload.get("items")
+            if isinstance(items, list):
+                return items
+
+            # Unknown dict shape: return a single record if non-empty
+            return [payload] if payload else []
+
+        if isinstance(payload, list):
+            return payload
+
+        # Primitive/unknown payload types
+        return [{"text": str(payload)}]
+
     async def get_latest_news(
         self,
         platform: str = "zhihu",
@@ -117,12 +147,22 @@ class TrendRadarClient:
                     tool_name, {"platforms": [platform], "limit": limit}
                 )
 
-            # FastMCP returns CallToolResult which contains content
+            # FastMCP returns CallToolResult which may include structured data (.data)
+            # and/or content blocks (.content).
             if not result:
                 logger.error(f"Empty response from TrendRadar for {tool_name}")
                 raise TrendRadarError("Empty response from server")
 
-            # Parse the result - FastMCP returns content as list of TextContent
+            # Prefer structured data if provided by FastMCP
+            result_data = getattr(result, "data", None)
+            if result_data is not None:
+                return self._extract_news_items(result_data)
+
+            # Fallback: accept raw list/dict results (defensive)
+            if isinstance(result, (list, dict)):
+                return self._extract_news_items(result)
+
+            # Parse content blocks (e.g., TextContent) if present
             if hasattr(result, "content") and result.content:
                 # Extract text content and parse as JSON
                 for content in result.content:
@@ -130,31 +170,10 @@ class TrendRadarClient:
                         try:
                             data = json.loads(content.text)
 
-                            # Check for error response
-                            if isinstance(data, dict) and not data.get("success", True):
-                                error_info = data.get("error", {})
-                                error_msg = error_info.get(
-                                    "message", "Unknown error from TrendRadar"
-                                )
-                                logger.warning(f"TrendRadar error: {error_msg}")
-                                return []
-
-                            # TrendRadar returns {news: [...], success: true}
-                            if isinstance(data, dict) and "news" in data:
-                                return data["news"]
-                            elif isinstance(data, list):
-                                return data
-                            elif isinstance(data, dict) and "items" in data:
-                                return data["items"]
-                            else:
-                                return [data] if data else []
+                            return self._extract_news_items(data)
                         except json.JSONDecodeError:
                             # If not JSON, return as-is wrapped in list
                             return [{"text": content.text}]
-
-            # If result is already a list (from call_tool)
-            if isinstance(result, list):
-                return result
 
             logger.error(f"Invalid result type from TrendRadar: {type(result)}")
             raise TrendRadarError(
