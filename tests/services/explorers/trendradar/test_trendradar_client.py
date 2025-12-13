@@ -558,3 +558,35 @@ class TestGetLatestNewsFallbackPaths:
                 await client.get_latest_news(platform="zhihu")
 
             assert "unexpected result type" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_multiple_content_blocks_fallback(self):
+        """
+        Given: Response has multiple content blocks, first is not valid JSON, second is.
+        When: get_latest_news is called.
+        Then: Valid JSON from second block is parsed and returned.
+        """
+        mock_text_content1 = MagicMock()
+        mock_text_content1.text = "This is not JSON"
+
+        mock_text_content2 = MagicMock()
+        mock_text_content2.text = '{"success": true, "news": [{"title": "Valid JSON"}]}'
+
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text_content1, mock_text_content2]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["title"] == "Valid JSON"

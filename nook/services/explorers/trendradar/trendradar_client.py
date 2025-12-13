@@ -103,12 +103,21 @@ class TrendRadarClient:
             if news is not None:  # Explicitly check for None to handle falsy values
                 if isinstance(news, list):
                     return news
-                # news exists but is unexpected type, treat as unknown dict structure
+                # news exists but is unexpected type, log warning
+                logger.warning(
+                    f"'news' key has unexpected type {type(news).__name__}, "
+                    "expected list"
+                )
 
             items = payload.get("items")
             if items is not None:
                 if isinstance(items, list):
                     return items
+                # items exists but is unexpected type, log warning
+                logger.warning(
+                    f"'items' key has unexpected type {type(items).__name__}, "
+                    "expected list"
+                )
 
             # Unknown dict shape: return a single record if non-empty
             if not payload:
@@ -189,18 +198,23 @@ class TrendRadarClient:
                 return self._extract_news_items(result)
 
             # Parse content blocks (e.g., TextContent) if present
+            # We try each block and return the first successfully parsed one.
+            # If no valid JSON is found, we return the last text content as-is.
+            last_text_content = None
             if hasattr(result, "content") and result.content:
-                # Try each content block until we successfully parse one.
-                # Note: We process only the first successfully parsed TextContent block.
                 for content in result.content:
                     if hasattr(content, "text"):
+                        last_text_content = content.text
                         try:
                             data = json.loads(content.text)
-
                             return self._extract_news_items(data)
                         except json.JSONDecodeError:
-                            # If not JSON, return as-is wrapped in list
-                            return [{"text": content.text}]
+                            # Try next content block
+                            continue
+
+                # No valid JSON found, return last text content if available
+                if last_text_content is not None:
+                    return [{"text": last_text_content}]
 
             logger.error(f"Invalid result type from TrendRadar: {type(result)}")
             raise TrendRadarError(
@@ -231,9 +245,11 @@ class TrendRadarClient:
             return False
 
     async def close(self) -> None:
-        """Close client connection.
+        """Close client connection (no-op).
 
-        Should be called when done using the client.
+        This method is a no-op. Each request creates a new client that is
+        automatically closed via context manager, so explicit close is not needed.
+        Provided for API compatibility.
         """
         # FastMCP client is closed via context manager, nothing to do here
         pass
