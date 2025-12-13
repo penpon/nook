@@ -33,8 +33,7 @@ export function parseTrendradarZhihuMarkdown(markdown: string): ContentItem[] {
     }
 
     // 箇条書き / 番号付きリストのリンク行
-    const linkMatch =
-      /^(?:[-*]|\d+\.)\s*\[([^\]]+)\]\(([^)]+)\)(?:\s*[-–—]\s*(.*))?$/u.exec(line);
+    const linkMatch = /^(?:[-*]|\d+\.)\s*\[([^\]]+)\]\(([^)]+)\)(?:\s*[-–—]\s*(.*))?$/u.exec(line);
     if (linkMatch) {
       const [, title, url, summary] = linkMatch;
       articleNumber += 1;
