@@ -16,10 +16,15 @@ task_boundary
 .copilot_review_*
 .diff_tmp_*
 .prompt_full*
+.diff_*
 
 # Coverage artifacts
 .coverage
 coverage.json
+
+# AI/Tooling artifacts
+.copilot_manual_test_result.txt
+.droid_review_result.json
 
 
 # Project-specific data (keep in git)
