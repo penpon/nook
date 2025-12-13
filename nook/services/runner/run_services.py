@@ -37,6 +37,7 @@ class ServiceRunner:
         from nook.services.explorers.note.note_explorer import NoteExplorer
         from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
         from nook.services.explorers.reddit.reddit_explorer import RedditExplorer
+        from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
         from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
         from nook.services.feeds.business.business_feed import BusinessFeed
         from nook.services.feeds.hacker_news.hacker_news import HackerNewsRetriever
@@ -55,6 +56,7 @@ class ServiceRunner:
             "arxiv": ArxivSummarizer,
             "4chan": FourChanExplorer,
             "5chan": FiveChanExplorer,
+            "trendradar-zhihu": ZhihuExplorer,
         }
 
         # サービスインスタンスを保持（必要時にのみ作成）
@@ -77,16 +79,24 @@ class ServiceRunner:
         # target_datesをsortedのlist型に変換して各サービスに渡す
         sorted_target_dates = sorted_dates
 
+        # trendradar-zhihu は単一日のみ対応のため、複数日が渡された場合は警告を出して先頭日のみ処理する
+        if service_name == "trendradar-zhihu" and len(sorted_dates) > 1:
+            logger.warning(
+                f"trendradar-zhihu currently supports single day only. "
+                f"Truncating {len(sorted_dates)} days to {sorted_dates[0]}."
+            )
+            sorted_target_dates = [sorted_dates[0]]
+
         logger.info("\n" + "━" * 60)
-        if len(sorted_dates) <= 1:
+        if len(sorted_target_dates) <= 1:
             logger.info(
-                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}"
+                f"📅 対象日: {sorted_target_dates[0] if sorted_target_dates else datetime.now().date()}"
             )
         else:
-            start_date = sorted_dates[0]
-            end_date = sorted_dates[-1]
+            start_date = sorted_target_dates[0]
+            end_date = sorted_target_dates[-1]
             logger.info(
-                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間)"
+                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_target_dates)}日間)"
             )
         logger.info(f"🚀 サービス開始: {service_name}")
         logger.info("━" * 60)
@@ -288,6 +298,7 @@ async def main():
             "arxiv",
             "4chan",
             "5chan",
+            "trendradar-zhihu",
         ],
         default="all",
         help="実行するサービスを指定します",
