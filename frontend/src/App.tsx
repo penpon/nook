@@ -23,6 +23,7 @@ const sources = [
 	"reddit",
 	"4chan",
 	"5chan",
+	"trendradar-zhihu",
 ];
 
 function App() {
@@ -55,22 +56,22 @@ function App() {
 		}
 	}, [selectedSource]);
 
- const { processedItems, isLoading, isError, error, refetch } = useSourceData(
- 	selectedSource,
- 	selectedDate,
- );
+	const { processedItems, isLoading, isError, error, refetch } = useSourceData(
+		selectedSource,
+		selectedDate,
+	);
 
 	// 動的タイトル生成
 
 	// Error handler for the main application
 	const handleAppError = (error: Error, errorInfo: React.ErrorInfo) => {
-	console.error("Application Error:", {
-		error: error.message,
-		stack: error.stack,
-		componentStack: errorInfo.componentStack,
-		timestamp: new Date().toISOString(),
-		source: selectedSource,
-	});
+		console.error("Application Error:", {
+			error: error.message,
+			stack: error.stack,
+			componentStack: errorInfo.componentStack,
+			timestamp: new Date().toISOString(),
+			source: selectedSource,
+		});
 	};
 
 	// Handle mobile menu item click
@@ -87,7 +88,7 @@ function App() {
 					showWeather={false}
 					showSearchButton={false}
 					onMenuClick={toggleMobileMenu}
-					onSearchClick={() => {}}
+					onSearchClick={() => { }}
 					rightActions={<></>}
 				/>
 
@@ -96,15 +97,15 @@ function App() {
 					flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-screen overflow-y-auto z-20
 					${isMobileMenuOpen ? 'flex' : 'hidden md:flex'}
 				`}>
-				<Sidebar
-					selectedSource={selectedSource}
-					setSelectedSource={setSelectedSource}
-					selectedDate={selectedDate}
-					setSelectedDate={setSelectedDate}
-					darkMode={darkMode}
-					setDarkMode={setDarkMode}
-					onMenuItemClick={handleMobileMenuItemClick}
-				/>
+					<Sidebar
+						selectedSource={selectedSource}
+						setSelectedSource={setSelectedSource}
+						selectedDate={selectedDate}
+						setSelectedDate={setSelectedDate}
+						darkMode={darkMode}
+						setDarkMode={setDarkMode}
+						onMenuItemClick={handleMobileMenuItemClick}
+					/>
 				</div>
 
 				{/* Mobile Overlay */}

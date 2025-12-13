@@ -1,6 +1,6 @@
 import { format, subDays } from "date-fns";
-import { Calendar, Layout, Moon, Sun } from "lucide-react";
-import type React from "react";
+import { Calendar, Layout, Moon, Sun, ChevronDown, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
 import {
 	defaultSourceDisplayInfo,
 	sourceDisplayInfo,
@@ -26,19 +26,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 	setDarkMode,
 	onMenuItemClick,
 }) => {
-	const sources = [
-		"arxiv",
-		"github",
-		"hacker-news",
-		"tech-news",
-		"business-news",
-		"zenn",
-		"qiita",
-		"note",
-		"reddit",
-		"4chan",
-		"5chan",
-	];
+	// グループ設定
+	const sourceGroups = {
+		default: [
+			"arxiv",
+			"github",
+			"hacker-news",
+			"tech-news",
+			"business-news",
+			"zenn",
+			"qiita",
+			"note",
+			"reddit",
+			"4chan",
+			"5chan",
+		],
+		trendradar: ["trendradar-zhihu"],
+	};
+
+	// グループの開閉状態
+	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+		default: true,
+		trendradar: true,
+	});
+
+	const toggleGroup = (group: string) => {
+		setExpandedGroups((prev) => ({
+			...prev,
+			[group]: !prev[group],
+		}));
+	};
 
 	return (
 		<div className="sidebar-container h-full flex flex-col">
@@ -75,32 +92,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
 				/>
 			</div>
 
-		{/* Navigation - スクロール可能 */}
-		<nav className="flex-1 p-3 md:p-4 overflow-y-auto">
+			{/* Navigation - スクロール可能 */}
+			<nav className="flex-1 p-3 md:p-4 overflow-y-auto">
 				{/* Sources Section */}
-			<div className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">
-					Sources
-				</div>
-				{sources.map((source) => {
-					const sourceInfo =
-						sourceDisplayInfo[source] || defaultSourceDisplayInfo;
-					return (
-						<button
-							key={source}
-							onClick={() => {
-					setSelectedSource(source);
-					onMenuItemClick();
-							}}
-							className={`w-full text-left px-4 py-2 rounded-lg font-medium mb-2 transition-colors min-h-touch touch-manipulation ${
-					selectedSource === source
-									? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-									: "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30"
-							}`}
-						>
-							{sourceInfo.title}
-						</button>
-					);
-				})}
+				{/* Sources Sections */}
+				{Object.entries(sourceGroups).map(([groupKey, groupSources]) => (
+					<div key={groupKey} className="mb-4">
+						{/* Group Header */}
+						{groupKey === "trendradar" && (
+							<button
+								onClick={() => toggleGroup(groupKey)}
+								className="w-full flex items-center justify-between px-2 py-1 mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+							>
+								<span>TrendRadar</span>
+								{expandedGroups[groupKey] ? (
+									<ChevronDown className="w-4 h-4" />
+								) : (
+									<ChevronRight className="w-4 h-4" />
+								)}
+							</button>
+						)}
+
+						{/* Default group header (optional, mostly hidden or styled differently) */}
+						{groupKey === "default" && (
+							<div className="mb-3 px-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+								Feeds
+							</div>
+						)}
+
+						{/* Sources List */}
+						{expandedGroups[groupKey] && (
+							<div className="space-y-1">
+								{groupSources.map((source) => {
+									const sourceInfo =
+										sourceDisplayInfo[source] || defaultSourceDisplayInfo;
+									return (
+										<button
+											key={source}
+											onClick={() => {
+												setSelectedSource(source);
+												onMenuItemClick();
+											}}
+											className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors min-h-touch touch-manipulation flex items-center ${selectedSource === source
+													? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+													: "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30"
+												}`}
+										>
+											{sourceInfo.title}
+										</button>
+									);
+								})}
+							</div>
+						)}
+					</div>
+				))}
 
 				{/* Theme Toggle */}
 				<div className="mt-6">

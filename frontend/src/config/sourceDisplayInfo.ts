@@ -96,6 +96,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
 		gradientTo: "to-yellow-50",
 		borderColor: "border-amber-200",
 	},
+	"trendradar-zhihu": {
+		title: "知乎 (Zhihu)",
+		subtitle: "中国最大のQ&Aプラットフォーム",
+		dateFormat: "yyyy年MM月dd日",
+		gradientFrom: "from-blue-50",
+		gradientTo: "to-cyan-50",
+		borderColor: "border-blue-200",
+	},
 };
 
 // デフォルト設定
