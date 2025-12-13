@@ -18,13 +18,6 @@
 - **Maintainability**: Overly complex logic, confusing naming, significant duplication.
 - **Test Gaps**: Missing tests for critical paths or invalid assertions.
 
-### 🟢 Medium (Suggestions)
-- **Type Hints Strategy**:
-    <!-- Configuration: Check [x] the active policy. -->
-    - [ ] **Strict**: Require type hints for ALL functions.
-    - [x] **Loose**: Suggest hints only for public interfaces or complex logic.
-- **Optimization**: Only suggest if there is a clear bottleneck (e.g., O(N^2) in hot path).
-
 ---
 
 ## 🚫 Ignore (Handled by CI or Out of Scope)
@@ -32,7 +25,7 @@
 - Minor Linting (Unused imports/variables, missing docstrings on simple functions).
 - Strict Metrics (Line counts) unless readability is severely impacted.
 - **Docstring enhancements** (Raises/Examples/Notes sections) unless critical for understanding core behavior.
-- **Optional type hints** for internal/private methods (public interfaces only per Loose policy).
+
 - **Cosmetic suggestions** that do not affect functionality or prevent bugs.
 
 ---
