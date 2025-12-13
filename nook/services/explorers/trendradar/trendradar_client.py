@@ -78,8 +78,8 @@ class TrendRadarClient:
             if payload.get("success") is False:
                 error_info = payload.get("error", {})
                 error_msg = error_info.get("message", "Unknown error from TrendRadar")
-                logger.warning(f"TrendRadar error: {error_msg}")
-                return []
+                logger.error(f"TrendRadar error: {error_msg}")
+                raise TrendRadarError(f"TrendRadar error: {error_msg}")
 
             news = payload.get("news")
             if isinstance(news, list):
@@ -149,7 +149,7 @@ class TrendRadarClient:
 
             # FastMCP returns CallToolResult which may include structured data (.data)
             # and/or content blocks (.content).
-            if not result:
+            if result is None:
                 logger.error(f"Empty response from TrendRadar for {tool_name}")
                 raise TrendRadarError("Empty response from server")
 

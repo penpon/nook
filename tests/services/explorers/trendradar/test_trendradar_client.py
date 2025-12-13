@@ -142,13 +142,39 @@ class TestGetLatestNews:
         """
         Given: Response indicates an error.
         When: get_latest_news is called.
-        Then: Empty list is returned.
+        Then: TrendRadarError is raised.
         """
         mock_result = MagicMock()
         mock_result.data = {
             "success": False,
             "error": {"code": "DATA_NOT_FOUND", "message": "No data found"},
         }
+        mock_result.content = []
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "TrendRadar error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_allows_empty_news(self):
+        """
+        Given: Response contains empty news list.
+        When: get_latest_news is called.
+        Then: Empty list is returned without error.
+        """
+        mock_result = MagicMock()
+        mock_result.data = {"success": True, "news": []}
         mock_result.content = []
 
         with patch(
