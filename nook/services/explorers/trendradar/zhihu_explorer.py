@@ -6,6 +6,7 @@
 
 import asyncio
 import html
+import math
 import re
 from datetime import date, datetime, timezone
 from typing import Any
@@ -44,9 +45,8 @@ class ZhihuExplorer(BaseService):
     """
 
     # 記事ごとにGPT要約を生成するため、APIレート制限とコストを考慮して
-    # 1回のcollectあたりの取得数の上限 (15件)
-    # Note: limit パラメータは 1-100 の範囲でバリデーションされるため、
-    # TOTAL_LIMIT は 100 を超えないこと（整合性のため）
+    # limit パラメータが指定されていない場合のデフォルト取得数 (15件)
+    # Note: limit パラメータで 1-100 の範囲で明示的に指定可能
     TOTAL_LIMIT = 15
 
     # GPT設定
@@ -398,13 +398,20 @@ class ZhihuExplorer(BaseService):
         safe_title = self._sanitize_prompt_input(article.title, max_length=200)
         safe_url = self._sanitize_prompt_input(article.url, max_length=500)
         safe_text = self._sanitize_prompt_input(article.text or "", max_length=500)
+        # NaN/Infinity対策: 有限数でない場合は0にフォールバック
+        safe_popularity = (
+            article.popularity_score
+            if isinstance(article.popularity_score, (int, float))
+            and math.isfinite(article.popularity_score)
+            else 0.0
+        )
 
         prompt = f"""以下の知乎（Zhihu）ホットトピックを日本語で簡潔に要約してください。
 
 タイトル: {safe_title}
 URL: {safe_url}
 説明: {safe_text}
-人気度（ホット値）: {article.popularity_score:,.0f}
+人気度（ホット値）: {safe_popularity:,.0f}
 
 要約は1-2文で、このトピックが何について議論されているかを説明してください。"""
 
