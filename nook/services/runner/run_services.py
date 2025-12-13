@@ -76,13 +76,6 @@ class ServiceRunner:
         # days パラメータを使用するサービスの場合、対象期間を表示
         effective_dates = target_dates or target_dates_set(days)
         sorted_dates = sorted(effective_dates)
-        # trendradar-zhihu は現状単一日のみ対応のため、複数日が渡された場合は先頭日のみ処理する
-        if service_name == "trendradar-zhihu" and len(sorted_dates) > 1:
-            logger.info(
-                f"trendradar-zhihu は単一日のみ対応: {len(sorted_dates)}日分のうち先頭日 {sorted_dates[0]} のみ処理します"
-            )
-            sorted_dates = [sorted_dates[0]]
-
         # target_datesをsortedのlist型に変換して各サービスに渡す
         sorted_target_dates = sorted_dates
 

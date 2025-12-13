@@ -160,12 +160,12 @@ async def test_run_sync_service_dispatch_logic():
     service_mock.collect.reset_mock()
 
     # --- Case 5: trendradar-zhihu ---
-    # Expected: only the first day is passed even if multiple dates are provided
+    # Expected: All dates are passed (Validation delegated to ZhihuExplorer)
     multi_dates = [date(2024, 1, 2), date(2024, 1, 1)]
     await runner._run_sync_service(
         "trendradar-zhihu", service_mock, days=2, target_dates=multi_dates
     )
-    service_mock.collect.assert_awaited_with(target_dates=[date(2024, 1, 1)])
+    service_mock.collect.assert_awaited_with(target_dates=sorted(multi_dates))
     service_mock.collect.reset_mock()
 
     # --- Case 6: other (default) ---
