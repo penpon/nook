@@ -27,12 +27,16 @@
 
 ---
 
-## 🚫 Ignore (Handled by CI)
+## 🚫 Ignore (Handled by CI or Out of Scope)
 - Style & Formatting (Ruff format rules, line length, indentation).
 - Minor Linting (Unused imports/variables, missing docstrings on simple functions).
 - Strict Metrics (Line counts) unless readability is severely impacted.
+- **Docstring enhancements** (Raises/Examples/Notes sections) unless critical for understanding core behavior.
+- **Optional type hints** for internal/private methods (public interfaces only per Loose policy).
+- **Cosmetic suggestions** that do not affect functionality or prevent bugs.
 
 ---
+
 
 ## 📚 Scope & Context
 - **Target**: Phase 1-2 (Scraper, Analyzer, Storage).
