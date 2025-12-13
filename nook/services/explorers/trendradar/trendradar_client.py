@@ -100,12 +100,15 @@ class TrendRadarClient:
                 raise TrendRadarError(f"TrendRadar error: {error_msg}")
 
             news = payload.get("news")
-            if isinstance(news, list):
-                return news
+            if news is not None:  # Explicitly check for None to handle falsy values
+                if isinstance(news, list):
+                    return news
+                # news exists but is unexpected type, treat as unknown dict structure
 
             items = payload.get("items")
-            if isinstance(items, list):
-                return items
+            if items is not None:
+                if isinstance(items, list):
+                    return items
 
             # Unknown dict shape: return a single record if non-empty
             if not payload:
