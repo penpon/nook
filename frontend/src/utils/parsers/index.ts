@@ -10,6 +10,7 @@ import { parseQiitaArticlesMarkdown } from './qiitaParser';
 import { parseRedditPostsMarkdown } from './redditParser';
 import { parseTechNewsMarkdown } from './techNewsParser';
 import { parseZennArticlesMarkdown } from './zennParser';
+import { parseTrendradarZhihuMarkdown } from './trendradarZhihuParser';
 
 export {
   parseGitHubTrendingMarkdown,
@@ -23,6 +24,7 @@ export {
   parseFourchanThreadsMarkdown,
   parseFivechanThreadsMarkdown,
   parseHackerNewsData,
+  parseTrendradarZhihuMarkdown,
 };
 
 // パーサー選択ロジックを統一
@@ -39,6 +41,7 @@ export function getParserForSource(source: string) {
     '4chan': parseFourchanThreadsMarkdown,
     '5chan': parseFivechanThreadsMarkdown,
     'hacker-news': parseHackerNewsData,
+    'trendradar-zhihu': parseTrendradarZhihuMarkdown,
   };
 
   return parsers[source] || null;
