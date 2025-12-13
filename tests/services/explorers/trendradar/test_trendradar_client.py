@@ -476,6 +476,30 @@ class TestExtractNewsItems:
 
         assert result == []
 
+    def test_extract_news_items_with_none_payload(self):
+        """
+        Given: None payload.
+        When: _extract_news_items is called.
+        Then: Empty list is returned.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items(None)
+
+        assert result == []
+
+    def test_extract_news_items_with_numeric_payload(self):
+        """
+        Given: Numeric payload.
+        When: _extract_news_items is called.
+        Then: Payload is wrapped in dict with 'text' key as string.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items(42)
+
+        assert result == [{"text": "42"}]
+
 
 class TestGetLatestNewsFallbackPaths:
     """Tests for get_latest_news fallback handling paths."""
@@ -564,8 +588,8 @@ class TestGetLatestNewsFallbackPaths:
         """
         Given: Response has multiple content blocks, first is not valid JSON, second is.
         When: get_latest_news is called.
-        Then: First block is skipped (invalid JSON), second block is parsed and returned.
-        Note: Validates two-step strategy - returns first valid JSON, ignoring prior failures.
+        Then: Loops through blocks until valid JSON is found, returns parsed result.
+        Note: Validates two-step strategy - first valid JSON parse wins.
         """
         mock_text_content1 = MagicMock()
         mock_text_content1.text = "This is not JSON"
@@ -591,3 +615,35 @@ class TestGetLatestNewsFallbackPaths:
 
             assert len(result) == 1
             assert result[0]["title"] == "Valid JSON"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_all_content_blocks_non_json(self):
+        """
+        Given: Multiple content blocks, all contain non-JSON text.
+        When: get_latest_news is called.
+        Then: Last text content is returned as fallback with 'text' key.
+        """
+        mock_text1 = MagicMock()
+        mock_text1.text = "First non-JSON text"
+
+        mock_text2 = MagicMock()
+        mock_text2.text = "Last non-JSON text"
+
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text1, mock_text2]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["text"] == "Last non-JSON text"

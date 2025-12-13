@@ -103,21 +103,24 @@ class TrendRadarClient:
             if news is not None:  # Explicitly check for None to handle falsy values
                 if isinstance(news, list):
                     return news
-                # news exists but is unexpected type, log warning
+                # news exists but is unexpected type, return empty list to avoid
+                # passing malformed data downstream
                 logger.warning(
                     f"'news' key has unexpected type {type(news).__name__}, "
-                    "expected list"
+                    "expected list, returning empty result"
                 )
+                return []
 
             items = payload.get("items")
             if items is not None:
                 if isinstance(items, list):
                     return items
-                # items exists but is unexpected type, log warning
+                # items exists but is unexpected type, return empty list
                 logger.warning(
                     f"'items' key has unexpected type {type(items).__name__}, "
-                    "expected list"
+                    "expected list, returning empty result"
                 )
+                return []
 
             # Unknown dict shape: return a single record if non-empty
             if not payload:
