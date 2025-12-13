@@ -176,6 +176,12 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     warning_calls = [str(c) for c in mock_logger.warning.call_args_list]
     assert any("trendradar-zhihu" in c and "Truncating" in c for c in warning_calls)
 
+    # Check that INFO log shows single day ("対象日") instead of period ("対象期間")
+    # sorted_target_dates is now length 1, so it should log "対象日"
+    info_calls = [str(c) for c in mock_logger.info.call_args_list]
+    assert any("対象日" in c and "2024-01-01" in c for c in info_calls)
+    assert not any("対象期間" in c for c in info_calls)
+
     service_mock.collect.reset_mock()
 
     # --- Case 6: other (default) ---

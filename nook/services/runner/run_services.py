@@ -88,15 +88,15 @@ class ServiceRunner:
             sorted_target_dates = [sorted_dates[0]]
 
         logger.info("\n" + "━" * 60)
-        if len(sorted_dates) <= 1:
+        if len(sorted_target_dates) <= 1:
             logger.info(
-                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}"
+                f"📅 対象日: {sorted_target_dates[0] if sorted_target_dates else datetime.now().date()}"
             )
         else:
-            start_date = sorted_dates[0]
-            end_date = sorted_dates[-1]
+            start_date = sorted_target_dates[0]
+            end_date = sorted_target_dates[-1]
             logger.info(
-                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間)"
+                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_target_dates)}日間)"
             )
         logger.info(f"🚀 サービス開始: {service_name}")
         logger.info("━" * 60)
