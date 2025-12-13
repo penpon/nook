@@ -20,6 +20,19 @@ def client():
     return TrendRadarClient()
 
 
+@pytest.fixture
+def mock_fastmcp_client():
+    """Fixture for mocked FastMCP Client."""
+    with patch(
+        "nook.services.explorers.trendradar.trendradar_client.Client"
+    ) as MockClient:
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        MockClient.return_value = mock_client
+        yield mock_client
+
+
 class TestTrendRadarClientInitialization:
     """Tests for TrendRadarClient initialization."""
 
@@ -81,6 +94,64 @@ class TestGetLatestNews:
             assert isinstance(result, list)
             assert len(result) == 1
             assert result[0]["title"] == "Sample hot topic"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_parses_content_blocks(self):
+        """
+        Given: Response has no .data but has .content with TextContent.
+        When: get_latest_news is called.
+        Then: JSON from content is parsed and returned.
+        """
+        mock_text_content = MagicMock()
+        mock_text_content.text = (
+            '{"success": true, "news": [{"title": "From content"}]}'
+        )
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text_content]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["title"] == "From content"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_multiple_calls(self):
+        """
+        Given: TrendRadarClient instance.
+        When: get_latest_news is called multiple times.
+        Then: Each call succeeds without client reuse issues.
+        """
+        mock_result = MagicMock()
+        mock_result.data = {"success": True, "news": [{"title": "Topic"}]}
+        mock_result.content = []
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result1 = await client.get_latest_news(platform="zhihu")
+            result2 = await client.get_latest_news(platform="zhihu")
+
+            assert len(result1) == 1
+            assert len(result2) == 1
+            assert mock_client.call_tool.call_count == 2
 
     @pytest.mark.asyncio
     async def test_get_latest_news_with_platform_filter(self):
@@ -335,20 +406,16 @@ class TestClose:
     """Tests for close method."""
 
     @pytest.mark.asyncio
-    async def test_close_sets_client_to_none(self):
+    async def test_close_can_be_called(self):
         """
-        Given: Client with active FastMCP client.
+        Given: Client instance.
         When: close is called.
-        Then: _client is set to None.
+        Then: No error is raised (close is a no-op since each request creates new client).
         """
         client = TrendRadarClient()
 
-        # Initialize client
-        client._client = MagicMock()
-
+        # close() should not raise error
         await client.close()
-
-        assert client._client is None
 
     @pytest.mark.asyncio
     async def test_close_can_be_called_multiple_times(self):
@@ -361,8 +428,6 @@ class TestClose:
 
         # First close
         await client.close()
-        assert client._client is None
 
         # Second close should not raise error
         await client.close()
-        assert client._client is None

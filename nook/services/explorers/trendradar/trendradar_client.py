@@ -54,22 +54,39 @@ class TrendRadarClient:
             Base URL of the TrendRadar MCP server.
         """
         self.base_url = base_url or self.DEFAULT_URL
-        self._client: Client | None = None
 
-    def _get_client(self) -> Client:
-        """Get or create FastMCP client instance.
+    def _create_client(self) -> Client:
+        """Create a new FastMCP client instance.
+
+        A new client is created for each request to avoid issues with
+        context manager closing the client after use.
 
         Returns
         -------
         Client
-            FastMCP client instance.
+            New FastMCP client instance.
         """
-        if self._client is None:
-            self._client = Client(self.base_url)
-        return self._client
+        return Client(self.base_url)
 
     def _extract_news_items(self, payload: Any) -> list[dict[str, Any]]:
-        """Normalize TrendRadar tool payload into list of news dicts."""
+        """Normalize TrendRadar tool payload into list of news dicts.
+
+        Parameters
+        ----------
+        payload : Any
+            Response from TrendRadar MCP server. Can be dict, list, None,
+            or primitive types.
+
+        Returns
+        -------
+        list of dict
+            List of news item dicts. Returns empty list if input is None or empty.
+
+        Raises
+        ------
+        TrendRadarError
+            If TrendRadar server returned an error response.
+        """
         if payload is None:
             return []
 
@@ -90,7 +107,12 @@ class TrendRadarClient:
                 return items
 
             # Unknown dict shape: return a single record if non-empty
-            return [payload] if payload else []
+            if not payload:
+                return []
+            logger.warning(
+                f"Unknown dict structure from TrendRadar: {list(payload.keys())}"
+            )
+            return [payload]
 
         if isinstance(payload, list):
             return payload
@@ -137,7 +159,7 @@ class TrendRadarClient:
                 f"Invalid limit {limit}. Must be an integer between 1 and 100."
             )
 
-        client = self._get_client()
+        client = self._create_client()
         # TrendRadar uses get_latest_news with platforms parameter
         tool_name = "get_latest_news"
 
@@ -164,7 +186,9 @@ class TrendRadarClient:
 
             # Parse content blocks (e.g., TextContent) if present
             if hasattr(result, "content") and result.content:
-                # Extract text content and parse as JSON
+                # Extract first text content and parse as JSON.
+                # Note: We only process the first TextContent block as TrendRadar
+                # returns structured data in a single block.
                 for content in result.content:
                     if hasattr(content, "text"):
                         try:
@@ -194,12 +218,13 @@ class TrendRadarClient:
         bool
             True if server is reachable and returns healthy status.
         """
-        client = self._get_client()
+        client = self._create_client()
         try:
             async with client:
                 await client.ping()
             return True
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Health check failed: {e}")
             return False
 
     async def close(self) -> None:
@@ -208,4 +233,4 @@ class TrendRadarClient:
         Should be called when done using the client.
         """
         # FastMCP client is closed via context manager, nothing to do here
-        self._client = None
+        pass
