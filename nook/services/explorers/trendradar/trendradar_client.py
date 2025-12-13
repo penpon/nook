@@ -43,6 +43,7 @@ class TrendRadarClient:
     """
 
     DEFAULT_URL = "http://localhost:3333/mcp"
+    DEFAULT_TIMEOUT = 30
     SUPPORTED_PLATFORMS = ["zhihu", "weibo"]
 
     def __init__(self, base_url: str | None = None):
@@ -66,7 +67,7 @@ class TrendRadarClient:
         Client
             New FastMCP client instance.
         """
-        return Client(self.base_url, timeout=30)
+        return Client(self.base_url, timeout=self.DEFAULT_TIMEOUT)
 
     def _extract_news_items(self, payload: Any) -> list[dict[str, Any]]:
         """Normalize TrendRadar tool payload into list of news dicts.
@@ -159,11 +160,11 @@ class TrendRadarClient:
                 f"Invalid limit {limit}. Must be an integer between 1 and 100."
             )
 
-        client = self._create_client()
         # TrendRadar uses get_latest_news with platforms parameter
         tool_name = "get_latest_news"
 
         try:
+            client = self._create_client()
             async with client:
                 result = await client.call_tool(
                     tool_name, {"platforms": [platform], "limit": limit}
@@ -187,7 +188,7 @@ class TrendRadarClient:
             # Parse content blocks (e.g., TextContent) if present
             if hasattr(result, "content") and result.content:
                 # Try each content block until we successfully parse one.
-                # Note: We take the first successfully parsed TextContent block.
+                # Note: We process only the first successfully parsed TextContent block.
                 for content in result.content:
                     if hasattr(content, "text"):
                         try:
@@ -217,8 +218,8 @@ class TrendRadarClient:
         bool
             True if server is reachable and returns healthy status.
         """
-        client = self._create_client()
         try:
+            client = self._create_client()
             async with client:
                 await client.ping()
             return True

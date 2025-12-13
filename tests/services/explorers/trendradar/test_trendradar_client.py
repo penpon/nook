@@ -20,19 +20,6 @@ def client():
     return TrendRadarClient()
 
 
-@pytest.fixture
-def mock_fastmcp_client():
-    """Fixture for mocked FastMCP Client."""
-    with patch(
-        "nook.services.explorers.trendradar.trendradar_client.Client"
-    ) as MockClient:
-        mock_client = MagicMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=None)
-        MockClient.return_value = mock_client
-        yield mock_client
-
-
 class TestTrendRadarClientInitialization:
     """Tests for TrendRadarClient initialization."""
 
@@ -477,6 +464,18 @@ class TestExtractNewsItems:
 
         assert result == [{"custom_key": "custom_value"}]
 
+    def test_extract_news_items_with_empty_dict(self):
+        """
+        Given: Empty dict payload.
+        When: _extract_news_items is called.
+        Then: Empty list is returned.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items({})
+
+        assert result == []
+
 
 class TestGetLatestNewsFallbackPaths:
     """Tests for get_latest_news fallback handling paths."""
@@ -533,3 +532,29 @@ class TestGetLatestNewsFallbackPaths:
 
             assert len(result) == 1
             assert result[0]["title"] == "Direct list item"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_raises_on_invalid_result_type(self):
+        """
+        Given: Result has no .data, is not list/dict, and has empty .content.
+        When: get_latest_news is called.
+        Then: TrendRadarError is raised for unexpected result type.
+        """
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = []  # Empty content list
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "unexpected result type" in str(exc_info.value)
