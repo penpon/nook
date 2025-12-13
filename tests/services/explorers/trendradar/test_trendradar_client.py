@@ -152,6 +152,8 @@ class TestGetLatestNews:
             assert len(result1) == 1
             assert len(result2) == 1
             assert mock_client.call_tool.call_count == 2
+            # Verify new Client is created for each request
+            assert MockClient.call_count == 2
 
     @pytest.mark.asyncio
     async def test_get_latest_news_with_platform_filter(self):
@@ -431,3 +433,103 @@ class TestClose:
 
         # Second close should not raise error
         await client.close()
+
+
+class TestExtractNewsItems:
+    """Tests for _extract_news_items helper method."""
+
+    def test_extract_news_items_with_primitive_payload(self):
+        """
+        Given: Primitive type payload (string).
+        When: _extract_news_items is called.
+        Then: Payload is wrapped in dict with 'text' key.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items("plain text payload")
+
+        assert result == [{"text": "plain text payload"}]
+
+    def test_extract_news_items_with_items_key(self):
+        """
+        Given: Payload with 'items' key instead of 'news'.
+        When: _extract_news_items is called.
+        Then: Items are extracted correctly.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items(
+            {"success": True, "items": [{"title": "Item 1"}, {"title": "Item 2"}]}
+        )
+
+        assert len(result) == 2
+        assert result[0]["title"] == "Item 1"
+
+    def test_extract_news_items_with_unknown_dict_structure(self):
+        """
+        Given: Dict with unknown structure (no 'news' or 'items').
+        When: _extract_news_items is called.
+        Then: Original dict is returned wrapped in a list with warning logged.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items({"custom_key": "custom_value"})
+
+        assert result == [{"custom_key": "custom_value"}]
+
+
+class TestGetLatestNewsFallbackPaths:
+    """Tests for get_latest_news fallback handling paths."""
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_handles_non_json_content(self):
+        """
+        Given: Response has content.text that is not valid JSON.
+        When: get_latest_news is called.
+        Then: Content is returned as-is wrapped in list with 'text' key.
+        """
+        mock_text_content = MagicMock()
+        mock_text_content.text = "This is not JSON"
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text_content]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["text"] == "This is not JSON"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_handles_raw_list_result(self):
+        """
+        Given: Result is a raw list (no .data attribute, result itself is list).
+        When: get_latest_news is called.
+        Then: List is processed directly by _extract_news_items.
+        """
+        # Create a result that is actually a list (defensive fallback path)
+        raw_list_result = [{"title": "Direct list item"}]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=raw_list_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["title"] == "Direct list item"

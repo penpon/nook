@@ -66,7 +66,7 @@ class TrendRadarClient:
         Client
             New FastMCP client instance.
         """
-        return Client(self.base_url)
+        return Client(self.base_url, timeout=30)
 
     def _extract_news_items(self, payload: Any) -> list[dict[str, Any]]:
         """Normalize TrendRadar tool payload into list of news dicts.
@@ -186,9 +186,8 @@ class TrendRadarClient:
 
             # Parse content blocks (e.g., TextContent) if present
             if hasattr(result, "content") and result.content:
-                # Extract first text content and parse as JSON.
-                # Note: We only process the first TextContent block as TrendRadar
-                # returns structured data in a single block.
+                # Try each content block until we successfully parse one.
+                # Note: We take the first successfully parsed TextContent block.
                 for content in result.content:
                     if hasattr(content, "text"):
                         try:
@@ -207,7 +206,7 @@ class TrendRadarClient:
         except TrendRadarError:
             raise
         except Exception as e:
-            logger.error(f"TrendRadar error: {e}")
+            logger.exception("TrendRadar error")
             raise TrendRadarError(f"Failed to get news: {e}") from e
 
     async def health_check(self) -> bool:
