@@ -115,9 +115,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 						{/* Default group header (optional, mostly hidden or styled differently) */}
 						{groupKey === "default" && (
-							<div className="mb-3 px-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-								Feeds
-							</div>
+							<button
+								onClick={() => toggleGroup(groupKey)}
+								className="w-full flex items-center justify-between px-2 py-1 mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+							>
+								<span>Feeds</span>
+								{expandedGroups[groupKey] ? (
+									<ChevronDown className="w-4 h-4" />
+								) : (
+									<ChevronRight className="w-4 h-4" />
+								)}
+							</button>
 						)}
 
 						{/* Sources List */}
@@ -134,8 +142,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 												onMenuItemClick();
 											}}
 											className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors min-h-touch touch-manipulation flex items-center ${selectedSource === source
-													? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-													: "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30"
+												? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+												: "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30"
 												}`}
 										>
 											{sourceInfo.title}

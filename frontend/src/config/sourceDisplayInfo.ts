@@ -100,9 +100,9 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
 		title: "知乎 (Zhihu)",
 		subtitle: "中国最大のQ&Aプラットフォーム",
 		dateFormat: "yyyy年MM月dd日",
-		gradientFrom: "from-blue-50",
-		gradientTo: "to-cyan-50",
-		borderColor: "border-blue-200",
+		gradientFrom: "from-indigo-50",
+		gradientTo: "to-blue-50",
+		borderColor: "border-indigo-200",
 	},
 };
 
