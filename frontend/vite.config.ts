@@ -22,6 +22,11 @@ export default defineConfig({
 		globals: true,
 		environment: "jsdom",
 		setupFiles: ["./src/test/setup.ts"],
+		passWithNoTests: true,
+		coverage: {
+			reporter: ["text", "text-summary"],
+			reportsDirectory: "./coverage",
+		},
 	},
 	optimizeDeps: {
 		exclude: ["lucide-react"],

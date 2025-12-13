@@ -4,41 +4,40 @@
 
 /* 基本的なカスタムスタイルのみ保持 */
 @layer components {
-	.dashboard-container {
-		container-type: inline-size;
-		container-name: dashboard;
-	}
+  .dashboard-container {
+    container-type: inline-size;
+    container-name: dashboard;
+  }
 
+  .mobile-header {
+    @apply fixed top-0 left-0 right-0 bg-white border-b border-gray-200 md:hidden;
+    @apply shadow-sm z-30;
+  }
 
-	.mobile-header {
-		@apply fixed top-0 left-0 right-0 bg-white border-b border-gray-200 md:hidden;
-		@apply shadow-sm z-30;
-	}
+  .sidebar-container {
+    container-type: inline-size;
+    container-name: sidebar;
+  }
 
-	.sidebar-container {
-		container-type: inline-size;
-		container-name: sidebar;
-	}
+  /* タッチサイズ統一 */
+  .min-h-touch {
+    min-height: 44px;
+  }
 
-	/* タッチサイズ統一 */
-	.min-h-touch {
-		min-height: 44px;
-	}
+  .min-w-touch {
+    min-width: 44px;
+  }
 
-	.min-w-touch {
-		min-width: 44px;
-	}
+  /* ボタンスタイル */
+  .btn-secondary {
+    @apply bg-gray-50 hover:bg-gray-100 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300;
+    @apply rounded-lg transition-colors duration-200 touch-manipulation;
+    @apply active:scale-95 active:bg-gray-200 dark:active:bg-gray-600;
+    @apply min-h-touch min-w-touch;
+  }
 
-	/* ボタンスタイル */
-	.btn-secondary {
-		@apply bg-gray-50 hover:bg-gray-100 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300;
-		@apply rounded-lg transition-colors duration-200 touch-manipulation;
-		@apply active:scale-95 active:bg-gray-200 dark:active:bg-gray-600;
-		@apply min-h-touch min-w-touch;
-	}
-
-	/* レスポンシブテキスト */
-	.text-responsive-lg {
-		@apply text-lg md:text-xl;
-	}
+  /* レスポンシブテキスト */
+  .text-responsive-lg {
+    @apply text-lg md:text-xl;
+  }
 }
