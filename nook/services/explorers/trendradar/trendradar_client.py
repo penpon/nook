@@ -197,14 +197,15 @@ class TrendRadarClient:
             if isinstance(result, (list, dict)):
                 return self._extract_news_items(result)
 
-            # Parse content blocks (e.g., TextContent) if present
-            # We try each block and return the first successfully parsed one.
-            # If no valid JSON is found, we return the last text content as-is.
-            last_text_content = None
+            # Parse content blocks (e.g., TextContent) if present.
+            # Two-step strategy:
+            # 1. Return the first successfully parsed JSON block.
+            # 2. If no valid JSON found, return the last text content as fallback.
+            fallback_text_content = None
             if hasattr(result, "content") and result.content:
                 for content in result.content:
                     if hasattr(content, "text"):
-                        last_text_content = content.text
+                        fallback_text_content = content.text
                         try:
                             data = json.loads(content.text)
                             return self._extract_news_items(data)
@@ -212,9 +213,9 @@ class TrendRadarClient:
                             # Try next content block
                             continue
 
-                # No valid JSON found, return last text content if available
-                if last_text_content is not None:
-                    return [{"text": last_text_content}]
+                # No valid JSON found, return fallback text content if available
+                if fallback_text_content is not None:
+                    return [{"text": fallback_text_content}]
 
             logger.error(f"Invalid result type from TrendRadar: {type(result)}")
             raise TrendRadarError(

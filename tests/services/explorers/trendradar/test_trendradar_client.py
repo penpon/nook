@@ -564,7 +564,8 @@ class TestGetLatestNewsFallbackPaths:
         """
         Given: Response has multiple content blocks, first is not valid JSON, second is.
         When: get_latest_news is called.
-        Then: Valid JSON from second block is parsed and returned.
+        Then: First block is skipped (invalid JSON), second block is parsed and returned.
+        Note: Validates two-step strategy - returns first valid JSON, ignoring prior failures.
         """
         mock_text_content1 = MagicMock()
         mock_text_content1.text = "This is not JSON"
