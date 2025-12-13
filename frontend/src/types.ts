@@ -14,6 +14,10 @@ export interface ContentItem {
     feedName?: string;
     subreddit?: string;
     source?: string;
+    board?: string;
+    threadNumber?: string;
+    replyCount?: string;
+    imageCount?: string;
   };
 }
 

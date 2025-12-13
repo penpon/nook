@@ -17,7 +17,8 @@
 		"coverage": "vitest run --coverage",
 		"audit": "npm audit fix",
 		"check": "npm run format:check && npm run lint",
-		"quality-check": "npm run format && npm run lint:fix && npm run test:run && npm run coverage && npm run audit",
+		"quality-check": "npm run format:check && npm run lint && npm run test:run && npm run coverage",
+		"quality-fix": "npm run format && npm run lint:fix && npm run test:run && npm run coverage && npm run audit",
 		"prepare": "husky"
 	},
 	"dependencies": {

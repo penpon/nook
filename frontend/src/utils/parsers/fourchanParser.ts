@@ -99,14 +99,14 @@ export function parseFourchanThreadsMarkdown(markdown: string): ContentItem[] {
           url: threadUrl,
           source: '4chan',
           category: currentCategory,
-          board: currentCategory,
-          threadNumber: threadNumber,
-          replyCount: replyCount,
-          imageCount: imageCount,
           isArticle: true,
           metadata: {
             source: '4chan',
             articleNumber: articleNumber,
+            board: currentCategory,
+            threadNumber: threadNumber,
+            replyCount: replyCount,
+            imageCount: imageCount,
           },
         });
       }
