@@ -33,23 +33,34 @@ export function parseTrendradarZhihuMarkdown(markdown: string): ContentItem[] {
     }
 
     // 箇条書き / 番号付きリストのリンク行
-    const linkMatch = /^(?:[-*]|\d+\.)\s*\[([^\]]+)\]\(([^)]+)\)(?:\s*[-–—]\s*(.*))?$/u.exec(line);
-    if (linkMatch) {
-      const [, title, url, summary] = linkMatch;
-      articleNumber += 1;
-      items.push({
-        title: title.trim(),
-        url: url.trim(),
-        content: summary?.trim() || '',
-        source: SOURCE,
-        isArticle: true,
-        metadata: {
-          articleNumber,
-          feedName: 'Zhihu',
-          source: currentCategory ?? undefined,
-        },
-      });
-      continue;
+    // ReDoS脆弱性を避けるため、段階的にマッチング
+    const listPrefixMatch = /^(?:[-*]|\d+\.)\s*(.+)$/.exec(line);
+    if (listPrefixMatch) {
+      const content = listPrefixMatch[1];
+      const linkPattern = /^\[([^\]]+)\]\(([^)]*)\)(.*)$/;
+      const linkMatch = linkPattern.exec(content);
+
+      if (linkMatch) {
+        const [, title, url, rest] = linkMatch;
+        // サマリー部分の抽出（ダッシュ記号の後）
+        const summaryMatch = /^\s*[-–—]\s*(.*)$/.exec(rest);
+        const summary = summaryMatch ? summaryMatch[1] : '';
+
+        articleNumber += 1;
+        items.push({
+          title: title.trim(),
+          url: url.trim(),
+          content: summary.trim(),
+          source: SOURCE,
+          isArticle: true,
+          metadata: {
+            articleNumber,
+            feedName: 'Zhihu',
+            source: currentCategory ?? undefined,
+          },
+        });
+        continue;
+      }
     }
 
     // その他の行は前項目の本文に追記（シンプルな結合）
