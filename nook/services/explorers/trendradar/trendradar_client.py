@@ -100,7 +100,8 @@ class TrendRadarClient:
                 raise TrendRadarError(f"TrendRadar error: {error_msg}")
 
             news = payload.get("news")
-            if news is not None:  # Explicitly check for None to handle falsy values
+            # Check for None instead of truthiness to allow empty lists
+            if news is not None:
                 if isinstance(news, list):
                     return news
                 # news exists but is unexpected type, return empty list to avoid
@@ -204,6 +205,8 @@ class TrendRadarClient:
             # Two-step strategy:
             # 1. Return the first successfully parsed JSON block.
             # 2. If no valid JSON found, return the last text content as fallback.
+            #    We use the last text content because it's most likely the final/complete
+            #    response from the server when earlier blocks failed to parse.
             fallback_text_content = None
             if hasattr(result, "content") and result.content:
                 for content in result.content:
@@ -228,7 +231,7 @@ class TrendRadarClient:
         except TrendRadarError:
             raise
         except Exception as e:
-            logger.exception("TrendRadar error")
+            logger.exception(f"TrendRadar API call failed for platform={platform}")
             raise TrendRadarError(f"Failed to get news: {e}") from e
 
     async def health_check(self) -> bool:
