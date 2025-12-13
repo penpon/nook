@@ -1,4 +1,4 @@
-"""TrendRadar MCP server HTTP client.
+"""TrendRadar MCP server client using FastMCP.
 
 This module provides a client for communicating with the TrendRadar MCP server
 to retrieve hot topics from Chinese platforms like Zhihu.
@@ -8,8 +8,7 @@ import json
 import logging
 from typing import Any
 
-from nook.core.clients.http_client import AsyncHTTPClient
-from nook.core.errors.exceptions import APIException
+from fastmcp import Client
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ class TrendRadarError(Exception):
 
 
 class TrendRadarClient:
-    """HTTP client for TrendRadar MCP server.
+    """FastMCP client for TrendRadar MCP server.
 
     This client communicates with the TrendRadar MCP server to retrieve
     hot topics from various Chinese platforms.
@@ -55,86 +54,19 @@ class TrendRadarClient:
             Base URL of the TrendRadar MCP server.
         """
         self.base_url = base_url or self.DEFAULT_URL
-        self._http_client: AsyncHTTPClient | None = None
-        self._request_id_counter = 0
+        self._client: Client | None = None
 
-    async def _get_http_client(self) -> AsyncHTTPClient:
-        """Get or create HTTP client instance.
-
-        Returns
-        -------
-        AsyncHTTPClient
-            HTTP client instance.
-        """
-        if self._http_client is None:
-            self._http_client = AsyncHTTPClient()
-            await self._http_client.start()
-        return self._http_client
-
-    async def _make_request(
-        self,
-        method: str,
-        params: dict | None = None,
-    ) -> dict[str, Any]:
-        """Make a JSON-RPC style request to TrendRadar MCP server.
-
-        Parameters
-        ----------
-        method : str
-            Method name to call.
-        params : dict, optional
-            Parameters for the method.
+    def _get_client(self) -> Client:
+        """Get or create FastMCP client instance.
 
         Returns
         -------
-        dict
-            Response data from the server.
-
-        Raises
-        ------
-        TrendRadarError
-            If the request fails or server returns an error.
+        Client
+            FastMCP client instance.
         """
-        http_client = await self._get_http_client()
-
-        # Generate unique request ID
-        self._request_id_counter += 1
-
-        request_body = {
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params or {},
-            "id": self._request_id_counter,
-        }
-
-        try:
-            response = await http_client.post(
-                self.base_url,
-                json=request_body,
-                headers={"Content-Type": "application/json"},
-            )
-            data = response.json()
-
-            # Check for JSON-RPC error
-            if "error" in data:
-                error_msg = data["error"]
-                logger.error(f"TrendRadar API error: {error_msg}")
-                raise TrendRadarError(f"API error: {error_msg}")
-
-            return data
-
-        except APIException as e:
-            logger.error(f"TrendRadar communication failed: {e}")
-            raise TrendRadarError(f"Communication failed: {e}") from e
-
-        except (ValueError, KeyError, json.JSONDecodeError) as e:
-            # ValueError/JSONDecodeError is raised by response.json() for invalid JSON
-            logger.error(f"Invalid JSON response from TrendRadar: {e}")
-            raise TrendRadarError(f"Invalid JSON response from server: {e}") from e
-
-        except Exception as e:
-            logger.error(f"TrendRadar unexpected error: {e}")
-            raise TrendRadarError(f"Unexpected error: {e}") from e
+        if self._client is None:
+            self._client = Client(self.base_url)
+        return self._client
 
     async def get_latest_news(
         self,
@@ -175,30 +107,65 @@ class TrendRadarClient:
                 f"Invalid limit {limit}. Must be an integer between 1 and 100."
             )
 
-        response = await self._make_request(
-            method="tools/call",
-            params={
-                "name": f"get_{platform}_hot",
-                "arguments": {"limit": limit},
-            },
-        )
+        client = self._get_client()
+        # TrendRadar uses get_latest_news with platforms parameter
+        tool_name = "get_latest_news"
 
-        # Extract result from JSON-RPC response
-        if "result" not in response:
-            logger.error(f"Invalid response from TrendRadar: {response}")
-            raise TrendRadarError("Invalid response: missing 'result' field")
+        try:
+            async with client:
+                result = await client.call_tool(
+                    tool_name, {"platforms": [platform], "limit": limit}
+                )
 
-        # Validate result type
-        if not isinstance(response["result"], list):
-            logger.error(
-                f"Invalid result type from TrendRadar: {type(response['result'])}"
-            )
+            # FastMCP returns CallToolResult which contains content
+            if not result:
+                logger.error(f"Empty response from TrendRadar for {tool_name}")
+                raise TrendRadarError("Empty response from server")
+
+            # Parse the result - FastMCP returns content as list of TextContent
+            if hasattr(result, "content") and result.content:
+                # Extract text content and parse as JSON
+                for content in result.content:
+                    if hasattr(content, "text"):
+                        try:
+                            data = json.loads(content.text)
+
+                            # Check for error response
+                            if isinstance(data, dict) and not data.get("success", True):
+                                error_info = data.get("error", {})
+                                error_msg = error_info.get(
+                                    "message", "Unknown error from TrendRadar"
+                                )
+                                logger.warning(f"TrendRadar error: {error_msg}")
+                                return []
+
+                            # TrendRadar returns {news: [...], success: true}
+                            if isinstance(data, dict) and "news" in data:
+                                return data["news"]
+                            elif isinstance(data, list):
+                                return data
+                            elif isinstance(data, dict) and "items" in data:
+                                return data["items"]
+                            else:
+                                return [data] if data else []
+                        except json.JSONDecodeError:
+                            # If not JSON, return as-is wrapped in list
+                            return [{"text": content.text}]
+
+            # If result is already a list (from call_tool)
+            if isinstance(result, list):
+                return result
+
+            logger.error(f"Invalid result type from TrendRadar: {type(result)}")
             raise TrendRadarError(
-                f"Invalid response: 'result' must be a list, "
-                f"got {type(response['result']).__name__}"
+                f"Invalid response: unexpected result type {type(result).__name__}"
             )
 
-        return response["result"]
+        except TrendRadarError:
+            raise
+        except Exception as e:
+            logger.error(f"TrendRadar error: {e}")
+            raise TrendRadarError(f"Failed to get news: {e}") from e
 
     async def health_check(self) -> bool:
         """Check if TrendRadar server is reachable.
@@ -208,18 +175,18 @@ class TrendRadarClient:
         bool
             True if server is reachable and returns healthy status.
         """
+        client = self._get_client()
         try:
-            await self._make_request(method="health")
-            # Response received successfully indicates server is healthy
+            async with client:
+                await client.ping()
             return True
-        except TrendRadarError:
+        except Exception:
             return False
 
     async def close(self) -> None:
-        """Close HTTP client connection.
+        """Close client connection.
 
         Should be called when done using the client.
         """
-        if self._http_client:
-            await self._http_client.close()
-            self._http_client = None
+        # FastMCP client is closed via context manager, nothing to do here
+        self._client = None
