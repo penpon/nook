@@ -37,6 +37,7 @@ class ServiceRunner:
         from nook.services.explorers.note.note_explorer import NoteExplorer
         from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
         from nook.services.explorers.reddit.reddit_explorer import RedditExplorer
+        from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
         from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
         from nook.services.feeds.business.business_feed import BusinessFeed
         from nook.services.feeds.hacker_news.hacker_news import HackerNewsRetriever
@@ -55,6 +56,7 @@ class ServiceRunner:
             "arxiv": ArxivSummarizer,
             "4chan": FourChanExplorer,
             "5chan": FiveChanExplorer,
+            "trendradar-zhihu": ZhihuExplorer,
         }
 
         # サービスインスタンスを保持（必要時にのみ作成）
@@ -288,6 +290,7 @@ async def main():
             "arxiv",
             "4chan",
             "5chan",
+            "trendradar-zhihu",
         ],
         default="all",
         help="実行するサービスを指定します",

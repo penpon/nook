@@ -240,6 +240,7 @@ def test_service_runner_init_loads_service_classes():
         "arxiv",
         "4chan",
         "5chan",
+        "trendradar-zhihu",
     ]
     for service in expected_services:
         assert service in runner.service_classes
