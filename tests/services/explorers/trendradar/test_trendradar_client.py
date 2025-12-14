@@ -1,15 +1,13 @@
 """Tests for TrendRadar MCP client.
 
 This module tests the TrendRadarClient class that communicates with
-the TrendRadar MCP server to retrieve hot topics from Chinese platforms.
+the TrendRadar MCP server via FastMCP to retrieve hot topics from Chinese platforms.
 """
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nook.core.errors.exceptions import APIException
 from nook.services.explorers.trendradar.trendradar_client import (
     TrendRadarClient,
     TrendRadarError,
@@ -55,29 +53,94 @@ class TestGetLatestNews:
         When: get_latest_news is called.
         Then: A list of news items is returned.
         """
-        mock_response_data = {
-            "result": [
+        mock_result = MagicMock()
+        mock_result.data = {
+            "success": True,
+            "news": [
                 {
                     "title": "Sample hot topic",
-                    "url": "https://zhihu.com/topic/1",
-                    "hot": 1000000,
+                    "platform": "zhihu",
+                    "rank": 1,
                 },
-            ]
+            ],
         }
+        mock_result.content = []
 
-        client = TrendRadarClient()
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
 
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = mock_response_data
-
+            client = TrendRadarClient()
             result = await client.get_latest_news(platform="zhihu")
 
             assert isinstance(result, list)
             assert len(result) == 1
             assert result[0]["title"] == "Sample hot topic"
-            mock_request.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_parses_content_blocks(self):
+        """
+        Given: Response has no .data but has .content with TextContent.
+        When: get_latest_news is called.
+        Then: JSON from content is parsed and returned.
+        """
+        mock_text_content = MagicMock()
+        mock_text_content.text = (
+            '{"success": true, "news": [{"title": "From content"}]}'
+        )
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text_content]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["title"] == "From content"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_multiple_calls(self):
+        """
+        Given: TrendRadarClient instance.
+        When: get_latest_news is called multiple times.
+        Then: Each call succeeds without client reuse issues.
+        """
+        mock_result = MagicMock()
+        mock_result.data = {"success": True, "news": [{"title": "Topic"}]}
+        mock_result.content = []
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result1 = await client.get_latest_news(platform="zhihu")
+            result2 = await client.get_latest_news(platform="zhihu")
+
+            assert len(result1) == 1
+            assert len(result2) == 1
+            assert mock_client.call_tool.call_count == 2
+            # Verify new Client is created for each request
+            assert MockClient.call_count == 2
 
     @pytest.mark.asyncio
     async def test_get_latest_news_with_platform_filter(self):
@@ -86,19 +149,25 @@ class TestGetLatestNews:
         When: get_latest_news is called with platform parameter.
         Then: Request is made with correct platform parameter.
         """
-        client = TrendRadarClient()
+        mock_result = MagicMock()
+        mock_result.data = {"success": True, "news": []}
+        mock_result.content = []
 
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = {"result": []}
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
 
+            client = TrendRadarClient()
             await client.get_latest_news(platform="zhihu", limit=10)
 
-            mock_request.assert_called_once()
-            call_args = mock_request.call_args
-            # Verify platform is passed in the request
-            assert call_args.kwargs["params"]["name"] == "get_zhihu_hot"
+            mock_client.call_tool.assert_called_once_with(
+                "get_latest_news", {"platforms": ["zhihu"], "limit": 10}
+            )
 
     @pytest.mark.asyncio
     async def test_get_latest_news_with_limit(self):
@@ -107,216 +176,169 @@ class TestGetLatestNews:
         When: get_latest_news is called with limit.
         Then: Request includes limit parameter.
         """
-        client = TrendRadarClient()
+        mock_result = MagicMock()
+        mock_result.data = {"success": True, "news": [{"title": "Topic 1"}]}
+        mock_result.content = []
 
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = {"result": [{"title": "Topic 1"}]}
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
 
+            client = TrendRadarClient()
             result = await client.get_latest_news(platform="zhihu", limit=5)
 
             assert isinstance(result, list)
-            mock_request.assert_called_once()
-            call_args = mock_request.call_args
-            # Verify limit is passed in the request params
-            assert call_args.kwargs["params"]["arguments"]["limit"] == 5
+            mock_client.call_tool.assert_called_once_with(
+                "get_latest_news", {"platforms": ["zhihu"], "limit": 5}
+            )
 
     @pytest.mark.asyncio
-    async def test_get_latest_news_raises_error_on_missing_result(self):
+    async def test_get_latest_news_handles_error_response(self):
         """
-        Given: Response missing 'result' field.
+        Given: Response indicates an error.
         When: get_latest_news is called.
         Then: TrendRadarError is raised.
         """
-        client = TrendRadarClient()
+        mock_result = MagicMock()
+        mock_result.data = {
+            "success": False,
+            "error": {"code": "DATA_NOT_FOUND", "message": "No data found"},
+        }
+        mock_result.content = []
 
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            # Result field is missing
-            mock_request.return_value = {"other": "data"}
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "TrendRadar error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_allows_empty_news(self):
+        """
+        Given: Response contains empty news list.
+        When: get_latest_news is called.
+        Then: Empty list is returned without error.
+        """
+        mock_result = MagicMock()
+        mock_result.data = {"success": True, "news": []}
+        mock_result.content = []
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert result == []
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_raises_error_on_empty_result(self):
+        """
+        Given: Response is empty/None.
+        When: get_latest_news is called.
+        Then: TrendRadarError is raised.
+        """
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=None)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
 
             with pytest.raises(TrendRadarError) as exc_info:
                 await client.get_latest_news(platform="zhihu")
 
-            assert "Invalid response" in str(exc_info.value)
+            assert "Empty response" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_get_latest_news_raises_error_on_api_error(self):
+    async def test_get_latest_news_raises_error_on_exception(self):
         """
-        Given: _make_request raises TrendRadarError.
+        Given: FastMCP client raises exception.
         When: get_latest_news is called.
         Then: TrendRadarError is propagated.
         """
-        client = TrendRadarClient()
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(side_effect=Exception("Connection error"))
+            MockClient.return_value = mock_client
 
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.side_effect = TrendRadarError("API error")
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client.get_latest_news(platform="zhihu")
-
-            assert "API error" in str(exc_info.value)
-
-
-class TestMakeRequest:
-    """Tests for _make_request method."""
-
-    @pytest.mark.asyncio
-    async def test_make_request_raises_error_on_json_rpc_error(self):
-        """
-        Given: Server returns JSON-RPC error.
-        When: _make_request is called.
-        Then: TrendRadarError is raised.
-        """
-        client = TrendRadarClient()
-        mock_http_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "error": {"code": -32600, "message": "Invalid Request"}
-        }
-        mock_http_client.post.return_value = mock_response
-
-        with patch.object(
-            client, "_get_http_client", new_callable=AsyncMock
-        ) as mock_get_client:
-            mock_get_client.return_value = mock_http_client
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client._make_request(method="test")
-
-            assert "API error" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_make_request_raises_error_on_invalid_json(self):
-        """
-        Given: Server returns invalid JSON.
-        When: _make_request is called.
-        Then: TrendRadarError is raised with appropriate message.
-        """
-        client = TrendRadarClient()
-        mock_http_client = AsyncMock()
-        mock_response = MagicMock()
-        # Simulate JSON decode error
-        mock_response.json.side_effect = ValueError("Invalid JSON")
-        mock_http_client.post.return_value = mock_response
-
-        with patch.object(
-            client, "_get_http_client", new_callable=AsyncMock
-        ) as mock_get_client:
-            mock_get_client.return_value = mock_http_client
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client._make_request(method="test")
-
-            assert "Invalid JSON response" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_make_request_raises_error_on_json_decode_error(self):
-        """
-        Given: Server returns malformed JSON string.
-        When: _make_request is called.
-        Then: TrendRadarError is raised with appropriate message.
-        """
-        client = TrendRadarClient()
-        mock_http_client = AsyncMock()
-        mock_response = MagicMock()
-        # Simulate JSON decode error directly from json module
-        mock_response.json.side_effect = json.JSONDecodeError("Expecting value", "", 0)
-        mock_http_client.post.return_value = mock_response
-
-        with patch.object(
-            client, "_get_http_client", new_callable=AsyncMock
-        ) as mock_get_client:
-            mock_get_client.return_value = mock_http_client
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client._make_request(method="test")
-
-            assert "Invalid JSON response" in str(exc_info.value)
-
-
-class TestConnectionErrorHandling:
-    """Tests for error handling."""
-
-    @pytest.mark.asyncio
-    async def test_api_exception_raises_trendradar_error(self):
-        """
-        Given: HTTP client raises APIException.
-        When: get_latest_news is called.
-        Then: TrendRadarError is raised.
-        """
-        client = TrendRadarClient()
-
-        # Mock the HTTP client's post method to raise APIException
-        mock_http_client = AsyncMock()
-        # APIException takes message, status_code (optional), response_body (optional)
-        mock_http_client.post.side_effect = APIException("Connection failed")
-
-        with patch.object(
-            client, "_get_http_client", new_callable=AsyncMock
-        ) as mock_get_client:
-            mock_get_client.return_value = mock_http_client
+            client = TrendRadarClient()
 
             with pytest.raises(TrendRadarError) as exc_info:
                 await client.get_latest_news(platform="zhihu")
 
-            assert "Communication failed" in str(exc_info.value)
+            assert "Failed to get news" in str(exc_info.value)
 
 
 class TestHealthCheck:
     """Tests for health_check method."""
 
     @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    async def test_health_check_success(self, client):
+    async def test_health_check_success(self):
         """
         Given: TrendRadar server is running.
         When: health_check is called.
         Then: True is returned.
         """
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = {"status": "ok"}
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.ping = AsyncMock()
+            MockClient.return_value = mock_client
 
+            client = TrendRadarClient()
             result = await client.health_check()
 
             assert result is True
 
     @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    async def test_health_check_failure_on_exception(self, client):
+    async def test_health_check_failure_on_exception(self):
         """
         Given: TrendRadar server is unreachable (raises exception).
         When: health_check is called.
         Then: False is returned.
         """
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.side_effect = TrendRadarError("Connection failed")
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.ping = AsyncMock(side_effect=Exception("Connection failed"))
+            MockClient.return_value = mock_client
 
-            result = await client.health_check()
-
-            assert result is False
-
-    @pytest.mark.asyncio
-    async def test_health_check_failure_on_json_error(self, client):
-        """
-        Given: TrendRadar server returns invalid JSON (raises JSONDecodeError wrapped in TrendRadarError).
-        When: health_check is called.
-        Then: False is returned.
-        """
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            # _make_request wraps JSON errors in TrendRadarError
-            mock_request.side_effect = TrendRadarError("Invalid JSON response")
-
+            client = TrendRadarClient()
             result = await client.health_check()
 
             assert result is False
@@ -369,72 +391,20 @@ class TestParameterValidation:
         assert "Invalid limit" in str(exc_info.value)
 
 
-class TestResultTypeValidation:
-    """Tests for result field type validation."""
-
-    @pytest.mark.asyncio
-    async def test_non_list_result_raises_error(self):
-        """
-        Given: Response with non-list result field.
-        When: get_latest_news is called.
-        Then: TrendRadarError is raised.
-        """
-        client = TrendRadarClient()
-
-        # Test dict result
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = {"result": {"data": "not a list"}}
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client.get_latest_news(platform="zhihu")
-
-            assert "must be a list" in str(exc_info.value)
-
-        # Test string result
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = {"result": "not a list"}
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client.get_latest_news(platform="zhihu")
-
-            assert "must be a list" in str(exc_info.value)
-
-        # Test null result
-        with patch.object(
-            client, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = {"result": None}
-
-            with pytest.raises(TrendRadarError) as exc_info:
-                await client.get_latest_news(platform="zhihu")
-
-            assert "must be a list" in str(exc_info.value)
-
-
 class TestClose:
     """Tests for close method."""
 
     @pytest.mark.asyncio
-    async def test_close_sets_http_client_to_none(self):
+    async def test_close_can_be_called(self):
         """
-        Given: Client with active HTTP client.
+        Given: Client instance.
         When: close is called.
-        Then: _http_client is set to None.
+        Then: No error is raised (close is a no-op since each request creates new client).
         """
         client = TrendRadarClient()
 
-        # Initialize HTTP client
-        mock_http_client = AsyncMock()
-        client._http_client = mock_http_client
-
+        # close() should not raise error
         await client.close()
-
-        assert client._http_client is None
-        mock_http_client.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_close_can_be_called_multiple_times(self):
@@ -447,8 +417,233 @@ class TestClose:
 
         # First close
         await client.close()
-        assert client._http_client is None
 
         # Second close should not raise error
         await client.close()
-        assert client._http_client is None
+
+
+class TestExtractNewsItems:
+    """Tests for _extract_news_items helper method."""
+
+    def test_extract_news_items_with_primitive_payload(self):
+        """
+        Given: Primitive type payload (string).
+        When: _extract_news_items is called.
+        Then: Payload is wrapped in dict with 'text' key.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items("plain text payload")
+
+        assert result == [{"text": "plain text payload"}]
+
+    def test_extract_news_items_with_items_key(self):
+        """
+        Given: Payload with 'items' key instead of 'news'.
+        When: _extract_news_items is called.
+        Then: Items are extracted correctly.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items(
+            {"success": True, "items": [{"title": "Item 1"}, {"title": "Item 2"}]}
+        )
+
+        assert len(result) == 2
+        assert result[0]["title"] == "Item 1"
+
+    def test_extract_news_items_with_unknown_dict_structure(self):
+        """
+        Given: Dict with unknown structure (no 'news' or 'items').
+        When: _extract_news_items is called.
+        Then: Original dict is returned wrapped in a list with warning logged.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items({"custom_key": "custom_value"})
+
+        assert result == [{"custom_key": "custom_value"}]
+
+    def test_extract_news_items_with_empty_dict(self):
+        """
+        Given: Empty dict payload.
+        When: _extract_news_items is called.
+        Then: Empty list is returned.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items({})
+
+        assert result == []
+
+    def test_extract_news_items_with_none_payload(self):
+        """
+        Given: None payload.
+        When: _extract_news_items is called.
+        Then: Empty list is returned.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items(None)
+
+        assert result == []
+
+    def test_extract_news_items_with_numeric_payload(self):
+        """
+        Given: Numeric payload.
+        When: _extract_news_items is called.
+        Then: Payload is wrapped in dict with 'text' key as string.
+        """
+        client = TrendRadarClient()
+
+        result = client._extract_news_items(42)
+
+        assert result == [{"text": "42"}]
+
+
+class TestGetLatestNewsFallbackPaths:
+    """Tests for get_latest_news fallback handling paths."""
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_handles_non_json_content(self):
+        """
+        Given: Response has content.text that is not valid JSON.
+        When: get_latest_news is called.
+        Then: Content is returned as-is wrapped in list with 'text' key.
+        """
+        mock_text_content = MagicMock()
+        mock_text_content.text = "This is not JSON"
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text_content]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["text"] == "This is not JSON"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_handles_raw_list_result(self):
+        """
+        Given: Result is a raw list (no .data attribute, result itself is list).
+        When: get_latest_news is called.
+        Then: List is processed directly by _extract_news_items.
+        """
+        # Create a result that is actually a list (defensive fallback path)
+        raw_list_result = [{"title": "Direct list item"}]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=raw_list_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["title"] == "Direct list item"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_raises_on_invalid_result_type(self):
+        """
+        Given: Result has no .data, is not list/dict, and has empty .content.
+        When: get_latest_news is called.
+        Then: TrendRadarError is raised for unexpected result type.
+        """
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = []  # Empty content list
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            with pytest.raises(TrendRadarError) as exc_info:
+                await client.get_latest_news(platform="zhihu")
+
+            assert "unexpected result type" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_multiple_content_blocks_fallback(self):
+        """
+        Given: Response has multiple content blocks, first is not valid JSON, second is.
+        When: get_latest_news is called.
+        Then: Loops through blocks until valid JSON is found, returns parsed result.
+        Note: Validates two-step strategy - first valid JSON parse wins.
+        """
+        mock_text_content1 = MagicMock()
+        mock_text_content1.text = "This is not JSON"
+
+        mock_text_content2 = MagicMock()
+        mock_text_content2.text = '{"success": true, "news": [{"title": "Valid JSON"}]}'
+
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text_content1, mock_text_content2]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["title"] == "Valid JSON"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_all_content_blocks_non_json(self):
+        """
+        Given: Multiple content blocks, all contain non-JSON text.
+        When: get_latest_news is called.
+        Then: Last text content is returned as fallback with 'text' key.
+        """
+        mock_text1 = MagicMock()
+        mock_text1.text = "First non-JSON text"
+
+        mock_text2 = MagicMock()
+        mock_text2.text = "Last non-JSON text"
+
+        mock_result = MagicMock()
+        mock_result.data = None
+        mock_result.content = [mock_text1, mock_text2]
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="zhihu")
+
+            assert len(result) == 1
+            assert result[0]["text"] == "Last non-JSON text"
