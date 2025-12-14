@@ -204,9 +204,9 @@ class TrendRadarClient:
             # Parse content blocks (e.g., TextContent) if present.
             # Two-step strategy:
             # 1. Return the first successfully parsed JSON block.
-            # 2. If no valid JSON found, return the last text content as fallback.
-            #    We use the last text content because it's most likely the final/complete
-            #    response from the server when earlier blocks failed to parse.
+            # 2. If no valid JSON found, return the first text content as fallback.
+            #    We keep the first text content because it's most likely the safest
+            #    and most complete response when JSON parsing fails.
             fallback_text_content = None
             if hasattr(result, "content") and result.content:
                 for content in result.content:

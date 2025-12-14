@@ -639,11 +639,12 @@ class TestZhihuExplorerCollect:
         """
         Given: 要約生成中に CancelledError が発生する。
         When: collect が呼ばれたとき。
-        Then: CancelledErrorは無視され、記事は空のsummaryで保存される。
+        Then: 記事は空のsummaryで保存される。
 
         Note: return_exceptions=True を使用しているため、CancelledError は
-        gatherから再送出されず、BaseExceptionなのでExceptionチェックに引っかからない。
-        空のsummaryのまま処理が継続される。
+        results に含まれる。しかし、CancelledError は BaseException の
+        サブクラスであり、isinstance(result, Exception) チェックに該当しない。
+        そのため、エラーメッセージが設定されず、空のsummaryのまま処理が継続される。
         """
         import asyncio
 
@@ -666,14 +667,13 @@ class TestZhihuExplorerCollect:
                 return [(f"mock/{date_str}.json", f"mock/{date_str}.md")]
 
             with patch.object(explorer, "_store_articles", side_effect=capture_store):
-                # collectは正常に完了する（CancelledErrorは無視される）
+                # collectは正常に完了する
                 result = await explorer.collect(days=1, limit=10)
 
-            # Should complete with empty summary (CancelledError is BaseException, not Exception)
+            # CancelledError は BaseException なので Exception チェックに該当せず、
+            # 空のsummaryのまま保存される
             assert isinstance(result, list)
             assert len(captured_articles) == 1
-            # CancelledError はBaseExceptionなのでExceptionチェックに引っかからず、
-            # 空のsummaryのまま保存される
             assert captured_articles[0].summary == ""
 
 

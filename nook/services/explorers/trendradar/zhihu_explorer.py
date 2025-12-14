@@ -211,7 +211,7 @@ class ZhihuExplorer(BaseService):
         )
 
         if not news_items:
-            self.logger.info("取得したホットトピックがありません")
+            self.logger.info("TrendRadarから取得したニュース項目がありません")
             return []
 
         # Article オブジェクトに変換
