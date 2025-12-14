@@ -14,7 +14,7 @@ on:
   workflow_dispatch:  # 手動実行を許可
 
 permissions:
-  contents: write  # 自動フォーマット時のコミット＆プッシュに必要
+  contents: read
 
 jobs:
   quality-check:
@@ -48,23 +48,6 @@ jobs:
         npm run quality-check
         echo ""
         echo "✅ すべての品質チェックが成功しました"
-
-    - name: フォーマット変更の自動コミット
-      if: github.event_name == 'pull_request'
-      working-directory: .
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-
-        if ! git diff --quiet -- frontend/; then
-          echo "📝 フォーマット変更を検出しました。自動コミットします..."
-          git add frontend/
-          git commit -m "style: Prettier/ESLintによる自動フォーマット適用" -m "🤖 自動修正by GitHub Actions"
-          git push
-          echo "✅ フォーマット変更をコミット＆プッシュしました"
-        else
-          echo "✅ フォーマット変更はありません"
-        fi
 
     - name: テスト結果サマリーの生成
       if: always()

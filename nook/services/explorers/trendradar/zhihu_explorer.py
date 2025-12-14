@@ -554,8 +554,8 @@ URL: {safe_url}
             title = self._escape_markdown_text(record.get("title", ""))
             url = self._escape_markdown_url(record.get("url", ""))
             summary = self._escape_markdown_text(record.get("summary", ""))
-            # popularity_score が None/文字列の場合の防御的変換
-            hot = float(record.get("popularity_score") or 0)
+            # popularity_score は型が揺れる可能性があるため、例外安全に変換
+            hot = self._parse_popularity_score(record.get("popularity_score"))
 
             content += f"## {i}. [{title}]({url})\n\n"
             content += f"**人気度**: {hot:,.0f}\n\n"

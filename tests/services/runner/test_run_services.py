@@ -178,7 +178,7 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     await runner._run_sync_service(
         "trendradar-zhihu", service_mock, days=1, target_dates=single_date
     )
-    service_mock.collect.assert_awaited_with(target_dates=single_date)
+    service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
 
     # Check that INFO log shows single day ("対象日")
     info_calls = [str(c) for c in mock_logger.info.call_args_list]

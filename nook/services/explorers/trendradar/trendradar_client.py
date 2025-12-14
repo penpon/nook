@@ -132,7 +132,14 @@ class TrendRadarClient:
             return [payload]
 
         if isinstance(payload, list):
-            return payload
+            # Normalize list elements to dicts to match return type contract.
+            normalized: list[dict[str, Any]] = []
+            for item in payload:
+                if isinstance(item, dict):
+                    normalized.append(item)
+                else:
+                    normalized.append({"text": str(item)})
+            return normalized
 
         # Primitive/unknown payload types
         return [{"text": str(payload)}]

@@ -77,13 +77,19 @@ class ServiceRunner:
         effective_dates = target_dates or target_dates_set(days)
         sorted_dates = sorted(effective_dates)
 
-        # trendradar-zhihu は単一日のみ対応のため、複数日が渡された場合はエラーを発生させる
-        # Note: ZhihuExplorer.collect 内でも同様に検証されるが、早期に失敗させる
-        if service_name == "trendradar-zhihu" and len(sorted_dates) > 1:
-            raise ValueError(
-                f"trendradar-zhihu は単一日のみ対応しています。"
-                f"指定された日数: {len(sorted_dates)}日"
-            )
+        # trendradar-zhihu は単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
+        # Note: ZhihuExplorer.collect 内でも検証されるが、runner 側で早期に失敗させる
+        if service_name == "trendradar-zhihu":
+            if days != 1:
+                raise ValueError(
+                    "trendradar-zhihu は単一日のみ対応しています。"
+                    f"指定された days: {days}"
+                )
+            if len(sorted_dates) > 1:
+                raise ValueError(
+                    "trendradar-zhihu は単一日のみ対応しています。"
+                    f"指定された日数: {len(sorted_dates)}日"
+                )
 
         logger.info("\n" + "━" * 60)
         if len(sorted_dates) <= 1:
@@ -124,7 +130,11 @@ class ServiceRunner:
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
-                result = await service.collect(target_dates=sorted_dates)
+                # trendradar-zhihu は days の検証を service 側でも行う
+                if service_name == "trendradar-zhihu":
+                    result = await service.collect(days=days, target_dates=sorted_dates)
+                else:
+                    result = await service.collect(target_dates=sorted_dates)
                 saved_files = result if result else []
 
             # 保存されたファイルのサマリーを表示
