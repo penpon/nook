@@ -233,8 +233,12 @@ class ZhihuExplorer(BaseService):
 
         # 例外チェック: _summarize_article内でキャッチしきれなかった想定外のエラーを確認
         # Note: return_exceptions=True を使用しているため、例外はresultsに含まれる
+        # Note: CancelledError は Python 3.8+ で BaseException のサブクラスであり
+        #       Exception ではないため、ここでは捕捉されない（意図通り）
         for i, result in enumerate(results):
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException) and not isinstance(
+                result, asyncio.CancelledError
+            ):
                 # 予期せぬエラーはログ記録のみ（再送出しない）
                 # return_exceptions=True の意図（一部の失敗を許容）と一致
                 self.logger.error(
@@ -369,8 +373,13 @@ class ZhihuExplorer(BaseService):
                 normalized = value.strip().replace(",", "")
                 if normalized.startswith("+"):
                     normalized = normalized[1:]
-                return float(normalized)
-            return float(value)
+                result = float(normalized)
+            else:
+                result = float(value)
+            # NaN/Infinity は 0.0 にフォールバック
+            if not math.isfinite(result):
+                return 0.0
+            return result
         except (ValueError, TypeError):
             return 0.0
 

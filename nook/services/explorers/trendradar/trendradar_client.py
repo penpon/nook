@@ -178,7 +178,13 @@ class TrendRadarClient:
             )
 
         # Validate limit parameter
-        if not isinstance(limit, int) or limit < 1 or limit > 100:
+        # Note: bool is subclass of int, so explicitly exclude it
+        if (
+            not isinstance(limit, int)
+            or isinstance(limit, bool)
+            or limit < 1
+            or limit > 100
+        ):
             raise ValueError(
                 f"Invalid limit {limit}. Must be an integer between 1 and 100."
             )
