@@ -19,12 +19,21 @@ from nook.services.base.base_feed_service import Article
 from nook.services.base.base_service import BaseService
 from nook.services.explorers.trendradar.trendradar_client import TrendRadarClient
 
-# 空のBeautifulSoupオブジェクトを使い回すための定数
-# Article.soup は base_feed_service.Article の必須フィールドだが
-# ZhihuExplorerでは HTML コンテンツを使用しないため、プレースホルダーとして使用
-# 警告: このオブジェクトは読み取り専用として扱うこと。
-# BeautifulSoupはmutableなので、変更すると他のArticleインスタンスに影響する。
-_EMPTY_SOUP = BeautifulSoup("", "html.parser")
+
+def _create_empty_soup() -> BeautifulSoup:
+    """空のBeautifulSoupオブジェクトを生成するファクトリ関数.
+
+    Article.soup は base_feed_service.Article の必須フィールドだが
+    ZhihuExplorerでは HTML コンテンツを使用しないため、プレースホルダーとして使用。
+    BeautifulSoupはmutableなので、毎回新しいインスタンスを返すことで
+    意図しない副作用を防止する。
+
+    Returns
+    -------
+    BeautifulSoup
+        空のBeautifulSoupインスタンス。
+    """
+    return BeautifulSoup("", "html.parser")
 
 
 class ZhihuExplorer(BaseService):
@@ -272,7 +281,7 @@ class ZhihuExplorer(BaseService):
             title=str(item.get("title") or ""),
             url=str(item.get("url") or ""),
             text=str(item.get("desc") or ""),
-            soup=_EMPTY_SOUP,
+            soup=_create_empty_soup(),
             category="hot",
             popularity_score=self._parse_popularity_score(item.get("hot", 0)),
             published_at=self._parse_published_at(item),
