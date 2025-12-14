@@ -64,7 +64,7 @@ export function parseTrendradarZhihuMarkdown(markdown: string): ContentItem[] {
     }
 
     // その他の行は前項目の本文に追記（シンプルな結合）
-    const last = items[items.length - 1];
+    const last = items.at(-1);
     if (last && last.isArticle) {
       last.content = last.content ? `${last.content}\n${line}` : line;
     } else {
