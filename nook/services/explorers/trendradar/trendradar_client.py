@@ -211,7 +211,9 @@ class TrendRadarClient:
             if hasattr(result, "content") and result.content:
                 for content in result.content:
                     if hasattr(content, "text"):
-                        fallback_text_content = content.text
+                        # 最初のテキストコンテンツを保持（最も安全なフォールバック）
+                        if fallback_text_content is None:
+                            fallback_text_content = content.text
                         try:
                             data = json.loads(content.text)
                             return self._extract_news_items(data)

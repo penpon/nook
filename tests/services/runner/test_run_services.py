@@ -162,25 +162,27 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     service_mock.collect.assert_awaited_with(limit=15, target_dates=dates)
     service_mock.collect.reset_mock()
 
-    # --- Case 5: trendradar-zhihu ---
-    # Expected: Warning logged and only the first date is passed
+    # --- Case 5: trendradar-zhihu (multiple dates) ---
+    # Expected: ValueError raised when multiple dates are passed
     multi_dates = [date(2024, 1, 2), date(2024, 1, 1)]
+    with pytest.raises(ValueError, match="単一日のみ対応"):
+        await runner._run_sync_service(
+            "trendradar-zhihu", service_mock, days=2, target_dates=multi_dates
+        )
+
+    service_mock.collect.reset_mock()
+
+    # --- Case 5b: trendradar-zhihu (single date) ---
+    # Expected: Works normally with single date
+    single_date = [date(2024, 1, 1)]
     await runner._run_sync_service(
-        "trendradar-zhihu", service_mock, days=2, target_dates=multi_dates
+        "trendradar-zhihu", service_mock, days=1, target_dates=single_date
     )
-    # sorted(multi_dates) -> [Jan 1, Jan 2]. First is Jan 1.
-    service_mock.collect.assert_awaited_with(target_dates=[date(2024, 1, 1)])
+    service_mock.collect.assert_awaited_with(target_dates=single_date)
 
-    # Check that warning log was issued (lines 83-87 in source)
-    # The message should contain "truncating" or "single day"
-    warning_calls = [str(c) for c in mock_logger.warning.call_args_list]
-    assert any("trendradar-zhihu" in c and "Truncating" in c for c in warning_calls)
-
-    # Check that INFO log shows single day ("対象日") instead of period ("対象期間")
-    # sorted_target_dates is now length 1, so it should log "対象日"
+    # Check that INFO log shows single day ("対象日")
     info_calls = [str(c) for c in mock_logger.info.call_args_list]
     assert any("対象日" in c and "2024-01-01" in c for c in info_calls)
-    assert not any("対象期間" in c for c in info_calls)
 
     service_mock.collect.reset_mock()
 

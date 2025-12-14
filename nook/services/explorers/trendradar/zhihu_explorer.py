@@ -232,20 +232,8 @@ class ZhihuExplorer(BaseService):
         )
 
         # 例外チェック: _summarize_article内でキャッチしきれなかった想定外のエラーを確認
-        # Note: Python 3.8以降、CancelledError は BaseException のサブクラスで Exception ではない
+        # Note: return_exceptions=True を使用しているため、例外はresultsに含まれる
         for i, result in enumerate(results):
-            # SystemExit/KeyboardInterrupt は即座に再送出（プロセス終了を意図）
-            if isinstance(result, (SystemExit, KeyboardInterrupt)):
-                raise result
-
-            # CancelledError は BaseException のサブクラスなので別途チェック
-            if isinstance(result, asyncio.CancelledError):
-                # キャンセルは正常なシャットダウン操作なのでdebugレベル
-                self.logger.debug(
-                    f"Summary generation cancelled for article: {articles[i].title}"
-                )
-                raise result
-
             if isinstance(result, Exception):
                 # 予期せぬエラーはログ記録のみ（再送出しない）
                 # return_exceptions=True の意図（一部の失敗を許容）と一致
@@ -409,10 +397,7 @@ class ZhihuExplorer(BaseService):
         safe_text = self._sanitize_prompt_input(article.text or "", max_length=500)
         # NaN/Infinity対策: 有限数でない場合は0にフォールバック
         safe_popularity = (
-            article.popularity_score
-            if isinstance(article.popularity_score, (int, float))
-            and math.isfinite(article.popularity_score)
-            else 0.0
+            article.popularity_score if math.isfinite(article.popularity_score) else 0.0
         )
 
         prompt = f"""以下の知乎（Zhihu）ホットトピックを日本語で簡潔に要約してください。

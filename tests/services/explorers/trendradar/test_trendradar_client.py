@@ -621,7 +621,7 @@ class TestGetLatestNewsFallbackPaths:
         """
         Given: Multiple content blocks, all contain non-JSON text.
         When: get_latest_news is called.
-        Then: Last text content is returned as fallback with 'text' key.
+        Then: First text content is returned as fallback with 'text' key.
         """
         mock_text1 = MagicMock()
         mock_text1.text = "First non-JSON text"
@@ -646,4 +646,4 @@ class TestGetLatestNewsFallbackPaths:
             result = await client.get_latest_news(platform="zhihu")
 
             assert len(result) == 1
-            assert result[0]["text"] == "Last non-JSON text"
+            assert result[0]["text"] == "First non-JSON text"
