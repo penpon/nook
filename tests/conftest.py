@@ -9,4 +9,5 @@ import os
 # BaseConfigのロード時に検証エラーが発生しないように、
 # テスト実行時はダミーのAPIキーを設定する。
 # 特定のテストでのみ必要な設定はフィクスチャで定義すること。
-os.environ.setdefault("OPENAI_API_KEY", "dummy")
+# Note: 明示的に上書きしてテストの一貫性を確保（環境変数依存を排除）
+os.environ["OPENAI_API_KEY"] = "dummy-test-key"

@@ -249,9 +249,16 @@ cd frontend && npm run dev
 > ⚠️ **TrendRadar セットアップが必要**
 >
 > 各 Stream 実行前に TrendRadar が起動していること。
+>
+> ⚠️ **セキュリティ警告**: 以下の手順は外部リポジトリのシェルスクリプトを実行します。
+> 実行前にスクリプトの内容を確認し、信頼できるか判断してください。
 > ```bash
 > git clone https://github.com/sansan0/TrendRadar
 > cd TrendRadar
+> # スクリプト内容を確認
+> cat setup-mac.sh
+> cat start-http.sh
+> # 確認後、実行
 > ./setup-mac.sh
 > ./start-http.sh  # localhost:3333/mcp
 > ```
