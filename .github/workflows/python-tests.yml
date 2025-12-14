@@ -46,13 +46,11 @@ jobs:
       run: |
         uv sync --group dev
 
-    - name: 品質チェック実行 (poe check)
+    - name: 品質チェック実行 (poe ci-check)
       run: |
         set -e
-        echo "=== 品質チェックを実行中 (format, lint, test) ==="
-        uv run poe format
-        uv run poe lint
-        uv run pytest tests/ -v --cov=nook --cov-report=xml --cov-report=term-missing --tb=short
+        echo "=== 品質チェックを実行中 (format-check, lint-check, test, coverage, audit) ==="
+        uv run poe ci-check
         echo ""
         echo "✅ すべての品質チェックが成功しました"
 
@@ -74,9 +72,9 @@ jobs:
           echo "### チェック内容"
           echo "- Format: Ruff フォーマット"
           echo "- Lint: Ruff リント"
-          echo "- Type Check: mypy 型チェック"
           echo "- Test: pytest ユニットテスト"
           echo "- Coverage: カバレッジ測定"
+          echo "- Audit: pip-audit"
           echo ""
           echo "### テスト環境"
           echo "- Python バージョン: 3.12"

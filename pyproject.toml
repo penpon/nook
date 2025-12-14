@@ -72,6 +72,9 @@ exclude = [
 [tool.poe.tasks]
 format = "uv run ruff format ."
 lint = "uv run ruff check --fix ."
+# CI 用（非破壊 / check-only）
+format-check = "uv run ruff format --check ."
+lint-check = "uv run ruff check ."
 # type-check = "uv run mypy ."
 test = "uv run pytest -n auto tests/ -v"
 coverage = "uv run pytest -n auto --cov=nook --cov-report=term"
@@ -80,3 +83,4 @@ audit = "uv run pip-audit --ignore-vuln GHSA-f83h-ghpp-7wcc --ignore-vuln CVE-20
 # check = ["format", "lint", "type-check"]
 check = ["format", "lint"]
 quality-check = ["check", "test", "coverage", "audit"]
+ci-check = ["format-check", "lint-check", "test", "coverage", "audit"]
