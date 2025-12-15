@@ -18,7 +18,7 @@ from nook.core.utils.async_utils import AsyncTaskManager, gather_with_errors
 from nook.core.utils.date_utils import target_dates_set
 
 # 環境変数の読み込み
-load_dotenv()
+load_dotenv(".env.production")
 
 logger = setup_logger("service_runner")
 

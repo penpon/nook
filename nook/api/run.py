@@ -6,7 +6,7 @@ import uvicorn
 from dotenv import load_dotenv
 
 # 環境変数の読み込み
-load_dotenv()
+load_dotenv(".env.production")
 
 # Expose ArgumentParser for tests to patch
 ArgumentParser = argparse.ArgumentParser

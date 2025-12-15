@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 # 環境変数の読み込み
-load_dotenv()
+load_dotenv(".env.production")
 
 logger = logging.getLogger(__name__)
 

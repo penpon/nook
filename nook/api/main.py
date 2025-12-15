@@ -14,7 +14,7 @@ from nook.api.routers import chat, content, weather
 from nook.core.errors.error_metrics import error_metrics
 
 # 環境変数の読み込み
-load_dotenv()
+load_dotenv(".env.production")
 
 # FastAPIアプリケーションの作成
 app = FastAPI(

@@ -12,7 +12,7 @@ from nook.api.models.schemas import ChatRequest, ChatResponse
 from nook.core.clients.gpt_client import GPTClient
 
 # 環境変数の読み込み
-load_dotenv()
+load_dotenv(".env.production")
 
 router = APIRouter(
     prefix="/chat",

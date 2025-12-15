@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 from nook.api.models.schemas import WeatherResponse
 
 # 環境変数の読み込み
-load_dotenv()
+load_dotenv(".env.production")
 
 router = APIRouter()
 
