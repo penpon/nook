@@ -193,8 +193,8 @@ class JuejinExplorer(BaseService):
         if limit is not None:
             # boolはintのサブクラスなので明示的に除外
             if (
-                not isinstance(limit, int)
-                or isinstance(limit, bool)
+                isinstance(limit, bool)
+                or not isinstance(limit, int)
                 or limit < 1
                 or limit > 100
             ):
@@ -235,9 +235,7 @@ class JuejinExplorer(BaseService):
         # Note: return_exceptions=True を使用しているため、例外はresultsに含まれる
         # Note: CancelledError は別途処理されるため、ここでは Exception のみをチェック
         for i, result in enumerate(results):
-            if isinstance(result, Exception) and not isinstance(
-                result, asyncio.CancelledError
-            ):
+            if isinstance(result, Exception):
                 # 予期せぬエラーはログ記録のみ（再送出しない）
                 # return_exceptions=True の意図（一部の失敗を許容）と一致
                 self.logger.error(
