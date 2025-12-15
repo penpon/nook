@@ -57,6 +57,18 @@ SOURCE_MAPPING = {
 }
 
 
+def _create_content_item(
+    title: str, content: str, source: str, url: str | None = None
+) -> ContentItem:
+    """ContentItemを作成するヘルパー関数"""
+    return ContentItem(
+        title=title,
+        content=content,
+        url=url,
+        source=source,
+    )
+
+
 def _process_trendradar_articles(
     articles_data: list[dict], source: str
 ) -> list[ContentItem]:
@@ -84,7 +96,7 @@ def _process_trendradar_articles(
             content += f"カテゴリ: {article['category']}"
 
         items.append(
-            ContentItem(
+            _create_content_item(
                 title=article["title"],
                 content=content,
                 url=article.get("url"),
@@ -170,7 +182,7 @@ async def get_content(
                     content += f"スコア: {story['score']}"
 
                     items.append(
-                        ContentItem(
+                        _create_content_item(
                             title=story["title"],
                             content=content,
                             url=story.get("url"),
@@ -199,7 +211,7 @@ async def get_content(
 
                 # マークダウンからContentItemを作成
                 items.append(
-                    ContentItem(
+                    _create_content_item(
                         title=(
                             ""
                             if source == "github"
@@ -235,7 +247,7 @@ async def get_content(
                         content += f"スコア: {story['score']}"
 
                         items.append(
-                            ContentItem(
+                            _create_content_item(
                                 title=story["title"],
                                 content=content,
                                 url=story.get("url"),
@@ -256,7 +268,7 @@ async def get_content(
                         content = convert_paper_summary_titles(content)
 
                     items.append(
-                        ContentItem(
+                        _create_content_item(
                             title=(
                                 ""
                                 if src == "github"
