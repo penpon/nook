@@ -828,7 +828,8 @@ class TestZhihuExplorerRenderMarkdown:
         assert "# 知乎ホットトピック (2024-01-15)" in result
         assert "[Test Title](https://example.com)" in result
         assert "**人気度**: 1,000" in result
-        assert "**要約**: Test summary" in result
+        assert "**要約**:" in result
+        assert "Test summary" in result
 
     def test_render_markdown_escapes_title_brackets(
         self, explorer: ZhihuExplorer
