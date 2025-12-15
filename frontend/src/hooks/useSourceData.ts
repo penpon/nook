@@ -28,6 +28,10 @@ export function useSourceData(selectedSource: string, selectedDate: Date, enable
         if (selectedSource === 'hacker-news') {
           return parser(data.items);
         }
+        // TrendRadar Zhihuの場合も特殊処理
+        if (selectedSource === 'trendradar-zhihu') {
+          return parser(data.items);
+        }
         // 他のソースはMarkdownをパース
         if (data.items[0]?.content) {
           return parser(data.items[0].content);

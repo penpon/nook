@@ -139,6 +139,29 @@ async def get_content(
                             source=source,
                         )
                     )
+        # TrendRadar Zhihuの場合もJSONから個別記事を取得
+        elif source == "trendradar-zhihu":
+            articles_data = storage.load_json(service_name, target_date)
+            if articles_data:
+                # 人気度でソート
+                sorted_articles = sorted(
+                    articles_data, key=lambda x: x.get("popularity_score", 0)
+                )
+                for article in sorted_articles:
+                    content = ""
+                    if article.get("summary"):
+                        content = f"**要約**:\n{article['summary']}\n\n"
+                    if article.get("category"):
+                        content += f"カテゴリ: {article['category']}"
+
+                    items.append(
+                        ContentItem(
+                            title=article["title"],
+                            content=content,
+                            url=article.get("url"),
+                            source=source,
+                        )
+                    )
         else:
             # 他のソースは従来通りMarkdownから取得
             content = storage.load_markdown(service_name, target_date)
