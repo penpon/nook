@@ -12,6 +12,15 @@ from typing import Set
 
 from dotenv import load_dotenv
 
+import warnings
+
+# Suppress mcp internal deprecation warning
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    message="Use `streamable_http_client` instead.",
+)
+
 from nook.core.clients.http_client import close_http_client
 from nook.core.logging import setup_logger
 from nook.core.utils.async_utils import AsyncTaskManager, gather_with_errors

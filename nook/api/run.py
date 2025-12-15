@@ -2,7 +2,18 @@
 
 import argparse
 
+import warnings
+
 import uvicorn
+from dotenv import load_dotenv
+
+# Suppress mcp internal deprecation warning
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    message="Use `streamable_http_client` instead.",
+)
+
 from dotenv import load_dotenv
 
 # 環境変数の読み込み
