@@ -281,3 +281,36 @@ def test_get_content_no_content_raises_404(
     resp = client.get("/api/content/hacker-news")
     assert resp.status_code == 404
     assert "No content available" in resp.json()["detail"]
+
+
+def test_get_content_trendradar_sorts_by_popularity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test TrendRadar (Zhihu/Juejin) articles are sorted by popularity descending."""
+    client = _make_client()
+    storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
+
+    date_str = "2024-01-01"
+    service_dir = storage.base_dir / "trendradar-zhihu"
+    service_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create articles with varying popularity in random order
+    articles = [
+        {"title": "Low", "url": "u1", "popularity_score": 100},
+        {"title": "High", "url": "u2", "popularity_score": 9000},
+        {"title": "Mid", "url": "u3", "popularity_score": 5000},
+    ]
+    (service_dir / f"{date_str}.json").write_text(
+        json.dumps(articles), encoding="utf-8"
+    )
+
+    resp = client.get(f"/api/content/trendradar-zhihu?date={date_str}")
+
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert len(items) == 3
+
+    # Check strict descending order
+    assert items[0]["title"] == "High"  # 9000
+    assert items[1]["title"] == "Mid"  # 5000
+    assert items[2]["title"] == "Low"  # 100

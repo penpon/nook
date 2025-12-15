@@ -87,6 +87,12 @@ def _process_trendradar_articles(
         変換されたContentItemのリスト。
     """
     items = []
+    # 人気度（popularity_score）の降順でソート
+    # Noneの場合は0として扱う
+    articles_data.sort(
+        key=lambda x: float(x.get("popularity_score") or 0), reverse=True
+    )
+
     for article in articles_data:
         content = ""
         if article.get("summary"):
