@@ -89,7 +89,7 @@ class RedditExplorer(BaseService):
         client_id: str | None = None,
         client_secret: str | None = None,
         user_agent: str | None = None,
-        storage_dir: str = "data",
+        storage_dir: str = "var/data",
     ):
         """
         RedditExplorerを初期化します。
@@ -102,7 +102,7 @@ class RedditExplorer(BaseService):
             Reddit APIのクライアントシークレット。指定しない場合は環境変数から取得。
         user_agent : str, optional
             Reddit APIのユーザーエージェント。指定しない場合は環境変数から取得。
-        storage_dir : str, default="data"
+        storage_dir : str, default="var/data"
             ストレージディレクトリのパス。
         """
         super().__init__("reddit_explorer")

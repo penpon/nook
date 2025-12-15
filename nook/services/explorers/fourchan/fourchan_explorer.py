@@ -72,13 +72,13 @@ class FourChanExplorer(BaseService):
 
     TOTAL_LIMIT = 15
 
-    def __init__(self, storage_dir: str = "data", test_mode: bool = False):
+    def __init__(self, storage_dir: str = "var/data", test_mode: bool = False):
         """
         FourChanExplorerを初期化します。
 
         Parameters
         ----------
-        storage_dir : str, default="data"
+        storage_dir : str, default="var/data"
             ストレージディレクトリのパス。
         test_mode : bool, default=False
             テストモードの場合は遅延を短縮します。

@@ -42,13 +42,13 @@ class ZennExplorer(BaseFeedService):
     SUMMARY_LIMIT = 15
     TOTAL_LIMIT = 15  # BaseFeedServiceで使用
 
-    def __init__(self, storage_dir: str = "data"):
+    def __init__(self, storage_dir: str = "var/data"):
         """
         ZennExplorerを初期化します。
 
         Parameters
         ----------
-        storage_dir : str, default="data"
+        storage_dir : str, default="var/data"
             ストレージディレクトリのパス。
         """
         super().__init__("zenn_explorer")

@@ -69,12 +69,12 @@ class ZhihuExplorer(BaseService):
     ERROR_MSG_EMPTY_SUMMARY = "要約を生成できませんでした（空のレスポンス）"
     ERROR_MSG_GENERATION_FAILED = "要約生成に失敗しました"
 
-    def __init__(self, storage_dir: str = "data", config: BaseConfig | None = None):
+    def __init__(self, storage_dir: str = "var/data", config: BaseConfig | None = None):
         """ZhihuExplorerを初期化.
 
         Parameters
         ----------
-        storage_dir : str, default="data"
+        storage_dir : str, default="var/data"
             データ保存ディレクトリのルートパス。
         config : BaseConfig | None, default=None
             設定オブジェクト。

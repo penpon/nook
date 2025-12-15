@@ -79,13 +79,13 @@ class HackerNewsRetriever(BaseService):
         ストレージディレクトリのパス。
     """
 
-    def __init__(self, storage_dir: str = "data"):
+    def __init__(self, storage_dir: str = "var/data"):
         """
         HackerNewsRetrieverを初期化します。
 
         Parameters
         ----------
-        storage_dir : str, default="data"
+        storage_dir : str, default="var/data"
             ストレージディレクトリのパス。
         """
         super().__init__("hacker_news")

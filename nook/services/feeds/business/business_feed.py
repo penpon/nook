@@ -38,13 +38,13 @@ class BusinessFeed(BaseFeedService):
     TOTAL_LIMIT = 15
     SUMMARY_LIMIT = 15
 
-    def __init__(self, storage_dir: str = "data"):
+    def __init__(self, storage_dir: str = "var/data"):
         """
         BusinessFeedを初期化します。
 
         Parameters
         ----------
-        storage_dir : str, default="data"
+        storage_dir : str, default="var/data"
             ストレージディレクトリのパス。
         """
         super().__init__("business_feed")

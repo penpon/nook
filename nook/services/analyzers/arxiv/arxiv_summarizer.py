@@ -98,13 +98,13 @@ class ArxivSummarizer(BaseService):
         ストレージディレクトリのパス。
     """
 
-    def __init__(self, storage_dir: str = "data"):
+    def __init__(self, storage_dir: str = "var/data"):
         """
         ArxivSummarizerを初期化します。
 
         Parameters
         ----------
-        storage_dir : str, default="data"
+        storage_dir : str, default="var/data"
             ストレージディレクトリのパス。
         """
         super().__init__("arxiv_summarizer")
