@@ -25,8 +25,28 @@ export function parseTrendradarZhihuData(items: ContentItem[]): ContentItem[] {
   // 記事番号を追加
   let articleNumber = 1;
   items.forEach((item) => {
+    let title = item.title;
+    let url = item.url;
+    let content = item.content;
+
+    // タイトルがMarkdownリンク形式の場合の処理 [Title](URL)
+    const markdownLinkMatch = title.match(/^\[(.*?)\]\((.*?)\)$/);
+    if (markdownLinkMatch) {
+      title = markdownLinkMatch[1];
+      url = markdownLinkMatch[2];
+      // URLが/question/を含む場合、それは質問へのリンク
+      // URLが/answer/を含む場合、回答へのリンクだが、基本は質問タイトルを表示したい
+    }
+
+    // コンテンツが空で、タイトルから抽出できた場合
+    if (!content && markdownLinkMatch) {
+      // 特に追加処理なし
+    }
+
     processedItems.push({
       ...item,
+      title: title,
+      url: url,
       isArticle: true,
       metadata: {
         ...item.metadata,
