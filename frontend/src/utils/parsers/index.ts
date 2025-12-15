@@ -30,9 +30,8 @@ export {
 };
 
 // パーサー選択ロジックを統一
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export function getParserForSource(source: string): ((input: any) => ContentItem[]) | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parsers: Record<string, (input: any) => ContentItem[]> = {
     github: parseGitHubTrendingMarkdown,
     'tech-news': parseTechNewsMarkdown,
@@ -51,3 +50,4 @@ export function getParserForSource(source: string): ((input: any) => ContentItem
 
   return parsers[source] || null;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */

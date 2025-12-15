@@ -69,6 +69,27 @@ def _create_content_item(
     )
 
 
+def _parse_popularity_score(value: object) -> float:
+    """人気スコアを安全にパース.
+
+    Parameters
+    ----------
+    value : object
+        パースする値。
+
+    Returns
+    -------
+    float
+        パースされた人気スコア。失敗時は0.0。
+    """
+    if value is None:
+        return 0.0
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return 0.0
+
+
 def _process_trendradar_articles(
     articles_data: list[dict], source: str
 ) -> list[ContentItem]:
@@ -88,9 +109,9 @@ def _process_trendradar_articles(
     """
     items = []
     # 人気度（popularity_score）の降順でソート
-    # Noneの場合は0として扱う
+    # 変換不可能な値（None, "N/A"等）は0として扱う
     articles_data.sort(
-        key=lambda x: float(x.get("popularity_score") or 0), reverse=True
+        key=lambda x: _parse_popularity_score(x.get("popularity_score")), reverse=True
     )
 
     for article in articles_data:

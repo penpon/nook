@@ -345,7 +345,7 @@ class JuejinExplorer(BaseService):
         sanitized = "".join(
             char
             for char in text
-            if char in ("\n", "\t") or unicodedata.category(char) != "Cc"
+            if char in ("\n", "\t") or unicodedata.category(char) not in ("Cc", "Cf")
         )
         # 連続する改行を1つに正規化
         sanitized = re.sub(r"\n{3,}", "\n\n", sanitized)
