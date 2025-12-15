@@ -150,7 +150,8 @@ async def get_content(
                 for article in sorted_articles:
                     content = ""
                     if article.get("summary"):
-                        content = f"**要約**:\n{article['summary']}\n\n"
+                        # 要約は既にMarkdown形式で構造化されているため、そのまま使用
+                        content = f"{article['summary']}\n\n"
                     if article.get("category"):
                         content += f"カテゴリ: {article['category']}"
 

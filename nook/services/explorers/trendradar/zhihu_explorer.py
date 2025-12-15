@@ -411,27 +411,41 @@ class ZhihuExplorer(BaseService):
             article.popularity_score if math.isfinite(article.popularity_score) else 0.0
         )
 
-        prompt = f"""以下の知乎（Zhihu）ホットトピックを日本語で簡潔に要約してください。
+        prompt = f"""以下の知乎（Zhihu）ホットトピックを日本語で詳細に要約してください。
 
 タイトル: {safe_title}
 URL: {safe_url}
 説明: {safe_text}
 人気度（ホット値）: {safe_popularity:,.0f}
 
-要約は1-2文で、このトピックが何について議論されているかを説明してください。"""
+以下のフォーマットで出力してください：
+
+1. 記事の主な内容 (1-2文)
+[記事の内容を簡潔に説明]
+
+2. 重要なポイント (箇条書き3-5点)
+- [ポイント1]
+- [ポイント2]
+- [ポイント3]
+
+3. 議論の傾向 (コメントや反応から読み取れる場合)
+[議論の方向性や主要な意見について短い説明]"""
 
         system_instruction = (
             "あなたは中国のQ&Aプラットフォーム「知乎（Zhihu）」のトレンドを "
-            "日本語で解説するアシスタントです。簡潔かつ情報量のある要約を心がけてください。"
+            "日本語で解説する専門のアシスタントです。日本のユーザーに向けて、"
+            "単なる翻訳ではなく、文化的背景や議論の文脈が伝わるような"
+            "具体的で情報量の多い要約を作成してください。"
         )
 
         try:
             # GPTClientの非同期メソッドを使用してイベントループをブロックしない
+            # Max tokensを増やして詳細な要約を許可
             summary = await self.gpt_client.generate_async(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=self.GPT_TEMPERATURE,
-                max_tokens=self.GPT_MAX_TOKENS,
+                max_tokens=600,  # トークン数を増加
             )
             # 空の要約をフォールバック（空白のみの場合も弾く）
             if summary and summary.strip():
@@ -570,7 +584,8 @@ URL: {safe_url}
 
             content += f"## {i}. [{title}]({url})\n\n"
             content += f"**人気度**: {hot:,.0f}\n\n"
-            content += f"**要約**: {summary}\n\n"
+            # 要約は既にMarkdown形式で構造化されているため、そのまま出力
+            content += f"**要約**:\n\n{summary}\n\n"
             content += "---\n\n"
 
         return content
