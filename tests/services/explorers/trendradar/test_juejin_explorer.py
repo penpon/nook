@@ -545,22 +545,25 @@ class TestJuejinExplorerMarkdownRendering:
         """
         Given: 特殊文字を含む記録。
         When: _render_markdown が呼ばれたとき。
-        Then: 特殊文字がエスケープされる。
+        Then: タイトルとURLの特殊文字はエスケープされ、要約はマークダウンが保持される。
         """
         records = [
             {
                 "title": "[Test] Article (with brackets)",
                 "url": "https://example.com/path?q=(test)",
-                "summary": "Summary with [brackets]",
+                "summary": "Summary with **bold** and [link](http://example.com)",
                 "popularity_score": 100,
             }
         ]
 
         result = explorer._render_markdown(records, "2024-01-15")
 
-        # Title and summary should have escaped brackets
+        # Title should have escaped brackets
         assert "\\[Test\\]" in result
-        assert "\\[brackets\\]" in result
+
+        # Summary should PRESERVE markdown (not escaped)
+        assert "**bold**" in result
+        assert "[link](http://example.com)" in result
 
 
 class TestJuejinExplorerUtils:

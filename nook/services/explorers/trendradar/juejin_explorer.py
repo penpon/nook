@@ -44,7 +44,7 @@ class JuejinExplorer(BaseService):
 
     Parameters
     ----------
-    storage_dir : str, default="data"
+    storage_dir : str, default="var/data"
         データ保存ディレクトリのルートパス。
 
     Examples
@@ -575,7 +575,7 @@ URL: {safe_url}
         for i, record in enumerate(records, 1):
             title = self._escape_markdown_text(record.get("title", ""))
             url = self._escape_markdown_url(record.get("url", ""))
-            summary = self._escape_markdown_text(record.get("summary", ""))
+            summary = record.get("summary", "")
             # popularity_score は型が揺れる可能性があるため、例外安全に変換
             hot = self._parse_popularity_score(record.get("popularity_score"))
 
