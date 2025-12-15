@@ -60,7 +60,7 @@ class JuejinExplorer(BaseService):
 
     # GPT設定
     GPT_TEMPERATURE = 0.3
-    GPT_MAX_TOKENS = 200
+    GPT_MAX_TOKENS = 600
 
     # 並列実行制限（APIレート制限対策）
     MAX_CONCURRENT_REQUESTS = 5
@@ -233,12 +233,9 @@ class JuejinExplorer(BaseService):
 
         # 例外チェック: _summarize_article内でキャッチしきれなかった想定外のエラーを確認
         # Note: return_exceptions=True を使用しているため、例外はresultsに含まれる
-        # Note: CancelledError は Python 3.8+ で BaseException のサブクラスであり
-        #       Exception ではないため、ここでは捕捉されない（意図通り）
+        # Note: CancelledError は別途処理されるため、ここでは Exception のみをチェック
         for i, result in enumerate(results):
-            if isinstance(result, BaseException) and not isinstance(
-                result, asyncio.CancelledError
-            ):
+            if isinstance(result, Exception):
                 # 予期せぬエラーはログ記録のみ（再送出しない）
                 # return_exceptions=True の意図（一部の失敗を許容）と一致
                 self.logger.error(
@@ -248,6 +245,11 @@ class JuejinExplorer(BaseService):
                 if not articles[i].summary:
                     articles[i].summary = self.ERROR_MSG_GENERATION_FAILED
                 # Note: 処理を継続し、成功した記事は保存する
+
+        # CancelledError が含まれている場合は再送出してキャンセルを伝播
+        for result in results:
+            if isinstance(result, asyncio.CancelledError):
+                raise result
 
         # 日付別にグループ化して保存
         date_str = target_date.strftime("%Y-%m-%d")
@@ -443,7 +445,7 @@ URL: {safe_url}
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=self.GPT_TEMPERATURE,
-                max_tokens=600,  # トークン数を増加
+                max_tokens=self.GPT_MAX_TOKENS,
             )
             # 空の要約をフォールバック（空白のみの場合も弾く）
             if summary and summary.strip():

@@ -27,7 +27,7 @@ export function parseTrendradarZhihuData(items: ContentItem[]): ContentItem[] {
   items.forEach((item) => {
     let title = item.title;
     let url = item.url;
-    let content = item.content;
+    const content = item.content;
 
     // タイトルがMarkdownリンク形式の場合の処理 [Title](URL)
     const markdownLinkMatch = title.match(/^\[(.*?)\]\((.*?)\)$/);
