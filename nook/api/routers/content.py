@@ -144,11 +144,7 @@ async def get_content(
         elif source == "trendradar-zhihu":
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
-                # 人気度でソート
-                sorted_articles = sorted(
-                    articles_data, key=lambda x: x.get("popularity_score", 0)
-                )
-                for article in sorted_articles:
+                for article in articles_data:
                     content = ""
                     if article.get("summary"):
                         # 要約は既にMarkdown形式で構造化されているため、そのまま使用
@@ -169,11 +165,7 @@ async def get_content(
         elif source == "trendradar-juejin":
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
-                # 人気度でソート
-                sorted_articles = sorted(
-                    articles_data, key=lambda x: x.get("popularity_score", 0)
-                )
-                for article in sorted_articles:
+                for article in articles_data:
                     content = ""
                     if article.get("summary"):
                         # 要約は既にMarkdown形式で構造化されているため、そのまま使用
@@ -240,6 +232,25 @@ async def get_content(
                                 title=story["title"],
                                 content=content,
                                 url=story.get("url"),
+                                source=src,
+                            )
+                        )
+            elif src in ("trendradar-zhihu", "trendradar-juejin"):
+                # TrendRadar系はJSONから個別記事として追加
+                articles_data = storage.load_json(service_name, target_date)
+                if articles_data:
+                    for article in articles_data:
+                        content = ""
+                        if article.get("summary"):
+                            content = f"{article['summary']}\n\n"
+                        if article.get("category"):
+                            content += f"カテゴリ: {article['category']}"
+
+                        items.append(
+                            ContentItem(
+                                title=article["title"],
+                                content=content,
+                                url=article.get("url"),
                                 source=src,
                             )
                         )
