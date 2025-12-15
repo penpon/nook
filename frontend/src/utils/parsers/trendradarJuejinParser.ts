@@ -27,18 +27,12 @@ export function parseTrendradarJuejinData(items: ContentItem[]): ContentItem[] {
   items.forEach((item) => {
     let title = item.title;
     let url = item.url;
-    const content = item.content;
 
     // タイトルがMarkdownリンク形式の場合の処理 [Title](URL)
     const markdownLinkMatch = title.match(/^\[(.*?)\]\((.*?)\)$/);
     if (markdownLinkMatch) {
       title = markdownLinkMatch[1];
       url = markdownLinkMatch[2];
-    }
-
-    // コンテンツが空で、タイトルから抽出できた場合
-    if (!content && markdownLinkMatch) {
-      // 特に追加処理なし
     }
 
     processedItems.push({

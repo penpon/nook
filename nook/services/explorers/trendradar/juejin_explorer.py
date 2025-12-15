@@ -235,7 +235,9 @@ class JuejinExplorer(BaseService):
         # Note: return_exceptions=True を使用しているため、例外はresultsに含まれる
         # Note: CancelledError は別途処理されるため、ここでは Exception のみをチェック
         for i, result in enumerate(results):
-            if isinstance(result, Exception):
+            if isinstance(result, Exception) and not isinstance(
+                result, asyncio.CancelledError
+            ):
                 # 予期せぬエラーはログ記録のみ（再送出しない）
                 # return_exceptions=True の意図（一部の失敗を許容）と一致
                 self.logger.error(
@@ -245,11 +247,6 @@ class JuejinExplorer(BaseService):
                 if not articles[i].summary:
                     articles[i].summary = self.ERROR_MSG_GENERATION_FAILED
                 # Note: 処理を継続し、成功した記事は保存する
-
-        # CancelledError が含まれている場合は再送出してキャンセルを伝播
-        for result in results:
-            if isinstance(result, asyncio.CancelledError):
-                raise result
 
         # 日付別にグループ化して保存
         date_str = target_date.strftime("%Y-%m-%d")
