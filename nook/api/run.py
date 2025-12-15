@@ -1,7 +1,6 @@
 """APIサーバーを起動するためのスクリプト。"""
 
 import argparse
-
 import warnings
 
 import uvicorn
@@ -14,7 +13,6 @@ warnings.filterwarnings(
     message="Use `streamable_http_client` instead.",
 )
 
-from dotenv import load_dotenv
 
 # 環境変数の読み込み
 load_dotenv(".env.production")

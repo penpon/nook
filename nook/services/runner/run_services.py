@@ -7,12 +7,16 @@ import asyncio
 import signal
 import sys
 import traceback
+import warnings
 from datetime import date, datetime
 from typing import Set
 
 from dotenv import load_dotenv
 
-import warnings
+from nook.core.clients.http_client import close_http_client
+from nook.core.logging import setup_logger
+from nook.core.utils.async_utils import AsyncTaskManager, gather_with_errors
+from nook.core.utils.date_utils import target_dates_set
 
 # Suppress mcp internal deprecation warning
 warnings.filterwarnings(
@@ -20,11 +24,6 @@ warnings.filterwarnings(
     category=DeprecationWarning,
     message="Use `streamable_http_client` instead.",
 )
-
-from nook.core.clients.http_client import close_http_client
-from nook.core.logging import setup_logger
-from nook.core.utils.async_utils import AsyncTaskManager, gather_with_errors
-from nook.core.utils.date_utils import target_dates_set
 
 # 環境変数の読み込み
 load_dotenv(".env.production")
