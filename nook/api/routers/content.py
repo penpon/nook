@@ -57,6 +57,43 @@ SOURCE_MAPPING = {
 }
 
 
+def _process_trendradar_articles(
+    articles_data: list[dict], source: str
+) -> list[ContentItem]:
+    """TrendRadar系記事をContentItemリストに変換する共通関数.
+
+    Parameters
+    ----------
+    articles_data : list[dict]
+        TrendRadar系サービスから取得した記事データのリスト。
+    source : str
+        ソース名（例: "trendradar-zhihu", "trendradar-juejin"）。
+
+    Returns
+    -------
+    list[ContentItem]
+        変換されたContentItemのリスト。
+    """
+    items = []
+    for article in articles_data:
+        content = ""
+        if article.get("summary"):
+            # 要約は既にMarkdown形式で構造化されているため、そのまま使用
+            content = f"{article['summary']}\n\n"
+        if article.get("category"):
+            content += f"カテゴリ: {article['category']}"
+
+        items.append(
+            ContentItem(
+                title=article["title"],
+                content=content,
+                url=article.get("url"),
+                source=source,
+            )
+        )
+    return items
+
+
 @router.get("/content/{source}", response_model=ContentResponse)
 async def get_content(
     source: str, date: str | None = None, response: Response = None
@@ -144,43 +181,13 @@ async def get_content(
         elif source == "trendradar-zhihu":
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
-                for article in articles_data:
-                    content = ""
-                    if article.get("summary"):
-                        # 要約は既にMarkdown形式で構造化されているため、そのまま使用
-                        content = f"{article['summary']}\n\n"
-                    if article.get("category"):
-                        content += f"カテゴリ: {article['category']}"
-
-                    items.append(
-                        ContentItem(
-                            title=article["title"],
-                            content=content,
-                            url=article.get("url"),
-                            source=source,
-                        )
-                    )
+                items.extend(_process_trendradar_articles(articles_data, source))
 
         # TrendRadar Juejinの場合もJSONから個別記事を取得
         elif source == "trendradar-juejin":
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
-                for article in articles_data:
-                    content = ""
-                    if article.get("summary"):
-                        # 要約は既にMarkdown形式で構造化されているため、そのまま使用
-                        content = f"{article['summary']}\n\n"
-                    if article.get("category"):
-                        content += f"カテゴリ: {article['category']}"
-
-                    items.append(
-                        ContentItem(
-                            title=article["title"],
-                            content=content,
-                            url=article.get("url"),
-                            source=source,
-                        )
-                    )
+                items.extend(_process_trendradar_articles(articles_data, source))
         else:
             # 他のソースは従来通りMarkdownから取得
             content = storage.load_markdown(service_name, target_date)
@@ -239,21 +246,7 @@ async def get_content(
                 # TrendRadar系はJSONから個別記事として追加
                 articles_data = storage.load_json(service_name, target_date)
                 if articles_data:
-                    for article in articles_data:
-                        content = ""
-                        if article.get("summary"):
-                            content = f"{article['summary']}\n\n"
-                        if article.get("category"):
-                            content += f"カテゴリ: {article['category']}"
-
-                        items.append(
-                            ContentItem(
-                                title=article["title"],
-                                content=content,
-                                url=article.get("url"),
-                                source=src,
-                            )
-                        )
+                    items.extend(_process_trendradar_articles(articles_data, src))
             else:
                 # 他のソースは従来通りMarkdownから取得
                 content = storage.load_markdown(service_name, target_date)

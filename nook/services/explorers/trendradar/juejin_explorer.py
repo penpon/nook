@@ -267,6 +267,10 @@ class JuejinExplorer(BaseService):
         Article
             変換されたArticleオブジェクト。
         """
+        raw_popularity = item.get("hot")
+        if raw_popularity is None:
+            raw_popularity = item.get("rank", 0)
+
         return Article(
             feed_name="juejin",
             title=str(item.get("title") or ""),
@@ -274,9 +278,7 @@ class JuejinExplorer(BaseService):
             text=str(item.get("desc") or ""),
             soup=_create_empty_soup(),
             category="hot",
-            popularity_score=self._parse_popularity_score(
-                item.get("hot") or item.get("rank", 0)
-            ),
+            popularity_score=self._parse_popularity_score(raw_popularity),
             published_at=self._parse_published_at(item),
         )
 
