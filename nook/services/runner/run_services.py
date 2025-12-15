@@ -37,6 +37,7 @@ class ServiceRunner:
         from nook.services.explorers.note.note_explorer import NoteExplorer
         from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
         from nook.services.explorers.reddit.reddit_explorer import RedditExplorer
+        from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
         from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
         from nook.services.feeds.business.business_feed import BusinessFeed
         from nook.services.feeds.hacker_news.hacker_news import HackerNewsRetriever
@@ -55,6 +56,7 @@ class ServiceRunner:
             "arxiv": ArxivSummarizer,
             "4chan": FourChanExplorer,
             "5chan": FiveChanExplorer,
+            "trendradar-zhihu": ZhihuExplorer,
         }
 
         # サービスインスタンスを保持（必要時にのみ作成）
@@ -74,8 +76,20 @@ class ServiceRunner:
         # days パラメータを使用するサービスの場合、対象期間を表示
         effective_dates = target_dates or target_dates_set(days)
         sorted_dates = sorted(effective_dates)
-        # target_datesをsortedのlist型に変換して各サービスに渡す
-        sorted_target_dates = sorted_dates
+
+        # trendradar-zhihu は単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
+        # Note: ZhihuExplorer.collect 内でも検証されるが、runner 側で早期に失敗させる
+        if service_name == "trendradar-zhihu":
+            if days != 1:
+                raise ValueError(
+                    "trendradar-zhihu は単一日のみ対応しています。"
+                    f"指定された days: {days}"
+                )
+            if len(sorted_dates) > 1:
+                raise ValueError(
+                    "trendradar-zhihu は単一日のみ対応しています。"
+                    f"指定された日数: {len(sorted_dates)}日"
+                )
 
         logger.info("\n" + "━" * 60)
         if len(sorted_dates) <= 1:
@@ -95,32 +109,32 @@ class ServiceRunner:
         try:
             # サービスごとに異なるlimitパラメータを設定
             if service_name == "hacker_news":
-                # Hacker Newsは15記事に制限し、sorted_target_dates を渡す
-                result = await service.collect(
-                    limit=15, target_dates=sorted_target_dates
-                )
+                # Hacker Newsは15記事に制限し、sorted_dates を渡す
+                result = await service.collect(limit=15, target_dates=sorted_dates)
                 saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
-                # Tech News/Business Newsは15記事に制限し、sorted_target_dates を渡す
+                # Tech News/Business Newsは15記事に制限し、sorted_dates を渡す
                 result = await service.collect(
-                    days=days, limit=15, target_dates=sorted_target_dates
+                    days=days, limit=15, target_dates=sorted_dates
                 )
                 saved_files = result if result else []
             elif service_name in ["zenn", "qiita", "note"]:
                 # Zenn/Qiita/Noteは15記事に制限し、daysパラメータを渡す
                 result = await service.collect(
-                    days=days, limit=15, target_dates=sorted_target_dates
+                    days=days, limit=15, target_dates=sorted_dates
                 )
                 saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは15記事に制限
-                result = await service.collect(
-                    limit=15, target_dates=sorted_target_dates
-                )
+                result = await service.collect(limit=15, target_dates=sorted_dates)
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
-                result = await service.collect(target_dates=sorted_target_dates)
+                # trendradar-zhihu は days の検証を service 側でも行う
+                if service_name == "trendradar-zhihu":
+                    result = await service.collect(days=days, target_dates=sorted_dates)
+                else:
+                    result = await service.collect(target_dates=sorted_dates)
                 saved_files = result if result else []
 
             # 保存されたファイルのサマリーを表示
@@ -156,12 +170,12 @@ class ServiceRunner:
 
         target_dates = target_dates_set(days)
         # target_datesをsortedのlist型に変換して各サービスに渡す
-        sorted_target_dates = sorted(target_dates)
+        sorted_dates = sorted(target_dates)
 
         try:
             # 各サービスを並行実行
             service_tasks = [
-                self._run_sync_service(name, service, days, sorted_target_dates)
+                self._run_sync_service(name, service, days, sorted_dates)
                 for name, service in self.sync_services.items()
             ]
 
@@ -213,14 +227,14 @@ class ServiceRunner:
 
         target_dates = target_dates_set(days)
         # target_datesをsortedのlist型に変換して各サービスに渡す
-        sorted_target_dates = sorted(target_dates)
+        sorted_dates = sorted(target_dates)
 
         try:
             await self._run_sync_service(
                 service_name,
                 self.sync_services[service_name],
                 days,
-                sorted_target_dates,
+                sorted_dates,
             )
         except Exception as e:
             logger.error(f"Service {service_name} failed: {e}", exc_info=True)
@@ -288,6 +302,7 @@ async def main():
             "arxiv",
             "4chan",
             "5chan",
+            "trendradar-zhihu",
         ],
         default="all",
         help="実行するサービスを指定します",

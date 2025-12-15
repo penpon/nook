@@ -14,6 +14,14 @@ export interface ContentItem {
     feedName?: string;
     subreddit?: string;
     source?: string;
+    /** 4chan固有: 掲示板名（例: "g", "sci"） */
+    board?: string;
+    /** 4chan固有: スレッド番号 */
+    threadNumber?: string;
+    /** 4chan固有: 返信数 */
+    replyCount?: string;
+    /** 4chan固有: 画像数 */
+    imageCount?: string;
   };
 }
 

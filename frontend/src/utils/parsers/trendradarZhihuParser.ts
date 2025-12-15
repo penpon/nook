@@ -68,7 +68,10 @@ export function parseTrendradarZhihuMarkdown(markdown: string): ContentItem[] {
     if (last && last.isArticle) {
       last.content = last.content ? `${last.content}\n${line}` : line;
     } else {
-      // パース不能行は汎用記事として扱う
+      // パース不能行は汎用記事として扱う（開発環境のみ警告出力）
+      if (import.meta.env.DEV) {
+        console.warn('[trendradarZhihuParser] Unparseable line:', line);
+      }
       articleNumber += 1;
       items.push({
         title: line.slice(0, 80),

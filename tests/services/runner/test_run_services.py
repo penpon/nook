@@ -119,7 +119,7 @@ async def test_run_service_unknown_raises():
 
 
 @pytest.mark.asyncio
-async def test_run_sync_service_dispatch_logic():
+async def test_run_sync_service_dispatch_logic(monkeypatch):
     """Verify correct parameters are passed to service.collect based on service name"""
 
     # We test _run_sync_service directly
@@ -127,6 +127,9 @@ async def test_run_sync_service_dispatch_logic():
     # Setup mocks
     service_mock = AsyncMock()
     service_mock.collect.return_value = []
+
+    mock_logger = MagicMock()
+    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
 
     runner = ServiceRunner.__new__(ServiceRunner)
 
@@ -159,7 +162,31 @@ async def test_run_sync_service_dispatch_logic():
     service_mock.collect.assert_awaited_with(limit=15, target_dates=dates)
     service_mock.collect.reset_mock()
 
-    # --- Case 5: other (default) ---
+    # --- Case 5: trendradar-zhihu (multiple dates) ---
+    # Expected: ValueError raised when multiple dates are passed
+    multi_dates = [date(2024, 1, 2), date(2024, 1, 1)]
+    with pytest.raises(ValueError, match="単一日のみ対応"):
+        await runner._run_sync_service(
+            "trendradar-zhihu", service_mock, days=2, target_dates=multi_dates
+        )
+
+    service_mock.collect.reset_mock()
+
+    # --- Case 5b: trendradar-zhihu (single date) ---
+    # Expected: Works normally with single date
+    single_date = [date(2024, 1, 1)]
+    await runner._run_sync_service(
+        "trendradar-zhihu", service_mock, days=1, target_dates=single_date
+    )
+    service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
+
+    # Check that INFO log shows single day ("対象日")
+    info_calls = [str(c) for c in mock_logger.info.call_args_list]
+    assert any("対象日" in c and "2024-01-01" in c for c in info_calls)
+
+    service_mock.collect.reset_mock()
+
+    # --- Case 6: other (default) ---
     # Expected: target_dates=... (only)
     await runner._run_sync_service(
         "other_service", service_mock, days=1, target_dates=dates
@@ -240,6 +267,7 @@ def test_service_runner_init_loads_service_classes():
         "arxiv",
         "4chan",
         "5chan",
+        "trendradar-zhihu",
     ]
     for service in expected_services:
         assert service in runner.service_classes
