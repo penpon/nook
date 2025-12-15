@@ -91,6 +91,14 @@ class TrendRadarClient:
         if payload is None:
             return []
 
+        # 文字列の場合はJSONとしてパースを試みる
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                # パース失敗時はそのままテキストとして返す
+                return [{"text": payload}]
+
         # TrendRadar commonly returns {"success": true, "news": [...]}
         if isinstance(payload, dict):
             if payload.get("success") is False:
@@ -196,7 +204,8 @@ class TrendRadarClient:
             client = self._create_client()
             async with client:
                 result = await client.call_tool(
-                    tool_name, {"platforms": [platform], "limit": limit}
+                    tool_name,
+                    {"platforms": [platform], "limit": limit, "include_url": True},
                 )
 
             # FastMCP returns CallToolResult which may include structured data (.data)

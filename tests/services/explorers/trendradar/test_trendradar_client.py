@@ -166,7 +166,8 @@ class TestGetLatestNews:
             await client.get_latest_news(platform="zhihu", limit=10)
 
             mock_client.call_tool.assert_called_once_with(
-                "get_latest_news", {"platforms": ["zhihu"], "limit": 10}
+                "get_latest_news",
+                {"platforms": ["zhihu"], "limit": 10, "include_url": True},
             )
 
     @pytest.mark.asyncio
@@ -194,7 +195,8 @@ class TestGetLatestNews:
 
             assert isinstance(result, list)
             mock_client.call_tool.assert_called_once_with(
-                "get_latest_news", {"platforms": ["zhihu"], "limit": 5}
+                "get_latest_news",
+                {"platforms": ["zhihu"], "limit": 5, "include_url": True},
             )
 
     @pytest.mark.asyncio

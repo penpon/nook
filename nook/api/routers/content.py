@@ -52,6 +52,7 @@ SOURCE_MAPPING = {
     "reddit": "reddit_explorer",
     "4chan": "fourchan_explorer",
     "5chan": "fivechan_explorer",
+    "trendradar-zhihu": "trendradar-zhihu",
 }
 
 
@@ -266,5 +267,6 @@ def _get_source_display_name(source: str) -> str:
         "note": "Note",
         "4chan": "4chan",
         "5chan": "5ちゃんねる",
+        "trendradar-zhihu": "知乎 (Zhihu)",
     }
     return source_names.get(source, source)

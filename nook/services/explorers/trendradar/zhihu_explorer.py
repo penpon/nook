@@ -275,7 +275,9 @@ class ZhihuExplorer(BaseService):
             text=str(item.get("desc") or ""),
             soup=_create_empty_soup(),
             category="hot",
-            popularity_score=self._parse_popularity_score(item.get("hot", 0)),
+            popularity_score=self._parse_popularity_score(
+                item.get("hot") or item.get("rank", 0)
+            ),
             published_at=self._parse_published_at(item),
         )
 
