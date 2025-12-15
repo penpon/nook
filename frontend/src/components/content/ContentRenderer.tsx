@@ -65,6 +65,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           return <ContentCard key={index} item={item} darkMode={darkMode} index={articleIndex} />;
         });
       },
+      'trendradar-zhihu': () => renderWithArticleNumbers(),
+      'trendradar-juejin': () => renderWithArticleNumbers(),
       arxiv: () => renderWithArticleNumbers(),
       default: () =>
         processedItems.map((item, index) => (

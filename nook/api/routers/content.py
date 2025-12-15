@@ -53,6 +53,7 @@ SOURCE_MAPPING = {
     "4chan": "fourchan_explorer",
     "5chan": "fivechan_explorer",
     "trendradar-zhihu": "trendradar-zhihu",
+    "trendradar-juejin": "trendradar-juejin",
 }
 
 
@@ -141,6 +142,31 @@ async def get_content(
                     )
         # TrendRadar Zhihuの場合もJSONから個別記事を取得
         elif source == "trendradar-zhihu":
+            articles_data = storage.load_json(service_name, target_date)
+            if articles_data:
+                # 人気度でソート
+                sorted_articles = sorted(
+                    articles_data, key=lambda x: x.get("popularity_score", 0)
+                )
+                for article in sorted_articles:
+                    content = ""
+                    if article.get("summary"):
+                        # 要約は既にMarkdown形式で構造化されているため、そのまま使用
+                        content = f"{article['summary']}\n\n"
+                    if article.get("category"):
+                        content += f"カテゴリ: {article['category']}"
+
+                    items.append(
+                        ContentItem(
+                            title=article["title"],
+                            content=content,
+                            url=article.get("url"),
+                            source=source,
+                        )
+                    )
+
+        # TrendRadar Juejinの場合もJSONから個別記事を取得
+        elif source == "trendradar-juejin":
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
                 # 人気度でソート
@@ -292,5 +318,6 @@ def _get_source_display_name(source: str) -> str:
         "4chan": "4chan",
         "5chan": "5ちゃんねる",
         "trendradar-zhihu": "知乎 (Zhihu)",
+        "trendradar-juejin": "掘金 (Juejin)",
     }
     return source_names.get(source, source)
