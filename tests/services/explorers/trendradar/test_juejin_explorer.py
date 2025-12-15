@@ -500,10 +500,13 @@ class TestJuejinExplorerContextManager:
         When: ブロックが終了するとき。
         Then: close() がそれでも呼ばれる。
         """
-        with patch.object(explorer.client, "close", new_callable=AsyncMock):
+        with patch.object(
+            explorer.client, "close", new_callable=AsyncMock
+        ) as mock_close:
             with pytest.raises(ValueError):
                 async with explorer:
                     raise ValueError("Test Error")
+            mock_close.assert_awaited_once()
 
 
 class TestJuejinExplorerMarkdownRendering:
@@ -576,12 +579,16 @@ class TestJuejinExplorerUtils:
 
     def test_sanitize_prompt_input(self, explorer: JuejinExplorer) -> None:
         """_sanitize_prompt_input のテスト。"""
-        # 制御文字の除去
-        assert explorer._sanitize_prompt_input("Hello\x00World") == "HelloWorld"
+        # 制御文字の除去 (NULL, BEL)
+        assert explorer._sanitize_prompt_input("Hello\x00\x07World") == "HelloWorld"
         # 改行・タブは保持
         assert explorer._sanitize_prompt_input("Line\nTab\t") == "Line\nTab"
         # 連続改行の正規化
         assert explorer._sanitize_prompt_input("A\n\n\nB") == "A\n\nB"
+        # 日本語と全角スペース (Zenkaku Space \u3000) は保持
+        assert explorer._sanitize_prompt_input("日本\u3000語") == "日本\u3000語"
+        # 絵文字は保持 (So category)
+        assert explorer._sanitize_prompt_input("Hello 🌍") == "Hello 🌍"
         # 長さ制限
         long_text = "a" * 600
         result = explorer._sanitize_prompt_input(long_text, max_length=10)

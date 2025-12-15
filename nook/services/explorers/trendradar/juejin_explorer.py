@@ -8,6 +8,7 @@ import asyncio
 import html
 import math
 import re
+import unicodedata
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -344,7 +345,7 @@ class JuejinExplorer(BaseService):
         sanitized = "".join(
             char
             for char in text
-            if char in ("\n", "\t") or (ord(char) >= 32 and ord(char) != 127)
+            if char in ("\n", "\t") or unicodedata.category(char) != "Cc"
         )
         # 連続する改行を1つに正規化
         sanitized = re.sub(r"\n{3,}", "\n\n", sanitized)
