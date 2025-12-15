@@ -1,1 +1,16 @@
-npx lint-staged
+# Frontend checks (lint-staged)
+cd frontend
+if npx lint-staged; then
+  : # success
+else
+  exit 1
+fi
+cd ..
+
+# Backend checks (Python pre-commit)
+# Assuming .venv is in root
+if [ -f ".venv/bin/pre-commit" ]; then
+  .venv/bin/pre-commit run --config .pre-commit-config.yaml "$@"
+else
+  echo "Warning: Python pre-commit not found in .venv/bin/pre-commit"
+fi
