@@ -43,6 +43,7 @@ export function getParserForSource(source: string): ((input: any) => ContentItem
     '5chan': parseFivechanThreadsMarkdown,
     'hacker-news': parseHackerNewsData,
     'trendradar-zhihu': parseTrendradarZhihuData,
+    'trendradar-juejin': parseTrendradarZhihuData, // 同じ形式なので再利用
   };
 
   return parsers[source] || null;

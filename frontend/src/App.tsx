@@ -24,6 +24,7 @@ const sources = [
   '4chan',
   '5chan',
   'trendradar-zhihu',
+  'trendradar-juejin',
 ];
 
 function App() {

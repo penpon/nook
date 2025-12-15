@@ -104,6 +104,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-blue-50',
     borderColor: 'border-indigo-200',
   },
+  'trendradar-juejin': {
+    title: '掘金 (Juejin)',
+    subtitle: '中国最大の開発者コミュニティ',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-blue-50',
+    gradientTo: 'to-indigo-50',
+    borderColor: 'border-indigo-200',
+  },
 };
 
 // デフォルト設定
