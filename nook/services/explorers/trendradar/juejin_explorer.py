@@ -220,6 +220,9 @@ class JuejinExplorer(BaseService):
 
         # GPT要約を生成（並列実行でパフォーマンス向上）
         # Semaphoreで同時実行数を制限してAPIレート制限を回避
+        # Note: GPTClient内部でHTTPリクエストタイムアウトが設定されているため、
+        # 長時間ブロッキングは発生しない。タイムアウト時はExceptionとしてキャッチされ、
+        # ERROR_MSG_GENERATION_FAILEDが設定される。
         sem = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
 
         async def bounded_summarize(article: Article) -> None:

@@ -110,11 +110,14 @@ def _process_trendradar_articles(
     items = []
     # 人気度（popularity_score）の降順でソート
     # 変換不可能な値（None, "N/A"等）は0として扱う
-    articles_data.sort(
-        key=lambda x: _parse_popularity_score(x.get("popularity_score")), reverse=True
+    # Note: sorted()を使用して元のリストを変更しない（副作用防止）
+    sorted_articles = sorted(
+        articles_data,
+        key=lambda x: _parse_popularity_score(x.get("popularity_score")),
+        reverse=True,
     )
 
-    for article in articles_data:
+    for article in sorted_articles:
         content = ""
         if article.get("summary"):
             # 要約は既にMarkdown形式で構造化されているため、そのまま使用
