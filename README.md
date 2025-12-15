@@ -49,7 +49,7 @@ cd deploy && docker-compose up -d
 ### ライトモード
 ![画面イメージ](assets/screenshots/white-screenshot.png)
 
-## 対応サービス（11種類）
+## 対応サービス(12種類)
 
 | サービス | 日本語タイトル | 説明 |
 |---------|--------------|------|
@@ -64,8 +64,9 @@ cd deploy && docker-compose up -d
 | Note Explorer 📍 | note 記事・コラム | noteの技術記事 |
 | 4chan Explorer 📍 | 4ちゃんねる スレッド | 4chanの技術系スレッド |
 | 5chan Explorer 📍 | 5ちゃんねる スレッド | 5chの技術系スレッド |
+| Zhihu Explorer 🆕 | 知乎 ホットトピック | 中国最大のQ&Aプラットフォーム(TrendRadar経由) |
 
-📍 = 新規追加サービス
+📍 = 新規追加サービス / 🆕 = TrendRadar経由
 
 ## 🎉 最新アップデート (2025年7月2日時点)
 
@@ -275,12 +276,72 @@ npm update
 - Docker & Docker Compose
 - Python 3.12以上（ローカル開発時）
 - Node.js 18以上（ローカル開発時）
+- **TrendRadar MCPサーバー**(知乎機能を使用する場合)
 
 ### 必要なAPIキー
 
 - **OPENAI_API_KEY** - OpenAI API (旧: GROK_API_KEY)
 - **REDDIT_CLIENT_ID** / **REDDIT_CLIENT_SECRET**
 - **OPENWEATHERMAP_API_KEY**
+
+### TrendRadarセットアップ(知乎機能用)
+
+知乎(Zhihu)のホットトピック収集機能を使用するには、TrendRadar MCPサーバーが必要です。
+
+> ⚠️ **セキュリティ警告**
+>
+> 以下の手順は外部リポジトリのシェルスクリプトを実行します。
+> 実行前にスクリプトの内容を確認し、信頼できるか判断してください。
+
+#### 方法1: Docker(推奨)
+
+```bash
+# nookプロジェクトのルートディレクトリで実行
+mkdir -p external
+cd external
+
+# TrendRadarリポジトリをクローン
+git clone https://github.com/sansan0/TrendRadar.git
+cd TrendRadar
+
+# MCPサーバーのみ起動
+docker compose pull trend-radar-mcp
+docker compose up -d trend-radar-mcp
+
+# 動作確認
+curl http://localhost:3333/mcp
+```
+
+#### 方法2: ローカルセットアップ
+
+```bash
+# nookプロジェクトのルートディレクトリで実行
+mkdir -p external
+cd external
+
+# TrendRadarリポジトリをクローン
+git clone https://github.com/sansan0/TrendRadar.git
+cd TrendRadar
+
+# スクリプト内容を確認
+cat setup-mac.sh
+cat start-http.sh
+
+# 確認後、実行
+./setup-mac.sh
+./start-http.sh  # localhost:3333/mcp で起動
+```
+
+#### 動作確認
+
+```bash
+# MCPサーバーの起動確認
+curl http://localhost:3333/mcp
+
+# nookから知乎データを取得
+cd ../../  # nookプロジェクトのルートに戻る
+uv run python -m nook.services.runner.run_services --service trendradar-zhihu
+```
 
 ### Docker本番環境セットアップ
 
@@ -354,6 +415,7 @@ python -m nook.services.run_services --service qiita
 python -m nook.services.run_services --service note
 python -m nook.services.run_services --service 4chan
 python -m nook.services.run_services --service 5chan
+python -m nook.services.run_services --service trendradar-zhihu
 ```
 
 ### データの保存場所
@@ -371,6 +433,7 @@ data/
 ├── note_explorer/      # note記事
 ├── fourchan_explorer/  # 4chanスレッド
 ├── fivechan_explorer/  # 5chスレッド
+├── trendradar-zhihu/   # 知乎ホットトピック(TrendRadar経由)
 └── api_usage/          # LLM使用量ログ
 ```
 
