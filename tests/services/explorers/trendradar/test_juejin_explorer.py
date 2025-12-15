@@ -561,3 +561,56 @@ class TestJuejinExplorerMarkdownRendering:
         # Title and summary should have escaped brackets
         assert "\\[Test\\]" in result
         assert "\\[brackets\\]" in result
+
+
+class TestJuejinExplorerUtils:
+    """内部ユーティリティメソッドのテスト。"""
+
+    @pytest.fixture
+    def explorer(self, tmp_path: Path) -> JuejinExplorer:
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test"}):
+            return JuejinExplorer(storage_dir=str(tmp_path))
+
+    def test_sanitize_prompt_input(self, explorer: JuejinExplorer) -> None:
+        """_sanitize_prompt_input のテスト。"""
+        # 制御文字の除去
+        assert explorer._sanitize_prompt_input("Hello\x00World") == "HelloWorld"
+        # 改行・タブは保持
+        assert explorer._sanitize_prompt_input("Line\nTab\t") == "Line\nTab"
+        # 連続改行の正規化
+        assert explorer._sanitize_prompt_input("A\n\n\nB") == "A\n\nB"
+        # 長さ制限
+        long_text = "a" * 600
+        result = explorer._sanitize_prompt_input(long_text, max_length=10)
+        assert len(result) <= 13  # 10 + "..."
+        assert result.endswith("...")
+
+    def test_parse_popularity_score(self, explorer: JuejinExplorer) -> None:
+        """_parse_popularity_score のテスト。"""
+        assert explorer._parse_popularity_score(None) == 0.0
+        assert explorer._parse_popularity_score(100) == 100.0
+        assert explorer._parse_popularity_score("1,000") == 1000.0
+        assert explorer._parse_popularity_score("+500") == 500.0
+        assert explorer._parse_popularity_score("invalid") == 0.0
+        assert explorer._parse_popularity_score(float("nan")) == 0.0
+        assert explorer._parse_popularity_score(float("inf")) == 0.0
+
+    def test_escape_markdown_text(self, explorer: JuejinExplorer) -> None:
+        """_escape_markdown_text のテスト。"""
+        # HTMLエンティティ
+        assert explorer._escape_markdown_text("<script>") == "&lt;script&gt;"
+        # 角括弧
+        assert explorer._escape_markdown_text("[link]") == "\\[link\\]"
+        # 複合
+        assert (
+            explorer._escape_markdown_text("<b>[B]</b>") == "&lt;b&gt;\\[B\\]&lt;/b&gt;"
+        )
+
+    def test_escape_markdown_url(self, explorer: JuejinExplorer) -> None:
+        """_escape_markdown_url のテスト。"""
+        assert (
+            explorer._escape_markdown_url("http://e.com/(1)") == "http://e.com/\\(1\\)"
+        )
+        assert (
+            explorer._escape_markdown_url("http://e.com/[1]") == "http://e.com/\\[1\\]"
+        )
