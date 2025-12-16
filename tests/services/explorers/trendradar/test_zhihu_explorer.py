@@ -230,9 +230,7 @@ class TestZhihuExplorerTransform:
             "created_at": "2023-04-01T00:00:00Z",  # Should fall back to this
         }
 
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.utils.datetime") as mock_dt:
             # datetimeモジュール全体をモック
             mock_dt.now = MagicMock(
                 return_value=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
@@ -274,9 +272,7 @@ class TestZhihuExplorerTransform:
             "pub_date": "also-invalid",
         }
 
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.utils.datetime") as mock_dt:
             # datetime.now() と datetime.fromtimestamp() の両方を設定
             mock_dt.now.return_value = fixed_now
             mock_dt.fromtimestamp = datetime.fromtimestamp
@@ -289,9 +285,7 @@ class TestZhihuExplorerTransform:
 
         # Empty item (no timestamp fields)
         item_empty = {}
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.utils.datetime") as mock_dt:
             mock_dt.now.return_value = fixed_now
             mock_dt.fromtimestamp = datetime.fromtimestamp
             result = explorer._parse_published_at(item_empty)
@@ -505,9 +499,7 @@ class TestZhihuExplorerCollect:
 
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
 
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.base.datetime") as mock_dt:
             # now() を固定
             mock_dt.now.return_value = fixed_now
             # fromtimestamp は本物を使用

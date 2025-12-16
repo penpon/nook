@@ -1,6 +1,5 @@
 """コンテンツAPIルーター。"""
 
-import math
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Response
@@ -8,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Response
 from nook.api.models.schemas import ContentItem, ContentResponse
 from nook.core.config import BaseConfig
 from nook.core.storage import LocalStorage
+from nook.services.explorers.trendradar.utils import parse_popularity_score
 
 router = APIRouter()
 storage = LocalStorage(BaseConfig().DATA_DIR)
@@ -70,38 +70,6 @@ def _create_content_item(
     )
 
 
-def _parse_popularity_score(value: object) -> float:
-    """人気スコアを安全にパース.
-
-    Parameters
-    ----------
-    value : object
-        パースする値。
-
-    Returns
-    -------
-    float
-        パースされた人気スコア。失敗時は0.0。
-    """
-    if value is None:
-        return 0.0
-    try:
-        # 文字列の場合、カンマやプラス記号を正規化
-        if isinstance(value, str):
-            normalized = value.strip().replace(",", "")
-            if normalized.startswith("+"):
-                normalized = normalized[1:]
-            result = float(normalized)
-        else:
-            result = float(value)
-        # NaN/Infinity は 0.0 にフォールバック
-        if not math.isfinite(result):
-            return 0.0
-        return result
-    except (ValueError, TypeError):
-        return 0.0
-
-
 def _process_trendradar_articles(
     articles_data: list[dict], source: str
 ) -> list[ContentItem]:
@@ -125,7 +93,7 @@ def _process_trendradar_articles(
     # Note: sorted()を使用して元のリストを変更しない（副作用防止）
     sorted_articles = sorted(
         articles_data,
-        key=lambda x: _parse_popularity_score(x.get("popularity_score")),
+        key=lambda x: parse_popularity_score(x.get("popularity_score")),
         reverse=True,
     )
 
