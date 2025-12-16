@@ -517,13 +517,13 @@ TrendRadar error: 不支持的平台: juejin
 ```
 
 **原因**:
-TrendRadar MCP サーバーは `external/TrendRadar/config/config.yaml` の `platforms` セクションに登録されているプラットフォームのみをサポートする。新しいプラットフォームを nook 側で実装しても、この設定ファイルに追加されていないとエラーになる。
+TrendRadar MCP サーバーは `config/trendradar/config.yaml` の `platforms` セクションに登録されているプラットフォームのみをサポートする。新しいプラットフォームを nook 側で実装しても、この設定ファイルに追加されていないとエラーになる。
 
 **解決手順**:
 
 1. **config.yaml にプラットフォームを追加**
    ```bash
-   vi /home/ubuntu/nook/external/TrendRadar/config/config.yaml
+   vi config/trendradar/config.yaml
    ```
    
    `platforms:` セクションに追加:
@@ -543,8 +543,8 @@ TrendRadar MCP サーバーは `external/TrendRadar/config/config.yaml` の `pla
    ```bash
    docker restart trend-radar
    # または起動していない場合
-   cd /home/ubuntu/nook/external/TrendRadar/docker
-   docker compose up -d trend-radar
+   cd config/trendradar
+   docker compose up -d
    ```
 
 4. **動作確認**
@@ -557,7 +557,7 @@ TrendRadar MCP サーバーは `external/TrendRadar/config/config.yaml` の `pla
    ```
 
 **チェックリスト（新プラットフォーム追加時）**:
-- [ ] `external/TrendRadar/config/config.yaml` の `platforms` に追加
+- [ ] `config/trendradar/config.yaml` の `platforms` に追加
 - [ ] `docker restart trend-radar-mcp` で MCP サーバー再起動
 - [ ] `docker restart trend-radar` でクローラー再起動
 - [ ] クローラーログで新プラットフォームが認識されていることを確認
@@ -584,8 +584,8 @@ TrendRadar error: 未找到 2025年12月16日 的数据
 
 2. **クローラーが停止している場合は起動**
    ```bash
-   cd /home/ubuntu/nook/external/TrendRadar/docker
-   docker compose up -d trend-radar
+   cd config/trendradar
+   docker compose up -d
    ```
 
 3. **データ収集を待機**（デフォルトで5分ごとにクロール）
