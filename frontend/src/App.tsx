@@ -25,6 +25,7 @@ const sources = [
   '5chan',
   'trendradar-zhihu',
   'trendradar-juejin',
+  'trendradar-ithome',
 ];
 
 function App() {
@@ -87,7 +88,7 @@ function App() {
           showWeather={false}
           showSearchButton={false}
           onMenuClick={toggleMobileMenu}
-          onSearchClick={() => {}}
+          onSearchClick={() => { }}
           rightActions={<></>}
         />
 

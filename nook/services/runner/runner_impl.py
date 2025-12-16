@@ -45,6 +45,7 @@ class ServiceRunner:
         from nook.services.explorers.note.note_explorer import NoteExplorer
         from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
         from nook.services.explorers.reddit.reddit_explorer import RedditExplorer
+        from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
         from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
         from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
         from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
@@ -67,6 +68,7 @@ class ServiceRunner:
             "5chan": FiveChanExplorer,
             "trendradar-zhihu": ZhihuExplorer,
             "trendradar-juejin": JuejinExplorer,
+            "trendradar-ithome": IthomeExplorer,
         }
 
         # サービスインスタンスを保持（必要時にのみ作成）
@@ -141,7 +143,11 @@ class ServiceRunner:
             else:
                 # その他のサービスはデフォルト値を使用
                 # trendradar-zhihu, trendradar-juejin は days の検証を service 側でも行う
-                if service_name in ("trendradar-zhihu", "trendradar-juejin"):
+                if service_name in (
+                    "trendradar-zhihu",
+                    "trendradar-juejin",
+                    "trendradar-ithome",
+                ):
                     result = await service.collect(days=days, target_dates=sorted_dates)
                 else:
                     result = await service.collect(target_dates=sorted_dates)
@@ -314,6 +320,7 @@ async def main():
             "5chan",
             "trendradar-zhihu",
             "trendradar-juejin",
+            "trendradar-ithome",
         ],
         default="all",
         help="実行するサービスを指定します",
