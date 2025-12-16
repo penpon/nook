@@ -1,5 +1,6 @@
 """コンテンツAPIルーター。"""
 
+import math
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Response
@@ -82,8 +83,6 @@ def _parse_popularity_score(value: object) -> float:
     float
         パースされた人気スコア。失敗時は0.0。
     """
-    import math
-
     if value is None:
         return 0.0
     try:
