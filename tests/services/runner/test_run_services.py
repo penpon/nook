@@ -54,15 +54,15 @@ async def test_run_all_invokes_each_service(monkeypatch):
         types.MethodType(fake_run_sync, runner),
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.gather_with_errors",
+        "nook.services.runner.runner_impl.gather_with_errors",
         fake_gather,
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.target_dates_set",
+        "nook.services.runner.runner_impl.target_dates_set",
         fake_target_dates_set,
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.close_http_client",
+        "nook.services.runner.runner_impl.close_http_client",
         fake_close_http_client,
     )
 
@@ -97,7 +97,7 @@ async def test_run_service_single(monkeypatch):
         types.MethodType(fake_run_sync, runner),
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.target_dates_set",
+        "nook.services.runner.runner_impl.target_dates_set",
         fake_target_dates_set,
     )
 
@@ -129,7 +129,7 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     service_mock.collect.return_value = []
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
 
     runner = ServiceRunner.__new__(ServiceRunner)
 
@@ -204,7 +204,7 @@ async def test_run_sync_service_handles_error(monkeypatch):
     runner = ServiceRunner.__new__(ServiceRunner)
     # The code uses global 'logger' from the module, not self.logger
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
 
     # It should raise exception
     with pytest.raises(Exception) as excinfo:
@@ -285,7 +285,7 @@ async def test__run_sync_service_multiple_dates_display(monkeypatch):
 
     runner = ServiceRunner.__new__(ServiceRunner)
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
 
     # Multiple dates to trigger lines 84-86
     dates = [date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 3)]
@@ -312,7 +312,7 @@ async def test_run_sync_service_with_saved_files(monkeypatch):
 
     runner = ServiceRunner.__new__(ServiceRunner)
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
 
     dates = [date(2024, 1, 1)]
     await runner._run_sync_service(
@@ -352,10 +352,10 @@ async def test_run_all_lazy_loading(monkeypatch):
         types.MethodType(fake_run_sync, runner),
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.gather_with_errors", fake_gather
+        "nook.services.runner.runner_impl.gather_with_errors", fake_gather
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.close_http_client", fake_close_http_client
+        "nook.services.runner.runner_impl.close_http_client", fake_close_http_client
     )
 
     await runner.run_all(days=1)
@@ -388,20 +388,20 @@ async def test_run_all_with_failed_services(monkeypatch):
         pass
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
     monkeypatch.setattr(
         runner,
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.gather_with_errors", fake_gather
+        "nook.services.runner.runner_impl.gather_with_errors", fake_gather
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.close_http_client", fake_close_http_client
+        "nook.services.runner.runner_impl.close_http_client", fake_close_http_client
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.target_dates_set", lambda days: {1}
+        "nook.services.runner.runner_impl.target_dates_set", lambda days: {1}
     )
 
     await runner.run_all(days=1)
@@ -450,7 +450,7 @@ async def test_run_service_error_handling(monkeypatch):
         raise RuntimeError("Test error")
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
     monkeypatch.setattr(
         runner,
         "_run_sync_service",
@@ -480,7 +480,7 @@ async def test_run_continuous_error_handling(monkeypatch):
             runner.running = False
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
     monkeypatch.setattr(runner, "run_all", fake_run_all)
     monkeypatch.setattr(asyncio, "sleep", AsyncMock())
 
@@ -639,20 +639,20 @@ async def test_run_all_exception_handling(monkeypatch):
         pass
 
     mock_logger = MagicMock()
-    monkeypatch.setattr("nook.services.runner.run_services.logger", mock_logger)
+    monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
     monkeypatch.setattr(
         runner,
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.gather_with_errors", fake_gather
+        "nook.services.runner.runner_impl.gather_with_errors", fake_gather
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.close_http_client", fake_close_http_client
+        "nook.services.runner.runner_impl.close_http_client", fake_close_http_client
     )
     monkeypatch.setattr(
-        "nook.services.runner.run_services.target_dates_set", lambda days: {1}
+        "nook.services.runner.runner_impl.target_dates_set", lambda days: {1}
     )
 
     with pytest.raises(RuntimeError, match="Gather failed"):

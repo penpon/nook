@@ -1,6 +1,6 @@
 """Runner package for service execution."""
 
-from nook.services.runner.run_services import (
+from nook.services.runner.runner_impl import (
     ServiceRunner,
     main,
     run_all_services,
