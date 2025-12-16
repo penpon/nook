@@ -22,7 +22,7 @@ from nook.core.utils.date_utils import target_dates_set
 warnings.filterwarnings(
     "ignore",
     category=DeprecationWarning,
-    message="Use `streamable_http_client` instead.",
+    message=r".*streamable_http_client.*",
 )
 
 # 環境変数の読み込み
