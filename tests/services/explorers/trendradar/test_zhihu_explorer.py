@@ -873,13 +873,13 @@ class TestZhihuExplorerRenderMarkdown:
         # Both opening and closing parentheses should be escaped
         assert "path\\(with\\)parens" in result
 
-    def test_render_markdown_escapes_summary_with_brackets(
+    def test_render_markdown_preserves_summary_markdown(
         self, explorer: ZhihuExplorer
     ) -> None:
         """
         Given: 要約に Markdown 文字を含むレコード。
         When: _render_markdown が呼ばれたとき。
-        Then: レンダリングの問題を防ぐために要約がエスケープされる。
+        Then: 要約は既にMarkdown形式で構造化されているため、エスケープせずそのまま出力する。
         """
         records = [
             {
@@ -891,8 +891,8 @@ class TestZhihuExplorerRenderMarkdown:
         ]
         result = explorer._render_markdown(records, "2024-01-15")
 
-        # Brackets in summary should be escaped
-        assert "\\[this link\\]" in result
+        # Summary should NOT be escaped (markdown is preserved)
+        assert "[this link](url)" in result
 
     def test_render_markdown_escapes_html_characters(
         self, explorer: ZhihuExplorer
@@ -900,7 +900,7 @@ class TestZhihuExplorerRenderMarkdown:
         """
         Given: HTML 特殊文字を含むレコード。
         When: _render_markdown が呼ばれたとき。
-        Then: HTML 文字がエスケープされる。
+        Then: タイトルのHTML文字がエスケープされる（要約はエスケープしない）。
         """
         records = [
             {
@@ -912,9 +912,10 @@ class TestZhihuExplorerRenderMarkdown:
         ]
         result = explorer._render_markdown(records, "2024-01-15")
 
-        # HTML should be escaped
+        # Title HTML should be escaped
         assert "&lt;script&gt;" in result
-        assert "&lt;b&gt;" in result
+        # Summary HTML should NOT be escaped (markdown is preserved)
+        assert "<b>Bold</b>" in result
 
     def test_render_markdown_escapes_url_brackets(
         self, explorer: ZhihuExplorer
