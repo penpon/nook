@@ -108,9 +108,9 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     title: '掘金 (Juejin)',
     subtitle: '中国最大の開発者コミュニティ',
     dateFormat: 'yyyy年MM月dd日',
-    gradientFrom: 'from-amber-50',
-    gradientTo: 'to-orange-50',
-    borderColor: 'border-amber-200',
+    gradientFrom: 'from-rose-50',
+    gradientTo: 'to-pink-50',
+    borderColor: 'border-rose-200',
   },
 };
 

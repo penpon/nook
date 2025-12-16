@@ -77,6 +77,11 @@ class BaseTrendRadarExplorer(BaseService):
             config = config.model_copy(update={"DATA_DIR": storage_dir})
 
         super().__init__(service_name, config=config)
+        if not self.PLATFORM_NAME or not self.FEED_NAME or not self.MARKDOWN_HEADER:
+            raise ValueError(
+                f"{self.__class__.__name__}でPLATFORM_NAME、FEED_NAME、"
+                "MARKDOWN_HEADERを設定する必要があります"
+            )
         self.client = TrendRadarClient()
 
     async def close(self) -> None:
