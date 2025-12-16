@@ -323,7 +323,7 @@ class ZhihuExplorer(BaseService):
         """プロンプト入力用のサニタイズ処理.
 
         プロンプトインジェクション対策として、外部入力を安全に処理します。
-        - 制御文字を除去
+        - 制御文字を除去（Cc: 制御文字, Cf: フォーマット制御文字）
         - 過度な改行を正規化
         - 長さを制限
 
@@ -339,13 +339,17 @@ class ZhihuExplorer(BaseService):
         str
             サニタイズ済みテキスト。
         """
+        import unicodedata
+
         if not text:
             return ""
         # 制御文字を除去（改行・タブは保持）
+        # Note: unicodedataベースでCc（制御文字）とCf（フォーマット制御文字）を除外
+        # JuejinExplorerと同じ実装を使用して一貫性を確保
         sanitized = "".join(
             char
             for char in text
-            if char in ("\n", "\t") or (ord(char) >= 32 and ord(char) != 127)
+            if char in ("\n", "\t") or unicodedata.category(char) not in ("Cc", "Cf")
         )
         # 連続する改行を1つに正規化
         sanitized = re.sub(r"\n{3,}", "\n\n", sanitized)

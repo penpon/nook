@@ -127,7 +127,7 @@ def _process_trendradar_articles(
 
         items.append(
             _create_content_item(
-                title=article["title"],
+                title=article.get("title", ""),
                 content=content,
                 url=article.get("url"),
                 source=source,
@@ -219,14 +219,8 @@ async def get_content(
                             source=source,
                         )
                     )
-        # TrendRadar Zhihuの場合もJSONから個別記事を取得
-        elif source == "trendradar-zhihu":
-            articles_data = storage.load_json(service_name, target_date)
-            if articles_data:
-                items.extend(_process_trendradar_articles(articles_data, source))
-
-        # TrendRadar Juejinの場合もJSONから個別記事を取得
-        elif source == "trendradar-juejin":
+        # TrendRadar (Zhihu/Juejin) の場合はJSONから個別記事を取得
+        elif source in ("trendradar-zhihu", "trendradar-juejin"):
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
                 items.extend(_process_trendradar_articles(articles_data, source))
