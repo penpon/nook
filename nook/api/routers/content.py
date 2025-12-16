@@ -82,10 +82,23 @@ def _parse_popularity_score(value: object) -> float:
     float
         パースされた人気スコア。失敗時は0.0。
     """
+    import math
+
     if value is None:
         return 0.0
     try:
-        return float(value)
+        # 文字列の場合、カンマやプラス記号を正規化
+        if isinstance(value, str):
+            normalized = value.strip().replace(",", "")
+            if normalized.startswith("+"):
+                normalized = normalized[1:]
+            result = float(normalized)
+        else:
+            result = float(value)
+        # NaN/Infinity は 0.0 にフォールバック
+        if not math.isfinite(result):
+            return 0.0
+        return result
     except (ValueError, TypeError):
         return 0.0
 

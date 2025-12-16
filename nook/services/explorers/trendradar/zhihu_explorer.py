@@ -8,6 +8,7 @@ import asyncio
 import html
 import math
 import re
+import unicodedata
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -339,8 +340,6 @@ class ZhihuExplorer(BaseService):
         str
             サニタイズ済みテキスト。
         """
-        import unicodedata
-
         if not text:
             return ""
         # 制御文字を除去（改行・タブは保持）
