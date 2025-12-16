@@ -91,11 +91,15 @@ class ServiceRunner:
 
         # trendradar-zhihu は単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
         # Note: ZhihuExplorer.collect 内でも検証されるが、runner 側で早期に失敗させる
-        if service_name in ("trendradar-zhihu", "trendradar-juejin"):
+        if service_name in (
+            "trendradar-zhihu",
+            "trendradar-juejin",
+            "trendradar-ithome",
+        ):
             if days != 1:
                 raise ValueError(
                     f"{service_name} は単一日のみ対応しています。"
-                    f"指定された days: {days}"
+                    "days=1 を指定してください。"
                 )
             if len(sorted_dates) > 1:
                 raise ValueError(

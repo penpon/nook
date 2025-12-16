@@ -134,10 +134,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           setSelectedSource(source);
                           onMenuItemClick();
                         }}
-                        className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors min-h-touch touch-manipulation flex items-center ${selectedSource === source
+                        className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors min-h-touch touch-manipulation flex items-center ${
+                          selectedSource === source
                             ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                             : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/30'
-                          }`}
+                        }`}
                       >
                         {sourceInfo.title}
                       </button>

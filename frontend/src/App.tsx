@@ -88,7 +88,7 @@ function App() {
           showWeather={false}
           showSearchButton={false}
           onMenuClick={toggleMobileMenu}
-          onSearchClick={() => { }}
+          onSearchClick={() => {}}
           rightActions={<></>}
         />
 
