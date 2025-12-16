@@ -230,9 +230,7 @@ class TestZhihuExplorerTransform:
             "created_at": "2023-04-01T00:00:00Z",  # Should fall back to this
         }
 
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.utils.datetime") as mock_dt:
             # datetimeモジュール全体をモック
             mock_dt.now = MagicMock(
                 return_value=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
@@ -274,9 +272,7 @@ class TestZhihuExplorerTransform:
             "pub_date": "also-invalid",
         }
 
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.utils.datetime") as mock_dt:
             # datetime.now() と datetime.fromtimestamp() の両方を設定
             mock_dt.now.return_value = fixed_now
             mock_dt.fromtimestamp = datetime.fromtimestamp
@@ -289,9 +285,7 @@ class TestZhihuExplorerTransform:
 
         # Empty item (no timestamp fields)
         item_empty = {}
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.utils.datetime") as mock_dt:
             mock_dt.now.return_value = fixed_now
             mock_dt.fromtimestamp = datetime.fromtimestamp
             result = explorer._parse_published_at(item_empty)
@@ -505,9 +499,7 @@ class TestZhihuExplorerCollect:
 
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
 
-        with patch(
-            "nook.services.explorers.trendradar.zhihu_explorer.datetime"
-        ) as mock_dt:
+        with patch("nook.services.explorers.trendradar.base.datetime") as mock_dt:
             # now() を固定
             mock_dt.now.return_value = fixed_now
             # fromtimestamp は本物を使用
@@ -828,7 +820,8 @@ class TestZhihuExplorerRenderMarkdown:
         assert "# 知乎ホットトピック (2024-01-15)" in result
         assert "[Test Title](https://example.com)" in result
         assert "**人気度**: 1,000" in result
-        assert "**要約**: Test summary" in result
+        assert "**要約**:" in result
+        assert "Test summary" in result
 
     def test_render_markdown_escapes_title_brackets(
         self, explorer: ZhihuExplorer
@@ -872,13 +865,13 @@ class TestZhihuExplorerRenderMarkdown:
         # Both opening and closing parentheses should be escaped
         assert "path\\(with\\)parens" in result
 
-    def test_render_markdown_escapes_summary_with_brackets(
+    def test_render_markdown_preserves_summary_markdown(
         self, explorer: ZhihuExplorer
     ) -> None:
         """
         Given: 要約に Markdown 文字を含むレコード。
         When: _render_markdown が呼ばれたとき。
-        Then: レンダリングの問題を防ぐために要約がエスケープされる。
+        Then: 要約は既にMarkdown形式で構造化されているため、エスケープせずそのまま出力する。
         """
         records = [
             {
@@ -890,8 +883,8 @@ class TestZhihuExplorerRenderMarkdown:
         ]
         result = explorer._render_markdown(records, "2024-01-15")
 
-        # Brackets in summary should be escaped
-        assert "\\[this link\\]" in result
+        # Summary should NOT be escaped (markdown is preserved)
+        assert "[this link](url)" in result
 
     def test_render_markdown_escapes_html_characters(
         self, explorer: ZhihuExplorer
@@ -899,7 +892,7 @@ class TestZhihuExplorerRenderMarkdown:
         """
         Given: HTML 特殊文字を含むレコード。
         When: _render_markdown が呼ばれたとき。
-        Then: HTML 文字がエスケープされる。
+        Then: タイトルのHTML文字がエスケープされる（要約はエスケープしない）。
         """
         records = [
             {
@@ -911,9 +904,10 @@ class TestZhihuExplorerRenderMarkdown:
         ]
         result = explorer._render_markdown(records, "2024-01-15")
 
-        # HTML should be escaped
+        # Title HTML should be escaped
         assert "&lt;script&gt;" in result
-        assert "&lt;b&gt;" in result
+        # Summary HTML should NOT be escaped (markdown is preserved)
+        assert "<b>Bold</b>" in result
 
     def test_render_markdown_escapes_url_brackets(
         self, explorer: ZhihuExplorer

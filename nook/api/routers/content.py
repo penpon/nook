@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Response
 from nook.api.models.schemas import ContentItem, ContentResponse
 from nook.core.config import BaseConfig
 from nook.core.storage import LocalStorage
+from nook.services.explorers.trendradar.utils import parse_popularity_score
 
 router = APIRouter()
 storage = LocalStorage(BaseConfig().DATA_DIR)
@@ -53,7 +54,66 @@ SOURCE_MAPPING = {
     "4chan": "fourchan_explorer",
     "5chan": "fivechan_explorer",
     "trendradar-zhihu": "trendradar-zhihu",
+    "trendradar-juejin": "trendradar-juejin",
 }
+
+
+def _create_content_item(
+    title: str, content: str, source: str, url: str | None = None
+) -> ContentItem:
+    """ContentItemを作成するヘルパー関数"""
+    return ContentItem(
+        title=title,
+        content=content,
+        url=url,
+        source=source,
+    )
+
+
+def _process_trendradar_articles(
+    articles_data: list[dict], source: str
+) -> list[ContentItem]:
+    """TrendRadar系記事をContentItemリストに変換する共通関数.
+
+    Parameters
+    ----------
+    articles_data : list[dict]
+        TrendRadar系サービスから取得した記事データのリスト。
+    source : str
+        ソース名（例: "trendradar-zhihu", "trendradar-juejin"）。
+
+    Returns
+    -------
+    list[ContentItem]
+        変換されたContentItemのリスト。
+    """
+    items = []
+    # 人気度（popularity_score）の降順でソート
+    # 変換不可能な値（None, "N/A"等）は0として扱う
+    # Note: sorted()を使用して元のリストを変更しない（副作用防止）
+    sorted_articles = sorted(
+        articles_data,
+        key=lambda x: parse_popularity_score(x.get("popularity_score")),
+        reverse=True,
+    )
+
+    for article in sorted_articles:
+        content = ""
+        if article.get("summary"):
+            # 要約は既にMarkdown形式で構造化されているため、そのまま使用
+            content = f"{article['summary']}\n\n"
+        if article.get("category"):
+            content += f"カテゴリ: {article['category']}"
+
+        items.append(
+            _create_content_item(
+                title=article.get("title", ""),
+                content=content,
+                url=article.get("url"),
+                source=source,
+            )
+        )
+    return items
 
 
 @router.get("/content/{source}", response_model=ContentResponse)
@@ -132,37 +192,18 @@ async def get_content(
                     content += f"スコア: {story['score']}"
 
                     items.append(
-                        ContentItem(
+                        _create_content_item(
                             title=story["title"],
                             content=content,
                             url=story.get("url"),
                             source=source,
                         )
                     )
-        # TrendRadar Zhihuの場合もJSONから個別記事を取得
-        elif source == "trendradar-zhihu":
+        # TrendRadar (Zhihu/Juejin) の場合はJSONから個別記事を取得
+        elif source in ("trendradar-zhihu", "trendradar-juejin"):
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
-                # 人気度でソート
-                sorted_articles = sorted(
-                    articles_data, key=lambda x: x.get("popularity_score", 0)
-                )
-                for article in sorted_articles:
-                    content = ""
-                    if article.get("summary"):
-                        # 要約は既にMarkdown形式で構造化されているため、そのまま使用
-                        content = f"{article['summary']}\n\n"
-                    if article.get("category"):
-                        content += f"カテゴリ: {article['category']}"
-
-                    items.append(
-                        ContentItem(
-                            title=article["title"],
-                            content=content,
-                            url=article.get("url"),
-                            source=source,
-                        )
-                    )
+                items.extend(_process_trendradar_articles(articles_data, source))
         else:
             # 他のソースは従来通りMarkdownから取得
             content = storage.load_markdown(service_name, target_date)
@@ -174,7 +215,7 @@ async def get_content(
 
                 # マークダウンからContentItemを作成
                 items.append(
-                    ContentItem(
+                    _create_content_item(
                         title=(
                             ""
                             if source == "github"
@@ -210,13 +251,18 @@ async def get_content(
                         content += f"スコア: {story['score']}"
 
                         items.append(
-                            ContentItem(
+                            _create_content_item(
                                 title=story["title"],
                                 content=content,
                                 url=story.get("url"),
                                 source=src,
                             )
                         )
+            elif src in ("trendradar-zhihu", "trendradar-juejin"):
+                # TrendRadar系はJSONから個別記事として追加
+                articles_data = storage.load_json(service_name, target_date)
+                if articles_data:
+                    items.extend(_process_trendradar_articles(articles_data, src))
             else:
                 # 他のソースは従来通りMarkdownから取得
                 content = storage.load_markdown(service_name, target_date)
@@ -226,7 +272,7 @@ async def get_content(
                         content = convert_paper_summary_titles(content)
 
                     items.append(
-                        ContentItem(
+                        _create_content_item(
                             title=(
                                 ""
                                 if src == "github"
@@ -292,5 +338,6 @@ def _get_source_display_name(source: str) -> str:
         "4chan": "4chan",
         "5chan": "5ちゃんねる",
         "trendradar-zhihu": "知乎 (Zhihu)",
+        "trendradar-juejin": "掘金 (Juejin)",
     }
     return source_names.get(source, source)

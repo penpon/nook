@@ -1,10 +1,10 @@
 import type { ContentItem } from '../../types';
 
 /**
- * TrendRadar(知乎)用のデータパーサー。
- * Hacker Newsと同様に構造化データを処理し、各記事を個別のカードとして表示。
+ * TrendRadar(掘金)用のデータパーサー。
+ * 構造化データを処理し、各記事を個別のカードとして表示。
  */
-export function parseTrendradarZhihuData(items: ContentItem[]): ContentItem[] {
+export function parseTrendradarJuejinData(items: ContentItem[]): ContentItem[] {
   if (!items || items.length === 0) {
     return [];
   }
@@ -12,10 +12,10 @@ export function parseTrendradarZhihuData(items: ContentItem[]): ContentItem[] {
   // カテゴリヘッダーを追加
   const processedItems: ContentItem[] = [
     {
-      title: '知乎 (Zhihu)',
+      title: '掘金 (Juejin)',
       url: '',
       content: '',
-      source: 'trendradar-zhihu',
+      source: 'trendradar-juejin',
       isLanguageHeader: false,
       isCategoryHeader: true,
       isArticle: false,
@@ -33,8 +33,6 @@ export function parseTrendradarZhihuData(items: ContentItem[]): ContentItem[] {
     if (markdownLinkMatch) {
       title = markdownLinkMatch[1];
       url = markdownLinkMatch[2];
-      // URLが/question/を含む場合、それは質問へのリンク
-      // URLが/answer/を含む場合、回答へのリンクだが、基本は質問タイトルを表示したい
     }
 
     processedItems.push({
@@ -45,7 +43,7 @@ export function parseTrendradarZhihuData(items: ContentItem[]): ContentItem[] {
       metadata: {
         ...item.metadata,
         articleNumber: articleNumber++,
-        feedName: 'Zhihu',
+        feedName: 'Juejin',
       },
     });
   });

@@ -32,6 +32,10 @@ export function useSourceData(selectedSource: string, selectedDate: Date, enable
         if (selectedSource === 'trendradar-zhihu') {
           return parser(data.items);
         }
+        // TrendRadar Juejinの場合も特殊処理
+        if (selectedSource === 'trendradar-juejin') {
+          return parser(data.items);
+        }
         // 他のソースはMarkdownをパース
         if (data.items[0]?.content) {
           return parser(data.items[0].content);

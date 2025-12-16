@@ -10,6 +10,7 @@ import { parseQiitaArticlesMarkdown } from './qiitaParser';
 import { parseRedditPostsMarkdown } from './redditParser';
 import { parseTechNewsMarkdown } from './techNewsParser';
 import { parseZennArticlesMarkdown } from './zennParser';
+import { parseTrendradarJuejinData } from './trendradarJuejinParser';
 import { parseTrendradarZhihuData } from './trendradarZhihuParser';
 
 export {
@@ -24,11 +25,12 @@ export {
   parseFourchanThreadsMarkdown,
   parseFivechanThreadsMarkdown,
   parseHackerNewsData,
+  parseTrendradarJuejinData,
   parseTrendradarZhihuData,
 };
 
 // パーサー選択ロジックを統一
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export function getParserForSource(source: string): ((input: any) => ContentItem[]) | null {
   const parsers: Record<string, (input: any) => ContentItem[]> = {
     github: parseGitHubTrendingMarkdown,
@@ -43,7 +45,9 @@ export function getParserForSource(source: string): ((input: any) => ContentItem
     '5chan': parseFivechanThreadsMarkdown,
     'hacker-news': parseHackerNewsData,
     'trendradar-zhihu': parseTrendradarZhihuData,
+    'trendradar-juejin': parseTrendradarJuejinData,
   };
 
   return parsers[source] || null;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
