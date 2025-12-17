@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       key: 'trendradar',
       title: 'TrendRadar',
-      sources: ['trendradar-zhihu', 'trendradar-juejin'],
+      sources: ['trendradar-zhihu', 'trendradar-juejin', 'trendradar-ithome'],
       defaultExpanded: true,
     },
   ];

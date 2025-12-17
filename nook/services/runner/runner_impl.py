@@ -45,6 +45,7 @@ class ServiceRunner:
         from nook.services.explorers.note.note_explorer import NoteExplorer
         from nook.services.explorers.qiita.qiita_explorer import QiitaExplorer
         from nook.services.explorers.reddit.reddit_explorer import RedditExplorer
+        from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
         from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
         from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
         from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
@@ -67,6 +68,7 @@ class ServiceRunner:
             "5chan": FiveChanExplorer,
             "trendradar-zhihu": ZhihuExplorer,
             "trendradar-juejin": JuejinExplorer,
+            "trendradar-ithome": IthomeExplorer,
         }
 
         # サービスインスタンスを保持（必要時にのみ作成）
@@ -89,15 +91,19 @@ class ServiceRunner:
 
         # trendradar-zhihu は単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
         # Note: ZhihuExplorer.collect 内でも検証されるが、runner 側で早期に失敗させる
-        if service_name in ("trendradar-zhihu", "trendradar-juejin"):
+        if service_name in (
+            "trendradar-zhihu",
+            "trendradar-juejin",
+            "trendradar-ithome",
+        ):
             if days != 1:
                 raise ValueError(
-                    f"{service_name} は単一日のみ対応しています。"
-                    f"指定された days: {days}"
+                    f"{service_name} は単一日のみ対応しています。単一の日付を指定してください。"
+                    f"指定された日数: {days}日"
                 )
             if len(sorted_dates) > 1:
                 raise ValueError(
-                    f"{service_name} は単一日のみ対応しています。"
+                    f"{service_name} は単一日のみ対応しています。単一の日付を指定してください。"
                     f"指定された日数: {len(sorted_dates)}日"
                 )
 
@@ -141,7 +147,11 @@ class ServiceRunner:
             else:
                 # その他のサービスはデフォルト値を使用
                 # trendradar-zhihu, trendradar-juejin は days の検証を service 側でも行う
-                if service_name in ("trendradar-zhihu", "trendradar-juejin"):
+                if service_name in (
+                    "trendradar-zhihu",
+                    "trendradar-juejin",
+                    "trendradar-ithome",
+                ):
                     result = await service.collect(days=days, target_dates=sorted_dates)
                 else:
                     result = await service.collect(target_dates=sorted_dates)
@@ -314,6 +324,7 @@ async def main():
             "5chan",
             "trendradar-zhihu",
             "trendradar-juejin",
+            "trendradar-ithome",
         ],
         default="all",
         help="実行するサービスを指定します",

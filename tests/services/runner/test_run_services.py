@@ -180,6 +180,20 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     )
     service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
 
+    # --- Case 5c: trendradar-ithome (multiple dates) ---
+    # Expected: ValueError raised when multiple dates are passed
+    with pytest.raises(ValueError, match="単一日のみ対応"):
+        await runner._run_sync_service(
+            "trendradar-ithome", service_mock, days=2, target_dates=multi_dates
+        )
+
+    # --- Case 5d: trendradar-ithome (single date) ---
+    # Expected: Works normally with single date
+    await runner._run_sync_service(
+        "trendradar-ithome", service_mock, days=1, target_dates=single_date
+    )
+    service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
+
     # Check that INFO log shows single day ("対象日")
     info_calls = [str(c) for c in mock_logger.info.call_args_list]
     assert any("対象日" in c and "2024-01-01" in c for c in info_calls)
@@ -574,7 +588,9 @@ def test_backward_compat_functions(monkeypatch, capsys):
     def mock_run_service_sync(service_name):
         called_services.append(service_name)
 
-    monkeypatch.setattr(run_services, "run_service_sync", mock_run_service_sync)
+    monkeypatch.setattr(
+        "nook.services.runner.runner_impl.run_service_sync", mock_run_service_sync
+    )
 
     # Test each backward compat function
     run_services.run_github_trending()

@@ -186,3 +186,5 @@ platforms:
     name: "知乎"
   - id: "juejin"
     name: "掘金"
+  - id: "ithome"
+    name: "IT之家"
