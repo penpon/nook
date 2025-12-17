@@ -55,6 +55,7 @@ SOURCE_MAPPING = {
     "5chan": "fivechan_explorer",
     "trendradar-zhihu": "trendradar-zhihu",
     "trendradar-juejin": "trendradar-juejin",
+    "trendradar-ithome": "trendradar-ithome",
 }
 
 
@@ -199,8 +200,8 @@ async def get_content(
                             source=source,
                         )
                     )
-        # TrendRadar (Zhihu/Juejin) の場合はJSONから個別記事を取得
-        elif source in ("trendradar-zhihu", "trendradar-juejin"):
+        # TrendRadar (Zhihu/Juejin/ITHome) の場合はJSONから個別記事を取得
+        elif source in ("trendradar-zhihu", "trendradar-juejin", "trendradar-ithome"):
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
                 items.extend(_process_trendradar_articles(articles_data, source))
@@ -258,7 +259,7 @@ async def get_content(
                                 source=src,
                             )
                         )
-            elif src in ("trendradar-zhihu", "trendradar-juejin"):
+            elif src in ("trendradar-zhihu", "trendradar-juejin", "trendradar-ithome"):
                 # TrendRadar系はJSONから個別記事として追加
                 articles_data = storage.load_json(service_name, target_date)
                 if articles_data:
@@ -339,5 +340,6 @@ def _get_source_display_name(source: str) -> str:
         "5chan": "5ちゃんねる",
         "trendradar-zhihu": "知乎 (Zhihu)",
         "trendradar-juejin": "掘金 (Juejin)",
+        "trendradar-ithome": "IT之家 (ITHome)",
     }
     return source_names.get(source, source)

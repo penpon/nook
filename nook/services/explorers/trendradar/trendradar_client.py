@@ -6,6 +6,7 @@ to retrieve hot topics from Chinese platforms like Zhihu.
 
 import json
 import logging
+import warnings
 from typing import Any
 
 from fastmcp import Client
@@ -202,11 +203,15 @@ class TrendRadarClient:
 
         try:
             client = self._create_client()
-            async with client:
-                result = await client.call_tool(
-                    tool_name,
-                    {"platforms": [platform], "limit": limit, "include_url": True},
-                )
+            # Suppress DeprecationWarning from mcp's @deprecated decorator
+            # (typing_extensions.deprecated doesn't respect standard warnings filters)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                async with client:
+                    result = await client.call_tool(
+                        tool_name,
+                        {"platforms": [platform], "limit": limit, "include_url": True},
+                    )
 
             # FastMCP returns CallToolResult which may include structured data (.data)
             # and/or content blocks (.content).
@@ -268,8 +273,10 @@ class TrendRadarClient:
         """
         try:
             client = self._create_client()
-            async with client:
-                await client.ping()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                async with client:
+                    await client.ping()
             return True
         except Exception as e:
             logger.debug(f"Health check failed: {e}")

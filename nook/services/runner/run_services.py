@@ -7,9 +7,18 @@ is also supported.
 """
 
 import asyncio
+import warnings
+
+# Suppress mcp internal deprecation warning before importing runner_impl
+# (which imports TrendRadar clients that use mcp)
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    message=r".*streamable_http_client.*",
+)
 
 # Re-export all public symbols from runner_impl for backward compatibility
-from nook.services.runner.runner_impl import (
+from nook.services.runner.runner_impl import (  # noqa: E402
     ServiceRunner,
     main,
     run_all_services,

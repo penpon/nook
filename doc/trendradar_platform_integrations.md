@@ -497,8 +497,8 @@ const sources = [
 | プラットフォーム | Explorer | テスト | Runner | Frontend | 統合テスト |
 |------------------|----------|--------|--------|----------|------------|
 | 知乎（Zhihu） | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 掘金（Juejin） | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| IT之家（ITHome） | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 掘金（Juejin） | ✅ | ✅ | ✅ | ✅ | ✅ |
+| IT之家（ITHome） | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 36氪（36Kr） | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 微博（Weibo） | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 今日头条（Toutiao） | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -593,6 +593,79 @@ TrendRadar error: 未找到 2025年12月16日 的数据
    # ログでデータ収集状況を確認
    docker logs -f trend-radar
    ```
+
+---
+
+### 警告: DeprecationWarning「Use `streamable_http_client` instead.」
+
+**症状**:
+```
+/usr/lib/python3.12/contextlib.py:105: DeprecationWarning: Use `streamable_http_client` instead.
+  self.gen = func(*args, **kwds)
+```
+
+**原因**:
+`mcp` ライブラリが内部で使用している `streamablehttp_client` 関数が deprecated になっている。この警告は `typing_extensions.deprecated` デコレータ経由で発生するため、通常の `warnings.filterwarnings()` では抑制できない。
+
+**解決方法**:
+`TrendRadarClient` では `warnings.catch_warnings()` コンテキストマネージャを使用して警告を抑制している。
+
+```python
+import warnings
+
+# FastMCP クライアント使用時に警告を抑制
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", DeprecationWarning)
+    async with client:
+        result = await client.call_tool(...)
+```
+
+**注意事項**:
+- 新しいプラットフォームを追加する場合、既存の `TrendRadarClient` を使用すれば警告抑制は自動的に適用される
+- 新しい MCP クライアントを直接使用する場合は、同様の `catch_warnings()` パターンを適用すること
+- `fastmcp` ライブラリがアップデートされて `streamable_http_client` を使用するようになれば、この問題は解消される
+
+---
+
+### API 404 エラー「Source 'trendradar-xxx' not found」
+
+**症状**:
+```
+Error loading content: Request failed with status code 404
+```
+
+**原因**:
+新しいプラットフォームの Explorer が作成されていても、API の `SOURCE_MAPPING` に登録されていない。
+
+**解決手順**:
+
+1. **`content.py` の SOURCE_MAPPING に追加**
+   ```python
+   # nook/api/routers/content.py
+   SOURCE_MAPPING = {
+       ...
+       "trendradar-newplatform": "trendradar-newplatform",
+   }
+   ```
+
+2. **TrendRadar 処理の elif 条件に追加**
+   ```python
+   elif source in ("trendradar-zhihu", "trendradar-juejin", "trendradar-ithome", "trendradar-newplatform"):
+   ```
+
+3. **表示名を追加**
+   ```python
+   def _get_source_display_name(source: str) -> str:
+       source_names = {
+           ...
+           "trendradar-newplatform": "新プラットフォーム名",
+       }
+   ```
+
+**チェックリスト（新プラットフォーム追加時）**:
+- [ ] `SOURCE_MAPPING` にエントリを追加
+- [ ] `elif source in (...)` の条件に追加（2箇所）
+- [ ] `_get_source_display_name()` に表示名を追加
 
 ---
 
