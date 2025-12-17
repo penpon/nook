@@ -44,7 +44,7 @@ class TrendRadarClient:
 
     DEFAULT_URL = "http://localhost:3333/mcp"
     DEFAULT_TIMEOUT = 30
-    SUPPORTED_PLATFORMS = ["zhihu", "weibo", "juejin"]
+    SUPPORTED_PLATFORMS = ["zhihu", "weibo", "juejin", "ithome"]
 
     def __init__(self, base_url: str | None = None):
         """Initialize TrendRadarClient.

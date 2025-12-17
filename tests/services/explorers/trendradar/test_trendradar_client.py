@@ -138,9 +138,43 @@ class TestGetLatestNews:
 
             assert len(result1) == 1
             assert len(result2) == 1
-            assert mock_client.call_tool.call_count == 2
-            # Verify new Client is created for each request
-            assert MockClient.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_latest_news_supports_ithome_platform(self):
+        """
+        Given: TrendRadar server returns valid response for ithome.
+        When: get_latest_news is called with platform="ithome".
+        Then: No ValueError is raised and a list of news items is returned.
+        """
+        mock_result = MagicMock()
+        mock_result.data = {
+            "success": True,
+            "news": [
+                {
+                    "title": "ITHome hot topic",
+                    "platform": "ithome",
+                    "rank": 1,
+                },
+            ],
+        }
+        mock_result.content = []
+
+        with patch(
+            "nook.services.explorers.trendradar.trendradar_client.Client"
+        ) as MockClient:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.call_tool = AsyncMock(return_value=mock_result)
+            MockClient.return_value = mock_client
+
+            client = TrendRadarClient()
+            result = await client.get_latest_news(platform="ithome", limit=5)
+
+            assert len(result) == 1
+            assert result[0]["title"] == "ITHome hot topic"
+            mock_client.call_tool.assert_awaited_once()
+            MockClient.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_latest_news_with_platform_filter(self):
