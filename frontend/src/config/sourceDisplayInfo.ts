@@ -120,6 +120,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-yellow-50',
     borderColor: 'border-orange-300',
   },
+  'trendradar-36kr': {
+    title: '36氪 (36Kr)',
+    subtitle: '中国のスタートアップメディア',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-purple-50',
+    gradientTo: 'to-pink-50',
+    borderColor: 'border-purple-200',
+  },
 };
 
 // デフォルト設定

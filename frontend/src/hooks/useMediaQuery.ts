@@ -7,6 +7,7 @@ export function useMediaQuery(query: string): boolean {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line
     setMounted(true);
 
     if (typeof window === 'undefined') return;

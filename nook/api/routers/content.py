@@ -56,6 +56,7 @@ SOURCE_MAPPING = {
     "trendradar-zhihu": "trendradar-zhihu",
     "trendradar-juejin": "trendradar-juejin",
     "trendradar-ithome": "trendradar-ithome",
+    "trendradar-36kr": "trendradar-36kr",
 }
 
 
@@ -200,8 +201,13 @@ async def get_content(
                             source=source,
                         )
                     )
-        # TrendRadar (Zhihu/Juejin/ITHome) の場合はJSONから個別記事を取得
-        elif source in ("trendradar-zhihu", "trendradar-juejin", "trendradar-ithome"):
+        # TrendRadar (Zhihu/Juejin/ITHome/36Kr) の場合はJSONから個別記事を取得
+        elif source in (
+            "trendradar-zhihu",
+            "trendradar-juejin",
+            "trendradar-ithome",
+            "trendradar-36kr",
+        ):
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
                 items.extend(_process_trendradar_articles(articles_data, source))
@@ -259,7 +265,12 @@ async def get_content(
                                 source=src,
                             )
                         )
-            elif src in ("trendradar-zhihu", "trendradar-juejin", "trendradar-ithome"):
+            elif src in (
+                "trendradar-zhihu",
+                "trendradar-juejin",
+                "trendradar-ithome",
+                "trendradar-36kr",
+            ):
                 # TrendRadar系はJSONから個別記事として追加
                 articles_data = storage.load_json(service_name, target_date)
                 if articles_data:
@@ -341,5 +352,6 @@ def _get_source_display_name(source: str) -> str:
         "trendradar-zhihu": "知乎 (Zhihu)",
         "trendradar-juejin": "掘金 (Juejin)",
         "trendradar-ithome": "IT之家 (ITHome)",
+        "trendradar-36kr": "36氪 (36Kr)",
     }
     return source_names.get(source, source)
