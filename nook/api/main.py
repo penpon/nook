@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from nook.api.exceptions import NookHTTPException
+from nook.api.middleware.bot_protection import bot_protection_middleware
 from nook.api.middleware.error_handler import error_handler_middleware, handle_exception
 from nook.api.models.errors import ErrorResponse
 from nook.api.routers import chat, content, weather
@@ -23,6 +24,9 @@ app = FastAPI(
     version="0.1.0",
     responses={422: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
+
+# Bot保護ミドルウェアの追加（最初に実行）
+app.middleware("http")(bot_protection_middleware)
 
 # エラーハンドリングミドルウェアの追加
 app.middleware("http")(error_handler_middleware)
