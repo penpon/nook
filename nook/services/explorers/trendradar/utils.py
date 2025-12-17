@@ -155,18 +155,40 @@ def parse_published_at(item: dict[str, Any]) -> datetime:
         UTCタイムゾーン付きの解析された公開日時、または現在日時。
     """
     # 候補フィールド
-    candidates = ["published_at", "timestamp", "pub_date", "created_at"]
+    candidates = ["time", "published_at", "timestamp", "pub_date", "created_at"]
 
     for candidate_field in candidates:
         val = item.get(candidate_field)
         if val is None:
             continue
+
         # Epoch timestamp handling
-        if isinstance(val, (int, float)) and not isinstance(val, bool):
+        if isinstance(val, (int, float, str)) and not isinstance(val, bool):
             try:
-                return datetime.fromtimestamp(val, tz=timezone.utc)
-            except (ValueError, OverflowError, OSError):
-                continue
+                ts = float(str(val))
+                # Reasonable timestamp check (e.g. > 1980) or exactly 0
+                if ts > 315360000 or ts == 0:
+                    # ms epoch の場合は秒に正規化（例: 1704067200000 -> 1704067200）
+                    # 10^11 (1000億) 以上をミリ秒とみなす（2286年以降）
+                    if ts > 100000000000:
+                        ts = ts / 1000
+
+                    try:
+                        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                        # 2100年を超えるような値は、不正なデータ（または巨大な秒数）とみなして
+                        # 文字列パースへフォールバックさせる
+                        if dt.year > 2100:
+                            raise ValueError("Timestamp too far in future")
+                        return dt
+                    except (OverflowError, OSError, ValueError):
+                        # 変換できない場合は文字列パースへフォールバック
+                        pass
+                else:
+                    # 1970~1980年の間の小さな数値は、後の文字列パース（"2024"など）に任せる
+                    pass
+            except (ValueError, TypeError):
+                # 数値に変換できない場合はスキップして文字列パースへ
+                pass
 
         # String parsing
         try:
@@ -174,7 +196,7 @@ def parse_published_at(item: dict[str, Any]) -> datetime:
             if dt.tzinfo is None:
                 return dt.replace(tzinfo=timezone.utc)
             return dt.astimezone(timezone.utc)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             continue
 
     return datetime.now(timezone.utc)
