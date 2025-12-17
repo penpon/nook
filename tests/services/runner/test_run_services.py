@@ -588,9 +588,7 @@ def test_backward_compat_functions(monkeypatch, capsys):
     def mock_run_service_sync(service_name):
         called_services.append(service_name)
 
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.run_service_sync", mock_run_service_sync
-    )
+    monkeypatch.setattr(run_services, "run_service_sync", mock_run_service_sync)
 
     # Test each backward compat function
     run_services.run_github_trending()
