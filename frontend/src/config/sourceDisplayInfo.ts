@@ -116,9 +116,9 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     title: 'IT之家 (ITHome)',
     subtitle: '中国のテックニュースサイト',
     dateFormat: 'yyyy年MM月dd日',
-    gradientFrom: 'from-red-50',
-    gradientTo: 'to-orange-50',
-    borderColor: 'border-red-200',
+    gradientFrom: 'from-orange-50',
+    gradientTo: 'to-yellow-50',
+    borderColor: 'border-orange-300',
   },
 };
 

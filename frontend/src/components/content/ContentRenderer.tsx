@@ -67,6 +67,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       },
       'trendradar-zhihu': () => renderWithArticleNumbers(),
       'trendradar-juejin': () => renderWithArticleNumbers(),
+      'trendradar-ithome': () => renderWithArticleNumbers(),
       arxiv: () => renderWithArticleNumbers(),
       default: () =>
         processedItems.map((item, index) => (

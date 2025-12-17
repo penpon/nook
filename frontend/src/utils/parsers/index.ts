@@ -12,6 +12,7 @@ import { parseTechNewsMarkdown } from './techNewsParser';
 import { parseZennArticlesMarkdown } from './zennParser';
 import { parseTrendradarJuejinData } from './trendradarJuejinParser';
 import { parseTrendradarZhihuData } from './trendradarZhihuParser';
+import { parseTrendradarIthomeData } from './trendradarIthomeParser';
 
 export {
   parseGitHubTrendingMarkdown,
@@ -27,6 +28,7 @@ export {
   parseHackerNewsData,
   parseTrendradarJuejinData,
   parseTrendradarZhihuData,
+  parseTrendradarIthomeData,
 };
 
 // パーサー選択ロジックを統一
@@ -46,6 +48,7 @@ export function getParserForSource(source: string): ((input: any) => ContentItem
     'hacker-news': parseHackerNewsData,
     'trendradar-zhihu': parseTrendradarZhihuData,
     'trendradar-juejin': parseTrendradarJuejinData,
+    'trendradar-ithome': parseTrendradarIthomeData,
   };
 
   return parsers[source] || null;
