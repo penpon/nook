@@ -165,6 +165,17 @@ async def test_transform_to_article_hot_parsing(explorer):
     article_w = explorer._transform_to_article(item_w)
     assert article_w.popularity_score == 15000
 
+    # 億 suffix
+    item_oku = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "1.2億",
+        "time": "2024-01-01 00:00:00",
+    }
+    article_oku = explorer._transform_to_article(item_oku)
+    assert article_oku.popularity_score == 120000000
+
     # invalid
     item_invalid = {
         "title": "T",
