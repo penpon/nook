@@ -73,7 +73,7 @@ async def test_collect_success(explorer, mock_trendradar_client):
         {
             "title": "Article 1",
             "url": "http://example.com/1",
-            "description": "Desc 1",
+            "desc": "Desc 1",
             "hot": "100万",
             "time": "2024-03-20 10:00",
         }
