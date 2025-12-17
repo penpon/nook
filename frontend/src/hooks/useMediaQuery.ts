@@ -1,34 +1,24 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore, useCallback } from 'react';
 
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const subscribe = useCallback(
+    (callback: () => void) => {
+      const mediaQuery = window.matchMedia(query);
+      mediaQuery.addEventListener('change', callback);
+      return () => mediaQuery.removeEventListener('change', callback);
+    },
+    [query]
+  );
 
-  useEffect(() => {
-    setMounted(true);
+  const getSnapshot = () => {
+    return window.matchMedia(query).matches;
+  };
 
-    if (typeof window === 'undefined') return;
-
-    const mediaQuery = window.matchMedia(query);
-    setMatches(mediaQuery.matches);
-
-    const handler = (event: MediaQueryListEvent) => {
-      setMatches(event.matches);
-    };
-
-    mediaQuery.addEventListener('change', handler);
-
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, [query]);
-
-  // SSR中はfalseを返す
-  if (!mounted) {
+  const getServerSnapshot = () => {
     return false;
-  }
+  };
 
-  return matches;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 // 便利な定義済みクエリ

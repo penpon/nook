@@ -26,6 +26,7 @@ const sources = [
   'trendradar-zhihu',
   'trendradar-juejin',
   'trendradar-ithome',
+  'trendradar-36kr',
 ];
 
 function App() {
