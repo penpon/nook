@@ -60,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         'trendradar-ithome',
         'trendradar-36kr',
         'trendradar-weibo',
+        'trendradar-toutiao',
       ],
       defaultExpanded: true,
     },

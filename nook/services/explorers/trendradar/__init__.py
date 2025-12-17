@@ -4,6 +4,7 @@ from nook.services.explorers.trendradar.base import BaseTrendRadarExplorer
 from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
 from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
 from nook.services.explorers.trendradar.kr36_explorer import Kr36Explorer
+from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
 from nook.services.explorers.trendradar.trendradar_client import (
     TrendRadarClient,
     TrendRadarError,
@@ -20,4 +21,5 @@ __all__ = [
     "JuejinExplorer",
     "Kr36Explorer",
     "WeiboExplorer",
+    "ToutiaoExplorer",
 ]
