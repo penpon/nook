@@ -98,13 +98,13 @@ class ServiceRunner:
         ):
             if days != 1:
                 raise ValueError(
-                    f"{service_name} は単一日のみ対応しています。"
-                    f"指定された日数: {days}日"
+                    f"{service_name} は単一日のみ対応しています。days=1 を指定してください。"
+                    f"(指定された日数: {days}日)"
                 )
             if len(sorted_dates) > 1:
                 raise ValueError(
-                    f"{service_name} は単一日のみ対応しています。"
-                    f"指定された日数: {len(sorted_dates)}日"
+                    f"{service_name} は単一日のみ対応しています。days=1 を指定してください。"
+                    f"(指定された日数: {len(sorted_dates)}日)"
                 )
 
         logger.info("\n" + "━" * 60)
