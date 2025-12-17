@@ -117,7 +117,15 @@ URL: {safe_url}
                 # But dateutil parser handles "2024" as year.
                 # If it looks like a typical timestamp (> 1000000000), treat as ts.
                 if ts > 1000000000:
-                    return datetime.fromtimestamp(ts, tz=timezone.utc)
+                    # ms epoch の場合は秒に正規化（例: 1704067200000）
+                    if ts > 100000000000:
+                        ts = ts / 1000
+
+                    try:
+                        return datetime.fromtimestamp(ts, tz=timezone.utc)
+                    except (OverflowError, OSError, ValueError):
+                        # 変換できない場合は文字列パース or super() にフォールバック
+                        pass
             except (ValueError, TypeError):
                 # 数値としてのUNIXタイムスタンプに解釈できない場合はここでは何もせず、
                 # 下の文字列ベースの日付パーサーにフォールバックする
@@ -129,7 +137,7 @@ URL: {safe_url}
                 if dt.tzinfo is None:
                     return dt.replace(tzinfo=timezone.utc)
                 return dt.astimezone(timezone.utc)
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, OverflowError):
                 pass
 
         return super()._parse_published_at(item)

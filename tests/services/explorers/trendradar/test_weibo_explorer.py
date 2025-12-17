@@ -200,6 +200,18 @@ async def test_transform_to_article_time_parsing(explorer):
     article_ts = explorer._transform_to_article(item_ts)
     assert article_ts.published_at.year == 2024
 
+    # timestamp (ms epoch)
+    ts_ms = 1704067200000  # 2024-01-01 00:00:00 UTC in milliseconds
+    item_ts_ms = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "0",
+        "time": str(ts_ms),
+    }
+    article_ts_ms = explorer._transform_to_article(item_ts_ms)
+    assert article_ts_ms.published_at.year == 2024
+
     # invalid time -> fallback to current time (mock datetime.now if strict, but here just check it defaults)
     item_bad = {
         "title": "T",
@@ -210,6 +222,17 @@ async def test_transform_to_article_time_parsing(explorer):
     }
     article_bad = explorer._transform_to_article(item_bad)
     assert isinstance(article_bad.published_at, datetime)
+
+    # huge epoch should not crash and should fallback
+    item_huge = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "0",
+        "time": "9999999999999999",
+    }
+    article_huge = explorer._transform_to_article(item_huge)
+    assert isinstance(article_huge.published_at, datetime)
 
 
 @pytest.mark.asyncio
