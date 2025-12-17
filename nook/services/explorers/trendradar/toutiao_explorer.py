@@ -19,6 +19,8 @@ class ToutiaoExplorer(BaseTrendRadarExplorer):
     ----------
     storage_dir : str, default="var/data"
         データ保存ディレクトリのルートパス。
+    config : BaseConfig | None, default=None
+        設定オブジェクト。
 
     Examples
     --------
