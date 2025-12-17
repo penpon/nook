@@ -22,6 +22,14 @@ TrendRadar MCP サーバー経由で複数のプラットフォームのホッ�
 - **ベース実装参照**: `zhihu_explorer.py` を継承・参考にする
 
 ---
+ 
+> [!IMPORTANT]
+> **新プラットフォーム統合時の重要事項**
+> 新しいプラットフォームを追加する際は、`nook/services/runner/runner_impl.py` への登録を絶対に忘れないでください。他プラットフォーム（Zhihu, Juejin等）の登録箇所を検索し、以下の対応を必ず実施してください：
+> 1. `ToutiaoExplorer` 等のクラスをインポート
+> 2. `self.service_classes` への追加
+> 3. `_run_sync_service` 内のバリデーション・実行対象への追加
+> 4. `main` 関数の `argparse` choices への追加
 
 ## 📋 プラットフォーム一覧
 
@@ -501,7 +509,7 @@ const sources = [
 | IT之家（ITHome） | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 36氪（36Kr） | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 微博（Weibo） | ✅ | ✅ | ✅ | ✅ | ⬜ |
-| 今日头条（Toutiao） | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 今日头条（Toutiao） | ✅ | ✅ | ✅ | ✅ | ⬜ |
 | 少数派（SSPai） | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | Product Hunt | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 

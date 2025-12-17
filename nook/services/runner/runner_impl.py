@@ -48,6 +48,7 @@ class ServiceRunner:
         from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
         from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
         from nook.services.explorers.trendradar.kr36_explorer import Kr36Explorer
+        from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
         from nook.services.explorers.trendradar.weibo_explorer import WeiboExplorer
         from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
         from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
@@ -73,6 +74,7 @@ class ServiceRunner:
             "trendradar-ithome": IthomeExplorer,
             "trendradar-36kr": Kr36Explorer,
             "trendradar-weibo": WeiboExplorer,
+            "trendradar-toutiao": ToutiaoExplorer,
         }
 
         # サービスインスタンスを保持（必要時にのみ作成）
@@ -101,6 +103,7 @@ class ServiceRunner:
             "trendradar-ithome",
             "trendradar-36kr",
             "trendradar-weibo",
+            "trendradar-toutiao",
         ):
             if days != 1:
                 raise ValueError(
@@ -159,6 +162,7 @@ class ServiceRunner:
                     "trendradar-ithome",
                     "trendradar-36kr",
                     "trendradar-weibo",
+                    "trendradar-toutiao",
                 ):
                     result = await service.collect(days=days, target_dates=sorted_dates)
                 else:
@@ -335,6 +339,7 @@ async def main():
             "trendradar-ithome",
             "trendradar-36kr",
             "trendradar-weibo",
+            "trendradar-toutiao",
         ],
         default="all",
         help="実行するサービスを指定します",
