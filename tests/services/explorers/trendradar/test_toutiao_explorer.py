@@ -7,6 +7,7 @@ import pytest
 
 from nook.services.base.base_feed_service import Article
 from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
+from nook.services.explorers.trendradar.trendradar_client import TrendRadarClient
 
 
 @pytest.fixture
@@ -64,6 +65,10 @@ async def test_get_system_instruction(explorer):
     assert "Toutiao" in instruction
     assert "日本のユーザーに向けて" in instruction
     assert "社会的影響" in instruction
+
+
+def test_toutiao_is_supported_platform_in_client():
+    assert "toutiao" in TrendRadarClient.SUPPORTED_PLATFORMS
 
 
 @pytest.mark.asyncio
