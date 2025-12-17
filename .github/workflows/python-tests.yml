@@ -17,6 +17,10 @@ on:
       - '.github/workflows/python-tests.yml'
   workflow_dispatch:  # 手動実行を許可
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -33,14 +37,9 @@ jobs:
 
     - name: uv のセットアップ
       uses: astral-sh/setup-uv@v3.0.0
-
-    - name: キャッシュの復元
-      uses: actions/cache@v4
       with:
-        path: .venv
-        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-uv-
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
 
     - name: 依存関係のインストール
       run: |
