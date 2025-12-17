@@ -95,7 +95,7 @@ lint-check = "uv run ruff check ."
 # type-check = "uv run mypy ."
 test = "uv run pytest -n auto tests/ -v"
 coverage = "uv run pytest -n auto --cov=nook --cov-report=term"
-audit = "uv run pip-audit --ignore-vuln GHSA-f83h-ghpp-7wcc --ignore-vuln CVE-2025-66418 --ignore-vuln CVE-2025-66471 --ignore-vuln CVE-2025-68146"
+audit = "uv run pip-audit --ignore-vuln GHSA-f83h-ghpp-7wcc --ignore-vuln CVE-2025-66418 --ignore-vuln CVE-2025-66471 --ignore-vuln GHSA-w853-jp5j-5j7f"
 
 # check = ["format", "lint", "type-check"]
 check = ["format", "lint"]
