@@ -1,0 +1,2 @@
+- name: Workflow Telemetry
+  uses: catchpoint/workflow-telemetry-action@v2.0.0
