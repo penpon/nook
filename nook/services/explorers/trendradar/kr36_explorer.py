@@ -119,6 +119,8 @@ URL: {safe_url}
                 if ts > 1000000000:
                     return datetime.fromtimestamp(ts, tz=timezone.utc)
             except (ValueError, TypeError):
+                # 数値としてのUNIXタイムスタンプに解釈できない場合はここでは何もせず、
+                # 下の文字列ベースの日付パーサーにフォールバックする
                 pass
 
             try:

@@ -186,7 +186,7 @@ async def test_transform_to_article_time_parsing(explorer):
         "url": "U",
         "desc": "D",
         "hot": "0",
-        "published_at": "2024-12-31 23:59:00",
+        "time": "2024-12-31 23:59:00",
     }
     article_fmt = explorer._transform_to_article(item_fmt)
     assert article_fmt.published_at.year == 2024
