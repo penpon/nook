@@ -79,11 +79,6 @@ async def test_collect_success(explorer, mock_trendradar_client):
         }
     ]
 
-    # Mock GPT client logic which is initialized in BaseService
-    # Since we can't easily mock the parent class attribute initialization in this test setup without more complex patching,
-    # we'll focus on the parts specific to Kr36Explorer or rely on BaseService mocking if needed.
-    # However, BaseService initializes gpt_client. We need to mock that if we want _summarize_article to succeed.
-
     # Mocking _summarize_article to avoid GPT calls and complexity
     with patch.object(
         explorer, "_summarize_article", new_callable=AsyncMock
@@ -101,3 +96,127 @@ async def test_collect_success(explorer, mock_trendradar_client):
             )
             mock_summarize.assert_called_once()
             mock_store.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_transform_to_article_valid(explorer):
+    """_transform_to_article: 正常な変換のテスト."""
+    item = {
+        "title": "Valid Title",
+        "url": "http://example.com/valid",
+        "desc": "Valid Description",
+        "hot": "150万",
+        "time": "2024-03-20 10:30",
+    }
+
+    article = explorer._transform_to_article(item)
+
+    assert article.title == "Valid Title"
+    assert article.url == "http://example.com/valid"
+    assert article.text == "Valid Description"
+    assert article.published_at.year == 2024
+    assert article.published_at.month == 3
+    assert article.published_at.day == 20
+    assert article.popularity_score == 1500000
+
+
+@pytest.mark.asyncio
+async def test_transform_to_article_null_fields(explorer):
+    """_transform_to_article: 必須フィールド欠落やnullのハンドリング."""
+    # desc is None
+    item = {
+        "title": "Title",
+        "url": "http://example.com",
+        "desc": None,
+        "hot": None,
+        "time": "2024-03-20 10:00",
+    }
+
+    article = explorer._transform_to_article(item)
+
+    assert article.text == ""  # Empty description handled
+    assert article.popularity_score == 0
+
+
+@pytest.mark.asyncio
+async def test_transform_to_article_hot_parsing(explorer):
+    """_transform_to_article: hotフィールドのパーステスト."""
+
+    # integer string
+    item_int = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "12345",
+        "time": "2024-01-01 00:00",
+    }
+    article_int = explorer._transform_to_article(item_int)
+    assert article_int.popularity_score == 12345
+
+    # w suffix
+    item_w = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "1.5万",
+        "time": "2024-01-01 00:00",
+    }
+    article_w = explorer._transform_to_article(item_w)
+    assert article_w.popularity_score == 15000
+
+    # invalid
+    item_invalid = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "invalid",
+        "time": "2024-01-01 00:00",
+    }
+    article_invalid = explorer._transform_to_article(item_invalid)
+    assert article_invalid.popularity_score == 0
+
+
+@pytest.mark.asyncio
+async def test_transform_to_article_time_parsing(explorer):
+    """_transform_to_article: timeフィールドのパーステスト."""
+
+    # specific format YYYY-MM-DD HH:MM
+    item_fmt = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "0",
+        "published_at": "2024-12-31 23:59:00",
+    }
+    article_fmt = explorer._transform_to_article(item_fmt)
+    assert article_fmt.published_at.year == 2024
+    assert article_fmt.published_at.month == 12
+    assert article_fmt.published_at.day == 31
+
+    # timestamp (int/str)
+    ts = 1704067200  # 2024-01-01 00:00:00 UTC
+    item_ts = {"title": "T", "url": "U", "desc": "D", "hot": "0", "time": str(ts)}
+    article_ts = explorer._transform_to_article(item_ts)
+    assert article_ts.published_at.year == 2024
+
+    # invalid time -> fallback to current time (mock datetime.now if strict, but here just check it defaults)
+    item_bad = {
+        "title": "T",
+        "url": "U",
+        "desc": "D",
+        "hot": "0",
+        "time": "invalid-time",
+    }
+    article_bad = explorer._transform_to_article(item_bad)
+    assert isinstance(article_bad.published_at, datetime)
+
+
+@pytest.mark.asyncio
+async def test_collect_client_error(explorer, mock_trendradar_client):
+    """collect: クライアントエラー時のハンドリング."""
+    mock_trendradar_client.get_latest_news.side_effect = ValueError("API Error")
+
+    # If exception handles internally -> Assert empty list or behavior
+    # If exception raises -> Use pytest.raises
+    with pytest.raises(ValueError):
+        await explorer.collect(days=1, limit=5)

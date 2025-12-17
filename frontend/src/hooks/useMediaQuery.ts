@@ -1,23 +1,35 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
-
-function getMatches(query: string): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia(query).matches;
-}
+import { useEffect, useState } from 'react';
 
 export function useMediaQuery(query: string): boolean {
-  return useSyncExternalStore(
-    (onStoreChange) => {
-      if (typeof window === 'undefined') return () => {};
-      const mediaQuery = window.matchMedia(query);
-      mediaQuery.addEventListener('change', onStoreChange);
-      return () => mediaQuery.removeEventListener('change', onStoreChange);
-    },
-    () => getMatches(query),
-    () => false
-  );
+  const [matches, setMatches] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia(query);
+    setMatches(mediaQuery.matches);
+
+    const handler = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
+
+    mediaQuery.addEventListener('change', handler);
+
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, [query]);
+
+  // SSR中はfalseを返す
+  if (!mounted) {
+    return false;
+  }
+
+  return matches;
 }
 
 // 便利な定義済みクエリ

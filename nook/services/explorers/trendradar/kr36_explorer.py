@@ -4,6 +4,11 @@
 36氪（36Kr）のホットトピックを取得するKr36Explorerクラスを提供します。
 """
 
+from datetime import datetime, timezone
+from typing import Any
+
+from dateutil import parser
+
 from nook.core.config import BaseConfig
 from nook.services.base.base_feed_service import Article
 from nook.services.explorers.trendradar.base import BaseTrendRadarExplorer
@@ -83,3 +88,46 @@ URL: {safe_url}
             "投資規模、ビジネスモデル、競争環境、成長戦略などのビジネス視点が"
             "伝わるような具体的で情報量の多い要約を作成してください。"
         )
+
+    def _parse_popularity_score(self, value: object) -> float:
+        """人気スコアをパース（万/億対応）."""
+        if value is None:
+            return 0.0
+
+        try:
+            val_str = str(value).strip().replace(",", "")
+            if "万" in val_str:
+                return float(val_str.replace("万", "")) * 10000
+            if "億" in val_str:
+                return float(val_str.replace("億", "")) * 100000000
+            return float(val_str)
+        except (ValueError, TypeError):
+            return super()._parse_popularity_score(value)
+
+    def _parse_published_at(self, item: dict[str, Any]) -> datetime:
+        """記事の公開日時を解析（timeフィールド対応）."""
+        # 'time' field support
+        val = item.get("time")
+        if val:
+            # Try epoch first
+            try:
+                ts = float(str(val))
+                # Reasonable timestamp check (e.g. > 1980) or just try
+                # If it's a small number like "2024", it might be interpreted as timestamp near 1970?
+                # But dateutil parser handles "2024" as year.
+                # If it looks like a typical timestamp (> 1000000000), treat as ts.
+                if ts > 1000000000:
+                    return datetime.fromtimestamp(ts, tz=timezone.utc)
+            except (ValueError, TypeError):
+                pass
+
+            try:
+                # Assuming YYYY-MM-DD HH:MM or similar
+                dt = parser.parse(str(val))
+                if dt.tzinfo is None:
+                    return dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(timezone.utc)
+            except (ValueError, TypeError):
+                pass
+
+        return super()._parse_published_at(item)
