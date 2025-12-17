@@ -8,6 +8,7 @@ from nook.services.explorers.trendradar.trendradar_client import (
     TrendRadarClient,
     TrendRadarError,
 )
+from nook.services.explorers.trendradar.weibo_explorer import WeiboExplorer
 from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "IthomeExplorer",
     "JuejinExplorer",
     "Kr36Explorer",
+    "WeiboExplorer",
 ]

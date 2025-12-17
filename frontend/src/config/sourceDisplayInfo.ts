@@ -128,6 +128,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-pink-50',
     borderColor: 'border-purple-200',
   },
+  'trendradar-weibo': {
+    title: '微博 (Weibo)',
+    subtitle: '中国最大のSNSプラットフォーム',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-red-50',
+    gradientTo: 'to-yellow-50',
+    borderColor: 'border-red-300',
+  },
 };
 
 // デフォルト設定
