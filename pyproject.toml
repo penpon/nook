@@ -73,10 +73,23 @@ exclude = [
 format = "uv run ruff format ."
 lint = "uv run ruff check --fix ."
 # CI 用（非破壊 / check-only）
-# CVE-2025-68146 (filelock TOCTOU): 内部ツールとしての利用であり、信頼できる環境での実行を前提としているため許容。
+# GHSA-f83h-ghpp-7wcc (pdfminer.six): 内部ツールとしての利用であり、信頼できる環境での実行を前提としているため許容。
 # 詳細: https://github.com/advisories/GHSA-f83h-ghpp-7wcc
 # 担当: maintainer / 目標日: 2026-01-01 / 追跡: N/A
 # 将来的に依存ライブラリの更新で解消予定。
+
+# CVE-2025-68146 (filelock TOCTOU): 内部ツールとしての利用であり、信頼できる環境での実行を前提としているため許容。
+# 詳細: https://github.com/tox-dev/filelock/security/advisories/GHSA-w853-jp5j-5j7f
+# 担当: maintainer / 目標日: 2026-01-01 / 追跡: N/A
+
+# CVE-2025-66418: 内部ツールとしての利用であり、外部からの直接入力による攻撃リスクは低いため許容。
+# 詳細: https://nvd.nist.gov/vuln/detail/CVE-2025-66418
+# 担当: maintainer / 目標日: 2026-01-01 / 追跡: N/A
+
+# CVE-2025-66471: 内部ツールとしての利用であり、信頼できる環境での実行を前提としているため許容。
+# 詳細: https://nvd.nist.gov/vuln/detail/CVE-2025-66471
+# 担当: maintainer / 目標日: 2026-01-01 / 追跡: N/A
+
 format-check = "uv run ruff format --check ."
 lint-check = "uv run ruff check ."
 # type-check = "uv run mypy ."
