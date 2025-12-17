@@ -31,6 +31,17 @@ load_dotenv(".env.production")
 logger = setup_logger("service_runner")
 
 
+# TrendRadar系のサービス一覧（単一日実行のみ対応）
+TRENDRADAR_SERVICES = {
+    "trendradar-zhihu",
+    "trendradar-juejin",
+    "trendradar-ithome",
+    "trendradar-36kr",
+    "trendradar-weibo",
+    "trendradar-toutiao",
+}
+
+
 class ServiceRunner:
     """サービス実行マネージャー"""
 
@@ -97,14 +108,9 @@ class ServiceRunner:
 
         # trendradar-zhihu は単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
         # Note: ZhihuExplorer.collect 内でも検証されるが、runner 側で早期に失敗させる
-        if service_name in (
-            "trendradar-zhihu",
-            "trendradar-juejin",
-            "trendradar-ithome",
-            "trendradar-36kr",
-            "trendradar-weibo",
-            "trendradar-toutiao",
-        ):
+        # trendradar系サービスは単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
+        # Note: Explorer.collect 内でも検証されるが、runner 側で早期に失敗させる
+        if service_name in TRENDRADAR_SERVICES:
             if days != 1:
                 raise ValueError(
                     f"{service_name} は単一日のみ対応しています。単一の日付を指定してください。"
@@ -155,15 +161,8 @@ class ServiceRunner:
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
-                # trendradar-zhihu, trendradar-juejin は days の検証を service 側でも行う
-                if service_name in (
-                    "trendradar-zhihu",
-                    "trendradar-juejin",
-                    "trendradar-ithome",
-                    "trendradar-36kr",
-                    "trendradar-weibo",
-                    "trendradar-toutiao",
-                ):
+                # trendradar系サービス は days の検証を service 側でも行う
+                if service_name in TRENDRADAR_SERVICES:
                     result = await service.collect(days=days, target_dates=sorted_dates)
                 else:
                     result = await service.collect(target_dates=sorted_dates)
@@ -334,13 +333,8 @@ async def main():
             "arxiv",
             "4chan",
             "5chan",
-            "trendradar-zhihu",
-            "trendradar-juejin",
-            "trendradar-ithome",
-            "trendradar-36kr",
-            "trendradar-weibo",
-            "trendradar-toutiao",
-        ],
+        ]
+        + sorted(list(TRENDRADAR_SERVICES)),
         default="all",
         help="実行するサービスを指定します",
     )
