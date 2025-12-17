@@ -76,7 +76,7 @@ async def test_collect_success(explorer, mock_trendradar_client):
             "url": "http://example.com/1",
             "desc": "Desc 1",
             "hot": "100万",
-            "time": "2024-03-20 10:00",
+            "time": "2024-03-20 10:00:00",
         }
     ]
 
@@ -107,7 +107,7 @@ async def test_transform_to_article_valid(explorer):
         "url": "http://example.com/valid",
         "desc": "Valid Description",
         "hot": "150万",
-        "time": "2024-03-20 10:30",
+        "time": "2024-03-20 10:30:00",
     }
 
     article = explorer._transform_to_article(item)
@@ -130,7 +130,7 @@ async def test_transform_to_article_null_fields(explorer):
         "url": "http://example.com",
         "desc": None,
         "hot": None,
-        "time": "2024-03-20 10:00",
+        "time": "2024-03-20 10:00:00",
     }
 
     article = explorer._transform_to_article(item)
@@ -149,7 +149,7 @@ async def test_transform_to_article_hot_parsing(explorer):
         "url": "U",
         "desc": "D",
         "hot": "12345",
-        "time": "2024-01-01 00:00",
+        "time": "2024-01-01 00:00:00",
     }
     article_int = explorer._transform_to_article(item_int)
     assert article_int.popularity_score == 12345
@@ -160,7 +160,7 @@ async def test_transform_to_article_hot_parsing(explorer):
         "url": "U",
         "desc": "D",
         "hot": "1.5万",
-        "time": "2024-01-01 00:00",
+        "time": "2024-01-01 00:00:00",
     }
     article_w = explorer._transform_to_article(item_w)
     assert article_w.popularity_score == 15000
@@ -171,7 +171,7 @@ async def test_transform_to_article_hot_parsing(explorer):
         "url": "U",
         "desc": "D",
         "hot": "invalid",
-        "time": "2024-01-01 00:00",
+        "time": "2024-01-01 00:00:00",
     }
     article_invalid = explorer._transform_to_article(item_invalid)
     assert article_invalid.popularity_score == 0
