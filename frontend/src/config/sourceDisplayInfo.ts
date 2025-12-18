@@ -157,7 +157,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     subtitle: 'プロダクト発見プラットフォーム',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-orange-50',
-    gradientTo: 'to-amber-50',
+    gradientTo: 'to-rose-50',
     borderColor: 'border-orange-200',
   },
 };
