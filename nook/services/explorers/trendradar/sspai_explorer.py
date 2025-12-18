@@ -51,31 +51,17 @@ class SspaiExplorer(BaseTrendRadarExplorer):
 
     def _get_summary_prompt(self, article: Article) -> str:
         """GPT要約用のプロンプトを生成."""
-        safe_title = self._sanitize_prompt_input(article.title, max_length=200)
-        safe_url = self._sanitize_prompt_input(article.url, max_length=500)
-        safe_text = self._sanitize_prompt_input(article.text or "", max_length=500)
-
-        return f"""以下の少数派（SSPai）ホットトピックを日本語で詳細に要約してください。
-
-タイトル: {safe_title}
-URL: {safe_url}
-説明: {safe_text}
-
-以下のフォーマットで出力してください：
-
-1. コンテンツの概要 (1-2文)
-[紹介されているアプリ・ツール・手法を簡潔に説明]
-
-2. 機能・特徴 (箇条書き3-5点)
-- [ポイント1: 主要機能]
-- [ポイント2: 対応プラットフォーム]
-- [ポイント3: 価格・ライセンス]
-
-3. 活用シーン
-[具体的なユースケースや組み合わせ]
-
-4. 日本での代替・類似ツール
-[日本で入手可能な類似ツールの紹介]"""
+        return self._get_default_summary_prompt(
+            article=article,
+            platform_label="少数派（SSPai）",
+            content_label="ホットトピック",
+            sections=[
+                "コンテンツの概要 (1-2文)\n[紹介されているアプリ・ツール・手法を簡潔に説明]",
+                "機能・特徴 (箇条書き3-5点)\n- [ポイント1: 主要機能]\n- [ポイント2: 対応プラットフォーム]\n- [ポイント3: 価格・ライセンス]",
+                "活用シーン\n[具体的なユースケースや組み合わせ]",
+                "日本での代替・類似ツール\n[日本で入手可能な類似ツールの紹介]",
+            ],
+        )
 
     def _get_system_instruction(self) -> str:
         """GPT要約用のシステム指示を取得."""

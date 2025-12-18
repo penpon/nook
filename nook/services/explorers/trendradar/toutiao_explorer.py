@@ -51,31 +51,17 @@ class ToutiaoExplorer(BaseTrendRadarExplorer):
 
     def _get_summary_prompt(self, article: Article) -> str:
         """GPT要約用のプロンプトを生成."""
-        safe_title = self._sanitize_prompt_input(article.title, max_length=200)
-        safe_url = self._sanitize_prompt_input(article.url, max_length=500)
-        safe_text = self._sanitize_prompt_input(article.text or "", max_length=500)
-
-        return f"""以下の今日头条（Toutiao）ホットニュースを日本語で詳細に要約してください。
-
-タイトル: {safe_title}
-URL: {safe_url}
-説明: {safe_text}
-
-以下のフォーマットで出力してください：
-
-1. ニュースの概要 (1-2文)
-[主要なニュース内容を簡潔に説明]
-
-2. 重要なポイント (箇条書き3-5点)
-- [ポイント1: 事実関係]
-- [ポイント2: 関係者・組織]
-- [ポイント3: 影響範囲]
-
-3. 社会的影響
-[このニュースがもたらす影響や意味]
-
-4. 国際的視点
-[日本や国際社会との関連性]"""
+        return self._get_default_summary_prompt(
+            article=article,
+            platform_label="今日头条（Toutiao）",
+            content_label="ホットニュース",
+            sections=[
+                "ニュースの概要 (1-2文)\n[主要なニュース内容を簡潔に説明]",
+                "重要なポイント (箇条書き3-5点)\n- [ポイント1: 事実関係]\n- [ポイント2: 関係者・組織]\n- [ポイント3: 影響範囲]",
+                "社会的影響\n[このニュースがもたらす影響や意味]",
+                "国際的視点\n[日本や国際社会との関連性]",
+            ],
+        )
 
     def _get_system_instruction(self) -> str:
         """GPT要約用のシステム指示を取得."""
