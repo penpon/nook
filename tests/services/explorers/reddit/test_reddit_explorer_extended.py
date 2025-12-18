@@ -253,9 +253,9 @@ async def test_retrieve_top_comments(mock_reddit_explorer):
     mock_submission.comments.list = MagicMock(return_value=[mock_comment])
 
     mock_reddit_explorer.reddit = MagicMock()  # Should contain submission method
-    mock_reddit_explorer.reddit.submission = MagicMock(
+    mock_reddit_explorer.reddit.submission = AsyncMock(
         return_value=mock_submission
-    )  # submission(id=...) is NOT a coro
+    )  # submission(id=...) is now a coroutine
 
     mock_reddit_explorer._translate_to_japanese = AsyncMock(
         return_value="Japanese Comment"
@@ -290,7 +290,7 @@ async def test_retrieve_top_comments_missing_created_at(mock_reddit_explorer):
     mock_submission.comments.list = MagicMock(return_value=[mock_comment])
 
     mock_reddit_explorer.reddit = MagicMock()
-    mock_reddit_explorer.reddit.submission = MagicMock(return_value=mock_submission)
+    mock_reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
 
     mock_reddit_explorer._translate_to_japanese = AsyncMock(
         return_value="Japanese Comment"

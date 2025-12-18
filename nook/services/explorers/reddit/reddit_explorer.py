@@ -419,8 +419,11 @@ class RedditExplorer(BaseService):
         try:
             prompt = f"以下の英語のテキストを自然な日本語に翻訳してください。専門用語や固有名詞は適切に翻訳し、必要に応じて英語の原語を括弧内に残してください。\n\n{text}"
 
-            translated_text = await self.gpt_client.generate_content(
-                prompt=prompt, temperature=0.3, max_tokens=1000
+            translated_text = await self.gpt_client.generate_async(
+                prompt=prompt,
+                temperature=0.3,
+                max_tokens=1000,
+                service_name=self.service_name,
             )
 
             return translated_text
@@ -446,7 +449,7 @@ class RedditExplorer(BaseService):
         List[Dict[str, str | int]]
             取得したコメントのリスト。
         """
-        submission = self.reddit.submission(id=post.id)
+        submission = await self.reddit.submission(id=post.id)
 
         # コメントを取得する前にソート順を設定
         await submission.comments.replace_more(limit=0)
@@ -500,11 +503,12 @@ class RedditExplorer(BaseService):
         """
 
         try:
-            summary = await self.gpt_client.generate_content(
+            summary = await self.gpt_client.generate_async(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
                 max_tokens=1000,
+                service_name=self.service_name,
             )
             post.summary = summary
         except Exception as e:
