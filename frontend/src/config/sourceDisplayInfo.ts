@@ -152,6 +152,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-teal-50',
     borderColor: 'border-green-200',
   },
+  'trendradar-producthunt': {
+    title: 'Product Hunt',
+    subtitle: 'プロダクト発見プラットフォーム',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-orange-50',
+    gradientTo: 'to-rose-50',
+    borderColor: 'border-orange-200',
+  },
 };
 
 // デフォルト設定

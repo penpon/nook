@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { HydrationBoundary, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Hydrate, QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
@@ -29,9 +29,9 @@ ReactDOM.hydrateRoot(
   <React.StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <HydrationBoundary state={dehydratedState}>
+        <Hydrate state={dehydratedState}>
           <App />
-        </HydrationBoundary>
+        </Hydrate>
       </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>

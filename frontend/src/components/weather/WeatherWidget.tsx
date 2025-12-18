@@ -1,6 +1,6 @@
 import { Cloud, CloudRain, Sun } from 'lucide-react';
 import type React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from 'react-query';
 import { getWeather } from '../../api';
 
 const getWeatherIcon = (icon: string) => {
