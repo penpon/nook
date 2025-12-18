@@ -26,6 +26,7 @@ coverage.json
 # AI/Tooling artifacts
 .copilot_manual_test_result.txt
 .droid_review_result.json
+.gemini/
 
 
 # Project-specific data (keep in git)
