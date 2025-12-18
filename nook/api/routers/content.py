@@ -59,6 +59,7 @@ SOURCE_MAPPING = {
     "trendradar-36kr": "trendradar-36kr",
     "trendradar-weibo": "trendradar-weibo",
     "trendradar-toutiao": "trendradar-toutiao",
+    "trendradar-sspai": "trendradar-sspai",
 }
 
 
@@ -211,6 +212,7 @@ async def get_content(
             "trendradar-36kr",
             "trendradar-weibo",
             "trendradar-toutiao",
+            "trendradar-sspai",
         ):
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
@@ -276,6 +278,7 @@ async def get_content(
                 "trendradar-36kr",
                 "trendradar-weibo",
                 "trendradar-toutiao",
+                "trendradar-sspai",
             ):
                 # TrendRadar系はJSONから個別記事として追加
                 articles_data = storage.load_json(service_name, target_date)
@@ -361,5 +364,6 @@ def _get_source_display_name(source: str) -> str:
         "trendradar-36kr": "36氪 (36Kr)",
         "trendradar-weibo": "微博 (Weibo)",
         "trendradar-toutiao": "今日头条 (Toutiao)",
+        "trendradar-sspai": "少数派 (SSPai)",
     }
     return source_names.get(source, source)

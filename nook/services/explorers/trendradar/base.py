@@ -280,6 +280,48 @@ class BaseTrendRadarExplorer(BaseService):
             GPTのシステム指示。
         """
 
+    def _get_default_summary_prompt(
+        self,
+        article: Article,
+        platform_label: str,
+        content_label: str,
+        sections: list[str],
+    ) -> str:
+        """共通のGPT要約用プロンプトテンプレートを生成.
+
+        Parameters
+        ----------
+        article : Article
+            要約対象の記事。
+        platform_label : str
+            プラットフォームの表示名（例: "知乎（Zhihu）"）。
+        content_label : str
+            コンテンツの種類（例: "ホットトピック", "ホットニュース"）。
+        sections : list[str]
+            要求するセクションのリスト。
+
+        Returns
+        -------
+        str
+            生成されたプロンプト。
+        """
+        safe_title = self._sanitize_prompt_input(article.title, max_length=200)
+        safe_url = self._sanitize_prompt_input(article.url, max_length=500)
+        safe_text = self._sanitize_prompt_input(article.text or "", max_length=500)
+
+        prompt = (
+            f"以下の{platform_label}{content_label}を日本語で詳細に要約してください。\n\n"
+            f"タイトル: {safe_title}\n"
+            f"URL: {safe_url}\n"
+            f"説明: {safe_text}\n\n"
+            "以下のフォーマットで出力してください：\n\n"
+        )
+
+        for i, section in enumerate(sections, 1):
+            prompt += f"{i}. {section}\n"
+
+        return prompt
+
     async def _summarize_article(self, article: Article) -> None:
         """記事の要約を生成（破壊的変更）."""
         prompt = self._get_summary_prompt(article)

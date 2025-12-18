@@ -1,7 +1,7 @@
-"""ToutiaoExplorer - TrendRadar経由で今日头条のホットニュースを取得.
+"""SspaiExplorer - TrendRadar経由で少数派のホットトピックを取得.
 
 このモジュールは、TrendRadar MCPサーバーを経由して
-今日头条（Toutiao）のホットニュースを取得するToutiaoExplorerクラスを提供します。
+少数派（SSPai）のホットトピックを取得するSspaiExplorerクラスを提供します。
 """
 
 from nook.core.config import BaseConfig
@@ -9,11 +9,11 @@ from nook.services.base.base_feed_service import Article
 from nook.services.explorers.trendradar.base import BaseTrendRadarExplorer
 
 
-class ToutiaoExplorer(BaseTrendRadarExplorer):
-    """今日头条のホットニュースをTrendRadar経由で取得するExplorer.
+class SspaiExplorer(BaseTrendRadarExplorer):
+    """少数派のホットトピックをTrendRadar経由で取得するExplorer.
 
     TrendRadar MCPサーバーと通信し、
-    今日头条（Toutiao）のホットニュースを取得・要約・保存します。
+    少数派（SSPai）のホットトピックを取得・要約・保存します。
 
     Parameters
     ----------
@@ -24,17 +24,17 @@ class ToutiaoExplorer(BaseTrendRadarExplorer):
 
     Examples
     --------
-    >>> explorer = ToutiaoExplorer()
+    >>> explorer = SspaiExplorer()
     >>> explorer.run(days=1, limit=20)
     """
 
     # プラットフォーム固有の設定
-    PLATFORM_NAME = "toutiao"
-    FEED_NAME = "toutiao"
-    MARKDOWN_HEADER = "今日头条ホットニュース"
+    PLATFORM_NAME = "sspai"
+    FEED_NAME = "sspai"
+    MARKDOWN_HEADER = "少数派ホットトピック"
 
     def __init__(self, storage_dir: str = "var/data", config: BaseConfig | None = None):
-        """ToutiaoExplorerを初期化.
+        """SspaiExplorerを初期化.
 
         Parameters
         ----------
@@ -44,7 +44,7 @@ class ToutiaoExplorer(BaseTrendRadarExplorer):
             設定オブジェクト。
         """
         super().__init__(
-            service_name="trendradar-toutiao",
+            service_name="trendradar-sspai",
             storage_dir=storage_dir,
             config=config,
         )
@@ -53,21 +53,21 @@ class ToutiaoExplorer(BaseTrendRadarExplorer):
         """GPT要約用のプロンプトを生成."""
         return self._get_default_summary_prompt(
             article=article,
-            platform_label="今日头条（Toutiao）",
-            content_label="ホットニュース",
+            platform_label="少数派（SSPai）",
+            content_label="ホットトピック",
             sections=[
-                "ニュースの概要 (1-2文)\n[主要なニュース内容を簡潔に説明]",
-                "重要なポイント (箇条書き3-5点)\n- [ポイント1: 事実関係]\n- [ポイント2: 関係者・組織]\n- [ポイント3: 影響範囲]",
-                "社会的影響\n[このニュースがもたらす影響や意味]",
-                "国際的視点\n[日本や国際社会との関連性]",
+                "コンテンツの概要 (1-2文)\n[紹介されているアプリ・ツール・手法を簡潔に説明]",
+                "機能・特徴 (箇条書き3-5点)\n- [ポイント1: 主要機能]\n- [ポイント2: 対応プラットフォーム]\n- [ポイント3: 価格・ライセンス]",
+                "活用シーン\n[具体的なユースケースや組み合わせ]",
+                "日本での代替・類似ツール\n[日本で入手可能な類似ツールの紹介]",
             ],
         )
 
     def _get_system_instruction(self) -> str:
         """GPT要約用のシステム指示を取得."""
         return (
-            "あなたは中国のニュースアグリゲーター「今日头条（Toutiao）」のトレンドを"
+            "あなたは中国のデジタルライフメディア「少数派（SSPai）」のトレンドを"
             "日本語で解説する専門のアシスタントです。日本のユーザーに向けて、"
-            "ニュースの要点、社会的影響、異なる視点からの分析が"
+            "アプリの機能、ワークフローの具体例、生産性向上のコツが"
             "伝わるような具体的で情報量の多い要約を作成してください。"
         )

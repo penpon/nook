@@ -39,6 +39,7 @@ TRENDRADAR_SERVICES = {
     "trendradar-36kr",
     "trendradar-weibo",
     "trendradar-toutiao",
+    "trendradar-sspai",
 }
 
 
@@ -59,6 +60,7 @@ class ServiceRunner:
         from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
         from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
         from nook.services.explorers.trendradar.kr36_explorer import Kr36Explorer
+        from nook.services.explorers.trendradar.sspai_explorer import SspaiExplorer
         from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
         from nook.services.explorers.trendradar.weibo_explorer import WeiboExplorer
         from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
@@ -90,6 +92,7 @@ class ServiceRunner:
             "trendradar-36kr": Kr36Explorer,
             "trendradar-weibo": WeiboExplorer,
             "trendradar-toutiao": ToutiaoExplorer,
+            "trendradar-sspai": SspaiExplorer,
         }
         for service_name in TRENDRADAR_SERVICES:
             if service_name in trendradar_mapping:
