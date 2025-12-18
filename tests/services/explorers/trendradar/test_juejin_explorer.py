@@ -75,7 +75,7 @@ class TestJuejinExplorerTransform:
         assert article.url == "https://juejin.cn/post/123456"
         assert article.popularity_score == 1500000
         assert article.feed_name == "juejin"
-        assert article.category == "hot"
+        assert article.category is None
 
     def test_transform_handles_missing_hot(self, explorer: JuejinExplorer) -> None:
         """
