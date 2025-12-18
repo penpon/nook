@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from nook.services.base.base_feed_service import Article
+from nook.services.explorers.trendradar.base import create_empty_soup
 from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
 from nook.services.explorers.trendradar.trendradar_client import TrendRadarClient
 
@@ -25,8 +26,7 @@ def explorer(mock_trendradar_client):
     return ToutiaoExplorer(storage_dir="test_data")
 
 
-@pytest.mark.asyncio
-async def test_initialization(explorer):
+def test_initialization(explorer):
     """初期化のテスト."""
     assert explorer.service_name == "trendradar-toutiao"
     assert explorer.PLATFORM_NAME == "toutiao"
@@ -34,15 +34,14 @@ async def test_initialization(explorer):
     assert explorer.MARKDOWN_HEADER == "今日头条ホットニュース"
 
 
-@pytest.mark.asyncio
-async def test_get_summary_prompt(explorer):
+def test_get_summary_prompt(explorer):
     """プロンプト生成のテスト."""
     article = Article(
         feed_name="toutiao",
         title="Test Title",
         url="http://example.com",
         text="Test Description",
-        soup=None,
+        soup=create_empty_soup(),
         published_at=datetime.now(timezone.utc),
     )
 
@@ -56,8 +55,7 @@ async def test_get_summary_prompt(explorer):
     assert "4. 国際的視点" in prompt
 
 
-@pytest.mark.asyncio
-async def test_get_system_instruction(explorer):
+def test_get_system_instruction(explorer):
     """システム指示取得のテスト."""
     instruction = explorer._get_system_instruction()
 
@@ -104,8 +102,7 @@ async def test_collect_success(explorer, mock_trendradar_client):
             mock_store.assert_called_once()
 
 
-@pytest.mark.asyncio
-async def test_transform_to_article_valid(explorer):
+def test_transform_to_article_valid(explorer):
     """_transform_to_article: 正常な変換のテスト."""
     item = {
         "title": "Valid Title",
@@ -126,8 +123,7 @@ async def test_transform_to_article_valid(explorer):
     assert article.popularity_score == 150
 
 
-@pytest.mark.asyncio
-async def test_transform_to_article_null_fields(explorer):
+def test_transform_to_article_null_fields(explorer):
     """_transform_to_article: 必須フィールド欠落やnullのハンドリング."""
     # desc is None
     item = {
@@ -144,8 +140,7 @@ async def test_transform_to_article_null_fields(explorer):
     assert article.popularity_score == 0
 
 
-@pytest.mark.asyncio
-async def test_transform_to_article_time_parsing(explorer):
+def test_transform_to_article_time_parsing(explorer):
     """_transform_to_article: timeフィールドのパーステスト."""
 
     # specific format YYYY-MM-DD HH:MM

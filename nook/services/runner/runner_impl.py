@@ -106,8 +106,6 @@ class ServiceRunner:
         effective_dates = target_dates or target_dates_set(days)
         sorted_dates = sorted(effective_dates)
 
-        # trendradar-zhihu は単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
-        # Note: ZhihuExplorer.collect 内でも検証されるが、runner 側で早期に失敗させる
         # trendradar系サービスは単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
         # Note: Explorer.collect 内でも検証されるが、runner 側で早期に失敗させる
         if service_name in TRENDRADAR_SERVICES:
