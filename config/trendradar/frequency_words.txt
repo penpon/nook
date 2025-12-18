@@ -1,113 +1,154 @@
-胖东来
-于东来
+# AI技术信息收集用 frequency_words
+
+# --- 大语言模型 (LLM) ---
+ChatGPT
+GPT-4
+GPT-5
+OpenAI
+o1
+o3
+
+Claude
+Anthropic
+
+Gemini
+DeepMind
+
+LLaMA
+Llama
+Meta AI
 
 DeepSeek
 梁文锋
 
-华为
-鸿蒙
-HarmonyOS
-任正非
+Mistral
 
-比亚迪
-王传福
+Qwen
+通义千问
 
-大疆
-DJI
+文心一言
+ERNIE
 
-宇树
-王兴兴
+# --- AI企业/研究机构 ---
+OpenAI
+Anthropic
+DeepMind
+Mistral AI
+Hugging Face
+Stability AI
+Midjourney
+Runway
+Cohere
+Perplexity
+xAI
 
-智元
-灵犀
-稚晖君
-彭志辉
-
-黑神话
-冯骥
-
-影之刃零
-梁其伟
-
-哪吒
-饺子
-杨宇
-!车
-!餐
-
-三体
-流浪地球
-刘慈欣
-郭帆
-
-申奥
-
-京东
-刘强东
-
-字节
-bytedance
-张一鸣
-
-特斯拉
-马斯克
-
-微软
-Microsoft
-
-英伟达
+# --- AI硬件 ---
 NVIDIA
+英伟达
 黄仁勋
+H100
+H200
+B100
+B200
+Blackwell
 
 AMD
+MI300
 
-谷歌
-google
-gemini
-deepmind
+TPU
 
-chatgpt
-openai
-sora
+GPU
+芯片
+算力
 
-claude
-Anthropic
-
-iphone
-ipad
-mac
-ios
-
-ai
-!gai
+# --- AI技术关键词 ---
+AI
 人工智能
+机器学习
+深度学习
+神经网络
 
+大模型
+LLM
+大语言模型
+
+生成式AI
+AIGC
+
+多模态
+Multimodal
+
+RAG
+检索增强
+
+Agent
+智能体
+
+微调
+Fine-tuning
+
+强化学习
+RLHF
+
+Transformer
+注意力机制
+
+扩散模型
+Diffusion
+
+# --- AI应用领域 ---
 自动驾驶
+FSD
+端到端
 
 机器人
+人形机器人
+具身智能
 
-国产
-中国
+AI绘画
+Stable Diffusion
+DALL-E
 
-美国
-日本
-韩国
+AI编程
+Copilot
+Cursor
 
-芯片
-光刻机
+AI视频
+Sora
+Runway
+Kling
+可灵
 
-科技
+语音合成
+TTS
 
-核能
+# --- AI政策/监管 ---
+AI监管
+AI法案
+AI安全
+AI伦理
 
-水电站
-雅鲁藏布江
+# --- 中国AI企业 ---
+百度
+阿里
+腾讯
+字节跳动
+ByteDance
+华为
+商汤
+旷视
+科大讯飞
+智谱
+月之暗面
+Moonshot
+零一万物
+MiniMax
 
-新质生产力
-
-月球
-登月
-火星
-宇宙
-飞船
-航空
+# --- AI研究者/重要人物 ---
+Sam Altman
+Ilya Sutskever
+Demis Hassabis
+Yann LeCun
+Geoffrey Hinton
+Andrej Karpathy
+李飞飞
