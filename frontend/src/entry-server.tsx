@@ -1,5 +1,5 @@
 import { renderToString } from 'react-dom/server';
-import { dehydrate, QueryClient, QueryClientProvider } from 'react-query';
+import { dehydrate, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StaticRouter } from 'react-router-dom/server';
 import App from './App';
 
