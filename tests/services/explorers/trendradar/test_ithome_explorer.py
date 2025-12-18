@@ -79,7 +79,7 @@ class TestIthomeExplorerTransform:
         assert article.url == "https://ithome.com/1"
         assert article.popularity_score == 1500000
         assert article.feed_name == "ithome"
-        assert article.category is None
+        assert article.category == "hot"
 
     def test_transform_handles_missing_hot(self, explorer: IthomeExplorer) -> None:
         """
