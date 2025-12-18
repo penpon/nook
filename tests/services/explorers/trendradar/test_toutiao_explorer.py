@@ -26,7 +26,8 @@ def explorer(mock_trendradar_client):
     return ToutiaoExplorer(storage_dir="test_data")
 
 
-def test_initialization(explorer):
+@pytest.mark.asyncio
+async def test_initialization(explorer):
     """初期化のテスト."""
     assert explorer.service_name == "trendradar-toutiao"
     assert explorer.PLATFORM_NAME == "toutiao"
@@ -34,7 +35,8 @@ def test_initialization(explorer):
     assert explorer.MARKDOWN_HEADER == "今日头条ホットニュース"
 
 
-def test_get_summary_prompt(explorer):
+@pytest.mark.asyncio
+async def test_get_summary_prompt(explorer):
     """プロンプト生成のテスト."""
     article = Article(
         feed_name="toutiao",
@@ -55,7 +57,8 @@ def test_get_summary_prompt(explorer):
     assert "4. 国際的視点" in prompt
 
 
-def test_get_system_instruction(explorer):
+@pytest.mark.asyncio
+async def test_get_system_instruction(explorer):
     """システム指示取得のテスト."""
     instruction = explorer._get_system_instruction()
 
@@ -102,7 +105,8 @@ async def test_collect_success(explorer, mock_trendradar_client):
             mock_store.assert_called_once()
 
 
-def test_transform_to_article_valid(explorer):
+@pytest.mark.asyncio
+async def test_transform_to_article_valid(explorer):
     """_transform_to_article: 正常な変換のテスト."""
     item = {
         "title": "Valid Title",
@@ -123,7 +127,8 @@ def test_transform_to_article_valid(explorer):
     assert article.popularity_score == 150
 
 
-def test_transform_to_article_null_fields(explorer):
+@pytest.mark.asyncio
+async def test_transform_to_article_null_fields(explorer):
     """_transform_to_article: 必須フィールド欠落やnullのハンドリング."""
     # desc is None
     item = {
@@ -140,7 +145,8 @@ def test_transform_to_article_null_fields(explorer):
     assert article.popularity_score == 0
 
 
-def test_transform_to_article_time_parsing(explorer):
+@pytest.mark.asyncio
+async def test_transform_to_article_time_parsing(explorer):
     """_transform_to_article: timeフィールドのパーステスト."""
 
     # specific format YYYY-MM-DD HH:MM

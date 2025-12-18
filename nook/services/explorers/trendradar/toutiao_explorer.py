@@ -12,8 +12,8 @@ from nook.services.explorers.trendradar.base import BaseTrendRadarExplorer
 class ToutiaoExplorer(BaseTrendRadarExplorer):
     """今日头条のホットニュースをTrendRadar経由で取得するExplorer.
 
-    TrendRadar MCPサーバーと通信し、今日头条（Toutiao）のホットニュースを
-    取得・要約・保存します。
+    TrendRadar MCPサーバーと通信し、
+    今日头条（Toutiao）のホットニュースを取得・要約・保存します。
 
     Parameters
     ----------
