@@ -194,6 +194,13 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     )
     service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
 
+    # --- Case 5e: trendradar-toutiao (single date) ---
+    # Expected: Works normally with single date
+    await runner._run_sync_service(
+        "trendradar-toutiao", service_mock, days=1, target_dates=single_date
+    )
+    service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
+
     # Check that INFO log shows single day ("対象日")
     info_calls = [str(c) for c in mock_logger.info.call_args_list]
     assert any("対象日" in c and "2024-01-01" in c for c in info_calls)

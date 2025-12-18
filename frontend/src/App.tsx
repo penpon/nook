@@ -28,6 +28,7 @@ const sources = [
   'trendradar-ithome',
   'trendradar-36kr',
   'trendradar-weibo',
+  'trendradar-toutiao',
 ];
 
 function App() {

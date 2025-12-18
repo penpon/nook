@@ -31,6 +31,17 @@ load_dotenv(".env.production")
 logger = setup_logger("service_runner")
 
 
+# TrendRadar系のサービス一覧（単一日実行のみ対応）
+TRENDRADAR_SERVICES = {
+    "trendradar-zhihu",
+    "trendradar-juejin",
+    "trendradar-ithome",
+    "trendradar-36kr",
+    "trendradar-weibo",
+    "trendradar-toutiao",
+}
+
+
 class ServiceRunner:
     """サービス実行マネージャー"""
 
@@ -48,6 +59,7 @@ class ServiceRunner:
         from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
         from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
         from nook.services.explorers.trendradar.kr36_explorer import Kr36Explorer
+        from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
         from nook.services.explorers.trendradar.weibo_explorer import WeiboExplorer
         from nook.services.explorers.trendradar.zhihu_explorer import ZhihuExplorer
         from nook.services.explorers.zenn.zenn_explorer import ZennExplorer
@@ -68,12 +80,20 @@ class ServiceRunner:
             "arxiv": ArxivSummarizer,
             "4chan": FourChanExplorer,
             "5chan": FiveChanExplorer,
+        }
+
+        # TrendRadarサービスを動的に登録
+        trendradar_mapping = {
             "trendradar-zhihu": ZhihuExplorer,
             "trendradar-juejin": JuejinExplorer,
             "trendradar-ithome": IthomeExplorer,
             "trendradar-36kr": Kr36Explorer,
             "trendradar-weibo": WeiboExplorer,
+            "trendradar-toutiao": ToutiaoExplorer,
         }
+        for service_name in TRENDRADAR_SERVICES:
+            if service_name in trendradar_mapping:
+                self.service_classes[service_name] = trendradar_mapping[service_name]
 
         # サービスインスタンスを保持（必要時にのみ作成）
         self.sync_services = {}
@@ -93,15 +113,9 @@ class ServiceRunner:
         effective_dates = target_dates or target_dates_set(days)
         sorted_dates = sorted(effective_dates)
 
-        # trendradar-zhihu は単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
-        # Note: ZhihuExplorer.collect 内でも検証されるが、runner 側で早期に失敗させる
-        if service_name in (
-            "trendradar-zhihu",
-            "trendradar-juejin",
-            "trendradar-ithome",
-            "trendradar-36kr",
-            "trendradar-weibo",
-        ):
+        # trendradar系サービスは単一日のみ対応のため、days/target_dates の整合性を厳密に検証する
+        # Note: Explorer.collect 内でも検証されるが、runner 側で早期に失敗させる
+        if service_name in TRENDRADAR_SERVICES:
             if days != 1:
                 raise ValueError(
                     f"{service_name} は単一日のみ対応しています。単一の日付を指定してください。"
@@ -152,14 +166,8 @@ class ServiceRunner:
                 saved_files = result if result else []
             else:
                 # その他のサービスはデフォルト値を使用
-                # trendradar-zhihu, trendradar-juejin は days の検証を service 側でも行う
-                if service_name in (
-                    "trendradar-zhihu",
-                    "trendradar-juejin",
-                    "trendradar-ithome",
-                    "trendradar-36kr",
-                    "trendradar-weibo",
-                ):
+                # trendradar系サービス は days の検証を service 側でも行う
+                if service_name in TRENDRADAR_SERVICES:
                     result = await service.collect(days=days, target_dates=sorted_dates)
                 else:
                     result = await service.collect(target_dates=sorted_dates)
@@ -330,12 +338,8 @@ async def main():
             "arxiv",
             "4chan",
             "5chan",
-            "trendradar-zhihu",
-            "trendradar-juejin",
-            "trendradar-ithome",
-            "trendradar-36kr",
-            "trendradar-weibo",
-        ],
+        ]
+        + sorted(list(TRENDRADAR_SERVICES)),
         default="all",
         help="実行するサービスを指定します",
     )

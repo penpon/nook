@@ -136,6 +136,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-yellow-50',
     borderColor: 'border-red-300',
   },
+  'trendradar-toutiao': {
+    title: '今日头条 (Toutiao)',
+    subtitle: '中国最大のニュースアグリゲーター',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-amber-50',
+    gradientTo: 'to-amber-100',
+    borderColor: 'border-amber-200',
+  },
 };
 
 // デフォルト設定
