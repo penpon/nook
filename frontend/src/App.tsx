@@ -30,6 +30,7 @@ const sources = [
   'trendradar-weibo',
   'trendradar-toutiao',
   'trendradar-sspai',
+  'trendradar-producthunt',
 ];
 
 function App() {

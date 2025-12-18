@@ -53,6 +53,7 @@ class TrendRadarClient:
         "36kr",
         "toutiao",
         "sspai",
+        "producthunt",
     ]
 
     def __init__(self, base_url: str | None = None):
