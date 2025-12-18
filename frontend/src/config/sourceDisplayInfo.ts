@@ -144,6 +144,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-amber-100',
     borderColor: 'border-amber-200',
   },
+  'trendradar-sspai': {
+    title: '少数派 (SSPai)',
+    subtitle: 'デジタルライフ＆生産性メディア',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-green-50',
+    gradientTo: 'to-teal-50',
+    borderColor: 'border-green-200',
+  },
 };
 
 // デフォルト設定
