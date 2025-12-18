@@ -1,7 +1,7 @@
 """TrendRadar MCP server client using FastMCP.
 
 This module provides a client for communicating with the TrendRadar MCP server
-to retrieve hot topics from Chinese platforms like Zhihu.
+to retrieve hot topics from various supported platforms.
 """
 
 import json
@@ -27,7 +27,7 @@ class TrendRadarClient:
     """FastMCP client for TrendRadar MCP server.
 
     This client communicates with the TrendRadar MCP server to retrieve
-    hot topics from various Chinese platforms.
+    hot topics from various supported platforms.
 
     Parameters
     ----------
@@ -53,6 +53,7 @@ class TrendRadarClient:
         "36kr",
         "toutiao",
         "sspai",
+        "producthunt",
     ]
 
     def __init__(self, base_url: str | None = None):

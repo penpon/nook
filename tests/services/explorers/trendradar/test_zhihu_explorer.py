@@ -75,7 +75,7 @@ class TestZhihuExplorerTransform:
         assert article.url == "https://www.zhihu.com/question/123456"
         assert article.popularity_score == 1500000
         assert article.feed_name == "zhihu"
-        assert article.category is None
+        assert article.category == "hot"
 
     def test_transform_handles_missing_hot(self, explorer: ZhihuExplorer) -> None:
         """
