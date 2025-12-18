@@ -107,8 +107,6 @@ def _process_trendradar_articles(
         if article.get("summary"):
             # 要約は既にMarkdown形式で構造化されているため、そのまま使用
             content = f"{article['summary']}\n\n"
-        if article.get("category"):
-            content += f"カテゴリ: {article['category']}"
 
         items.append(
             _create_content_item(

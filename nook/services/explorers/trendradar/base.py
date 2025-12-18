@@ -230,7 +230,7 @@ class BaseTrendRadarExplorer(BaseService):
             url=str(item.get("url") or ""),
             text=str(item.get("desc") or item.get("description") or ""),
             soup=create_empty_soup(),
-            category="hot",
+            category=None,
             popularity_score=self._parse_popularity_score(raw_popularity),
             published_at=self._parse_published_at(item),
         )
