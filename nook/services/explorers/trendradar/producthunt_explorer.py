@@ -50,7 +50,21 @@ class ProductHuntExplorer(BaseTrendRadarExplorer):
         )
 
     def _get_summary_prompt(self, article: Article) -> str:
-        """GPT要約用のプロンプトを生成."""
+        """GPT要約用のプロンプトを生成.
+
+        与えられた記事（Article）の情報を元に、Product Huntのコンテキストに
+        最適化された要約用プロンプトを作成します。
+
+        Parameters
+        ----------
+        article : Article
+            要約対象の記事オブジェクト。
+
+        Returns
+        -------
+        str
+            生成されたプロンプト文字列。
+        """
         return self._get_default_summary_prompt(
             article=article,
             platform_label="Product Hunt",
@@ -64,7 +78,13 @@ class ProductHuntExplorer(BaseTrendRadarExplorer):
         )
 
     def _get_system_instruction(self) -> str:
-        """GPT要約用のシステム指示を取得."""
+        """GPT要約用のシステム指示を取得.
+
+        Returns
+        -------
+        str
+            GPTに与えるシステム指示（Role設定）。
+        """
         return (
             "あなたはプロダクト発見プラットフォーム「Product Hunt」のトレンドを"
             "日本語で解説する専門のアシスタントです。英語のプロダクト情報を"

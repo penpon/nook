@@ -148,6 +148,32 @@ async def test_transform_to_article_null_fields(explorer):
 
 
 @pytest.mark.asyncio
+async def test_transform_to_article_missing_required_fields(explorer):
+    """_transform_to_article: 必須フィールド（title, url）が欠落している場合のハンドリング."""
+    # title is missing
+    item_no_title = {
+        "url": "http://example.com/no-title",
+        "desc": "No Title Desc",
+        "hot": "100",
+        "time": "2024-03-20 10:00:00",
+    }
+    article_no_title = explorer._transform_to_article(item_no_title)
+    assert (
+        article_no_title.title == ""
+    )  # BaseTrendRadarExplorer implementation fallback
+
+    # url is missing
+    item_no_url = {
+        "title": "No URL Product",
+        "desc": "No URL Desc",
+        "hot": "100",
+        "time": "2024-03-20 10:00:00",
+    }
+    article_no_url = explorer._transform_to_article(item_no_url)
+    assert article_no_url.url == ""  # BaseTrendRadarExplorer implementation fallback
+
+
+@pytest.mark.asyncio
 async def test_transform_to_article_time_parsing(explorer):
     """_transform_to_article: timeフィールドのパーステスト."""
 
