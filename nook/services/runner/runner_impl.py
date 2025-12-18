@@ -80,6 +80,10 @@ class ServiceRunner:
             "arxiv": ArxivSummarizer,
             "4chan": FourChanExplorer,
             "5chan": FiveChanExplorer,
+        }
+
+        # TrendRadarサービスを動的に登録
+        trendradar_mapping = {
             "trendradar-zhihu": ZhihuExplorer,
             "trendradar-juejin": JuejinExplorer,
             "trendradar-ithome": IthomeExplorer,
@@ -87,6 +91,9 @@ class ServiceRunner:
             "trendradar-weibo": WeiboExplorer,
             "trendradar-toutiao": ToutiaoExplorer,
         }
+        for service_name in TRENDRADAR_SERVICES:
+            if service_name in trendradar_mapping:
+                self.service_classes[service_name] = trendradar_mapping[service_name]
 
         # サービスインスタンスを保持（必要時にのみ作成）
         self.sync_services = {}
