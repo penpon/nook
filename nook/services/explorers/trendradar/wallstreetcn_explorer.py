@@ -26,7 +26,7 @@ class WallstreetcnExplorer(BaseTrendRadarExplorer):
     Examples
     --------
     >>> explorer = WallstreetcnExplorer()
-    >>> explorer.run(days=1, limit=20)
+    >>> explorer.collect(days=1, limit=20)
     """
 
     # プラットフォーム固有の設定
@@ -58,9 +58,9 @@ class WallstreetcnExplorer(BaseTrendRadarExplorer):
             content_label="金融トレンド",
             sections=[
                 "金融ニュースの概要 (1-2文)\n[市場動向・投資情報を簡潔に説明]",
-                "投資ポイント (箇条書き3-5点)\n",
-                "- [ポイント1: 市場インパクト]\n",
-                "- [ポイント2: 関連銘柄・セクター]\n",
+                "投資ポイント (箇条書き3-5点)\n"
+                "- [ポイント1: 市場インパクト]\n"
+                "- [ポイント2: 関連銘柄・セクター]\n"
                 "- [ポイント3: 数値データ（資金調達額等）]",
                 "市場の反応・見通し\n[アナリストの見解や市場の反応]",
                 "日本市場への影響\n[日本の投資家・企業への示唆]",

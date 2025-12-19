@@ -55,8 +55,8 @@ async def test_get_summary_prompt(explorer):
     assert "Test Finance Description" in prompt
     assert "金融ニュースの概要" in prompt
     assert "投資ポイント" in prompt
-    assert "6. 市場の反応・見通し" in prompt
-    assert "7. 日本市場への影響" in prompt
+    assert "3. 市場の反応・見通し" in prompt
+    assert "4. 日本市場への影響" in prompt
 
 
 @pytest.mark.asyncio
@@ -71,8 +71,7 @@ async def test_get_system_instruction(explorer):
     assert "市場動向" in instruction
 
 
-@pytest.mark.asyncio
-async def test_wallstreetcn_is_supported_platform_in_client():
+def test_wallstreetcn_is_supported_platform_in_client():
     """wallstreetcn-hotがTrendRadarでサポートされているかを確認."""
     assert "wallstreetcn-hot" in TrendRadarClient.SUPPORTED_PLATFORMS
 
