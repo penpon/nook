@@ -1,6 +1,7 @@
 """TrendRadar integration module."""
 
 from nook.services.explorers.trendradar.base import BaseTrendRadarExplorer
+from nook.services.explorers.trendradar.freebuf_explorer import FreebufExplorer
 from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
 from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
 from nook.services.explorers.trendradar.kr36_explorer import Kr36Explorer
@@ -24,4 +25,5 @@ __all__ = [
     "WeiboExplorer",
     "ToutiaoExplorer",
     "SspaiExplorer",
+    "FreebufExplorer",
 ]

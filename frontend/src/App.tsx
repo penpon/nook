@@ -31,6 +31,7 @@ const sources = [
   'trendradar-toutiao',
   'trendradar-sspai',
   'trendradar-producthunt',
+  'trendradar-freebuf',
 ];
 
 function App() {
@@ -93,7 +94,7 @@ function App() {
           showWeather={false}
           showSearchButton={false}
           onMenuClick={toggleMobileMenu}
-          onSearchClick={() => {}}
+          onSearchClick={() => { }}
           rightActions={<></>}
         />
 

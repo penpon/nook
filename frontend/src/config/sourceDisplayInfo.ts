@@ -160,6 +160,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-rose-50',
     borderColor: 'border-orange-200',
   },
+  'trendradar-freebuf': {
+    title: 'Freebuf',
+    subtitle: '中国最大のセキュリティメディア',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-slate-50',
+    gradientTo: 'to-gray-50',
+    borderColor: 'border-slate-300',
+  },
 };
 
 // デフォルト設定
