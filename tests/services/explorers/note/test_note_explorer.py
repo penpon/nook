@@ -28,9 +28,7 @@ class TestExtractPopularity:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return NoteExplorer()
 
-    def test_extracts_popularity_from_twitter_data1_meta(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_extracts_popularity_from_twitter_data1_meta(self, note_explorer: NoteExplorer) -> None:
         """
         Given: HTML with meta tag containing twitter:data1.
         When: _extract_popularity is called.
@@ -53,9 +51,7 @@ class TestExtractPopularity:
 
         assert result == 100.0
 
-    def test_extracts_popularity_from_note_likes_meta(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_extracts_popularity_from_note_likes_meta(self, note_explorer: NoteExplorer) -> None:
         """
         Given: HTML with meta tag containing note:likes.
         When: _extract_popularity is called.
@@ -78,9 +74,7 @@ class TestExtractPopularity:
 
         assert result == 250.0
 
-    def test_extracts_popularity_from_data_like_count(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_extracts_popularity_from_data_like_count(self, note_explorer: NoteExplorer) -> None:
         """
         Given: HTML with element containing data-like-count attribute.
         When: _extract_popularity is called.
@@ -102,9 +96,7 @@ class TestExtractPopularity:
 
         assert result == 85.0
 
-    def test_extracts_popularity_from_data_suki_count(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_extracts_popularity_from_data_suki_count(self, note_explorer: NoteExplorer) -> None:
         """
         Given: HTML with element containing data-suki-count attribute.
         When: _extract_popularity is called.
@@ -126,9 +118,7 @@ class TestExtractPopularity:
 
         assert result == 42.0
 
-    def test_extracts_popularity_from_button_with_suki_text(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_extracts_popularity_from_button_with_suki_text(self, note_explorer: NoteExplorer) -> None:
         """
         Given: HTML with button containing 'スキ' keyword and a number.
         When: _extract_popularity is called.
@@ -150,9 +140,7 @@ class TestExtractPopularity:
 
         assert result == 33.0
 
-    def test_extracts_popularity_from_entry_likes_attribute(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_extracts_popularity_from_entry_likes_attribute(self, note_explorer: NoteExplorer) -> None:
         """
         Given: Entry object with likes attribute.
         When: _extract_popularity is called with empty HTML.
@@ -168,9 +156,7 @@ class TestExtractPopularity:
 
         assert result == 300.0
 
-    def test_returns_zero_when_no_popularity_found(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_returns_zero_when_no_popularity_found(self, note_explorer: NoteExplorer) -> None:
         """
         Given: HTML with no popularity indicators.
         When: _extract_popularity is called.
@@ -186,9 +172,7 @@ class TestExtractPopularity:
 
         assert result == 0.0
 
-    def test_ignores_non_numeric_meta_content(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_ignores_non_numeric_meta_content(self, note_explorer: NoteExplorer) -> None:
         """
         Given: Non-numeric metadata content.
         When: _extract_popularity parses the value.
@@ -211,9 +195,7 @@ class TestExtractPopularity:
 
         assert result == 0.0
 
-    def test_handles_missing_entry_attributes_gracefully(
-        self, note_explorer: NoteExplorer
-    ) -> None:
+    def test_handles_missing_entry_attributes_gracefully(self, note_explorer: NoteExplorer) -> None:
         """
         Given: Entry object without likes-related attributes.
         When: _extract_popularity checks feed fields.

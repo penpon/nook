@@ -157,9 +157,7 @@ async def test_get_method(mock_config):
     client = RateLimitedHTTPClient(config=mock_config)
     client._acquire_rate_limit = AsyncMock(return_value=None)
 
-    with patch(
-        "nook.core.clients.http_client.AsyncHTTPClient.get", new_callable=AsyncMock
-    ) as mock_super_get:
+    with patch("nook.core.clients.http_client.AsyncHTTPClient.get", new_callable=AsyncMock) as mock_super_get:
         mock_super_get.return_value = "response"
 
         resp = await client.get("https://example.com")
@@ -174,9 +172,7 @@ async def test_post_method(mock_config):
     client = RateLimitedHTTPClient(config=mock_config)
     client._acquire_rate_limit = AsyncMock(return_value=None)
 
-    with patch(
-        "nook.core.clients.http_client.AsyncHTTPClient.post", new_callable=AsyncMock
-    ) as mock_super_post:
+    with patch("nook.core.clients.http_client.AsyncHTTPClient.post", new_callable=AsyncMock) as mock_super_post:
         mock_super_post.return_value = "response"
 
         resp = await client.post("https://example.com", json={"a": 1})

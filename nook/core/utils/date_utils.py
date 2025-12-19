@@ -12,9 +12,7 @@ def _local_timezone() -> timezone:
     return timezone(timedelta(hours=9))  # JST = UTC+9
 
 
-def compute_target_dates(
-    days: int | None = None, *, base_date: date | None = None
-) -> list[date]:
+def compute_target_dates(days: int | None = None, *, base_date: date | None = None) -> list[date]:
     """Return a list of target dates (descending from base date) for the given window.
 
     Parameters
@@ -32,9 +30,7 @@ def compute_target_dates(
     return [start - timedelta(days=offset) for offset in range(normalized_days)]
 
 
-def target_dates_set(
-    days: int | None = None, *, base_date: date | None = None
-) -> Set[date]:
+def target_dates_set(days: int | None = None, *, base_date: date | None = None) -> Set[date]:
     """Convenience wrapper that returns the target dates as a ``set``."""
 
     return set(compute_target_dates(days, base_date=base_date))

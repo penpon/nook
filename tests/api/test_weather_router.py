@@ -33,9 +33,7 @@ def test_get_weather_success(monkeypatch: pytest.MonkeyPatch) -> None:
         "weather": [{"icon": "10d"}],
     }
 
-    with patch(
-        "nook.api.routers.weather.requests.get", return_value=mock_response
-    ) as mock_get:
+    with patch("nook.api.routers.weather.requests.get", return_value=mock_response) as mock_get:
         resp = client.get("/api/weather")
 
         assert resp.status_code == 200

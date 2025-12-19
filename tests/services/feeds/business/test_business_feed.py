@@ -34,9 +34,7 @@ class TestExtractPopularity:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return BusinessFeed()
 
-    def test_extracts_popularity_from_meta_tag_article_reaction_count(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_extracts_popularity_from_meta_tag_article_reaction_count(self, business_feed: BusinessFeed) -> None:
         """
         Given: HTML with meta tag containing article:reaction_count property.
         When: _extract_popularity is called.
@@ -57,9 +55,7 @@ class TestExtractPopularity:
 
         assert result == 42.0
 
-    def test_extracts_popularity_from_og_reaction_count(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_extracts_popularity_from_og_reaction_count(self, business_feed: BusinessFeed) -> None:
         """
         Given: HTML with meta tag containing og:reaction_count property.
         When: _extract_popularity is called.
@@ -80,9 +76,7 @@ class TestExtractPopularity:
 
         assert result == 88.0
 
-    def test_extracts_popularity_from_data_attribute(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_extracts_popularity_from_data_attribute(self, business_feed: BusinessFeed) -> None:
         """
         Given: HTML with element containing data-reaction-count attribute.
         When: _extract_popularity is called.
@@ -102,9 +96,7 @@ class TestExtractPopularity:
 
         assert result == 25.0
 
-    def test_extracts_popularity_from_span_text_with_like_keyword(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_extracts_popularity_from_span_text_with_like_keyword(self, business_feed: BusinessFeed) -> None:
         """
         Given: HTML with span containing 'Like' keyword and a number.
         When: _extract_popularity is called.
@@ -124,9 +116,7 @@ class TestExtractPopularity:
 
         assert result == 77.0
 
-    def test_returns_zero_when_no_popularity_found(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_returns_zero_when_no_popularity_found(self, business_feed: BusinessFeed) -> None:
         """
         Given: HTML with no popularity indicators.
         When: _extract_popularity is called.
@@ -175,9 +165,7 @@ class TestSelectTopArticles:
             published_at=datetime.now(timezone.utc),
         )
 
-    def test_returns_empty_list_when_no_articles(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_returns_empty_list_when_no_articles(self, business_feed: BusinessFeed) -> None:
         """
         Given: An empty list of articles.
         When: _select_top_articles is called.
@@ -187,9 +175,7 @@ class TestSelectTopArticles:
 
         assert result == []
 
-    def test_sorts_articles_by_popularity_descending(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_sorts_articles_by_popularity_descending(self, business_feed: BusinessFeed) -> None:
         """
         Given: A list of articles with various popularity scores.
         When: _select_top_articles is called.
@@ -213,9 +199,7 @@ class TestSelectTopArticles:
         When: _select_top_articles is called with limit=2.
         Then: Only 2 articles are returned.
         """
-        articles = [
-            self._create_article(f"Article {i}", float(i * 10)) for i in range(5)
-        ]
+        articles = [self._create_article(f"Article {i}", float(i * 10)) for i in range(5)]
 
         result = business_feed._select_top_articles(articles, limit=2)
 
@@ -261,9 +245,7 @@ class TestNeedsJapaneseCheck:
 
         assert result is True
 
-    def test_returns_true_for_japanese_content_check(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_returns_true_for_japanese_content_check(self, business_feed: BusinessFeed) -> None:
         """
         Given: A BusinessFeed instance with Japanese content requirement.
         When: _needs_japanese_check is called multiple times.
@@ -274,9 +256,7 @@ class TestNeedsJapaneseCheck:
             result = business_feed._needs_japanese_check()
             assert result is True
 
-    def test_returns_true_for_mixed_language_content(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    def test_returns_true_for_mixed_language_content(self, business_feed: BusinessFeed) -> None:
         """
         Given: A BusinessFeed instance that handles mixed language content.
         When: _needs_japanese_check is called.

@@ -86,9 +86,7 @@ class TestIsBlockedDomain:
         }
         return retriever
 
-    def test_returns_true_for_blocked_domain(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_returns_true_for_blocked_domain(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A URL from a blocked domain.
         When: _is_blocked_domain is called.
@@ -100,9 +98,7 @@ class TestIsBlockedDomain:
 
         assert result is True
 
-    def test_returns_true_for_blocked_domain_with_www(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_returns_true_for_blocked_domain_with_www(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A URL with www. prefix from a blocked domain.
         When: _is_blocked_domain is called.
@@ -114,9 +110,7 @@ class TestIsBlockedDomain:
 
         assert result is True
 
-    def test_returns_false_for_non_blocked_domain(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_returns_false_for_non_blocked_domain(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A URL from a non-blocked domain.
         When: _is_blocked_domain is called.
@@ -128,9 +122,7 @@ class TestIsBlockedDomain:
 
         assert result is False
 
-    def test_returns_false_for_empty_url(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_returns_false_for_empty_url(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: An empty URL.
         When: _is_blocked_domain is called.
@@ -166,9 +158,7 @@ class TestIsHttp1RequiredDomain:
         }
         return retriever
 
-    def test_returns_true_for_http1_required_domain(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_returns_true_for_http1_required_domain(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A URL from a domain requiring HTTP/1.1.
         When: _is_http1_required_domain is called.
@@ -180,9 +170,7 @@ class TestIsHttp1RequiredDomain:
 
         assert result is True
 
-    def test_returns_false_for_normal_domain(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_returns_false_for_normal_domain(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A URL from a normal domain.
         When: _is_http1_required_domain is called.
@@ -194,9 +182,7 @@ class TestIsHttp1RequiredDomain:
 
         assert result is False
 
-    def test_returns_false_for_empty_url(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_returns_false_for_empty_url(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: An empty URL.
         When: _is_http1_required_domain is called.
@@ -216,9 +202,7 @@ class TestStorySortKey:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return HackerNewsRetriever()
 
-    def test_sort_key_with_score_and_published_at(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_sort_key_with_score_and_published_at(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A story record with score and published_at.
         When: _story_sort_key is called.
@@ -236,9 +220,7 @@ class TestStorySortKey:
         assert result[1].month == 1
         assert result[1].day == 15
 
-    def test_sort_key_with_missing_score(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_sort_key_with_missing_score(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A story record with missing score.
         When: _story_sort_key is called.
@@ -267,9 +249,7 @@ class TestStorySortKey:
 
         assert result[0] == 0
 
-    def test_sort_key_with_missing_published_at(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_sort_key_with_missing_published_at(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: A story record with missing published_at.
         When: _story_sort_key is called.
@@ -292,9 +272,7 @@ class TestRenderMarkdown:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return HackerNewsRetriever()
 
-    def test_render_markdown_with_url_and_summary(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_render_markdown_with_url_and_summary(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Story records with URL and summary.
         When: _render_markdown is called.
@@ -318,9 +296,7 @@ class TestRenderMarkdown:
         assert "**要約**:" in result
         assert "This is a test summary." in result
 
-    def test_render_markdown_without_url(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_render_markdown_without_url(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Story records without URL.
         When: _render_markdown is called.
@@ -351,9 +327,7 @@ class TestParseMarkdown:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return HackerNewsRetriever()
 
-    def test_parse_markdown_with_linked_title(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    def test_parse_markdown_with_linked_title(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Markdown content with linked title.
         When: _parse_markdown is called.

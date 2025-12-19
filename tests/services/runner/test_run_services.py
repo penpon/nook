@@ -136,17 +136,13 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     # --- Case 1: hacker_news ---
     # Expected: limit=15, target_dates=...
     dates = [date(2024, 1, 1)]
-    await runner._run_sync_service(
-        "hacker_news", service_mock, days=1, target_dates=dates
-    )
+    await runner._run_sync_service("hacker_news", service_mock, days=1, target_dates=dates)
     service_mock.collect.assert_awaited_with(limit=15, target_dates=dates)
     service_mock.collect.reset_mock()
 
     # --- Case 2: tech_news (or business_news) ---
     # Expected: days=..., limit=15, target_dates=...
-    await runner._run_sync_service(
-        "tech_news", service_mock, days=5, target_dates=dates
-    )
+    await runner._run_sync_service("tech_news", service_mock, days=5, target_dates=dates)
     service_mock.collect.assert_awaited_with(days=5, limit=15, target_dates=dates)
     service_mock.collect.reset_mock()
 
@@ -166,39 +162,29 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
     # Expected: ValueError raised when multiple dates are passed
     multi_dates = [date(2024, 1, 2), date(2024, 1, 1)]
     with pytest.raises(ValueError, match="単一日のみ対応"):
-        await runner._run_sync_service(
-            "trendradar-zhihu", service_mock, days=2, target_dates=multi_dates
-        )
+        await runner._run_sync_service("trendradar-zhihu", service_mock, days=2, target_dates=multi_dates)
 
     service_mock.collect.reset_mock()
 
     # --- Case 5b: trendradar-zhihu (single date) ---
     # Expected: Works normally with single date
     single_date = [date(2024, 1, 1)]
-    await runner._run_sync_service(
-        "trendradar-zhihu", service_mock, days=1, target_dates=single_date
-    )
+    await runner._run_sync_service("trendradar-zhihu", service_mock, days=1, target_dates=single_date)
     service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
 
     # --- Case 5c: trendradar-ithome (multiple dates) ---
     # Expected: ValueError raised when multiple dates are passed
     with pytest.raises(ValueError, match="単一日のみ対応"):
-        await runner._run_sync_service(
-            "trendradar-ithome", service_mock, days=2, target_dates=multi_dates
-        )
+        await runner._run_sync_service("trendradar-ithome", service_mock, days=2, target_dates=multi_dates)
 
     # --- Case 5d: trendradar-ithome (single date) ---
     # Expected: Works normally with single date
-    await runner._run_sync_service(
-        "trendradar-ithome", service_mock, days=1, target_dates=single_date
-    )
+    await runner._run_sync_service("trendradar-ithome", service_mock, days=1, target_dates=single_date)
     service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
 
     # --- Case 5e: trendradar-toutiao (single date) ---
     # Expected: Works normally with single date
-    await runner._run_sync_service(
-        "trendradar-toutiao", service_mock, days=1, target_dates=single_date
-    )
+    await runner._run_sync_service("trendradar-toutiao", service_mock, days=1, target_dates=single_date)
     service_mock.collect.assert_awaited_with(days=1, target_dates=single_date)
 
     # Check that INFO log shows single day ("対象日")
@@ -209,9 +195,7 @@ async def test_run_sync_service_dispatch_logic(monkeypatch):
 
     # --- Case 6: other (default) ---
     # Expected: target_dates=... (only)
-    await runner._run_sync_service(
-        "other_service", service_mock, days=1, target_dates=dates
-    )
+    await runner._run_sync_service("other_service", service_mock, days=1, target_dates=dates)
     service_mock.collect.assert_awaited_with(target_dates=dates)
     service_mock.collect.reset_mock()
 
@@ -311,9 +295,7 @@ async def test__run_sync_service_multiple_dates_display(monkeypatch):
     # Multiple dates to trigger lines 84-86
     dates = [date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 3)]
 
-    await runner._run_sync_service(
-        "test_service", service_mock, days=3, target_dates=dates
-    )
+    await runner._run_sync_service("test_service", service_mock, days=3, target_dates=dates)
 
     # Check that logger.info was called with date range info
     calls = [str(c) for c in mock_logger.info.call_args_list]
@@ -336,9 +318,7 @@ async def test_run_sync_service_with_saved_files(monkeypatch):
     monkeypatch.setattr("nook.services.runner.runner_impl.logger", mock_logger)
 
     dates = [date(2024, 1, 1)]
-    await runner._run_sync_service(
-        "test_service", service_mock, days=1, target_dates=dates
-    )
+    await runner._run_sync_service("test_service", service_mock, days=1, target_dates=dates)
 
     # Check that logger.info was called with file paths
     calls = [str(c) for c in mock_logger.info.call_args_list]
@@ -372,12 +352,8 @@ async def test_run_all_lazy_loading(monkeypatch):
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.gather_with_errors", fake_gather
-    )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.close_http_client", fake_close_http_client
-    )
+    monkeypatch.setattr("nook.services.runner.runner_impl.gather_with_errors", fake_gather)
+    monkeypatch.setattr("nook.services.runner.runner_impl.close_http_client", fake_close_http_client)
 
     await runner.run_all(days=1)
 
@@ -415,15 +391,9 @@ async def test_run_all_with_failed_services(monkeypatch):
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.gather_with_errors", fake_gather
-    )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.close_http_client", fake_close_http_client
-    )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.target_dates_set", lambda days: {1}
-    )
+    monkeypatch.setattr("nook.services.runner.runner_impl.gather_with_errors", fake_gather)
+    monkeypatch.setattr("nook.services.runner.runner_impl.close_http_client", fake_close_http_client)
+    monkeypatch.setattr("nook.services.runner.runner_impl.target_dates_set", lambda days: {1})
 
     await runner.run_all(days=1)
 
@@ -595,9 +565,7 @@ def test_backward_compat_functions(monkeypatch, capsys):
     def mock_run_service_sync(service_name):
         called_services.append(service_name)
 
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.run_service_sync", mock_run_service_sync
-    )
+    monkeypatch.setattr("nook.services.runner.runner_impl.run_service_sync", mock_run_service_sync)
 
     # Test each backward compat function
     run_services.run_github_trending()
@@ -668,15 +636,9 @@ async def test_run_all_exception_handling(monkeypatch):
         "_run_sync_service",
         types.MethodType(fake_run_sync, runner),
     )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.gather_with_errors", fake_gather
-    )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.close_http_client", fake_close_http_client
-    )
-    monkeypatch.setattr(
-        "nook.services.runner.runner_impl.target_dates_set", lambda days: {1}
-    )
+    monkeypatch.setattr("nook.services.runner.runner_impl.gather_with_errors", fake_gather)
+    monkeypatch.setattr("nook.services.runner.runner_impl.close_http_client", fake_close_http_client)
+    monkeypatch.setattr("nook.services.runner.runner_impl.target_dates_set", lambda days: {1})
 
     with pytest.raises(RuntimeError, match="Gather failed"):
         await runner.run_all(days=1)

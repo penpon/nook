@@ -66,9 +66,7 @@ class TestGetLatestNews:
         }
         mock_result.content = []
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -90,16 +88,12 @@ class TestGetLatestNews:
         Then: JSON from content is parsed and returned.
         """
         mock_text_content = MagicMock()
-        mock_text_content.text = (
-            '{"success": true, "news": [{"title": "From content"}]}'
-        )
+        mock_text_content.text = '{"success": true, "news": [{"title": "From content"}]}'
         mock_result = MagicMock()
         mock_result.data = None
         mock_result.content = [mock_text_content]
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -123,9 +117,7 @@ class TestGetLatestNews:
         mock_result.data = {"success": True, "news": [{"title": "Topic"}]}
         mock_result.content = []
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -159,9 +151,7 @@ class TestGetLatestNews:
         }
         mock_result.content = []
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -187,9 +177,7 @@ class TestGetLatestNews:
         mock_result.data = {"success": True, "news": []}
         mock_result.content = []
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -215,9 +203,7 @@ class TestGetLatestNews:
         mock_result.data = {"success": True, "news": [{"title": "Topic 1"}]}
         mock_result.content = []
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -247,9 +233,7 @@ class TestGetLatestNews:
         }
         mock_result.content = []
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -273,9 +257,7 @@ class TestGetLatestNews:
         mock_result.data = {"success": True, "news": []}
         mock_result.content = []
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -294,9 +276,7 @@ class TestGetLatestNews:
         When: get_latest_news is called.
         Then: TrendRadarError is raised.
         """
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -317,9 +297,7 @@ class TestGetLatestNews:
         When: get_latest_news is called.
         Then: TrendRadarError is propagated.
         """
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -344,9 +322,7 @@ class TestHealthCheck:
         When: health_check is called.
         Then: True is returned.
         """
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -365,9 +341,7 @@ class TestHealthCheck:
         When: health_check is called.
         Then: False is returned.
         """
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -481,9 +455,7 @@ class TestExtractNewsItems:
         """
         client = TrendRadarClient()
 
-        result = client._extract_news_items(
-            {"success": True, "items": [{"title": "Item 1"}, {"title": "Item 2"}]}
-        )
+        result = client._extract_news_items({"success": True, "items": [{"title": "Item 1"}, {"title": "Item 2"}]})
 
         assert len(result) == 2
         assert result[0]["title"] == "Item 1"
@@ -553,9 +525,7 @@ class TestGetLatestNewsFallbackPaths:
         mock_result.data = None
         mock_result.content = [mock_text_content]
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -578,9 +548,7 @@ class TestGetLatestNewsFallbackPaths:
         # Create a result that is actually a list (defensive fallback path)
         raw_list_result = [{"title": "Direct list item"}]
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -604,9 +572,7 @@ class TestGetLatestNewsFallbackPaths:
         mock_result.data = None
         mock_result.content = []  # Empty content list
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -637,9 +603,7 @@ class TestGetLatestNewsFallbackPaths:
         mock_result.data = None
         mock_result.content = [mock_text_content1, mock_text_content2]
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -669,9 +633,7 @@ class TestGetLatestNewsFallbackPaths:
         mock_result.data = None
         mock_result.content = [mock_text1, mock_text2]
 
-        with patch(
-            "nook.services.explorers.trendradar.trendradar_client.Client"
-        ) as MockClient:
+        with patch("nook.services.explorers.trendradar.trendradar_client.Client") as MockClient:
             mock_client = MagicMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)

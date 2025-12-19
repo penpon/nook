@@ -70,9 +70,7 @@ class RateLimitedHTTPClient(AsyncHTTPClient):
         default_rate_limit: RateLimiter | None = None,
     ):
         super().__init__(config)
-        self.default_rate_limit = default_rate_limit or RateLimiter(
-            rate=60, per=timedelta(minutes=1)
-        )
+        self.default_rate_limit = default_rate_limit or RateLimiter(rate=60, per=timedelta(minutes=1))
         self.domain_rate_limits: dict[str, RateLimiter] = {}
 
     def add_domain_rate_limit(

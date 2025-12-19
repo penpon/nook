@@ -84,9 +84,7 @@ class TestAIKeywords:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FourChanExplorer(test_mode=True)
 
-    def test_ai_keywords_contains_common_terms(
-        self, fourchan_explorer: FourChanExplorer
-    ) -> None:
+    def test_ai_keywords_contains_common_terms(self, fourchan_explorer: FourChanExplorer) -> None:
         """
         Given: A FourChanExplorer instance.
         When: Checking the ai_keywords list.
@@ -106,9 +104,7 @@ class TestAIKeywords:
         for keyword in expected_keywords:
             assert keyword in fourchan_explorer.ai_keywords
 
-    def test_ai_keywords_contains_image_generation_terms(
-        self, fourchan_explorer: FourChanExplorer
-    ) -> None:
+    def test_ai_keywords_contains_image_generation_terms(self, fourchan_explorer: FourChanExplorer) -> None:
         """
         Given: A FourChanExplorer instance.
         When: Checking the ai_keywords list.
@@ -129,9 +125,7 @@ class TestLoadBoards:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FourChanExplorer(test_mode=True)
 
-    def test_load_boards_returns_list(
-        self, fourchan_explorer: FourChanExplorer
-    ) -> None:
+    def test_load_boards_returns_list(self, fourchan_explorer: FourChanExplorer) -> None:
         """
         Given: A FourChanExplorer instance.
         When: Checking the target_boards attribute.
@@ -140,9 +134,7 @@ class TestLoadBoards:
         assert isinstance(fourchan_explorer.target_boards, list)
         assert len(fourchan_explorer.target_boards) > 0
 
-    def test_default_boards_include_expected_values(
-        self, fourchan_explorer: FourChanExplorer
-    ) -> None:
+    def test_default_boards_include_expected_values(self, fourchan_explorer: FourChanExplorer) -> None:
         """
         Given: A FourChanExplorer instance with default or existing boards.toml.
         When: Checking the target_boards.
@@ -167,9 +159,7 @@ class TestRequestDelay:
 
         assert explorer.request_delay == 0.1
 
-    def test_normal_mode_has_standard_delay(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_normal_mode_has_standard_delay(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Given: FourChanExplorer created with test_mode=False.
         When: Checking request_delay.

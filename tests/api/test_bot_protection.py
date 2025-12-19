@@ -103,10 +103,7 @@ class TestBotProtectionMiddleware:
 
         response = client.get(
             "/test",
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36"
-            },
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"message": "success"}
@@ -153,9 +150,7 @@ class TestGetClientIp:
     def test_x_forwarded_for_header(self):
         """X-Forwarded-Forヘッダーから取得。"""
         request = MagicMock()
-        request.headers.get.side_effect = lambda key: {
-            "X-Forwarded-For": "1.2.3.4, 5.6.7.8"
-        }.get(key)
+        request.headers.get.side_effect = lambda key: {"X-Forwarded-For": "1.2.3.4, 5.6.7.8"}.get(key)
 
         assert get_client_ip(request) == "1.2.3.4"
 

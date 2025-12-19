@@ -173,9 +173,7 @@ class TestRedditExplorer:
         assert explorer.http_client is None
         assert explorer.reddit is None
 
-    def test_init_missing_credentials_raises_error(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_init_missing_credentials_raises_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Given: Missing Reddit API credentials.
         When: RedditExplorer is initialized.
@@ -187,9 +185,7 @@ class TestRedditExplorer:
         with pytest.raises(ValueError, match="Reddit API credentials must be provided"):
             RedditExplorer()
 
-    def test_init_with_direct_credentials(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_init_with_direct_credentials(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Given: Direct credentials provided.
         When: RedditExplorer is initialized with credentials.
@@ -207,9 +203,7 @@ class TestRedditExplorer:
         assert explorer.user_agent == "direct-agent"
 
     @pytest.mark.asyncio
-    async def test_translate_to_japanese_empty_text(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    async def test_translate_to_japanese_empty_text(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: Empty text.
         When: _translate_to_japanese is called.
@@ -219,9 +213,7 @@ class TestRedditExplorer:
         assert result == ""
 
     @pytest.mark.asyncio
-    async def test_translate_to_japanese_success(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    async def test_translate_to_japanese_success(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: English text and GPT client.
         When: _translate_to_japanese is called.
@@ -235,9 +227,7 @@ class TestRedditExplorer:
         reddit_explorer.gpt_client.generate_async.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_translate_to_japanese_error_returns_original(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    async def test_translate_to_japanese_error_returns_original(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: GPT client raises an exception.
         When: _translate_to_japanese is called.
@@ -250,9 +240,7 @@ class TestRedditExplorer:
         assert result == "Original text"
 
     @pytest.mark.asyncio
-    async def test_retrieve_top_comments_of_post(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    async def test_retrieve_top_comments_of_post(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: A Reddit post and mocked comments.
         When: _retrieve_top_comments_of_post is called.
@@ -268,14 +256,10 @@ class TestRedditExplorer:
         mock_submission.comments.list.return_value = [mock_comment]
 
         reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
-        reddit_explorer._translate_to_japanese = AsyncMock(
-            return_value="テストコメント"
-        )
+        reddit_explorer._translate_to_japanese = AsyncMock(return_value="テストコメント")
 
         result = await reddit_explorer._retrieve_top_comments_of_post(
-            RedditPost(
-                id="test123", type="text", title="Test", url=None, upvotes=0, text=""
-            )
+            RedditPost(id="test123", type="text", title="Test", url=None, upvotes=0, text="")
         )
 
         assert len(result) == 1
@@ -307,9 +291,7 @@ class TestRedditExplorer:
         reddit_explorer.gpt_client.generate_async.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_summarize_reddit_post_error_handling(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    async def test_summarize_reddit_post_error_handling(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: GPT client raises an exception.
         When: _summarize_reddit_post is called.
@@ -358,9 +340,7 @@ class TestRedditExplorer:
         assert result[0]["upvotes"] == 100
         assert result[0]["created_at"] == created.isoformat()
 
-    def test_extract_post_id_from_permalink(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    def test_extract_post_id_from_permalink(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: Various permalink formats.
         When: _extract_post_id_from_permalink is called.
@@ -372,9 +352,7 @@ class TestRedditExplorer:
         assert result == "abc123"
 
         # Permalink with query parameters
-        permalink = (
-            "https://www.reddit.com/r/python/comments/xyz789/test_post/?sort=top"
-        )
+        permalink = "https://www.reddit.com/r/python/comments/xyz789/test_post/?sort=top"
         result = reddit_explorer._extract_post_id_from_permalink(permalink)
         assert result == "xyz789"
 
@@ -399,9 +377,7 @@ class TestRedditExplorer:
 
         assert result == (100.0, created)
 
-    def test_post_sort_key_missing_fields(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    def test_post_sort_key_missing_fields(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: Post data with missing fields.
         When: _post_sort_key is called.
@@ -441,9 +417,7 @@ class TestRedditExplorer:
         assert "**要約**:" in result
         assert "Test summary" in result
 
-    def test_select_top_posts_under_limit(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    def test_select_top_posts_under_limit(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: Posts fewer than SUMMARY_LIMIT.
         When: _select_top_posts is called.
@@ -506,9 +480,7 @@ class TestRedditExplorer:
         reddit_explorer.collect.assert_awaited_once_with(10)
 
     @pytest.mark.asyncio
-    async def test_collect_no_posts_returns_empty(
-        self, reddit_explorer: RedditExplorer
-    ) -> None:
+    async def test_collect_no_posts_returns_empty(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: No posts found.
         When: collect is called.
@@ -535,11 +507,7 @@ class TestRedditExplorer:
             mock_subreddit.hot = MagicMock(return_value=EmptyAsyncIterator())
             mock_reddit.subreddit = AsyncMock(return_value=mock_subreddit)
 
-            with patch(
-                "nook.services.explorers.reddit.reddit_explorer.log_processing_start"
-            ):
-                with patch(
-                    "nook.services.explorers.reddit.reddit_explorer.log_no_new_articles"
-                ):
+            with patch("nook.services.explorers.reddit.reddit_explorer.log_processing_start"):
+                with patch("nook.services.explorers.reddit.reddit_explorer.log_no_new_articles"):
                     result = await reddit_explorer.collect()
                     assert result == []

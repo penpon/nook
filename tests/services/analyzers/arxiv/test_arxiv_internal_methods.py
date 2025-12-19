@@ -35,9 +35,7 @@ class TestGetCuratedPaperIds:
     """Tests for ArxivSummarizer._get_curated_paper_ids method."""
 
     @pytest.mark.asyncio
-    async def test_returns_paper_ids_from_huggingface_date_page(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_returns_paper_ids_from_huggingface_date_page(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Hugging Face date page with article links.
         When: _get_curated_paper_ids is called.
@@ -59,9 +57,7 @@ class TestGetCuratedPaperIds:
         summarizer.http_client = AsyncMock()
         summarizer.http_client.get = AsyncMock(return_value=mock_response)
 
-        with patch.object(
-            summarizer, "_get_processed_ids", new_callable=AsyncMock
-        ) as mock_processed:
+        with patch.object(summarizer, "_get_processed_ids", new_callable=AsyncMock) as mock_processed:
             mock_processed.return_value = []
             result = await summarizer._get_curated_paper_ids(5, date(2024, 1, 15))
 
@@ -98,9 +94,7 @@ class TestGetCuratedPaperIds:
         summarizer.http_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.status_code = 404
-        error = httpx.HTTPStatusError(
-            "Not Found", request=MagicMock(), response=mock_response
-        )
+        error = httpx.HTTPStatusError("Not Found", request=MagicMock(), response=mock_response)
         summarizer.http_client.get = AsyncMock(side_effect=error)
 
         result = await summarizer._get_curated_paper_ids(5, date(2024, 1, 15))
@@ -108,9 +102,7 @@ class TestGetCuratedPaperIds:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_uses_fallback_on_empty_date_page(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_uses_fallback_on_empty_date_page(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Date page has no articles, but top page has papers.
         When: _get_curated_paper_ids is called.
@@ -133,13 +125,9 @@ class TestGetCuratedPaperIds:
         top_response.text = top_page_html
 
         summarizer.http_client = AsyncMock()
-        summarizer.http_client.get = AsyncMock(
-            side_effect=[date_response, top_response]
-        )
+        summarizer.http_client.get = AsyncMock(side_effect=[date_response, top_response])
 
-        with patch.object(
-            summarizer, "_get_processed_ids", new_callable=AsyncMock
-        ) as mock_processed:
+        with patch.object(summarizer, "_get_processed_ids", new_callable=AsyncMock) as mock_processed:
             mock_processed.return_value = []
             result = await summarizer._get_curated_paper_ids(5, date(2024, 1, 15))
 
@@ -169,9 +157,7 @@ class TestGetCuratedPaperIds:
         summarizer.http_client = AsyncMock()
         summarizer.http_client.get = AsyncMock(return_value=mock_response)
 
-        with patch.object(
-            summarizer, "_get_processed_ids", new_callable=AsyncMock
-        ) as mock_processed:
+        with patch.object(summarizer, "_get_processed_ids", new_callable=AsyncMock) as mock_processed:
             mock_processed.return_value = ["2401.00001"]  # Already processed
             result = await summarizer._get_curated_paper_ids(5, date(2024, 1, 15))
 
@@ -189,9 +175,7 @@ class TestGetCuratedPaperIds:
         summarizer.http_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.status_code = 500
-        error = httpx.HTTPStatusError(
-            "Server Error", request=MagicMock(), response=mock_response
-        )
+        error = httpx.HTTPStatusError("Server Error", request=MagicMock(), response=mock_response)
         summarizer.http_client.get = AsyncMock(side_effect=error)
 
         with pytest.raises(RetryException):
@@ -202,26 +186,20 @@ class TestProcessedIds:
     """Tests for ID processing methods."""
 
     @pytest.mark.asyncio
-    async def test_get_processed_ids_returns_empty_when_no_file(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_get_processed_ids_returns_empty_when_no_file(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: No processed IDs file exists.
         When: _get_processed_ids is called.
         Then: Empty list is returned.
         """
-        with patch.object(
-            summarizer.storage, "load", new_callable=AsyncMock
-        ) as mock_load:
+        with patch.object(summarizer.storage, "load", new_callable=AsyncMock) as mock_load:
             mock_load.return_value = None
             result = await summarizer._get_processed_ids(date(2024, 1, 15))
 
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_get_processed_ids_returns_ids_from_file(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_get_processed_ids_returns_ids_from_file(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Processed IDs file exists with IDs.
         When: _get_processed_ids is called.
@@ -229,35 +207,27 @@ class TestProcessedIds:
         """
         file_content = "2401.00001\n2401.00002\n2401.00003"
 
-        with patch.object(
-            summarizer.storage, "load", new_callable=AsyncMock
-        ) as mock_load:
+        with patch.object(summarizer.storage, "load", new_callable=AsyncMock) as mock_load:
             mock_load.return_value = file_content
             result = await summarizer._get_processed_ids(date(2024, 1, 15))
 
         assert result == ["2401.00001", "2401.00002", "2401.00003"]
 
     @pytest.mark.asyncio
-    async def test_load_ids_from_file_handles_empty_file(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_load_ids_from_file_handles_empty_file(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: File exists but is empty.
         When: _load_ids_from_file is called.
         Then: Empty list is returned.
         """
-        with patch.object(
-            summarizer.storage, "load", new_callable=AsyncMock
-        ) as mock_load:
+        with patch.object(summarizer.storage, "load", new_callable=AsyncMock) as mock_load:
             mock_load.return_value = ""
             result = await summarizer._load_ids_from_file("test.txt")
 
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_save_processed_ids_groups_by_date(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_save_processed_ids_groups_by_date(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: List of paper IDs with published dates.
         When: _save_processed_ids_by_date is called.
@@ -277,20 +247,12 @@ class TestProcessedIds:
             return id_date_map.get(pid)
 
         # Mock _get_processed_ids to return empty list so nothing is filtered out as already processed
-        with patch.object(
-            summarizer, "_get_processed_ids", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(summarizer, "_get_processed_ids", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = []
 
-            with patch.object(
-                summarizer.storage, "save", new_callable=AsyncMock
-            ) as mock_save:
-                with patch.object(
-                    summarizer, "_get_paper_date", side_effect=mock_get_date
-                ):
-                    await summarizer._save_processed_ids_by_date(
-                        paper_ids, [date(2024, 1, 15), date(2024, 1, 16)]
-                    )
+            with patch.object(summarizer.storage, "save", new_callable=AsyncMock) as mock_save:
+                with patch.object(summarizer, "_get_paper_date", side_effect=mock_get_date):
+                    await summarizer._save_processed_ids_by_date(paper_ids, [date(2024, 1, 15), date(2024, 1, 16)])
 
                 # Verify save was called for both dates (plus potentially one for the None date -> today)
                 # At least calls for 2024-01-15 and 2024-01-16
@@ -339,9 +301,7 @@ class TestRetrievePaperInfo:
     """Tests for ArxivSummarizer._retrieve_paper_info method."""
 
     @pytest.mark.asyncio
-    async def test_returns_paper_info_on_success(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_returns_paper_info_on_success(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: arxiv returns valid paper.
         When: _retrieve_paper_info is called.
@@ -359,13 +319,9 @@ class TestRetrievePaperInfo:
             mock_client.results.return_value = iter([mock_paper])
 
             with patch("arxiv.Search"):
-                with patch.object(
-                    summarizer, "_extract_body_text", new_callable=AsyncMock
-                ) as mock_extract:
+                with patch.object(summarizer, "_extract_body_text", new_callable=AsyncMock) as mock_extract:
                     mock_extract.return_value = "Paper contents"
-                    with patch.object(
-                        summarizer, "_translate_to_japanese", new_callable=AsyncMock
-                    ) as mock_translate:
+                    with patch.object(summarizer, "_translate_to_japanese", new_callable=AsyncMock) as mock_translate:
                         mock_translate.return_value = "テスト要約"
 
                         result = await summarizer._retrieve_paper_info("2401.00001")
@@ -399,9 +355,7 @@ class TestTranslateToJapanese:
         When: _translate_to_japanese is called.
         Then: Translated text is returned.
         """
-        with patch.object(
-            summarizer.gpt_client, "generate_async", new_callable=AsyncMock
-        ) as mock_generate:
+        with patch.object(summarizer.gpt_client, "generate_async", new_callable=AsyncMock) as mock_generate:
             mock_generate.return_value = "翻訳されたテキスト"
             with patch.object(summarizer, "rate_limit", new_callable=AsyncMock):
                 result = await summarizer._translate_to_japanese("Original text")
@@ -415,9 +369,7 @@ class TestTranslateToJapanese:
         When: _translate_to_japanese is called.
         Then: Original text is returned.
         """
-        with patch.object(
-            summarizer.gpt_client, "generate_async", new_callable=AsyncMock
-        ) as mock_generate:
+        with patch.object(summarizer.gpt_client, "generate_async", new_callable=AsyncMock) as mock_generate:
             mock_generate.side_effect = Exception("API error")
             result = await summarizer._translate_to_japanese("Original text")
 
@@ -428,68 +380,50 @@ class TestExtractBodyText:
     """Tests for text extraction methods."""
 
     @pytest.mark.asyncio
-    async def test_extract_body_text_uses_html_first(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_body_text_uses_html_first(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: HTML extraction succeeds.
         When: _extract_body_text is called.
         Then: HTML content is returned.
         """
-        with patch.object(
-            summarizer, "_extract_from_html", new_callable=AsyncMock
-        ) as mock_html:
+        with patch.object(summarizer, "_extract_from_html", new_callable=AsyncMock) as mock_html:
             mock_html.return_value = "HTML content"
             result = await summarizer._extract_body_text("2401.00001")
 
         assert result == "HTML content"
 
     @pytest.mark.asyncio
-    async def test_extract_body_text_falls_back_to_pdf(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_body_text_falls_back_to_pdf(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: HTML extraction fails but PDF succeeds.
         When: _extract_body_text is called.
         Then: PDF content is returned.
         """
-        with patch.object(
-            summarizer, "_extract_from_html", new_callable=AsyncMock
-        ) as mock_html:
+        with patch.object(summarizer, "_extract_from_html", new_callable=AsyncMock) as mock_html:
             mock_html.return_value = ""
-            with patch.object(
-                summarizer, "_extract_from_pdf", new_callable=AsyncMock
-            ) as mock_pdf:
+            with patch.object(summarizer, "_extract_from_pdf", new_callable=AsyncMock) as mock_pdf:
                 mock_pdf.return_value = "PDF content"
                 result = await summarizer._extract_body_text("2401.00001")
 
         assert result == "PDF content"
 
     @pytest.mark.asyncio
-    async def test_extract_body_text_returns_empty_on_all_failures(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_body_text_returns_empty_on_all_failures(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Both HTML and PDF extraction fail.
         When: _extract_body_text is called.
         Then: Empty string is returned.
         """
-        with patch.object(
-            summarizer, "_extract_from_html", new_callable=AsyncMock
-        ) as mock_html:
+        with patch.object(summarizer, "_extract_from_html", new_callable=AsyncMock) as mock_html:
             mock_html.return_value = ""
-            with patch.object(
-                summarizer, "_extract_from_pdf", new_callable=AsyncMock
-            ) as mock_pdf:
+            with patch.object(summarizer, "_extract_from_pdf", new_callable=AsyncMock) as mock_pdf:
                 mock_pdf.return_value = ""
                 result = await summarizer._extract_body_text("2401.00001")
 
         assert result == ""
 
     @pytest.mark.asyncio
-    async def test_extract_from_html_parses_content(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_from_html_parses_content(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Valid HTML content.
         When: _extract_from_html is called.
@@ -507,9 +441,7 @@ class TestExtractBodyText:
             "</body>\n"
             "</html>\n"
         )
-        with patch.object(
-            summarizer, "_download_html_without_retry", new_callable=AsyncMock
-        ) as mock_download:
+        with patch.object(summarizer, "_download_html_without_retry", new_callable=AsyncMock) as mock_download:
             mock_download.return_value = html_content
             result = await summarizer._extract_from_html("2401.00001")
 
@@ -517,26 +449,20 @@ class TestExtractBodyText:
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_extract_from_html_returns_empty_on_404(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_from_html_returns_empty_on_404(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: HTML page returns 404.
         When: _extract_from_html is called.
         Then: Empty string is returned.
         """
-        with patch.object(
-            summarizer, "_download_html_without_retry", new_callable=AsyncMock
-        ) as mock_download:
+        with patch.object(summarizer, "_download_html_without_retry", new_callable=AsyncMock) as mock_download:
             mock_download.return_value = ""
             result = await summarizer._extract_from_html("2401.00001")
 
         assert result == ""
 
     @pytest.mark.asyncio
-    async def test_extract_from_pdf_parses_content(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_from_pdf_parses_content(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Valid PDF response.
         When: _extract_from_pdf is called.
@@ -545,16 +471,13 @@ class TestExtractBodyText:
         mock_response = MagicMock()
         mock_response.content = b"dummy pdf content"
 
-        with patch.object(
-            summarizer, "_download_pdf_without_retry", new_callable=AsyncMock
-        ) as mock_download:
+        with patch.object(summarizer, "_download_pdf_without_retry", new_callable=AsyncMock) as mock_download:
             mock_download.return_value = mock_response
             with patch("pdfplumber.open") as mock_pdfplumber:
                 mock_pdf = MagicMock()
                 mock_page = MagicMock()
                 mock_page.extract_text.return_value = (
-                    "This is a long paragraph of text from the PDF that should be extracted. "
-                    * 5
+                    "This is a long paragraph of text from the PDF that should be extracted. " * 5
                 )
                 mock_pdf.pages = [mock_page]
                 mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
@@ -566,9 +489,7 @@ class TestExtractBodyText:
         assert "long paragraph" in result
 
     @pytest.mark.asyncio
-    async def test_extract_from_pdf_handles_empty_response(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_from_pdf_handles_empty_response(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: PDF response has no content.
         When: _extract_from_pdf is called.
@@ -577,18 +498,14 @@ class TestExtractBodyText:
         mock_response = MagicMock()
         mock_response.content = b""
 
-        with patch.object(
-            summarizer, "_download_pdf_without_retry", new_callable=AsyncMock
-        ) as mock_download:
+        with patch.object(summarizer, "_download_pdf_without_retry", new_callable=AsyncMock) as mock_download:
             mock_download.return_value = mock_response
             result = await summarizer._extract_from_pdf("2401.00001")
 
         assert result == ""
 
     @pytest.mark.asyncio
-    async def test_download_html_without_retry_returns_empty_on_404(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_download_html_without_retry_returns_empty_on_404(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: 404 response.
         When: _download_html_without_retry is called.
@@ -596,9 +513,7 @@ class TestExtractBodyText:
         """
         mock_response = MagicMock()
         mock_response.status_code = 404
-        error = httpx.HTTPStatusError(
-            "Not Found", request=MagicMock(), response=mock_response
-        )
+        error = httpx.HTTPStatusError("Not Found", request=MagicMock(), response=mock_response)
 
         with patch("httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
@@ -609,9 +524,7 @@ class TestExtractBodyText:
         assert result == ""
 
     @pytest.mark.asyncio
-    async def test_download_html_without_retry_raises_on_other_errors(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_download_html_without_retry_raises_on_other_errors(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: 500 response.
         When: _download_html_without_retry is called.
@@ -619,9 +532,7 @@ class TestExtractBodyText:
         """
         mock_response = MagicMock()
         mock_response.status_code = 500
-        error = httpx.HTTPStatusError(
-            "Server Error", request=MagicMock(), response=mock_response
-        )
+        error = httpx.HTTPStatusError("Server Error", request=MagicMock(), response=mock_response)
 
         with patch("httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
@@ -632,26 +543,20 @@ class TestExtractBodyText:
                 await summarizer._download_html_without_retry("http://example.com")
 
     @pytest.mark.asyncio
-    async def test_extract_from_html_handles_exception(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_from_html_handles_exception(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: _download_html_without_retry raises generic exception.
         When: _extract_from_html is called.
         Then: Empty string is returned.
         """
-        with patch.object(
-            summarizer, "_download_html_without_retry", new_callable=AsyncMock
-        ) as mock_download:
+        with patch.object(summarizer, "_download_html_without_retry", new_callable=AsyncMock) as mock_download:
             mock_download.side_effect = Exception("Unexpected error")
             result = await summarizer._extract_from_html("2401.00001")
 
         assert result == ""
 
     @pytest.mark.asyncio
-    async def test_extract_from_pdf_handles_extraction_error(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_extract_from_pdf_handles_extraction_error(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: pdfplumber raises error on page extraction.
         When: _extract_from_pdf is called.
@@ -660,9 +565,7 @@ class TestExtractBodyText:
         mock_response = MagicMock()
         mock_response.content = b"pdf content"
 
-        with patch.object(
-            summarizer, "_download_pdf_without_retry", new_callable=AsyncMock
-        ) as mock_download:
+        with patch.object(summarizer, "_download_pdf_without_retry", new_callable=AsyncMock) as mock_download:
             mock_download.return_value = mock_response
             with patch("pdfplumber.open") as mock_pdfplumber:
                 mock_pdf = MagicMock()
@@ -698,9 +601,7 @@ class TestSummarizePaperInfo:
             contents="Test contents",
         )
 
-        with patch.object(
-            summarizer.gpt_client, "generate_async", new_callable=AsyncMock
-        ) as mock_generate:
+        with patch.object(summarizer.gpt_client, "generate_async", new_callable=AsyncMock) as mock_generate:
             mock_generate.return_value = "Generated summary"
             with patch.object(summarizer, "rate_limit", new_callable=AsyncMock):
                 await summarizer._summarize_paper_info(paper)
@@ -721,9 +622,7 @@ class TestSummarizePaperInfo:
             contents="Test contents",
         )
 
-        with patch.object(
-            summarizer.gpt_client, "generate_async", new_callable=AsyncMock
-        ) as mock_generate:
+        with patch.object(summarizer.gpt_client, "generate_async", new_callable=AsyncMock) as mock_generate:
             mock_generate.side_effect = Exception("API error")
             await summarizer._summarize_paper_info(paper)
 
@@ -734,9 +633,7 @@ class TestStoreSummaries:
     """Tests for ArxivSummarizer._store_summaries method."""
 
     @pytest.mark.asyncio
-    async def test_returns_empty_when_no_papers(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_returns_empty_when_no_papers(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Empty papers list.
         When: _store_summaries is called.
@@ -746,9 +643,7 @@ class TestStoreSummaries:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_saves_papers_and_returns_file_paths(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_saves_papers_and_returns_file_paths(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: List of papers.
         When: _store_summaries is called.
@@ -804,9 +699,7 @@ class TestSerializePapers:
 class TestRenderAndParseMarkdown:
     """Tests for markdown rendering and parsing."""
 
-    def test_render_markdown_produces_expected_format(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    def test_render_markdown_produces_expected_format(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: List of paper records.
         When: _render_markdown is called.

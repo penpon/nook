@@ -310,9 +310,7 @@ Content of article 2
 
     # 呼び出しを検証
     mock_storage.load.assert_called_with("2024-01-01.json")
-    mock_storage.load_markdown.assert_called_with(
-        "", datetime.combine(date(2024, 1, 1), time.min)
-    )
+    mock_storage.load_markdown.assert_called_with("", datetime.combine(date(2024, 1, 1), time.min))
 
 
 @pytest.mark.asyncio
@@ -332,16 +330,12 @@ async def test_load_existing_titles_from_storage_markdown_error():
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_storage_file_not_found_logs_debug():
     """ファイル未検出時のデバッグログテスト"""
-    mock_storage = _create_storage(
-        load_side_effect=FileNotFoundError("File not found"), markdown_return=""
-    )
+    mock_storage = _create_storage(load_side_effect=FileNotFoundError("File not found"), markdown_return="")
 
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
 
-    tracker = await load_existing_titles_from_storage(
-        mock_storage, target_dates, mock_logger
-    )
+    tracker = await load_existing_titles_from_storage(mock_storage, target_dates, mock_logger)
 
     assert tracker.count() == 0
     mock_logger.debug.assert_any_call("📂 ファイル未検出: 2024-01-01.json")
@@ -350,16 +344,12 @@ async def test_load_existing_titles_from_storage_file_not_found_logs_debug():
 @pytest.mark.asyncio
 async def test_load_existing_titles_from_storage_json_decode_error_logs_warning():
     """JSON解析エラー時の警告ログテスト"""
-    mock_storage = _create_storage(
-        load_side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
-    )
+    mock_storage = _create_storage(load_side_effect=json.JSONDecodeError("Invalid JSON", "", 0))
 
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
 
-    tracker = await load_existing_titles_from_storage(
-        mock_storage, target_dates, mock_logger
-    )
+    tracker = await load_existing_titles_from_storage(mock_storage, target_dates, mock_logger)
 
     assert tracker.count() == 0
     mock_logger.warning.assert_called()
@@ -373,9 +363,7 @@ async def test_load_existing_titles_from_storage_general_error_logs_debug():
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
 
-    tracker = await load_existing_titles_from_storage(
-        mock_storage, target_dates, mock_logger
-    )
+    tracker = await load_existing_titles_from_storage(mock_storage, target_dates, mock_logger)
 
     assert tracker.count() == 0
     mock_logger.debug.assert_called()
@@ -405,9 +393,7 @@ Content of article 3
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
 
-    tracker = await load_existing_titles_from_storage(
-        mock_storage, target_dates, mock_logger
-    )
+    tracker = await load_existing_titles_from_storage(mock_storage, target_dates, mock_logger)
 
     assert tracker.count() == 3
     assert tracker.is_duplicate("Article 1")[0] is True
@@ -460,9 +446,7 @@ async def test_load_existing_titles_from_storage_with_logger():
     mock_logger = MagicMock()
     target_dates = {date(2024, 1, 1)}
 
-    tracker = await load_existing_titles_from_storage(
-        mock_storage, target_dates, mock_logger
-    )
+    tracker = await load_existing_titles_from_storage(mock_storage, target_dates, mock_logger)
 
     assert tracker.count() == 1
     # デバッグログが呼ばれたことを確認

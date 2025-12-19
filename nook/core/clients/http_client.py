@@ -23,9 +23,7 @@ class AsyncHTTPClient:
             write=5.0,
             pool=5.0,
         )
-        self.limits = httpx.Limits(
-            max_keepalive_connections=20, max_connections=100, keepalive_expiry=30.0
-        )
+        self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=100, keepalive_expiry=30.0)
         self._client: httpx.AsyncClient | None = None
         self._http1_client: httpx.AsyncClient | None = None
         self._session_start: datetime | None = None
@@ -149,15 +147,9 @@ class AsyncHTTPClient:
 
         except httpx.StreamError as e:
             # StreamResetエラーの場合、HTTP/1.1でリトライ
-            if not force_http1 and (
-                "stream" in str(e).lower() or "reset" in str(e).lower()
-            ):
-                logger.info(
-                    f"StreamReset error for {url}, falling back to HTTP/1.1: {e}"
-                )
-                return await self.get(
-                    url, headers=headers, params=params, force_http1=True, **kwargs
-                )
+            if not force_http1 and ("stream" in str(e).lower() or "reset" in str(e).lower()):
+                logger.info(f"StreamReset error for {url}, falling back to HTTP/1.1: {e}")
+                return await self.get(url, headers=headers, params=params, force_http1=True, **kwargs)
             else:
                 logger.error(f"Stream error for {url}: {e}")
                 raise APIException(f"Stream error: {str(e)}") from e
@@ -213,14 +205,10 @@ class AsyncHTTPClient:
         logger.debug(f"POST {url}")
 
         try:
-            response = await self._client.post(
-                url, json=json, data=data, headers=headers, **kwargs
-            )
+            response = await self._client.post(url, json=json, data=data, headers=headers, **kwargs)
             response.raise_for_status()
 
-            logger.debug(
-                f"POST {url} completed", extra={"status_code": response.status_code}
-            )
+            logger.debug(f"POST {url} completed", extra={"status_code": response.status_code})
 
             return response
 
@@ -285,9 +273,7 @@ class AsyncHTTPClient:
             logger.error(f"Browser retry request error for {url}: {e}")
             raise APIException(f"Request failed: {str(e)}") from e
 
-    async def download(
-        self, url: str, output_path: str, chunk_size: int = 8192, progress_callback=None
-    ):
+    async def download(self, url: str, output_path: str, chunk_size: int = 8192, progress_callback=None):
         """ファイルをダウンロード"""
         if not self._client:
             await self.start()

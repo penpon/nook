@@ -86,11 +86,7 @@ def sanitize_prompt_input(text: str, max_length: int = 500) -> str:
     if not text:
         return ""
     # 制御文字を除去（改行・タブは保持）
-    sanitized = "".join(
-        char
-        for char in text
-        if char in ("\n", "\t") or unicodedata.category(char) not in ("Cc", "Cf")
-    )
+    sanitized = "".join(char for char in text if char in ("\n", "\t") or unicodedata.category(char) not in ("Cc", "Cf"))
     # 連続する改行を1つに正規化
     sanitized = re.sub(r"\n{3,}", "\n\n", sanitized)
     # 長さ制限
@@ -133,12 +129,7 @@ def escape_markdown_url(url: str) -> str:
     str
         エスケープ済みURL。
     """
-    return (
-        url.replace("[", "\\[")
-        .replace("]", "\\]")
-        .replace("(", "\\(")
-        .replace(")", "\\)")
-    )
+    return url.replace("[", "\\[").replace("]", "\\]").replace("(", "\\(").replace(")", "\\)")
 
 
 def parse_published_at(item: dict[str, Any]) -> datetime:

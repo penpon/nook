@@ -133,9 +133,7 @@ class ArxivSummarizer(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        effective_target_dates = (
-            target_dates if target_dates is not None else target_dates_set(1)
-        )
+        effective_target_dates = target_dates if target_dates is not None else target_dates_set(1)
         sorted_dates = sorted(effective_target_dates)
 
         # 対象期間のログ出力
@@ -255,9 +253,7 @@ class ArxivSummarizer(BaseService):
         return False if "." not in line else True
 
     @handle_errors(retries=3)
-    async def _get_curated_paper_ids(
-        self, limit: int, snapshot_date: date
-    ) -> list[str] | None:
+    async def _get_curated_paper_ids(self, limit: int, snapshot_date: date) -> list[str] | None:
         """
         Hugging Faceでキュレーションされた論文IDを取得します。
 
@@ -357,9 +353,7 @@ class ArxivSummarizer(BaseService):
                     break
 
             if paper_ids:
-                self.logger.warning(
-                    "トップページから論文IDを取得しました (フォールバック)"
-                )
+                self.logger.warning("トップページから論文IDを取得しました (フォールバック)")
 
         # 既に処理済みの論文IDを除外（対象日付のファイルから取得）
         processed_ids = await self._get_processed_ids(snapshot_date)
@@ -393,9 +387,7 @@ class ArxivSummarizer(BaseService):
 
         return [line.strip() for line in content.split("\n") if line.strip()]
 
-    async def _save_processed_ids_by_date(
-        self, paper_ids: list[str], target_dates: list[date]
-    ) -> None:
+    async def _save_processed_ids_by_date(self, paper_ids: list[str], target_dates: list[date]) -> None:
         """
         処理済みの論文IDを日付ごとに保存します。
 
@@ -679,9 +671,7 @@ class ArxivSummarizer(BaseService):
 
             body = soup.body
             if body:
-                for tag in body.find_all(
-                    ["header", "nav", "footer", "script", "style"]
-                ):
+                for tag in body.find_all(["header", "nav", "footer", "script", "style"]):
                     tag.decompose()
                 full_text = body.get_text(separator="\n", strip=True)
             else:
@@ -766,9 +756,7 @@ class ArxivSummarizer(BaseService):
                 for _page_num, page in enumerate(pdf.pages):
                     try:
                         page_text = page.extract_text()
-                        if (
-                            page_text and len(page_text.strip()) > 100
-                        ):  # 有意なテキストのみ
+                        if page_text and len(page_text.strip()) > 100:  # 有意なテキストのみ
                             # ページ番号やヘッダー/フッターを除去
                             lines = page_text.split("\n")
                             filtered_lines = []
@@ -788,9 +776,7 @@ class ArxivSummarizer(BaseService):
                                 text_parts.append("\n".join(filtered_lines))
 
                     except Exception as page_error:
-                        self.logger.debug(
-                            f"ページ抽出失敗: {arxiv_id} page {_page_num} - {page_error}"
-                        )
+                        self.logger.debug(f"ページ抽出失敗: {arxiv_id} page {_page_num} - {page_error}")
                         continue
 
                 if text_parts:
@@ -885,9 +871,7 @@ class ArxivSummarizer(BaseService):
             self.logger.error(f"Error generating summary: {type(e).__name__}: {str(e)}")
             if hasattr(e, "last_attempt") and hasattr(e.last_attempt, "exception"):
                 inner_error = e.last_attempt.exception()
-                self.logger.error(
-                    f"Inner error: {type(inner_error).__name__}: {str(inner_error)}"
-                )
+                self.logger.error(f"Inner error: {type(inner_error).__name__}: {str(inner_error)}")
             paper_info.summary = f"要約の生成中にエラーが発生しました: {str(e)}"
 
     async def _store_summaries(

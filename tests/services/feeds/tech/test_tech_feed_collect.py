@@ -40,18 +40,14 @@ class TestRetrieveArticle:
         """Should return None if content is not Japanese."""
         entry = MagicMock(link="http://example.com", title="English Title")
         del entry.summary  # summaryが存在しない場合のフェッチをトリガー
-        tech_feed.http_client.get.return_value = MagicMock(
-            text="<html><body>English Content</body></html>"
-        )
+        tech_feed.http_client.get.return_value = MagicMock(text="<html><body>English Content</body></html>")
 
         # _detect_japanese_contentがFalseを返すようにモック化
         with patch.object(tech_feed, "_detect_japanese_content", return_value=False):
             result = await tech_feed._retrieve_article(entry, "Test Feed", "tech")
 
         assert result is None
-        tech_feed.logger.debug.assert_called_with(
-            "非日本語記事をスキップ: English Title"
-        )
+        tech_feed.logger.debug.assert_called_with("非日本語記事をスキップ: English Title")
 
     async def test_returns_article_success(self, tech_feed: TechFeed) -> None:
         """Should return Article object on success."""
@@ -59,9 +55,7 @@ class TestRetrieveArticle:
         # summaryをNoneに明示的に設定し、メタディスクリプションまたは本文へのフォールバックを確認
         del entry.summary
         entry.published_parsed = (2024, 1, 1, 12, 0, 0, 0, 0, 0)
-        tech_feed.http_client.get.return_value = MagicMock(
-            text="<html><body><p>日本語の本文です。</p></body></html>"
-        )
+        tech_feed.http_client.get.return_value = MagicMock(text="<html><body><p>日本語の本文です。</p></body></html>")
 
         with patch.object(tech_feed, "_detect_japanese_content", return_value=True):
             result = await tech_feed._retrieve_article(entry, "Test Feed", "tech")
@@ -71,16 +65,12 @@ class TestRetrieveArticle:
         assert result.text == "日本語の本文です。"
         assert result.url == "http://example.com/1"
 
-    async def test_returns_article_with_summary_from_entry(
-        self, tech_feed: TechFeed
-    ) -> None:
+    async def test_returns_article_with_summary_from_entry(self, tech_feed: TechFeed) -> None:
         """Should use summary from entry if available."""
         entry = MagicMock(link="http://example.com/1", title="日本語タイトル")
         entry.summary = "Entry Summary"  # summaryを明示的に設定
         entry.published_parsed = (2024, 1, 1, 12, 0, 0, 0, 0, 0)
-        tech_feed.http_client.get.return_value = MagicMock(
-            text="<html>Some html</html>"
-        )
+        tech_feed.http_client.get.return_value = MagicMock(text="<html>Some html</html>")
 
         with patch.object(tech_feed, "_detect_japanese_content", return_value=True):
             result = await tech_feed._retrieve_article(entry, "Test Feed", "tech")
@@ -140,20 +130,14 @@ class TestCollect:
                 "nook.services.feeds.tech.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
-            patch.object(
-                mock_feed_config, "_filter_entries", return_value=[mock_entry]
-            ),
+            patch.object(mock_feed_config, "_filter_entries", return_value=[mock_entry]),
             patch.object(
                 mock_feed_config,
                 "_retrieve_article",
                 new_callable=AsyncMock,
             ) as mock_retrieve,
-            patch.object(
-                mock_feed_config, "_summarize_article", new_callable=AsyncMock
-            ) as mock_summarize,
-            patch.object(
-                mock_feed_config, "_store_summaries_for_date", new_callable=AsyncMock
-            ) as mock_store,
+            patch.object(mock_feed_config, "_summarize_article", new_callable=AsyncMock) as mock_summarize,
+            patch.object(mock_feed_config, "_store_summaries_for_date", new_callable=AsyncMock) as mock_store,
         ):
             mock_retrieve.return_value = mock_article
 
@@ -203,15 +187,9 @@ class TestCollect:
                 "nook.services.feeds.tech.tech_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
-            patch.object(
-                mock_feed_config, "_filter_entries", return_value=[mock_entry]
-            ),
-            patch.object(
-                mock_feed_config, "_retrieve_article", return_value=mock_article
-            ) as mock_retrieve,
-            patch.object(
-                mock_feed_config, "_summarize_article", new_callable=AsyncMock
-            ) as mock_summarize,
+            patch.object(mock_feed_config, "_filter_entries", return_value=[mock_entry]),
+            patch.object(mock_feed_config, "_retrieve_article", return_value=mock_article) as mock_retrieve,
+            patch.object(mock_feed_config, "_summarize_article", new_callable=AsyncMock) as mock_summarize,
         ):
             mock_retrieve.return_value = mock_article
 
@@ -245,9 +223,7 @@ class TestCollect:
             call_msg = mock_feed_config.logger.error.call_args[0][0]
             assert "Feed Error" in call_msg
 
-    async def test_setup_http_client_called_when_none(
-        self, tech_feed: TechFeed
-    ) -> None:
+    async def test_setup_http_client_called_when_none(self, tech_feed: TechFeed) -> None:
         """http_clientがNoneの場合にsetup_http_clientが呼ばれることを確認。"""
         real_feed = TechFeed()
         real_feed.http_client = None

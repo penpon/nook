@@ -17,9 +17,7 @@ class TestIthomeExplorerInitialization:
     """IthomeExplorerの初期化テスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> IthomeExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> IthomeExplorer:
         """テスト用のIthomeExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return IthomeExplorer(storage_dir=str(tmp_path))
@@ -36,9 +34,7 @@ class TestIthomeExplorerInitialization:
         assert explorer.FEED_NAME == "ithome"
         assert explorer.MARKDOWN_HEADER == "IT之家ホットトピック"
 
-    def test_explorer_with_custom_storage_dir(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_explorer_with_custom_storage_dir(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """
         Given: カスタムストレージディレクトリ。
         When: IthomeExplorer がインスタンス化されたとき。
@@ -53,9 +49,7 @@ class TestIthomeExplorerTransform:
     """TrendRadarからArticleへの変換テスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> IthomeExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> IthomeExplorer:
         """テスト用のIthomeExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return IthomeExplorer(storage_dir=str(tmp_path))
@@ -177,9 +171,7 @@ class TestIthomeExplorerCollect:
     """IthomeExplorer.collectメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> IthomeExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> IthomeExplorer:
         """テスト用のIthomeExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = IthomeExplorer(storage_dir=str(tmp_path))
@@ -213,15 +205,11 @@ class TestIthomeExplorerCollect:
             },
         ]
 
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             # Mock GPT client to avoid actual API calls
             explorer.gpt_client = MagicMock()
-            explorer.gpt_client.generate_async = AsyncMock(
-                return_value=("この製品は中国市場で注目を集めています。")
-            )
+            explorer.gpt_client.generate_async = AsyncMock(return_value=("この製品は中国市場で注目を集めています。"))
 
             result = await explorer.collect(days=1, limit=10)
 
@@ -231,9 +219,7 @@ class TestIthomeExplorerCollect:
             assert all(p[0].endswith(".json") and p[1].endswith(".md") for p in result)
 
     @pytest.mark.asyncio
-    async def test_collect_handles_null_fields_from_trendradar(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_collect_handles_null_fields_from_trendradar(self, explorer: IthomeExplorer) -> None:
         """
         Given: TrendRadar が null フィールド (例: desc/title/url) を含む項目を返す。
         When: collect が呼ばれたとき。
@@ -248,9 +234,7 @@ class TestIthomeExplorerCollect:
             }
         ]
 
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
@@ -267,18 +251,14 @@ class TestIthomeExplorerCollect:
         When: collect が呼ばれたとき。
         Then: 例外が伝播される。
         """
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = Exception("API Error")
 
             with pytest.raises(Exception, match="API Error"):
                 await explorer.collect(days=1, limit=10)
 
     @pytest.mark.asyncio
-    async def test_collect_raises_error_for_multi_day_with_days_param(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_collect_raises_error_for_multi_day_with_days_param(self, explorer: IthomeExplorer) -> None:
         """
         Given: days パラメータ != 1 かつ target_dates が None。
         When: collect が呼ばれたとき。
@@ -314,18 +294,14 @@ class TestIthomeExplorerCollect:
             await explorer.collect(days=1, limit=False)
 
     @pytest.mark.asyncio
-    async def test_collect_with_single_target_date(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_collect_with_single_target_date(self, explorer: IthomeExplorer) -> None:
         """
         Given: target_dates パラメータ内の単一の日付。
         When: collect が呼ばれたとき。
         Then: 日付を受け入れ、ファイル名に使用する。
         """
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
@@ -339,9 +315,7 @@ class TestIthomeExplorerCollect:
             assert "2024-01-15" in md_path
 
     @pytest.mark.asyncio
-    async def test_collect_rejects_empty_target_dates(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_collect_rejects_empty_target_dates(self, explorer: IthomeExplorer) -> None:
         """
         Given: 空の target_dates リスト。
         When: collect が呼ばれたとき。
@@ -351,9 +325,7 @@ class TestIthomeExplorerCollect:
             await explorer.collect(target_dates=[])
 
     @pytest.mark.asyncio
-    async def test_collect_with_multiple_target_dates(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_collect_with_multiple_target_dates(self, explorer: IthomeExplorer) -> None:
         """
         Given: target_dates パラメータ内の複数の日付。
         When: collect が呼ばれたとき。
@@ -364,17 +336,13 @@ class TestIthomeExplorerCollect:
             await explorer.collect(target_dates=target_dates)
 
     @pytest.mark.asyncio
-    async def test_collect_returns_empty_for_no_news(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_collect_returns_empty_for_no_news(self, explorer: IthomeExplorer) -> None:
         """
         Given: TrendRadarClient が空のリストを返す。
         When: collect が呼ばれたとき。
         Then: 空のリストを返す。
         """
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = []
 
             result = await explorer.collect(days=1, limit=10)
@@ -389,14 +357,10 @@ class TestIthomeExplorerCollect:
         Then: 記事の要約にエラーメッセージが含まれ、collect が正常に完了する。
         """
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             explorer.gpt_client = MagicMock()
-            explorer.gpt_client.generate_async = AsyncMock(
-                side_effect=Exception("GPT Error")
-            )
+            explorer.gpt_client.generate_async = AsyncMock(side_effect=Exception("GPT Error"))
 
             captured_articles = []
 
@@ -409,10 +373,7 @@ class TestIthomeExplorerCollect:
 
             assert isinstance(result, list)
             assert len(captured_articles) == 1
-            assert (
-                captured_articles[0].summary
-                == IthomeExplorer.ERROR_MSG_GENERATION_FAILED
-            )
+            assert captured_articles[0].summary == IthomeExplorer.ERROR_MSG_GENERATION_FAILED
             assert "GPT Error" not in captured_articles[0].summary
 
 
@@ -420,9 +381,7 @@ class TestIthomeExplorerRun:
     """IthomeExplorer.runメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> IthomeExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> IthomeExplorer:
         """テスト用のIthomeExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = IthomeExplorer(storage_dir=str(tmp_path))
@@ -435,17 +394,13 @@ class TestIthomeExplorerRun:
         When: run が呼ばれたとき。
         Then: asyncio.run 経由で _run_with_cleanup が呼び出される。
         """
-        with patch.object(
-            explorer, "_run_with_cleanup", new_callable=AsyncMock
-        ) as mock_cleanup:
+        with patch.object(explorer, "_run_with_cleanup", new_callable=AsyncMock) as mock_cleanup:
             explorer.run(days=1, limit=20)
 
             mock_cleanup.assert_called_once_with(days=1, limit=20)
 
     @pytest.mark.asyncio
-    async def test_run_with_cleanup_calls_collect_and_close(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_run_with_cleanup_calls_collect_and_close(self, explorer: IthomeExplorer) -> None:
         """
         Given: IthomeExplorer インスタンス。
         When: _run_with_cleanup が呼ばれたとき。
@@ -453,45 +408,33 @@ class TestIthomeExplorerRun:
         """
         with patch.object(explorer, "collect", new_callable=AsyncMock) as mock_collect:
             mock_collect.return_value = []
-            with patch.object(
-                explorer.client, "close", new_callable=AsyncMock
-            ) as mock_close:
+            with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
                 await explorer._run_with_cleanup(days=1, limit=20)
 
                 mock_collect.assert_called_once_with(days=1, limit=20)
                 mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_base_service_cleanup_on_error(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_base_service_cleanup_on_error(self, explorer: IthomeExplorer) -> None:
         """
         Given: collect が例外を発生させる。
         When: _run_with_cleanup が呼ばれたとき。
         Then: close がそれでも呼ばれる。
         """
-        with patch.object(
-            explorer, "collect", new_callable=AsyncMock, side_effect=ValueError("Test")
-        ):
-            with patch.object(
-                explorer.client, "close", new_callable=AsyncMock
-            ) as mock_close:
+        with patch.object(explorer, "collect", new_callable=AsyncMock, side_effect=ValueError("Test")):
+            with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
                 with pytest.raises(ValueError):
                     await explorer._run_with_cleanup()
                 mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_run_raises_error_from_running_loop(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_run_raises_error_from_running_loop(self, explorer: IthomeExplorer) -> None:
         """
         Given: アクティブな asyncio イベントループ。
         When: ループ内から run() が呼ばれたとき。
         Then: RuntimeError を発生させる。
         """
-        with pytest.raises(
-            RuntimeError, match="イベントループ実行中には使用できません"
-        ):
+        with pytest.raises(RuntimeError, match="イベントループ実行中には使用できません"):
             explorer.run(days=1, limit=10)
 
 
@@ -499,9 +442,7 @@ class TestIthomeExplorerContextManager:
     """IthomeExplorerのコンテキストマネージャーメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> IthomeExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> IthomeExplorer:
         """テスト用のIthomeExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return IthomeExplorer(storage_dir=str(tmp_path))
@@ -513,25 +454,19 @@ class TestIthomeExplorerContextManager:
         When: ブロックに入り、出るとき。
         Then: 終了時に close() が呼ばれる。
         """
-        with patch.object(
-            explorer.client, "close", new_callable=AsyncMock
-        ) as mock_close:
+        with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
             async with explorer as e:
                 assert e is explorer
             mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_context_manager_cleanup_on_error(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    async def test_context_manager_cleanup_on_error(self, explorer: IthomeExplorer) -> None:
         """
         Given: async with ブロック内で例外が発生する。
         When: ブロックが終了するとき。
         Then: close() がそれでも呼ばれる。
         """
-        with patch.object(
-            explorer.client, "close", new_callable=AsyncMock
-        ) as mock_close:
+        with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
             with pytest.raises(ValueError):
                 async with explorer:
                     raise ValueError("Test Error")
@@ -542,9 +477,7 @@ class TestIthomeExplorerMarkdownRendering:
     """Markdownレンダリングのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> IthomeExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> IthomeExplorer:
         """テスト用のIthomeExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return IthomeExplorer(storage_dir=str(tmp_path))
@@ -570,9 +503,7 @@ class TestIthomeExplorerMarkdownRendering:
         assert "## 1. [New Phone](https://ithome.com/123)" in result
         assert "**人気度**: 10,000" in result
 
-    def test_render_markdown_escapes_special_characters(
-        self, explorer: IthomeExplorer
-    ) -> None:
+    def test_render_markdown_escapes_special_characters(self, explorer: IthomeExplorer) -> None:
         """
         Given: 特殊文字を含む記録。
         When: _render_markdown が呼ばれたとき。
@@ -636,6 +567,4 @@ class TestIthomeExplorerUtils:
 
     def test_escape_markdown_url(self, explorer: IthomeExplorer) -> None:
         """_escape_markdown_url のテスト。"""
-        assert (
-            explorer._escape_markdown_url("http://e.com/(1)") == "http://e.com/\\(1\\)"
-        )
+        assert explorer._escape_markdown_url("http://e.com/(1)") == "http://e.com/\\(1\\)"

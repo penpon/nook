@@ -36,28 +36,18 @@ class TestRetrieveArticle:
         result = await business_feed._retrieve_article(entry, "Test Feed", "business")
         assert result is None
 
-    async def test_returns_none_if_non_japanese(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    async def test_returns_none_if_non_japanese(self, business_feed: BusinessFeed) -> None:
         """Should return None if content is not Japanese."""
         entry = MagicMock(link="http://example.com/en", title="English Business News")
         del entry.summary
-        business_feed.http_client.get.return_value = MagicMock(
-            text="<html><body>English Content</body></html>"
-        )
+        business_feed.http_client.get.return_value = MagicMock(text="<html><body>English Content</body></html>")
 
         # _detect_japanese_contentがFalseを返すようにモック化
-        with patch.object(
-            business_feed, "_detect_japanese_content", return_value=False
-        ):
-            result = await business_feed._retrieve_article(
-                entry, "Test Feed", "business"
-            )
+        with patch.object(business_feed, "_detect_japanese_content", return_value=False):
+            result = await business_feed._retrieve_article(entry, "Test Feed", "business")
 
         assert result is None
-        business_feed.logger.debug.assert_called_with(
-            "非日本語記事をスキップ: English Business News"
-        )
+        business_feed.logger.debug.assert_called_with("非日本語記事をスキップ: English Business News")
 
     async def test_returns_article_success(self, business_feed: BusinessFeed) -> None:
         """Should return Article object on success."""
@@ -69,9 +59,7 @@ class TestRetrieveArticle:
         )
 
         with patch.object(business_feed, "_detect_japanese_content", return_value=True):
-            result = await business_feed._retrieve_article(
-                entry, "Test Feed", "business"
-            )
+            result = await business_feed._retrieve_article(entry, "Test Feed", "business")
 
         assert isinstance(result, Article)
         assert result.title == "ビジネスニュース"
@@ -79,9 +67,7 @@ class TestRetrieveArticle:
         assert result.url == "http://example.com/jp"
         assert result.category == "business"
 
-    async def test_handles_exception_gracefully(
-        self, business_feed: BusinessFeed
-    ) -> None:
+    async def test_handles_exception_gracefully(self, business_feed: BusinessFeed) -> None:
         """Should return None and log error on exception."""
         entry = MagicMock(link="http://example.com/error")
         business_feed.http_client.get.side_effect = Exception("Connection Failed")
@@ -105,9 +91,7 @@ class TestCollect:
 
     async def test_collect_flow_success(self, mock_feed_config: BusinessFeed):
         """Test successful collection flow."""
-        mock_entry = MagicMock(
-            title="New Business Article", link="http://example.com/biz"
-        )
+        mock_entry = MagicMock(title="New Business Article", link="http://example.com/biz")
         mock_feed = MagicMock(entries=[mock_entry])
         mock_feed.feed.title = "Business Feed"
 
@@ -128,18 +112,10 @@ class TestCollect:
                 "nook.services.feeds.business.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
-            patch.object(
-                mock_feed_config, "_filter_entries", return_value=[mock_entry]
-            ),
-            patch.object(
-                mock_feed_config, "_retrieve_article", return_value=mock_article
-            ) as mock_retrieve,
-            patch.object(
-                mock_feed_config, "_summarize_article", new_callable=AsyncMock
-            ) as mock_summarize,
-            patch.object(
-                mock_feed_config, "_store_summaries_for_date", new_callable=AsyncMock
-            ) as mock_store,
+            patch.object(mock_feed_config, "_filter_entries", return_value=[mock_entry]),
+            patch.object(mock_feed_config, "_retrieve_article", return_value=mock_article) as mock_retrieve,
+            patch.object(mock_feed_config, "_summarize_article", new_callable=AsyncMock) as mock_summarize,
+            patch.object(mock_feed_config, "_store_summaries_for_date", new_callable=AsyncMock) as mock_store,
             patch(
                 "nook.services.feeds.business.business_feed.is_within_target_dates",
                 return_value=True,
@@ -166,9 +142,7 @@ class TestCollect:
 
     async def test_skips_duplicate_articles(self, mock_feed_config: BusinessFeed):
         """Test that duplicate articles are skipped."""
-        mock_entry = MagicMock(
-            title="Duplicate Biz News", link="http://example.com/dup"
-        )
+        mock_entry = MagicMock(title="Duplicate Biz News", link="http://example.com/dup")
         mock_feed = MagicMock(entries=[mock_entry])
 
         mock_article = Article(
@@ -188,15 +162,9 @@ class TestCollect:
                 "nook.services.feeds.business.business_feed.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
-            patch.object(
-                mock_feed_config, "_filter_entries", return_value=[mock_entry]
-            ),
-            patch.object(
-                mock_feed_config, "_retrieve_article", return_value=mock_article
-            ) as mock_retrieve,
-            patch.object(
-                mock_feed_config, "_summarize_article", new_callable=AsyncMock
-            ) as mock_summarize,
+            patch.object(mock_feed_config, "_filter_entries", return_value=[mock_entry]),
+            patch.object(mock_feed_config, "_retrieve_article", return_value=mock_article) as mock_retrieve,
+            patch.object(mock_feed_config, "_summarize_article", new_callable=AsyncMock) as mock_summarize,
         ):
             # 重複排除トラッカーをセットアップ
             mock_tracker = MagicMock()

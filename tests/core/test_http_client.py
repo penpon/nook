@@ -43,9 +43,7 @@ def no_sleep(monkeypatch):
         return None
 
     monkeypatch.setattr("nook.core.utils.decorators.asyncio.sleep", _sleep)
-    monkeypatch.setattr(
-        "nook.core.clients.http_client.logger.debug", lambda *a, **k: None
-    )
+    monkeypatch.setattr("nook.core.clients.http_client.logger.debug", lambda *a, **k: None)
 
 
 @pytest.fixture(autouse=True)

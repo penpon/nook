@@ -55,16 +55,12 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # チャット履歴の整形
         formatted_history = []
         for msg in request.chat_history:
-            formatted_history.append(
-                {"role": msg.get("role", "user"), "content": msg.get("content", "")}
-            )
+            formatted_history.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
 
         # システムプロンプトの作成
         system_prompt = "あなたは親切なアシスタントです。ユーザーが提供したコンテンツについて質問に答えてください。"
         if request.markdown:
-            system_prompt += (
-                f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"
-            )
+            system_prompt += f"\n\n以下のコンテンツに基づいて回答してください:\n\n{request.markdown}"
 
         # GPT APIを呼び出し
         response = client.chat(

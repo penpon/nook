@@ -17,9 +17,7 @@ class TestZhihuExplorerInitialization:
     """ZhihuExplorerの初期化テスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return ZhihuExplorer(storage_dir=str(tmp_path))
@@ -33,9 +31,7 @@ class TestZhihuExplorerInitialization:
         assert explorer.service_name == "trendradar-zhihu"
         assert explorer.client is not None
 
-    def test_explorer_with_custom_storage_dir(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_explorer_with_custom_storage_dir(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """
         Given: カスタムストレージディレクトリ。
         When: ZhihuExplorer がインスタンス化されたとき。
@@ -50,9 +46,7 @@ class TestZhihuExplorerTransform:
     """TrendRadarからArticleへの変換テスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return ZhihuExplorer(storage_dir=str(tmp_path))
@@ -195,9 +189,7 @@ class TestZhihuExplorerTransform:
         assert result.year == 2023
         assert result.month == 2
 
-    def test_parse_published_at_invalid_epoch_fallback(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_published_at_invalid_epoch_fallback(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 無効なエポックタイムスタンプ値を持つ項目。
         When: _parse_published_at が呼ばれたとき。
@@ -213,9 +205,7 @@ class TestZhihuExplorerTransform:
         assert result.year == 2023
         assert result.month == 5
 
-    def test_parse_published_at_negative_epoch_forced_fallback(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_published_at_negative_epoch_forced_fallback(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 負のエポック値を持ち、datetime.fromtimestampがOSErrorを発生する。
         When: _parse_published_at が呼ばれたとき。
@@ -232,9 +222,7 @@ class TestZhihuExplorerTransform:
 
         with patch("nook.services.explorers.trendradar.utils.datetime") as mock_dt:
             # datetimeモジュール全体をモック
-            mock_dt.now = MagicMock(
-                return_value=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
-            )
+            mock_dt.now = MagicMock(return_value=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc))
 
             # fromtimestamp: 負の値では例外を発生、それ以外は本物を呼ぶ
             def _mock_fromtimestamp(ts, tz=None):
@@ -251,9 +239,7 @@ class TestZhihuExplorerTransform:
         assert result.month == 4
         assert result.day == 1
 
-    def test_parse_published_at_parse_failure_fallback(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_published_at_parse_failure_fallback(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 解析不可能なタイムスタンプ文字列を持つ項目。
         When: _parse_published_at が呼ばれたとき。
@@ -298,9 +284,7 @@ class TestZhihuExplorerCollect:
     """ZhihuExplorer.collectメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = ZhihuExplorer(storage_dir=str(tmp_path))
@@ -327,16 +311,13 @@ class TestZhihuExplorerCollect:
             {"title": "热门话题2", "url": "https://zhihu.com/q/2", "hot": 500000},
         ]
 
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             # Mock GPT client to avoid actual API calls
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(
                 return_value=(
-                    "このトピックは中国の技術コミュニティで活発に議論されており、"
-                    "多くのエンジニアが関心を寄せています。"
+                    "このトピックは中国の技術コミュニティで活発に議論されており、多くのエンジニアが関心を寄せています。"
                 )
             )
 
@@ -350,9 +331,7 @@ class TestZhihuExplorerCollect:
             assert all(p[0].endswith(".json") and p[1].endswith(".md") for p in result)
 
     @pytest.mark.asyncio
-    async def test_collect_handles_null_fields_from_trendradar(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_handles_null_fields_from_trendradar(self, explorer: ZhihuExplorer) -> None:
         """
         Given: TrendRadar が null フィールド (例: desc/title/url) を含む項目を返す。
         When: collect が呼ばれたとき。
@@ -367,9 +346,7 @@ class TestZhihuExplorerCollect:
             }
         ]
 
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
@@ -386,18 +363,14 @@ class TestZhihuExplorerCollect:
         When: collect が呼ばれたとき。
         Then: 例外が伝播される。
         """
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = Exception("API Error")
 
             with pytest.raises(Exception, match="API Error"):
                 await explorer.collect(days=1, limit=10)
 
     @pytest.mark.asyncio
-    async def test_collect_raises_error_for_multi_day_with_days_param(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_raises_error_for_multi_day_with_days_param(self, explorer: ZhihuExplorer) -> None:
         """
         Given: days パラメータ != 1 かつ target_dates が None。
         When: collect が呼ばれたとき。
@@ -433,18 +406,14 @@ class TestZhihuExplorerCollect:
             await explorer.collect(days=1, limit=False)
 
     @pytest.mark.asyncio
-    async def test_collect_with_single_target_date(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_with_single_target_date(self, explorer: ZhihuExplorer) -> None:
         """
         Given: target_dates パラメータ内の単一の日付。
         When: collect が呼ばれたとき。
         Then: 日付を受け入れ、ファイル名に使用する。
         """
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
@@ -458,9 +427,7 @@ class TestZhihuExplorerCollect:
             assert "2024-01-15" in md_path
 
     @pytest.mark.asyncio
-    async def test_collect_rejects_empty_target_dates(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_rejects_empty_target_dates(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 空の target_dates リスト。
         When: collect が呼ばれたとき。
@@ -470,9 +437,7 @@ class TestZhihuExplorerCollect:
             await explorer.collect(target_dates=[])
 
     @pytest.mark.asyncio
-    async def test_collect_with_multiple_target_dates(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_with_multiple_target_dates(self, explorer: ZhihuExplorer) -> None:
         """
         Given: target_dates パラメータ内の複数の日付。
         When: collect が呼ばれたとき。
@@ -483,9 +448,7 @@ class TestZhihuExplorerCollect:
             await explorer.collect(target_dates=target_dates)
 
     @pytest.mark.asyncio
-    async def test_collect_with_none_target_dates(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_with_none_target_dates(self, explorer: ZhihuExplorer) -> None:
         """
         Given: target_dates が None。
         When: collect が呼ばれたとき。
@@ -505,14 +468,10 @@ class TestZhihuExplorerCollect:
             # fromtimestamp は本物を使用
             mock_dt.fromtimestamp = datetime.fromtimestamp
 
-            with patch.object(
-                explorer.client, "get_latest_news", new_callable=AsyncMock
-            ) as mock_get:
+            with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
                 mock_get.return_value = mock_news
                 explorer.gpt_client = MagicMock()
-                explorer.gpt_client.generate_async = AsyncMock(
-                    return_value="要約テキスト"
-                )
+                explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
 
                 result = await explorer.collect(target_dates=None)
 
@@ -522,17 +481,13 @@ class TestZhihuExplorerCollect:
                 assert expected_date_str in md_path
 
     @pytest.mark.asyncio
-    async def test_collect_returns_empty_for_no_news(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_returns_empty_for_no_news(self, explorer: ZhihuExplorer) -> None:
         """
         Given: TrendRadarClient が空のリストを返す。
         When: collect が呼ばれたとき。
         Then: 空のリストを返す。
         """
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = []
 
             result = await explorer.collect(days=1, limit=10)
@@ -547,15 +502,11 @@ class TestZhihuExplorerCollect:
         Then: 記事の要約にエラーメッセージが含まれ、collect が正常に完了する。
         """
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             # Mock gpt_client.generate_async to raise exception
             explorer.gpt_client = MagicMock()
-            explorer.gpt_client.generate_async = AsyncMock(
-                side_effect=Exception("GPT Error")
-            )
+            explorer.gpt_client.generate_async = AsyncMock(side_effect=Exception("GPT Error"))
 
             # Patch _store_articles to capture articles without real I/O
             captured_articles = []
@@ -572,17 +523,12 @@ class TestZhihuExplorerCollect:
             assert isinstance(result, list)
             # Verify error message is set in article summary (fixed message, no exception details)
             assert len(captured_articles) == 1
-            assert (
-                captured_articles[0].summary
-                == ZhihuExplorer.ERROR_MSG_GENERATION_FAILED
-            )
+            assert captured_articles[0].summary == ZhihuExplorer.ERROR_MSG_GENERATION_FAILED
             # Ensure no exception details are leaked
             assert "GPT Error" not in captured_articles[0].summary
 
     @pytest.mark.asyncio
-    async def test_collect_handles_empty_gpt_response(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_handles_empty_gpt_response(self, explorer: ZhihuExplorer) -> None:
         """
         Given: GPT クライアントが空または空白のみの応答を返す。
         When: collect が呼ばれたとき。
@@ -592,14 +538,10 @@ class TestZhihuExplorerCollect:
 
         # Test cases: empty string and whitespace-only string
         for empty_response in ["", "   ", "\n\t"]:
-            with patch.object(
-                explorer.client, "get_latest_news", new_callable=AsyncMock
-            ) as mock_get:
+            with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
                 mock_get.return_value = mock_news
                 explorer.gpt_client = MagicMock()
-                explorer.gpt_client.generate_async = AsyncMock(
-                    return_value=empty_response
-                )
+                explorer.gpt_client.generate_async = AsyncMock(return_value=empty_response)
 
                 captured_articles: list = []
 
@@ -612,22 +554,17 @@ class TestZhihuExplorerCollect:
 
                 capture_store = create_capture_store(captured_articles)
 
-                with patch.object(
-                    explorer, "_store_articles", side_effect=capture_store
-                ):
+                with patch.object(explorer, "_store_articles", side_effect=capture_store):
                     result = await explorer.collect(days=1, limit=10)
 
                 assert isinstance(result, list)
                 assert len(captured_articles) >= 1
-                assert (
-                    captured_articles[-1].summary
-                    == ZhihuExplorer.ERROR_MSG_EMPTY_SUMMARY
-                ), f"Failed for empty_response: {repr(empty_response)}"
+                assert captured_articles[-1].summary == ZhihuExplorer.ERROR_MSG_EMPTY_SUMMARY, (
+                    f"Failed for empty_response: {repr(empty_response)}"
+                )
 
     @pytest.mark.asyncio
-    async def test_collect_handles_cancelled_error_in_summary(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_handles_cancelled_error_in_summary(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 要約生成中に CancelledError が発生する。
         When: collect が呼ばれたとき。
@@ -641,15 +578,11 @@ class TestZhihuExplorerCollect:
         import asyncio
 
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             # Mock gpt_client.generate_async to raise CancelledError
             explorer.gpt_client = MagicMock()
-            explorer.gpt_client.generate_async = AsyncMock(
-                side_effect=asyncio.CancelledError()
-            )
+            explorer.gpt_client.generate_async = AsyncMock(side_effect=asyncio.CancelledError())
 
             # Patch _store_articles to capture articles without real I/O
             captured_articles: list = []
@@ -673,9 +606,7 @@ class TestZhihuExplorerRun:
     """ZhihuExplorer.runメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = ZhihuExplorer(storage_dir=str(tmp_path))
@@ -689,17 +620,13 @@ class TestZhihuExplorerRun:
         When: run が呼ばれたとき。
         Then: asyncio.run 経由で _run_with_cleanup が呼び出される。
         """
-        with patch.object(
-            explorer, "_run_with_cleanup", new_callable=AsyncMock
-        ) as mock_cleanup:
+        with patch.object(explorer, "_run_with_cleanup", new_callable=AsyncMock) as mock_cleanup:
             explorer.run(days=1, limit=20)
 
             mock_cleanup.assert_called_once_with(days=1, limit=20)
 
     @pytest.mark.asyncio
-    async def test_run_with_cleanup_calls_collect_and_close(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_run_with_cleanup_calls_collect_and_close(self, explorer: ZhihuExplorer) -> None:
         """
         Given: ZhihuExplorer インスタンス。
         When: _run_with_cleanup が呼ばれたとき。
@@ -707,9 +634,7 @@ class TestZhihuExplorerRun:
         """
         with patch.object(explorer, "collect", new_callable=AsyncMock) as mock_collect:
             mock_collect.return_value = []
-            with patch.object(
-                explorer.client, "close", new_callable=AsyncMock
-            ) as mock_close:
+            with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
                 await explorer._run_with_cleanup(days=1, limit=20)
 
                 mock_collect.assert_called_once_with(days=1, limit=20)
@@ -722,28 +647,20 @@ class TestZhihuExplorerRun:
         When: _run_with_cleanup が呼ばれたとき。
         Then: close がそれでも呼ばれる。
         """
-        with patch.object(
-            explorer, "collect", new_callable=AsyncMock, side_effect=ValueError("Test")
-        ):
-            with patch.object(
-                explorer.client, "close", new_callable=AsyncMock
-            ) as mock_close:
+        with patch.object(explorer, "collect", new_callable=AsyncMock, side_effect=ValueError("Test")):
+            with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
                 with pytest.raises(ValueError):
                     await explorer._run_with_cleanup()
                 mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_run_raises_error_from_running_loop(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_run_raises_error_from_running_loop(self, explorer: ZhihuExplorer) -> None:
         """
         Given: アクティブな asyncio イベントループ。
         When: ループ内から run() が呼ばれたとき。
         Then: RuntimeError を発生させる。
         """
-        with pytest.raises(
-            RuntimeError, match="イベントループ実行中には使用できません"
-        ):
+        with pytest.raises(RuntimeError, match="イベントループ実行中には使用できません"):
             explorer.run(days=1, limit=10)
 
 
@@ -751,9 +668,7 @@ class TestZhihuExplorerContextManager:
     """ZhihuExplorerのコンテキストマネージャーメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return ZhihuExplorer(storage_dir=str(tmp_path))
@@ -765,25 +680,19 @@ class TestZhihuExplorerContextManager:
         When: ブロックに入り、出るとき。
         Then: 終了時に close() が呼ばれる。
         """
-        with patch.object(
-            explorer.client, "close", new_callable=AsyncMock
-        ) as mock_close:
+        with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
             async with explorer as e:
                 assert e is explorer
             mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_context_manager_cleanup_on_error(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_context_manager_cleanup_on_error(self, explorer: ZhihuExplorer) -> None:
         """
         Given: async with ブロック内で例外が発生する。
         When: ブロックが終了するとき。
         Then: close() がそれでも呼ばれる。
         """
-        with patch.object(
-            explorer.client, "close", new_callable=AsyncMock
-        ) as mock_close:
+        with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
             with pytest.raises(ValueError):
                 async with explorer:
                     raise ValueError("Test Error")
@@ -794,9 +703,7 @@ class TestZhihuExplorerRenderMarkdown:
     """ZhihuExplorer._render_markdownメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return ZhihuExplorer(storage_dir=str(tmp_path))
@@ -823,9 +730,7 @@ class TestZhihuExplorerRenderMarkdown:
         assert "**要約**:" in result
         assert "Test summary" in result
 
-    def test_render_markdown_escapes_title_brackets(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_render_markdown_escapes_title_brackets(self, explorer: ZhihuExplorer) -> None:
         """
         Given: タイトルに角括弧を含むレコード。
         When: _render_markdown が呼ばれたとき。
@@ -844,9 +749,7 @@ class TestZhihuExplorerRenderMarkdown:
         # Brackets should be escaped
         assert "\\[Important\\]" in result
 
-    def test_render_markdown_escapes_url_parentheses(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_render_markdown_escapes_url_parentheses(self, explorer: ZhihuExplorer) -> None:
         """
         Given: URL に括弧を含むレコード。
         When: _render_markdown が呼ばれたとき。
@@ -865,9 +768,7 @@ class TestZhihuExplorerRenderMarkdown:
         # Both opening and closing parentheses should be escaped
         assert "path\\(with\\)parens" in result
 
-    def test_render_markdown_preserves_summary_markdown(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_render_markdown_preserves_summary_markdown(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 要約に Markdown 文字を含むレコード。
         When: _render_markdown が呼ばれたとき。
@@ -886,9 +787,7 @@ class TestZhihuExplorerRenderMarkdown:
         # Summary should NOT be escaped (markdown is preserved)
         assert "[this link](url)" in result
 
-    def test_render_markdown_escapes_html_characters(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_render_markdown_escapes_html_characters(self, explorer: ZhihuExplorer) -> None:
         """
         Given: HTML 特殊文字を含むレコード。
         When: _render_markdown が呼ばれたとき。
@@ -909,9 +808,7 @@ class TestZhihuExplorerRenderMarkdown:
         # Summary HTML should NOT be escaped (markdown is preserved)
         assert "<b>Bold</b>" in result
 
-    def test_render_markdown_escapes_url_brackets(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_render_markdown_escapes_url_brackets(self, explorer: ZhihuExplorer) -> None:
         """
         Given: URL に角括弧を含むレコード。
         When: _render_markdown が呼ばれたとき。
@@ -930,9 +827,7 @@ class TestZhihuExplorerRenderMarkdown:
         # Brackets in URL should be escaped
         assert "path\\[with\\]brackets" in result
 
-    def test_escape_markdown_url_escapes_all_special_chars(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_escape_markdown_url_escapes_all_special_chars(self, explorer: ZhihuExplorer) -> None:
         """
         Given: Markdown を壊すすべての文字を含む URL。
         When: _escape_markdown_url が呼ばれたとき。
@@ -952,9 +847,7 @@ class TestZhihuExplorerParsePopularityScore:
     """ZhihuExplorer._parse_popularity_scoreメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return ZhihuExplorer(storage_dir=str(tmp_path))
@@ -975,9 +868,7 @@ class TestZhihuExplorerParsePopularityScore:
         """
         assert explorer._parse_popularity_score(1234.5) == 1234.5
 
-    def test_parse_popularity_score_with_string_number(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_popularity_score_with_string_number(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 数値の文字列表現。
         When: _parse_popularity_score が呼ばれたとき。
@@ -993,9 +884,7 @@ class TestZhihuExplorerParsePopularityScore:
         """
         assert explorer._parse_popularity_score(None) == 0.0
 
-    def test_parse_popularity_score_with_invalid_string(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_popularity_score_with_invalid_string(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 数値以外の文字列。
         When: _parse_popularity_score が呼ばれたとき。
@@ -1004,9 +893,7 @@ class TestZhihuExplorerParsePopularityScore:
         assert explorer._parse_popularity_score("N/A") == 0.0
         assert explorer._parse_popularity_score("invalid") == 0.0
 
-    def test_parse_popularity_score_with_negative(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_popularity_score_with_negative(self, explorer: ZhihuExplorer) -> None:
         """
         Given: 負の数。
         When: _parse_popularity_score が呼ばれたとき。
@@ -1036,9 +923,7 @@ class TestZhihuExplorerParsePopularityScore:
         assert explorer._parse_popularity_score(True) == 1.0
         assert explorer._parse_popularity_score(False) == 0.0
 
-    def test_parse_popularity_score_with_formatted_string(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_popularity_score_with_formatted_string(self, explorer: ZhihuExplorer) -> None:
         """
         Given: カンマまたはプラス記号を含む文字列値 (例: "1,234" または "+500")。
         When: _parse_popularity_score が呼ばれたとき。
@@ -1056,9 +941,7 @@ class TestZhihuExplorerParsePopularityScore:
         assert explorer._parse_popularity_score("  1500  ") == 1500.0
         assert explorer._parse_popularity_score(" +1,000 ") == 1000.0
 
-    def test_parse_popularity_score_with_suffix_notation(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    def test_parse_popularity_score_with_suffix_notation(self, explorer: ZhihuExplorer) -> None:
         """
         Given: サフィックス表記を含む文字列値 (例: "12.3k" または "1.5万")。
         When: _parse_popularity_score が呼ばれたとき。
@@ -1079,9 +962,7 @@ class TestZhihuExplorerTargetDatesValidation:
     """target_datesとdaysパラメータのバリデーションテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> ZhihuExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ZhihuExplorer:
         """テスト用のZhihuExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = ZhihuExplorer(storage_dir=str(tmp_path))
@@ -1089,9 +970,7 @@ class TestZhihuExplorerTargetDatesValidation:
         return explorer
 
     @pytest.mark.asyncio
-    async def test_collect_rejects_target_dates_with_days_not_one(
-        self, explorer: ZhihuExplorer
-    ) -> None:
+    async def test_collect_rejects_target_dates_with_days_not_one(self, explorer: ZhihuExplorer) -> None:
         """
         Given: target_dates が提供され、かつ days != 1。
         When: collect が呼ばれたとき。

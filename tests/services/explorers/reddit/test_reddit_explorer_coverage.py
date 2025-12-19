@@ -118,9 +118,7 @@ class TestPostTypeDetection:
 
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
-        posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [_jst_date_now()]
-        )
+        posts, _ = await mock_reddit_explorer._retrieve_hot_posts("test", None, mock_tracker, [_jst_date_now()])
 
         assert len(posts) == 1
         assert posts[0].type == "video"
@@ -162,9 +160,7 @@ class TestPostTypeDetection:
         mock_tracker.add = MagicMock()
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
-        posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [_jst_date_now()]
-        )
+        posts, _ = await mock_reddit_explorer._retrieve_hot_posts("test", None, mock_tracker, [_jst_date_now()])
 
         assert len(posts) == 1
         assert posts[0].type == "gallery"
@@ -203,13 +199,9 @@ class TestPostTypeDetection:
         mock_tracker = MagicMock()
         mock_tracker.is_duplicate.return_value = (False, "norm")
         mock_tracker.add = MagicMock()
-        mock_reddit_explorer._translate_to_japanese = AsyncMock(
-            return_value="Translated"
-        )
+        mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="Translated")
 
-        posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [_jst_date_now()]
-        )
+        posts, _ = await mock_reddit_explorer._retrieve_hot_posts("test", None, mock_tracker, [_jst_date_now()])
 
         assert len(posts) == 1
         assert posts[0].type == "poll"
@@ -251,9 +243,7 @@ class TestPostTypeDetection:
         mock_tracker.add = MagicMock()
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
-        posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [_jst_date_now()]
-        )
+        posts, _ = await mock_reddit_explorer._retrieve_hot_posts("test", None, mock_tracker, [_jst_date_now()])
 
         assert len(posts) == 1
         assert posts[0].type == "crosspost"
@@ -295,9 +285,7 @@ class TestPostTypeDetection:
         mock_tracker.add = MagicMock()
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
-        posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [_jst_date_now()]
-        )
+        posts, _ = await mock_reddit_explorer._retrieve_hot_posts("test", None, mock_tracker, [_jst_date_now()])
 
         assert len(posts) == 1
         assert posts[0].type == "image"
@@ -339,9 +327,7 @@ class TestPostTypeDetection:
         mock_tracker.add = MagicMock()
         mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="")
 
-        posts, _ = await mock_reddit_explorer._retrieve_hot_posts(
-            "test", None, mock_tracker, [_jst_date_now()]
-        )
+        posts, _ = await mock_reddit_explorer._retrieve_hot_posts("test", None, mock_tracker, [_jst_date_now()])
 
         assert len(posts) == 1
         assert posts[0].type == "link"
@@ -398,17 +384,13 @@ class TestLoadExistingPostsEdgeCases:
     """Tests for _load_existing_posts edge cases (lines 574, 578)."""
 
     @pytest.mark.asyncio
-    async def test_load_existing_posts_returns_list_directly(
-        self, mock_reddit_explorer
-    ):
+    async def test_load_existing_posts_returns_list_directly(self, mock_reddit_explorer):
         """
         Given: JSON file returns a list (not dict)
         When: _load_existing_posts is called
         Then: The list is returned directly
         """
-        mock_reddit_explorer.load_json = AsyncMock(
-            return_value=[{"id": "1", "title": "Post"}]
-        )
+        mock_reddit_explorer.load_json = AsyncMock(return_value=[{"id": "1", "title": "Post"}])
 
         result = await mock_reddit_explorer._load_existing_posts(datetime(2023, 1, 1))
 
@@ -496,9 +478,7 @@ class TestLoadExistingTitlesError:
         When: _load_existing_titles is called
         Then: Returns empty tracker without raising
         """
-        mock_reddit_explorer.storage.load_markdown = MagicMock(
-            side_effect=Exception("Storage error")
-        )
+        mock_reddit_explorer.storage.load_markdown = MagicMock(side_effect=Exception("Storage error"))
 
         tracker = await mock_reddit_explorer._load_existing_titles()
 

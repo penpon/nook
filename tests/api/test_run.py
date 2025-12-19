@@ -34,14 +34,10 @@ class TestMain:
             main()
 
         # Verify uvicorn.run was called with correct defaults
-        mock_uvicorn_run.assert_called_once_with(
-            "nook.api.main:app", host="127.0.0.1", port=8000, reload=False
-        )
+        mock_uvicorn_run.assert_called_once_with("nook.api.main:app", host="127.0.0.1", port=8000, reload=False)
 
         # Verify startup message
-        mock_print.assert_any_call(
-            "Nook APIサーバーを起動しています... http://127.0.0.1:8000"
-        )
+        mock_print.assert_any_call("Nook APIサーバーを起動しています... http://127.0.0.1:8000")
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
@@ -54,13 +50,9 @@ class TestMain:
         with patch("sys.argv", ["run.py", "--host", "127.0.0.1"]):
             main()
 
-        mock_uvicorn_run.assert_called_once_with(
-            "nook.api.main:app", host="127.0.0.1", port=8000, reload=False
-        )
+        mock_uvicorn_run.assert_called_once_with("nook.api.main:app", host="127.0.0.1", port=8000, reload=False)
 
-        mock_print.assert_any_call(
-            "Nook APIサーバーを起動しています... http://127.0.0.1:8000"
-        )
+        mock_print.assert_any_call("Nook APIサーバーを起動しています... http://127.0.0.1:8000")
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
@@ -73,13 +65,9 @@ class TestMain:
         with patch("sys.argv", ["run.py", "--port", "9000"]):
             main()
 
-        mock_uvicorn_run.assert_called_once_with(
-            "nook.api.main:app", host="127.0.0.1", port=9000, reload=False
-        )
+        mock_uvicorn_run.assert_called_once_with("nook.api.main:app", host="127.0.0.1", port=9000, reload=False)
 
-        mock_print.assert_any_call(
-            "Nook APIサーバーを起動しています... http://127.0.0.1:9000"
-        )
+        mock_print.assert_any_call("Nook APIサーバーを起動しています... http://127.0.0.1:9000")
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
@@ -92,9 +80,7 @@ class TestMain:
         with patch("sys.argv", ["run.py", "--reload"]):
             main()
 
-        mock_uvicorn_run.assert_called_once_with(
-            "nook.api.main:app", host="127.0.0.1", port=8000, reload=True
-        )
+        mock_uvicorn_run.assert_called_once_with("nook.api.main:app", host="127.0.0.1", port=8000, reload=True)
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
@@ -110,13 +96,9 @@ class TestMain:
         ):
             main()
 
-        mock_uvicorn_run.assert_called_once_with(
-            "nook.api.main:app", host="192.168.1.100", port=8080, reload=True
-        )
+        mock_uvicorn_run.assert_called_once_with("nook.api.main:app", host="192.168.1.100", port=8080, reload=True)
 
-        mock_print.assert_any_call(
-            "Nook APIサーバーを起動しています... http://192.168.1.100:8080"
-        )
+        mock_print.assert_any_call("Nook APIサーバーを起動しています... http://192.168.1.100:8080")
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
@@ -136,9 +118,7 @@ class TestMain:
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
-    def test_main_argument_parser_description(
-        self, mock_print, mock_uvicorn_run
-    ) -> None:
+    def test_main_argument_parser_description(self, mock_print, mock_uvicorn_run) -> None:
         """
         Given: ArgumentParser is created.
         When: main is called.
@@ -147,17 +127,13 @@ class TestMain:
         with patch("nook.api.run.ArgumentParser") as mock_parser_class:
             mock_parser = MagicMock()
             mock_parser_class.return_value = mock_parser
-            mock_parser.parse_args.return_value = MagicMock(
-                host="127.0.0.1", port=8000, reload=False
-            )
+            mock_parser.parse_args.return_value = MagicMock(host="127.0.0.1", port=8000, reload=False)
 
             with patch("sys.argv", ["run.py"]):
                 main()
 
             # Verify ArgumentParser was created with correct description
-            mock_parser_class.assert_called_once_with(
-                description="Nook APIサーバーを起動します"
-            )
+            mock_parser_class.assert_called_once_with(description="Nook APIサーバーを起動します")
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
@@ -250,9 +226,7 @@ class TestMain:
             main()
 
         # Verify startup message format
-        mock_print.assert_any_call(
-            "Nook APIサーバーを起動しています... http://localhost:5000"
-        )
+        mock_print.assert_any_call("Nook APIサーバーを起動しています... http://localhost:5000")
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")
@@ -265,9 +239,7 @@ class TestMain:
         with patch("sys.argv", ["run.py", "--host", "127.0.0.1", "--port", "8080"]):
             main()
 
-        mock_uvicorn_run.assert_called_once_with(
-            "nook.api.main:app", host="127.0.0.1", port=8080, reload=False
-        )
+        mock_uvicorn_run.assert_called_once_with("nook.api.main:app", host="127.0.0.1", port=8080, reload=False)
 
     @patch("nook.api.run.uvicorn.run")
     @patch("builtins.print")

@@ -60,20 +60,14 @@ class TestRetrieveArticle:
         entry.title = "Test Article"
         entry.summary = "Summary"
         mock_response = MagicMock()
-        mock_response.text = (
-            '<html><meta name="description" content="Meta Description"></html>'
-        )
+        mock_response.text = '<html><meta name="description" content="Meta Description"></html>'
         qiita_explorer.http_client.get.return_value = mock_response
 
-        with patch(
-            "nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime"
-        ) as mock_parse:
+        with patch("nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime") as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             qiita_explorer._extract_popularity = MagicMock(return_value=123.0)
 
-            article = await qiita_explorer._retrieve_article(
-                entry, "Test Feed", "python"
-            )
+            article = await qiita_explorer._retrieve_article(entry, "Test Feed", "python")
 
             assert article is not None
             assert article.title == "Test Article"
@@ -89,14 +83,10 @@ class TestRetrieveArticle:
 
         mock_response = MagicMock()
         # Mock soup find result
-        mock_response.text = (
-            '<html><meta name="description" content="Meta Desc"></html>'
-        )
+        mock_response.text = '<html><meta name="description" content="Meta Desc"></html>'
         qiita_explorer.http_client.get.return_value = mock_response
 
-        with patch(
-            "nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime"
-        ) as mock_parse:
+        with patch("nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime") as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             qiita_explorer._extract_popularity = MagicMock(return_value=123.0)
 
@@ -115,9 +105,7 @@ class TestRetrieveArticle:
         mock_response.text = "<html><body><p>P1</p><p>P2</p></body></html>"
         qiita_explorer.http_client.get.return_value = mock_response
 
-        with patch(
-            "nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime"
-        ) as mock_parse:
+        with patch("nook.services.explorers.qiita.qiita_explorer.parse_entry_datetime") as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             qiita_explorer._extract_popularity = MagicMock(return_value=123.0)
 
@@ -153,14 +141,10 @@ class TestCollect:
                 "nook.services.explorers.qiita.qiita_explorer.target_dates_set",
                 return_value={date(2023, 1, 1)},
             ),
-            patch(
-                "nook.services.explorers.qiita.qiita_explorer.feedparser.parse"
-            ) as mock_parse,
+            patch("nook.services.explorers.qiita.qiita_explorer.feedparser.parse") as mock_parse,
         ):
             mock_parse.return_value = MagicMock(entries=[])
-            qiita_explorer._group_articles_by_date = MagicMock(
-                return_value={"2023-01-01": []}
-            )
+            qiita_explorer._group_articles_by_date = MagicMock(return_value={"2023-01-01": []})
 
             qiita_explorer.storage.load = AsyncMock(return_value='[{"title": "algo"}]')
 
@@ -191,16 +175,12 @@ class TestCollect:
                 "nook.services.explorers.qiita.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
-            patch(
-                "nook.services.explorers.qiita.qiita_explorer.feedparser.parse"
-            ) as mock_parse,
+            patch("nook.services.explorers.qiita.qiita_explorer.feedparser.parse") as mock_parse,
             patch(
                 "nook.services.explorers.qiita.qiita_explorer.is_within_target_dates",
                 return_value=True,
             ),
-            patch(
-                "nook.services.explorers.qiita.qiita_explorer.target_dates_set"
-            ) as mock_target_dates_set,
+            patch("nook.services.explorers.qiita.qiita_explorer.target_dates_set") as mock_target_dates_set,
         ):
             mock_load_dedup.return_value = mock_dedup
 
@@ -222,17 +202,11 @@ class TestCollect:
                 feed_name="Feed",
             )
             qiita_explorer._retrieve_article = AsyncMock(return_value=mock_article)
-            qiita_explorer._filter_entries = MagicMock(
-                side_effect=lambda e, *a: list(e)
-            )
+            qiita_explorer._filter_entries = MagicMock(side_effect=lambda e, *a: list(e))
 
             qiita_explorer._summarize_article = AsyncMock()
-            qiita_explorer._store_summaries_for_date = AsyncMock(
-                return_value=("path.json", "path.md")
-            )
-            qiita_explorer._group_articles_by_date = MagicMock(
-                return_value={"2023-01-01": [mock_article]}
-            )
+            qiita_explorer._store_summaries_for_date = AsyncMock(return_value=("path.json", "path.md"))
+            qiita_explorer._group_articles_by_date = MagicMock(return_value={"2023-01-01": [mock_article]})
             qiita_explorer.storage.load = AsyncMock(return_value=None)
 
             mock_target_dates_set.return_value = {date(2023, 1, 1)}
@@ -241,9 +215,7 @@ class TestCollect:
 
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
-            qiita_explorer._group_articles_by_date.assert_called_once_with(
-                [mock_article]
-            )
+            qiita_explorer._group_articles_by_date.assert_called_once_with([mock_article])
 
     @pytest.mark.asyncio
     async def test_collect_skip_duplicates(self, qiita_explorer):
@@ -251,9 +223,7 @@ class TestCollect:
         qiita_explorer._get_all_existing_dates = AsyncMock(return_value=[])
 
         mock_dedup = MagicMock()
-        mock_dedup.is_duplicate.side_effect = (
-            lambda t: (True, t) if t == "Dup" else (False, t)
-        )
+        mock_dedup.is_duplicate.side_effect = lambda t: (True, t) if t == "Dup" else (False, t)
         mock_dedup.get_original_title.return_value = "Original"
 
         with (
@@ -261,9 +231,7 @@ class TestCollect:
                 "nook.services.explorers.qiita.qiita_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
-            patch(
-                "nook.services.explorers.qiita.qiita_explorer.feedparser.parse"
-            ) as mock_parse,
+            patch("nook.services.explorers.qiita.qiita_explorer.feedparser.parse") as mock_parse,
             patch(
                 "nook.services.explorers.qiita.qiita_explorer.is_within_target_dates",
                 return_value=True,
@@ -288,9 +256,7 @@ class TestCollect:
                 feed_name="Feed",
             )
             qiita_explorer._retrieve_article = AsyncMock(return_value=mock_article)
-            qiita_explorer._filter_entries = MagicMock(
-                side_effect=lambda e, *a: list(e)
-            )
+            qiita_explorer._filter_entries = MagicMock(side_effect=lambda e, *a: list(e))
             qiita_explorer._unique_articles = []  # Reset ? No, collect creates local list
 
             # Assuming no other articles, result should be empty if skipped

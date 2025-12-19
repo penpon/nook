@@ -136,8 +136,7 @@ class ServiceRunner:
         if service_name in TRENDRADAR_SERVICES:
             if days != 1:
                 raise ValueError(
-                    f"{service_name} は単一日のみ対応しています。単一の日付を指定してください。"
-                    f"指定された日数: {days}日"
+                    f"{service_name} は単一日のみ対応しています。単一の日付を指定してください。指定された日数: {days}日"
                 )
             if len(sorted_dates) > 1:
                 raise ValueError(
@@ -147,15 +146,11 @@ class ServiceRunner:
 
         logger.info("\n" + "━" * 60)
         if len(sorted_dates) <= 1:
-            logger.info(
-                f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}"
-            )
+            logger.info(f"📅 対象日: {sorted_dates[0] if sorted_dates else datetime.now().date()}")
         else:
             start_date = sorted_dates[0]
             end_date = sorted_dates[-1]
-            logger.info(
-                f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間)"
-            )
+            logger.info(f"📅 対象期間: {start_date} 〜 {end_date} ({len(sorted_dates)}日間)")
         logger.info(f"🚀 サービス開始: {service_name}")
         logger.info("━" * 60)
 
@@ -168,15 +163,11 @@ class ServiceRunner:
                 saved_files = result if result else []
             elif service_name in ["tech_news", "business_news"]:
                 # Tech News/Business Newsは15記事に制限し、sorted_dates を渡す
-                result = await service.collect(
-                    days=days, limit=15, target_dates=sorted_dates
-                )
+                result = await service.collect(days=days, limit=15, target_dates=sorted_dates)
                 saved_files = result if result else []
             elif service_name in ["zenn", "qiita", "note"]:
                 # Zenn/Qiita/Noteは15記事に制限し、daysパラメータを渡す
-                result = await service.collect(
-                    days=days, limit=15, target_dates=sorted_dates
-                )
+                result = await service.collect(days=days, limit=15, target_dates=sorted_dates)
                 saved_files = result if result else []
             elif service_name == "reddit":
                 # Redditは15記事に制限
@@ -200,14 +191,10 @@ class ServiceRunner:
                     logger.info(f"   • {md_path}")
                 logger.info("━" * 60)
                 total_articles = len(saved_files)
-                logger.info(
-                    f"✨ 完了: 合計{total_articles}日分のデータを処理しました\n"
-                )
+                logger.info(f"✨ 完了: 合計{total_articles}日分のデータを処理しました\n")
 
         except Exception as e:
-            logger.error(
-                f"Error executing {service_name}: {e}\n{traceback.format_exc()}"
-            )
+            logger.error(f"Error executing {service_name}: {e}\n{traceback.format_exc()}")
             raise
 
     async def run_all(self, days: int = 1) -> None:
@@ -233,9 +220,7 @@ class ServiceRunner:
                 for name, service in self.sync_services.items()
             ]
 
-            results = await gather_with_errors(
-                *service_tasks, task_names=list(self.sync_services.keys())
-            )
+            results = await gather_with_errors(*service_tasks, task_names=list(self.sync_services.keys()))
 
             # 結果をレポート
             successful = sum(1 for r in results if r.success)
@@ -296,9 +281,7 @@ class ServiceRunner:
 
     async def run_continuous(self, interval_seconds: int = 3600, days: int = 1) -> None:
         """定期的にサービスを実行"""
-        logger.info(
-            f"Starting continuous run with interval: {interval_seconds}s, days={days}"
-        )
+        logger.info(f"Starting continuous run with interval: {interval_seconds}s, days={days}")
 
         while self.running:
             try:
@@ -324,9 +307,7 @@ def run_service_sync(service_name: str):
         try:
             # 遅延ロード
             if service_name not in runner.sync_services:
-                runner.sync_services[service_name] = runner.service_classes[
-                    service_name
-                ]()
+                runner.sync_services[service_name] = runner.service_classes[service_name]()
 
             runner.sync_services[service_name].run()
             print(f"{service_name}の実行が完了しました。")
@@ -361,12 +342,8 @@ async def main():
         default="all",
         help="実行するサービスを指定します",
     )
-    parser.add_argument(
-        "--continuous", action="store_true", help="サービスを定期的に実行します"
-    )
-    parser.add_argument(
-        "--interval", type=int, default=3600, help="連続実行時の間隔（秒）"
-    )
+    parser.add_argument("--continuous", action="store_true", help="サービスを定期的に実行します")
+    parser.add_argument("--interval", type=int, default=3600, help="連続実行時の間隔（秒）")
     parser.add_argument(
         "--days",
         type=int,

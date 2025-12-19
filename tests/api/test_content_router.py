@@ -24,9 +24,7 @@ def _make_client() -> TestClient:
     return TestClient(app)
 
 
-def _patch_storage_to_tmp(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> LocalStorage:
+def _patch_storage_to_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> LocalStorage:
     """Patch content router storage to use a temporary directory."""
 
     storage = LocalStorage(str(tmp_path))
@@ -60,9 +58,7 @@ def test_get_content_invalid_date_returns_400() -> None:
     assert resp.status_code == 400
 
 
-def test_get_content_hacker_news_returns_items_from_json(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_hacker_news_returns_items_from_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test hacker-news endpoint loads stories from JSON storage."""
 
     # Given
@@ -94,9 +90,7 @@ def test_get_content_hacker_news_returns_items_from_json(
     assert "スコア" in first["content"]
 
 
-def test_get_content_arxiv_converts_paper_summary_titles(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_arxiv_converts_paper_summary_titles(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test arxiv endpoint converts paper summary titles to emoji format."""
 
     # Given
@@ -122,9 +116,7 @@ def test_get_content_arxiv_converts_paper_summary_titles(
     assert item["title"].startswith("arxiv - ")
 
 
-def test_get_content_all_aggregates_multiple_sources(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_all_aggregates_multiple_sources(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test all endpoint aggregates from hacker-news and github sources."""
 
     # Given
@@ -160,9 +152,7 @@ def test_get_content_all_aggregates_multiple_sources(
     assert "arxiv" in sources
 
 
-def test_get_content_explicit_date_empty_returns_empty_list(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_explicit_date_empty_returns_empty_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test requesting a specific date with no content returns empty list, not 404."""
     client = _make_client()
     _patch_storage_to_tmp(tmp_path, monkeypatch)
@@ -175,9 +165,7 @@ def test_get_content_explicit_date_empty_returns_empty_list(
     assert data["items"] == []
 
 
-def test_get_content_response_headers(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_response_headers(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test response headers for cache control."""
     client = _make_client()
     storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
@@ -191,17 +179,12 @@ def test_get_content_response_headers(
 
     resp = client.get(f"/api/content/hacker-news?date={date_str}")
     assert resp.status_code == 200
-    assert (
-        resp.headers["Cache-Control"]
-        == "no-store, no-cache, must-revalidate, max-age=0"
-    )
+    assert resp.headers["Cache-Control"] == "no-store, no-cache, must-revalidate, max-age=0"
     assert resp.headers["Pragma"] == "no-cache"
     assert resp.headers["Expires"] == "0"
 
 
-def test_get_content_fallback_to_latest_date(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_fallback_to_latest_date(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test fallback to latest available date when no date provided."""
     client = _make_client()
     storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
@@ -226,9 +209,7 @@ def test_get_content_fallback_to_latest_date(
     assert data["items"][0]["title"] == "Old"
 
 
-def test_get_content_github_empty_title(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_github_empty_title(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that GitHub source items result in an empty title field after aggregation logic."""
     client = _make_client()
     storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
@@ -245,9 +226,7 @@ def test_get_content_github_empty_title(
     assert item["title"] == ""
 
 
-def test_get_content_hacker_news_text_preview(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_hacker_news_text_preview(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test hacker news uses text preview if summary is missing."""
     client = _make_client()
     storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
@@ -270,9 +249,7 @@ def test_get_content_hacker_news_text_preview(
     assert "スコア: 10" in item["content"]
 
 
-def test_get_content_no_content_raises_404(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_no_content_raises_404(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test 404 raised when absolutely no content available."""
     client = _make_client()
     _patch_storage_to_tmp(tmp_path, monkeypatch)
@@ -283,9 +260,7 @@ def test_get_content_no_content_raises_404(
     assert "No content available" in resp.json()["detail"]
 
 
-def test_get_content_trendradar_sorts_by_popularity(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_get_content_trendradar_sorts_by_popularity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test TrendRadar (Zhihu/Juejin) articles are sorted by popularity descending."""
     client = _make_client()
     storage = _patch_storage_to_tmp(tmp_path, monkeypatch)
@@ -300,9 +275,7 @@ def test_get_content_trendradar_sorts_by_popularity(
         {"title": "High", "url": "u2", "popularity_score": 9000},
         {"title": "Mid", "url": "u3", "popularity_score": 5000},
     ]
-    (service_dir / f"{date_str}.json").write_text(
-        json.dumps(articles), encoding="utf-8"
-    )
+    (service_dir / f"{date_str}.json").write_text(json.dumps(articles), encoding="utf-8")
 
     resp = client.get(f"/api/content/trendradar-zhihu?date={date_str}")
 

@@ -101,9 +101,7 @@ class NoteExplorer(BaseFeedService):
         # カテゴリ横断のタイトル重複チェック用（既存ファイルからロード）
         # バグ修正：全ての既存ファイルから重複チェック
         all_existing_dates = await self._get_all_existing_dates()
-        dedup_tracker = await load_existing_titles_from_storage(
-            self.storage, all_existing_dates, self.logger
-        )
+        dedup_tracker = await load_existing_titles_from_storage(self.storage, all_existing_dates, self.logger)
 
         self.logger.info("\n📡 フィード取得中...")
 
@@ -115,34 +113,24 @@ class NoteExplorer(BaseFeedService):
                         # フィードを解析
                         feed = feedparser.parse(feed_url)
                         feed_name = (
-                            feed.feed.title
-                            if hasattr(feed, "feed") and hasattr(feed.feed, "title")
-                            else feed_url
+                            feed.feed.title if hasattr(feed, "feed") and hasattr(feed.feed, "title") else feed_url
                         )
 
                         effective_limit = None
                         if limit is not None:
                             effective_limit = limit * max(days, 1)
 
-                        entries = self._filter_entries(
-                            feed.entries, effective_target_dates, effective_limit
-                        )
+                        entries = self._filter_entries(feed.entries, effective_target_dates, effective_limit)
                         self.logger.info(f"   • {feed_name}: {len(entries)}件取得")
 
                         for entry in entries:
                             # 記事を取得
-                            article = await self._retrieve_article(
-                                entry, feed_name, category
-                            )
+                            article = await self._retrieve_article(entry, feed_name, category)
                             if article:
                                 # 重複タイトルをスキップ（カテゴリ横断・正規化済み）
-                                is_dup, normalized_title = dedup_tracker.is_duplicate(
-                                    article.title
-                                )
+                                is_dup, normalized_title = dedup_tracker.is_duplicate(article.title)
                                 if is_dup:
-                                    original = dedup_tracker.get_original_title(
-                                        normalized_title
-                                    )
+                                    original = dedup_tracker.get_original_title(normalized_title)
                                     self.logger.info(
                                         f"重複記事をスキップ: '{article.title}' "
                                         f"(正規化後: '{normalized_title}', 初出: '{original}')"
@@ -150,18 +138,14 @@ class NoteExplorer(BaseFeedService):
                                     continue
 
                                 # 日付範囲チェック
-                                if not is_within_target_dates(
-                                    article.published_at, effective_target_dates
-                                ):
+                                if not is_within_target_dates(article.published_at, effective_target_dates):
                                     continue
 
                                 dedup_tracker.add(article.title)
                                 candidate_articles.append(article)
 
                     except Exception as e:
-                        self.logger.error(
-                            f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}"
-                        )
+                        self.logger.error(f"フィード {feed_url} の処理中にエラーが発生しました: {str(e)}")
 
             # 日付ごとにグループ化
             articles_by_date = self._group_articles_by_date(candidate_articles)
@@ -177,13 +161,9 @@ class NoteExplorer(BaseFeedService):
                     json_content = await self.storage.load(f"{date_str}.json")
                     if json_content:
                         existing_articles = json.loads(json_content)
-                        existing_titles_for_date = {
-                            article.get("title", "") for article in existing_articles
-                        }
+                        existing_titles_for_date = {article.get("title", "") for article in existing_articles}
                 except Exception as e:
-                    self.logger.debug(
-                        f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}"
-                    )
+                    self.logger.debug(f"既存記事ファイル {date_str}.json の読み込みに失敗しました: {e}")
 
                 # 既存/新規記事数をカウント
                 existing_count = len(existing_titles_for_date)
@@ -191,9 +171,7 @@ class NoteExplorer(BaseFeedService):
 
                 # ログ改善：真に新規の記事を確認
                 truly_new_articles = [
-                    article
-                    for article in date_articles
-                    if article.title not in existing_titles_for_date
+                    article for article in date_articles if article.title not in existing_titles_for_date
                 ]
 
                 # 日付情報を先頭に表示（ログ改善版）
@@ -210,14 +188,10 @@ class NoteExplorer(BaseFeedService):
                     log_summarization_start(self.logger)
                     for idx, article in enumerate(selected, 1):
                         await self._summarize_article(article)
-                        log_summarization_progress(
-                            self.logger, idx, len(selected), article.title
-                        )
+                        log_summarization_progress(self.logger, idx, len(selected), article.title)
 
                     # ログ改善：保存完了の前に改行
-                    json_path, md_path = await self._store_summaries_for_date(
-                        selected, date_str
-                    )
+                    json_path, md_path = await self._store_summaries_for_date(selected, date_str)
                     log_storage_complete(self.logger, json_path, md_path)
                     saved_files.append((json_path, md_path))
                 else:
@@ -245,9 +219,7 @@ class NoteExplorer(BaseFeedService):
             self.logger.debug(f"既存タイトルの読み込みに失敗しました: {exc}")
         return tracker
 
-    def _select_top_articles(
-        self, articles: list[Article], limit: int | None = None
-    ) -> list[Article]:
+    def _select_top_articles(self, articles: list[Article], limit: int | None = None) -> list[Article]:
         """
         記事を人気スコアでソートし、上位N件を選択します。
 
@@ -267,17 +239,13 @@ class NoteExplorer(BaseFeedService):
             return []
 
         # 人気スコアで降順ソート
-        sorted_articles = sorted(
-            articles, key=lambda x: x.popularity_score, reverse=True
-        )
+        sorted_articles = sorted(articles, key=lambda x: x.popularity_score, reverse=True)
 
         # 上位N件を選択（limitが指定されていればそれを使用、なければSUMMARY_LIMIT）
         selection_limit = limit if limit is not None else self.SUMMARY_LIMIT
         return sorted_articles[:selection_limit]
 
-    async def _retrieve_article(
-        self, entry: dict, feed_name: str, category: str
-    ) -> Article | None:
+    async def _retrieve_article(self, entry: dict, feed_name: str, category: str) -> Article | None:
         """
         記事を取得します。
 
@@ -342,14 +310,10 @@ class NoteExplorer(BaseFeedService):
             )
 
         except Exception as e:
-            self.logger.error(
-                f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}"
-            )
+            self.logger.error(f"記事 {entry.get('link', '不明')} の取得中にエラーが発生しました: {str(e)}")
             return None
 
-    async def _store_summaries(
-        self, articles: list[Article], target_dates: list[date]
-    ) -> list[tuple[str, str]]:
+    async def _store_summaries(self, articles: list[Article], target_dates: list[date]) -> list[tuple[str, str]]:
         if not articles:
             self.logger.info("保存する記事がありません")
             return []
