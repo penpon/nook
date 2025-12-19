@@ -149,7 +149,7 @@ class TestRedditExplorer:
         explorer = RedditExplorer()
         explorer.http_client = AsyncMock()
         explorer.gpt_client = MagicMock()
-        explorer.gpt_client.generate_content = AsyncMock()
+        explorer.gpt_client.generate_async = AsyncMock()
         explorer.reddit = MagicMock()
         return explorer
 
@@ -227,12 +227,12 @@ class TestRedditExplorer:
         When: _translate_to_japanese is called.
         Then: Translated text is returned.
         """
-        reddit_explorer.gpt_client.generate_content.return_value = "翻訳されたテキスト"
+        reddit_explorer.gpt_client.generate_async.return_value = "翻訳されたテキスト"
 
         result = await reddit_explorer._translate_to_japanese("Hello world")
 
         assert result == "翻訳されたテキスト"
-        reddit_explorer.gpt_client.generate_content.assert_called_once()
+        reddit_explorer.gpt_client.generate_async.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_translate_to_japanese_error_returns_original(
@@ -243,7 +243,7 @@ class TestRedditExplorer:
         When: _translate_to_japanese is called.
         Then: Original text is returned.
         """
-        reddit_explorer.gpt_client.generate_content.side_effect = Exception("API Error")
+        reddit_explorer.gpt_client.generate_async.side_effect = Exception("API Error")
 
         result = await reddit_explorer._translate_to_japanese("Original text")
 
@@ -267,7 +267,7 @@ class TestRedditExplorer:
         mock_submission.comments.replace_more = AsyncMock()
         mock_submission.comments.list.return_value = [mock_comment]
 
-        reddit_explorer.reddit.submission = MagicMock(return_value=mock_submission)
+        reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
         reddit_explorer._translate_to_japanese = AsyncMock(
             return_value="テストコメント"
         )
@@ -299,12 +299,12 @@ class TestRedditExplorer:
             comments=[{"text": "Test comment", "score": 10}],
         )
 
-        reddit_explorer.gpt_client.generate_content.return_value = "テスト投稿の要約"
+        reddit_explorer.gpt_client.generate_async.return_value = "テスト投稿の要約"
 
         await reddit_explorer._summarize_reddit_post(post)
 
         assert post.summary == "テスト投稿の要約"
-        reddit_explorer.gpt_client.generate_content.assert_called_once()
+        reddit_explorer.gpt_client.generate_async.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_summarize_reddit_post_error_handling(
@@ -324,7 +324,7 @@ class TestRedditExplorer:
             text="Test content",
         )
 
-        reddit_explorer.gpt_client.generate_content.side_effect = Exception("API Error")
+        reddit_explorer.gpt_client.generate_async.side_effect = Exception("API Error")
 
         await reddit_explorer._summarize_reddit_post(post)
 
