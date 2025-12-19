@@ -185,7 +185,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-blue-300',
   },
   'trendradar-v2ex': {
-    title: 'V2EX',
+    title: 'V2EX (V2EX)',
     subtitle: '中国の開発者コミュニティ',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-gray-50',
