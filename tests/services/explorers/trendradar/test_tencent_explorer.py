@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from nook.services.base.base_feed_service import Article
-from nook.services.explorers.trendradar.base import create_empty_soup
 from nook.services.explorers.trendradar.tencent_explorer import TencentExplorer
 from nook.services.explorers.trendradar.trendradar_client import TrendRadarClient
+from nook.services.explorers.trendradar.utils import create_empty_soup
 
 
 @pytest.fixture
