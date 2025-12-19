@@ -31,6 +31,7 @@ const sources = [
   'trendradar-toutiao',
   'trendradar-sspai',
   'trendradar-producthunt',
+  'trendradar-freebuf',
 ];
 
 function App() {
