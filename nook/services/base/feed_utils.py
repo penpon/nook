@@ -64,9 +64,7 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         except (TypeError, ValueError):
             continue
 
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(
-            tzinfo=None
-        ) + timedelta(hours=9)
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(tzinfo=None) + timedelta(hours=9)
 
     for field in _STRING_FIELDS:
         value = _get_entry_value(entry, field)
@@ -83,9 +81,7 @@ def parse_entry_datetime(entry: Any) -> datetime | None:
         if parsed:
             if parsed.tzinfo is None:
                 return parsed.replace(tzinfo=None) + timedelta(hours=9)
-            return parsed.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(
-                hours=9
-            )
+            return parsed.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(hours=9)
 
         iso_parsed = _parse_iso_datetime(text)
         if iso_parsed:

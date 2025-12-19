@@ -48,9 +48,7 @@ class TestCollectFlow:
     """Tests for ArxivSummarizer.collect method flow."""
 
     @pytest.mark.asyncio
-    async def test_collect_returns_empty_when_no_paper_ids_found(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_collect_returns_empty_when_no_paper_ids_found(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: _get_curated_paper_ids returns None (no URL found).
         When: collect is called.
@@ -60,9 +58,7 @@ class TestCollectFlow:
         target_dates = [date(2024, 1, 15)]
 
         with patch.object(summarizer, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                summarizer, "_get_curated_paper_ids", new_callable=AsyncMock
-            ) as mock_get_ids:
+            with patch.object(summarizer, "_get_curated_paper_ids", new_callable=AsyncMock) as mock_get_ids:
                 mock_get_ids.return_value = None
 
                 # When
@@ -73,9 +69,7 @@ class TestCollectFlow:
                 mock_get_ids.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_collect_returns_empty_when_paper_ids_list_is_empty(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_collect_returns_empty_when_paper_ids_list_is_empty(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: _get_curated_paper_ids returns an empty list.
         When: collect is called.
@@ -85,9 +79,7 @@ class TestCollectFlow:
         target_dates = [date(2024, 1, 15)]
 
         with patch.object(summarizer, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                summarizer, "_get_curated_paper_ids", new_callable=AsyncMock
-            ) as mock_get_ids:
+            with patch.object(summarizer, "_get_curated_paper_ids", new_callable=AsyncMock) as mock_get_ids:
                 mock_get_ids.return_value = []
 
                 # When
@@ -111,18 +103,10 @@ class TestCollectFlow:
         saved_files = [("path/to/2024-01-15.json", "path/to/2024-01-15.md")]
 
         with patch.object(summarizer, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                summarizer, "_get_curated_paper_ids", new_callable=AsyncMock
-            ) as mock_get_ids:
-                with patch.object(
-                    summarizer, "_retrieve_paper_info", new_callable=AsyncMock
-                ) as mock_retrieve:
-                    with patch.object(
-                        summarizer, "_summarize_paper_info", new_callable=AsyncMock
-                    ):
-                        with patch.object(
-                            summarizer, "_store_summaries", new_callable=AsyncMock
-                        ) as mock_store:
+            with patch.object(summarizer, "_get_curated_paper_ids", new_callable=AsyncMock) as mock_get_ids:
+                with patch.object(summarizer, "_retrieve_paper_info", new_callable=AsyncMock) as mock_retrieve:
+                    with patch.object(summarizer, "_summarize_paper_info", new_callable=AsyncMock):
+                        with patch.object(summarizer, "_store_summaries", new_callable=AsyncMock) as mock_store:
                             with patch.object(
                                 summarizer,
                                 "_save_processed_ids_by_date",
@@ -133,9 +117,7 @@ class TestCollectFlow:
                                 mock_store.return_value = saved_files
 
                                 # When
-                                result = await summarizer.collect(
-                                    limit=5, target_dates=target_dates
-                                )
+                                result = await summarizer.collect(limit=5, target_dates=target_dates)
 
                                 # Then
                                 assert result == saved_files
@@ -145,9 +127,7 @@ class TestCollectFlow:
                                 mock_save_ids.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_collect_filters_papers_by_target_dates(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_collect_filters_papers_by_target_dates(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: Papers with different published dates.
         When: collect is called with specific target_dates.
@@ -168,15 +148,9 @@ class TestCollectFlow:
         paper_outside_date.summary = "Summary"
 
         with patch.object(summarizer, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                summarizer, "_get_curated_paper_ids", new_callable=AsyncMock
-            ) as mock_get_ids:
-                with patch.object(
-                    summarizer, "_retrieve_paper_info", new_callable=AsyncMock
-                ) as mock_retrieve:
-                    with patch.object(
-                        summarizer, "_store_summaries", new_callable=AsyncMock
-                    ) as mock_store:
+            with patch.object(summarizer, "_get_curated_paper_ids", new_callable=AsyncMock) as mock_get_ids:
+                with patch.object(summarizer, "_retrieve_paper_info", new_callable=AsyncMock) as mock_retrieve:
+                    with patch.object(summarizer, "_store_summaries", new_callable=AsyncMock) as mock_store:
                         with patch.object(
                             summarizer,
                             "_save_processed_ids_by_date",
@@ -212,18 +186,10 @@ class TestCollectFlow:
         saved_files = [("path/to/2024-01-15.json", "path/to/2024-01-15.md")]
 
         with patch.object(summarizer, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                summarizer, "_get_curated_paper_ids", new_callable=AsyncMock
-            ) as mock_get_ids:
-                with patch.object(
-                    summarizer, "_retrieve_paper_info", new_callable=AsyncMock
-                ) as mock_retrieve:
-                    with patch.object(
-                        summarizer, "_summarize_paper_info", new_callable=AsyncMock
-                    ):
-                        with patch.object(
-                            summarizer, "_store_summaries", new_callable=AsyncMock
-                        ) as mock_store:
+            with patch.object(summarizer, "_get_curated_paper_ids", new_callable=AsyncMock) as mock_get_ids:
+                with patch.object(summarizer, "_retrieve_paper_info", new_callable=AsyncMock) as mock_retrieve:
+                    with patch.object(summarizer, "_summarize_paper_info", new_callable=AsyncMock):
+                        with patch.object(summarizer, "_store_summaries", new_callable=AsyncMock) as mock_store:
                             with patch.object(
                                 summarizer,
                                 "_save_processed_ids_by_date",
@@ -238,9 +204,7 @@ class TestCollectFlow:
                                 mock_store.return_value = saved_files
 
                                 # When
-                                result = await summarizer.collect(
-                                    limit=5, target_dates=target_dates
-                                )
+                                result = await summarizer.collect(limit=5, target_dates=target_dates)
 
                                 # Then
                                 # Should still return saved files from successful paper
@@ -259,18 +223,10 @@ class TestCollectFlow:
         target_dates = [date(2024, 1, 15), date(2024, 1, 16)]
 
         with patch.object(summarizer, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                summarizer, "_get_curated_paper_ids", new_callable=AsyncMock
-            ) as mock_get_ids:
-                with patch.object(
-                    summarizer, "_retrieve_paper_info", new_callable=AsyncMock
-                ) as mock_retrieve:
-                    with patch.object(
-                        summarizer, "_summarize_paper_info", new_callable=AsyncMock
-                    ):
-                        with patch.object(
-                            summarizer, "_store_summaries", new_callable=AsyncMock
-                        ) as mock_store:
+            with patch.object(summarizer, "_get_curated_paper_ids", new_callable=AsyncMock) as mock_get_ids:
+                with patch.object(summarizer, "_retrieve_paper_info", new_callable=AsyncMock) as mock_retrieve:
+                    with patch.object(summarizer, "_summarize_paper_info", new_callable=AsyncMock):
+                        with patch.object(summarizer, "_store_summaries", new_callable=AsyncMock) as mock_store:
                             with patch.object(
                                 summarizer,
                                 "_save_processed_ids_by_date",
@@ -285,18 +241,14 @@ class TestCollectFlow:
                                 mock_store.return_value = []
 
                                 # When
-                                await summarizer.collect(
-                                    limit=5, target_dates=target_dates
-                                )
+                                await summarizer.collect(limit=5, target_dates=target_dates)
 
                                 # Then
                                 # Paper should only be retrieved once due to deduplication
                                 assert mock_retrieve.call_count == 1
 
     @pytest.mark.asyncio
-    async def test_collect_returns_empty_when_target_dates_is_empty(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    async def test_collect_returns_empty_when_target_dates_is_empty(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: target_dates is empty.
         When: collect is called.

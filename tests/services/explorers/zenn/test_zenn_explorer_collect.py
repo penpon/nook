@@ -82,15 +82,11 @@ class TestRetrieveArticle:
         entry.summary = "Summary"
         # Setup mock http response
         mock_response = MagicMock()
-        mock_response.text = (
-            '<html><meta name="description" content="Meta Description"></html>'
-        )
+        mock_response.text = '<html><meta name="description" content="Meta Description"></html>'
         zenn_explorer.http_client.get.return_value = mock_response
 
         # Mock parse_entry_datetime to return a fixed datetime
-        with patch(
-            "nook.services.explorers.zenn.zenn_explorer.parse_entry_datetime"
-        ) as mock_parse:
+        with patch("nook.services.explorers.zenn.zenn_explorer.parse_entry_datetime") as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
 
             # Mock _extract_popularity
@@ -106,23 +102,17 @@ class TestRetrieveArticle:
             assert article.category == "tech"
 
     @pytest.mark.asyncio
-    async def test_retrieve_article_no_summary_falback_meta_description(
-        self, zenn_explorer
-    ):
+    async def test_retrieve_article_no_summary_falback_meta_description(self, zenn_explorer):
         entry = MagicMock()
         entry.link = "http://example.com/article"
         entry.title = "Test Article"
         del entry.summary  # ensure no summary
 
         mock_response = MagicMock()
-        mock_response.text = (
-            '<html><meta name="description" content="Meta Description"></html>'
-        )
+        mock_response.text = '<html><meta name="description" content="Meta Description"></html>'
         zenn_explorer.http_client.get.return_value = mock_response
 
-        with patch(
-            "nook.services.explorers.zenn.zenn_explorer.parse_entry_datetime"
-        ) as mock_parse:
+        with patch("nook.services.explorers.zenn.zenn_explorer.parse_entry_datetime") as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             zenn_explorer._extract_popularity = MagicMock(return_value=10.0)
 
@@ -141,9 +131,7 @@ class TestRetrieveArticle:
         mock_response.text = "<html><body><p>Para 1</p><p>Para 2</p></body></html>"
         zenn_explorer.http_client.get.return_value = mock_response
 
-        with patch(
-            "nook.services.explorers.zenn.zenn_explorer.parse_entry_datetime"
-        ) as mock_parse:
+        with patch("nook.services.explorers.zenn.zenn_explorer.parse_entry_datetime") as mock_parse:
             mock_parse.return_value = datetime(2023, 1, 1, 12, 0, 0)
             zenn_explorer._extract_popularity = MagicMock(return_value=10.0)
 
@@ -179,16 +167,12 @@ class TestCollect:
                 "nook.services.explorers.zenn.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load_dedup,
-            patch(
-                "nook.services.explorers.zenn.zenn_explorer.feedparser.parse"
-            ) as mock_parse,
+            patch("nook.services.explorers.zenn.zenn_explorer.feedparser.parse") as mock_parse,
             patch(
                 "nook.services.explorers.zenn.zenn_explorer.is_within_target_dates",
                 return_value=True,
             ),
-            patch(
-                "nook.services.explorers.zenn.zenn_explorer.target_dates_set"
-            ) as mock_target_dates_set,
+            patch("nook.services.explorers.zenn.zenn_explorer.target_dates_set") as mock_target_dates_set,
             patch("nook.services.explorers.zenn.zenn_explorer.group_records_by_date"),
         ):  # we might not need this if we rely on _store_summaries logic but wait, group_records_by_date is imported from daily_snapshot module, but zenn_explorer imports it. Patching where it is used.
             mock_load_dedup.return_value = mock_dedup
@@ -222,9 +206,7 @@ class TestCollect:
             zenn_explorer._summarize_article = AsyncMock()
 
             # Setup _store_summaries_for_date
-            zenn_explorer._store_summaries_for_date = AsyncMock(
-                return_value=("path.json", "path.md")
-            )
+            zenn_explorer._store_summaries_for_date = AsyncMock(return_value=("path.json", "path.md"))
 
             # Setup storage load to return nothing (no existing files)
             zenn_explorer.storage.load = AsyncMock(return_value=None)
@@ -239,17 +221,13 @@ class TestCollect:
             # Let's check BaseFeedService.. it's likely inherited.
             # Ideally we run the inherited logic or mock it.
             # Let's mock it to control the flow.
-            zenn_explorer._group_articles_by_date = MagicMock(
-                return_value={"2023-01-01": [mock_article]}
-            )
+            zenn_explorer._group_articles_by_date = MagicMock(return_value={"2023-01-01": [mock_article]})
 
             result = await zenn_explorer.collect(days=1)
 
             assert len(result) == 1
             assert result[0] == ("path.json", "path.md")
-            zenn_explorer._group_articles_by_date.assert_called_once_with(
-                [mock_article]
-            )
+            zenn_explorer._group_articles_by_date.assert_called_once_with([mock_article])
             zenn_explorer._summarize_article.assert_awaited()
             zenn_explorer._store_summaries_for_date.assert_awaited()
 
@@ -264,9 +242,7 @@ class TestCollect:
                 "nook.services.explorers.zenn.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ),
-            patch(
-                "nook.services.explorers.zenn.zenn_explorer.feedparser.parse"
-            ) as mock_parse,
+            patch("nook.services.explorers.zenn.zenn_explorer.feedparser.parse") as mock_parse,
         ):
             mock_parse.side_effect = Exception("Feed Error")
             # Should not raise exception, but log error
@@ -291,15 +267,9 @@ class TestCollect:
                 "nook.services.explorers.zenn.zenn_explorer.load_existing_titles_from_storage",
                 new_callable=AsyncMock,
             ) as mock_load,
-            patch(
-                "nook.services.explorers.zenn.zenn_explorer.feedparser.parse"
-            ) as mock_parse,
-            patch(
-                "nook.services.explorers.zenn.zenn_explorer.is_within_target_dates"
-            ) as mock_date_check,
-            patch(
-                "nook.services.explorers.zenn.zenn_explorer.target_dates_set"
-            ) as mock_target_dates_set,
+            patch("nook.services.explorers.zenn.zenn_explorer.feedparser.parse") as mock_parse,
+            patch("nook.services.explorers.zenn.zenn_explorer.is_within_target_dates") as mock_date_check,
+            patch("nook.services.explorers.zenn.zenn_explorer.target_dates_set") as mock_target_dates_set,
         ):
             mock_load.return_value = mock_dedup
             mock_target_dates_set.return_value = {date(2023, 1, 1)}
@@ -313,9 +283,7 @@ class TestCollect:
             mock_parse.return_value = mock_feed
 
             # Setup dedup: "Dup" is duplicate
-            mock_dedup.is_duplicate.side_effect = (
-                lambda t: (True, t) if t == "Dup" else (False, t)
-            )
+            mock_dedup.is_duplicate.side_effect = lambda t: (True, t) if t == "Dup" else (False, t)
             mock_dedup.get_original_title.return_value = "Original"
 
             # Setup date check: "Old" is old (False), "Valid" is new (True)
@@ -354,9 +322,7 @@ class TestCollect:
                 category="",
             )
 
-            zenn_explorer._retrieve_article = AsyncMock(
-                side_effect=[article1, article2, article3]
-            )
+            zenn_explorer._retrieve_article = AsyncMock(side_effect=[article1, article2, article3])
             zenn_explorer._filter_entries = MagicMock(side_effect=lambda e, *a: list(e))
 
             # Date check mock
@@ -374,9 +340,7 @@ class TestCollect:
             # Move mock setup before the call
             zenn_explorer._summarize_article = AsyncMock()
             zenn_explorer._store_summaries_for_date = AsyncMock(return_value=("a", "b"))
-            zenn_explorer._group_articles_by_date = MagicMock(
-                return_value={"2023-01-01": [article1]}
-            )
+            zenn_explorer._group_articles_by_date = MagicMock(return_value={"2023-01-01": [article1]})
 
             await zenn_explorer.collect(days=1)
 
@@ -398,9 +362,7 @@ class TestCollect:
                 "nook.services.explorers.zenn.zenn_explorer.target_dates_set",
                 return_value={date(2023, 1, 1)},
             ),
-            patch(
-                "nook.services.explorers.zenn.zenn_explorer.feedparser.parse"
-            ) as mock_parse,
+            patch("nook.services.explorers.zenn.zenn_explorer.feedparser.parse") as mock_parse,
         ):
             mock_parse.return_value = MagicMock(entries=[])  # No entries
             zenn_explorer._group_articles_by_date = MagicMock(return_value={})
@@ -418,9 +380,7 @@ class TestCollect:
 
 class TestOtherMethods:
     def test_load_existing_titles(self, zenn_explorer):
-        zenn_explorer.storage.load_markdown = MagicMock(
-            return_value="### [Title 1]\n### [Title 2]"
-        )
+        zenn_explorer.storage.load_markdown = MagicMock(return_value="### [Title 1]\n### [Title 2]")
         tracker = zenn_explorer._load_existing_titles()
         assert tracker.is_duplicate("Title 1")[0] is True
         assert tracker.is_duplicate("Title 2")[0] is True

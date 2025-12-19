@@ -158,10 +158,7 @@ async def test_handle_error_with_long_message_truncates():
         warning_message = warning_args[0]
         assert warning_message.endswith("...")  # 切り捨てマークが存在
         # メッセージ長が制限されていることを確認（元のメッセージ + 100文字以下）
-        assert (
-            len(warning_message)
-            <= len("Function async_func failed (attempt 1/1): ValueError: ") + 103
-        )
+        assert len(warning_message) <= len("Function async_func failed (attempt 1/1): ValueError: ") + 103
 
 
 @pytest.mark.asyncio
@@ -179,11 +176,7 @@ async def test_log_execution_time_async_success(caplog):
     assert result == "success"
 
     # 成功ログが記録される
-    info_records = [
-        record
-        for record in caplog.records
-        if record.levelname == "INFO" and "completed" in record.message
-    ]
+    info_records = [record for record in caplog.records if record.levelname == "INFO" and "completed" in record.message]
     assert len(info_records) == 1
 
     # execution_timeフィールドを確認
@@ -205,11 +198,7 @@ async def test_log_execution_time_async_failure(caplog):
         await async_func()
 
     # エラーログが記録される
-    error_records = [
-        record
-        for record in caplog.records
-        if record.levelname == "ERROR" and "failed" in record.message
-    ]
+    error_records = [record for record in caplog.records if record.levelname == "ERROR" and "failed" in record.message]
     assert len(error_records) == 1
 
     # execution_timeフィールドを確認

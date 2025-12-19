@@ -170,23 +170,17 @@ class TestIsValidBodyLine:
         When: _is_valid_body_line is called.
         Then: False is returned.
         """
-        line = (
-            "Contact: author@university.edu for more information about this research."
-        )
+        line = "Contact: author@university.edu for more information about this research."
         result = summarizer._is_valid_body_line(line)
         assert result is False
 
-    def test_rejects_line_with_university_keyword(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    def test_rejects_line_with_university_keyword(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: A line containing 'university' keyword.
         When: _is_valid_body_line is called.
         Then: False is returned.
         """
-        line = (
-            "This research was conducted at Stanford University with funding from NSF."
-        )
+        line = "This research was conducted at Stanford University with funding from NSF."
         result = summarizer._is_valid_body_line(line)
         assert result is False
 
@@ -220,9 +214,7 @@ class TestIsValidBodyLine:
         result = summarizer._is_valid_body_line(line)
         assert result is True
 
-    def test_accepts_line_with_custom_min_length(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    def test_accepts_line_with_custom_min_length(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: A line that meets a custom minimum length requirement.
         When: _is_valid_body_line is called with custom min_length.
@@ -242,9 +234,7 @@ class TestIsValidBodyLine:
         result = summarizer._is_valid_body_line(line)
         assert result is False
 
-    def test_rejects_line_with_department_keyword(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    def test_rejects_line_with_department_keyword(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: A line containing 'department' keyword.
         When: _is_valid_body_line is called.
@@ -254,9 +244,7 @@ class TestIsValidBodyLine:
         result = summarizer._is_valid_body_line(line)
         assert result is False
 
-    def test_rejects_line_with_institute_keyword(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    def test_rejects_line_with_institute_keyword(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: A line containing 'institute' keyword.
         When: _is_valid_body_line is called.
@@ -266,9 +254,7 @@ class TestIsValidBodyLine:
         result = summarizer._is_valid_body_line(line)
         assert result is False
 
-    def test_rejects_line_with_corresponding_author(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    def test_rejects_line_with_corresponding_author(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: A line containing 'corresponding author' keyword.
         When: _is_valid_body_line is called.
@@ -278,9 +264,7 @@ class TestIsValidBodyLine:
         result = summarizer._is_valid_body_line(line)
         assert result is False
 
-    def test_keyword_check_is_case_insensitive(
-        self, summarizer: ArxivSummarizer
-    ) -> None:
+    def test_keyword_check_is_case_insensitive(self, summarizer: ArxivSummarizer) -> None:
         """
         Given: A line with uppercase keyword.
         When: _is_valid_body_line is called.

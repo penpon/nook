@@ -15,9 +15,7 @@ from nook.services.explorers.trendradar.trendradar_client import TrendRadarClien
 
 @pytest.fixture
 def mock_trendradar_client():
-    with patch(
-        "nook.services.explorers.trendradar.base.TrendRadarClient"
-    ) as MockClient:
+    with patch("nook.services.explorers.trendradar.base.TrendRadarClient") as MockClient:
         client_instance = AsyncMock()
         MockClient.return_value = client_instance
         yield client_instance
@@ -89,20 +87,14 @@ async def test_collect_success(explorer, mock_trendradar_client):
     ]
 
     # Mocking _summarize_article to avoid GPT calls and complexity
-    with patch.object(
-        explorer, "_summarize_article", new_callable=AsyncMock
-    ) as mock_summarize:
-        with patch.object(
-            explorer, "_store_articles", new_callable=AsyncMock
-        ) as mock_store:
+    with patch.object(explorer, "_summarize_article", new_callable=AsyncMock) as mock_summarize:
+        with patch.object(explorer, "_store_articles", new_callable=AsyncMock) as mock_store:
             mock_store.return_value = [("path/to.json", "path/to.md")]
 
             result = await explorer.collect(days=1, limit=5)
 
             assert len(result) == 1
-            mock_trendradar_client.get_latest_news.assert_called_once_with(
-                platform="producthunt", limit=5
-            )
+            mock_trendradar_client.get_latest_news.assert_called_once_with(platform="producthunt", limit=5)
             mock_summarize.assert_called_once()
             mock_store.assert_called_once()
 
@@ -158,9 +150,7 @@ async def test_transform_to_article_missing_required_fields(explorer):
         "time": "2024-03-20 10:00:00",
     }
     article_no_title = explorer._transform_to_article(item_no_title)
-    assert (
-        article_no_title.title == ""
-    )  # BaseTrendRadarExplorer implementation fallback
+    assert article_no_title.title == ""  # BaseTrendRadarExplorer implementation fallback
 
     # url is missing
     item_no_url = {

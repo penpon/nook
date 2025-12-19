@@ -42,22 +42,16 @@ class TestCollect:
     """Tests for HackerNewsRetriever.collect method."""
 
     @pytest.mark.asyncio
-    async def test_collect_returns_saved_files(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_collect_returns_saved_files(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Stories are fetched and processed.
         When: collect is called.
         Then: Saved file paths are returned.
         """
         with patch.object(hacker_news, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                hacker_news, "_load_existing_titles", new_callable=AsyncMock
-            ) as mock_load:
+            with patch.object(hacker_news, "_load_existing_titles", new_callable=AsyncMock) as mock_load:
                 mock_load.return_value = MagicMock()
-                with patch.object(
-                    hacker_news, "_get_top_stories", new_callable=AsyncMock
-                ) as mock_stories:
+                with patch.object(hacker_news, "_get_top_stories", new_callable=AsyncMock) as mock_stories:
                     story = Story(
                         title="Test Story",
                         score=100,
@@ -67,9 +61,7 @@ class TestCollect:
                     )
                     story.summary = "Test summary"
                     mock_stories.return_value = [story]
-                    with patch.object(
-                        hacker_news, "_store_summaries", new_callable=AsyncMock
-                    ) as mock_store:
+                    with patch.object(hacker_news, "_store_summaries", new_callable=AsyncMock) as mock_store:
                         mock_store.return_value = [("2024-01-15.json", "2024-01-15.md")]
 
                         result = await hacker_news.collect(limit=10)
@@ -78,26 +70,18 @@ class TestCollect:
         assert result[0] == ("2024-01-15.json", "2024-01-15.md")
 
     @pytest.mark.asyncio
-    async def test_collect_returns_empty_when_no_stories(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_collect_returns_empty_when_no_stories(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: No stories are fetched.
         When: collect is called.
         Then: Empty list is returned.
         """
         with patch.object(hacker_news, "setup_http_client", new_callable=AsyncMock):
-            with patch.object(
-                hacker_news, "_load_existing_titles", new_callable=AsyncMock
-            ) as mock_load:
+            with patch.object(hacker_news, "_load_existing_titles", new_callable=AsyncMock) as mock_load:
                 mock_load.return_value = MagicMock()
-                with patch.object(
-                    hacker_news, "_get_top_stories", new_callable=AsyncMock
-                ) as mock_stories:
+                with patch.object(hacker_news, "_get_top_stories", new_callable=AsyncMock) as mock_stories:
                     mock_stories.return_value = []
-                    with patch.object(
-                        hacker_news, "_store_summaries", new_callable=AsyncMock
-                    ) as mock_store:
+                    with patch.object(hacker_news, "_store_summaries", new_callable=AsyncMock) as mock_store:
                         mock_store.return_value = []
 
                         result = await hacker_news.collect(limit=10)
@@ -119,13 +103,9 @@ class TestLoadExistingTitles:
             {"title": "Story 1"},
             {"title": "Story 2"},
         ]
-        with patch.object(
-            hacker_news.storage, "exists", new_callable=AsyncMock
-        ) as mock_exists:
+        with patch.object(hacker_news.storage, "exists", new_callable=AsyncMock) as mock_exists:
             mock_exists.return_value = True
-            with patch.object(
-                hacker_news, "load_json", new_callable=AsyncMock
-            ) as mock_load:
+            with patch.object(hacker_news, "load_json", new_callable=AsyncMock) as mock_load:
                 mock_load.return_value = existing_data
 
                 result = await hacker_news._load_existing_titles()
@@ -136,9 +116,7 @@ class TestLoadExistingTitles:
         assert is_dup
 
     @pytest.mark.asyncio
-    async def test_loads_from_markdown_when_json_missing(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_loads_from_markdown_when_json_missing(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: JSON file doesn't exist but markdown exists.
         When: _load_existing_titles is called.
@@ -154,9 +132,7 @@ Score: 100
 
 Score: 50
 """
-        with patch.object(
-            hacker_news.storage, "exists", new_callable=AsyncMock
-        ) as mock_exists:
+        with patch.object(hacker_news.storage, "exists", new_callable=AsyncMock) as mock_exists:
             mock_exists.return_value = False
             with patch.object(hacker_news.storage, "load_markdown") as mock_load_md:
                 mock_load_md.return_value = markdown_content
@@ -171,17 +147,13 @@ Score: 50
         assert is_dup_plain
 
     @pytest.mark.asyncio
-    async def test_returns_empty_tracker_on_exception(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_returns_empty_tracker_on_exception(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Exception during title loading.
         When: _load_existing_titles is called.
         Then: Empty DedupTracker is returned.
         """
-        with patch.object(
-            hacker_news.storage, "exists", new_callable=AsyncMock
-        ) as mock_exists:
+        with patch.object(hacker_news.storage, "exists", new_callable=AsyncMock) as mock_exists:
             mock_exists.side_effect = Exception("File error")
 
             result = await hacker_news._load_existing_titles()
@@ -195,9 +167,7 @@ class TestGetTopStories:
     """Tests for HackerNewsRetriever._get_top_stories method."""
 
     @pytest.mark.asyncio
-    async def test_fetches_and_filters_stories(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_fetches_and_filters_stories(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Top stories API returns story IDs.
         When: _get_top_stories is called.
@@ -216,13 +186,9 @@ class TestGetTopStories:
             created_at=datetime.now(timezone.utc),
         )
 
-        with patch.object(
-            hacker_news, "_fetch_story", new_callable=AsyncMock
-        ) as mock_fetch:
+        with patch.object(hacker_news, "_fetch_story", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = story
-            with patch.object(
-                hacker_news, "_summarize_stories", new_callable=AsyncMock
-            ):
+            with patch.object(hacker_news, "_summarize_stories", new_callable=AsyncMock):
                 tracker = MagicMock()
                 tracker.is_duplicate.return_value = (False, story.title)
                 tracker.get_original_title.return_value = None
@@ -236,9 +202,7 @@ class TestGetTopStories:
         assert len(result) >= 0  # May be filtered
 
     @pytest.mark.asyncio
-    async def test_filters_low_score_stories(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_filters_low_score_stories(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Stories with low scores.
         When: _get_top_stories is called.
@@ -258,13 +222,9 @@ class TestGetTopStories:
             created_at=datetime.now(timezone.utc),
         )
 
-        with patch.object(
-            hacker_news, "_fetch_story", new_callable=AsyncMock
-        ) as mock_fetch:
+        with patch.object(hacker_news, "_fetch_story", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = story
-            with patch.object(
-                hacker_news, "_summarize_stories", new_callable=AsyncMock
-            ):
+            with patch.object(hacker_news, "_summarize_stories", new_callable=AsyncMock):
                 tracker = MagicMock()
                 tracker.is_duplicate.return_value = (False, story.title)
 
@@ -282,9 +242,7 @@ class TestFetchStory:
     """Tests for HackerNewsRetriever._fetch_story method."""
 
     @pytest.mark.asyncio
-    async def test_returns_story_on_success(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_returns_story_on_success(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: API returns valid story data.
         When: _fetch_story is called.
@@ -310,9 +268,7 @@ class TestFetchStory:
         assert result.score == 100
 
     @pytest.mark.asyncio
-    async def test_returns_none_on_missing_title(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_returns_none_on_missing_title(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: API returns data without title.
         When: _fetch_story is called.
@@ -329,9 +285,7 @@ class TestFetchStory:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_returns_none_on_exception(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_returns_none_on_exception(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: API raises exception.
         When: _fetch_story is called.
@@ -371,9 +325,7 @@ class TestFetchStoryContent:
         assert "ブロック" in story.text
 
     @pytest.mark.asyncio
-    async def test_extracts_meta_description(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_extracts_meta_description(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Page has meta description.
         When: _fetch_story_content is called.
@@ -445,9 +397,7 @@ class TestFetchStoryContent:
         assert "見つかりませんでした" in story.text
 
     @pytest.mark.asyncio
-    async def test_extracts_og_description(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_extracts_og_description(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Page has OG description but no regular meta description.
         When: _fetch_story_content is called.
@@ -515,9 +465,7 @@ class TestFetchStoryContent:
         assert "longer paragraph" in story.text
 
     @pytest.mark.asyncio
-    async def test_extracts_article_element(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_extracts_article_element(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Page has article element but no paragraphs.
         When: _fetch_story_content is called.
@@ -550,9 +498,7 @@ class TestFetchStoryContent:
         assert "article content" in story.text
 
     @pytest.mark.asyncio
-    async def test_uses_http1_for_required_domain(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_uses_http1_for_required_domain(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: URL is from HTTP/1.1 required domain.
         When: _fetch_story_content is called.
@@ -566,9 +512,7 @@ class TestFetchStoryContent:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.text = (
-            '<html><head><meta name="description" content="Content"></head></html>'
-        )
+        mock_response.text = '<html><head><meta name="description" content="Content"></head></html>'
 
         hacker_news.http_client = AsyncMock()
         hacker_news.http_client.get = AsyncMock(return_value=mock_response)
@@ -593,9 +537,7 @@ class TestFetchStoryContent:
         Then: Error message is set.
         """
         hacker_news.http_client = AsyncMock()
-        hacker_news.http_client.get = AsyncMock(
-            side_effect=Exception("SSL handshake failed")
-        )
+        hacker_news.http_client.get = AsyncMock(side_effect=Exception("SSL handshake failed"))
 
         story = Story(
             title="SSL Error Story",
@@ -608,18 +550,14 @@ class TestFetchStoryContent:
         assert "取得できませんでした" in story.text
 
     @pytest.mark.asyncio
-    async def test_handles_timeout_error(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_handles_timeout_error(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Timeout error occurs.
         When: _fetch_story_content is called.
         Then: Error message is set.
         """
         hacker_news.http_client = AsyncMock()
-        hacker_news.http_client.get = AsyncMock(
-            side_effect=Exception("Connection timeout")
-        )
+        hacker_news.http_client.get = AsyncMock(side_effect=Exception("Connection timeout"))
 
         story = Story(
             title="Timeout Story",
@@ -632,18 +570,14 @@ class TestFetchStoryContent:
         assert "取得できませんでした" in story.text
 
     @pytest.mark.asyncio
-    async def test_handles_generic_error(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_handles_generic_error(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Unknown error occurs.
         When: _fetch_story_content is called.
         Then: Error message is set.
         """
         hacker_news.http_client = AsyncMock()
-        hacker_news.http_client.get = AsyncMock(
-            side_effect=Exception("Unknown error occurred")
-        )
+        hacker_news.http_client.get = AsyncMock(side_effect=Exception("Unknown error occurred"))
 
         story = Story(
             title="Generic Error Story",
@@ -660,9 +594,7 @@ class TestLogFetchSummary:
     """Tests for HackerNewsRetriever._log_fetch_summary method."""
 
     @pytest.mark.asyncio
-    async def test_logs_summary_correctly(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_logs_summary_correctly(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: List of stories with various states.
         When: _log_fetch_summary is called.
@@ -694,9 +626,7 @@ class TestSummarizeStory:
             text="This is the story content.",
         )
 
-        with patch.object(
-            hacker_news.gpt_client, "generate_async", new_callable=AsyncMock
-        ) as mock_generate:
+        with patch.object(hacker_news.gpt_client, "generate_async", new_callable=AsyncMock) as mock_generate:
             mock_generate.return_value = "Generated summary"
             with patch.object(hacker_news, "rate_limit", new_callable=AsyncMock):
                 await hacker_news._summarize_story(story)
@@ -721,9 +651,7 @@ class TestSummarizeStory:
         assert "本文情報がない" in story.summary
 
     @pytest.mark.asyncio
-    async def test_handles_error_gracefully(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_handles_error_gracefully(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: GPT raises exception.
         When: _summarize_story is called.
@@ -735,9 +663,7 @@ class TestSummarizeStory:
             text="Content",
         )
 
-        with patch.object(
-            hacker_news.gpt_client, "generate_async", new_callable=AsyncMock
-        ) as mock_generate:
+        with patch.object(hacker_news.gpt_client, "generate_async", new_callable=AsyncMock) as mock_generate:
             mock_generate.side_effect = Exception("API error")
             await hacker_news._summarize_story(story)
 
@@ -748,9 +674,7 @@ class TestSummarizeStories:
     """Tests for HackerNewsRetriever._summarize_stories method."""
 
     @pytest.mark.asyncio
-    async def test_summarizes_all_stories(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_summarizes_all_stories(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: List of stories.
         When: _summarize_stories is called.
@@ -761,9 +685,7 @@ class TestSummarizeStories:
             Story(title="Story 2", score=200, text="Content 2"),
         ]
 
-        with patch.object(
-            hacker_news, "_summarize_story", new_callable=AsyncMock
-        ) as mock_summarize:
+        with patch.object(hacker_news, "_summarize_story", new_callable=AsyncMock) as mock_summarize:
             with patch.object(
                 hacker_news,
                 "_update_blocked_domains_from_errors",
@@ -787,9 +709,7 @@ class TestUpdateBlockedDomainsFromErrors:
     """Tests for HackerNewsRetriever._update_blocked_domains_from_errors method."""
 
     @pytest.mark.asyncio
-    async def test_detects_error_domains(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_detects_error_domains(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Stories with error states.
         When: _update_blocked_domains_from_errors is called.
@@ -804,9 +724,7 @@ class TestUpdateBlockedDomainsFromErrors:
             ),
         ]
 
-        with patch.object(
-            hacker_news, "_add_to_blocked_domains", new_callable=AsyncMock
-        ) as mock_add:
+        with patch.object(hacker_news, "_add_to_blocked_domains", new_callable=AsyncMock) as mock_add:
             await hacker_news._update_blocked_domains_from_errors(stories)
 
         mock_add.assert_called_once()
@@ -814,9 +732,7 @@ class TestUpdateBlockedDomainsFromErrors:
         assert "error-domain.com" in call_args
 
     @pytest.mark.asyncio
-    async def test_detects_various_error_types(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_detects_various_error_types(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Stories with different error types.
         When: _update_blocked_domains_from_errors is called.
@@ -849,9 +765,7 @@ class TestUpdateBlockedDomainsFromErrors:
             ),
         ]
 
-        with patch.object(
-            hacker_news, "_add_to_blocked_domains", new_callable=AsyncMock
-        ) as mock_add:
+        with patch.object(hacker_news, "_add_to_blocked_domains", new_callable=AsyncMock) as mock_add:
             await hacker_news._update_blocked_domains_from_errors(stories)
 
         # At least some domains should be added
@@ -880,9 +794,7 @@ class TestAddToBlockedDomains:
 
         with patch("builtins.open", mock_open()):
             with patch("os.path.exists", return_value=True):
-                with patch(
-                    "json.load", return_value=hacker_news.blocked_domains.copy()
-                ):
+                with patch("json.load", return_value=hacker_news.blocked_domains.copy()):
                     with patch("json.dump") as mock_dump:
                         await hacker_news._add_to_blocked_domains(new_domains)
 
@@ -905,9 +817,7 @@ class TestAddToBlockedDomains:
             await hacker_news._add_to_blocked_domains(new_domains)
 
     @pytest.mark.asyncio
-    async def test_skips_existing_domains(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_skips_existing_domains(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Domain already in blocked list.
         When: _add_to_blocked_domains is called.
@@ -922,9 +832,7 @@ class TestAddToBlockedDomains:
 
         with patch("builtins.open", mock_open()):
             with patch("os.path.exists", return_value=True):
-                with patch(
-                    "json.load", return_value=hacker_news.blocked_domains.copy()
-                ):
+                with patch("json.load", return_value=hacker_news.blocked_domains.copy()):
                     with patch("json.dump") as mock_dump:
                         await hacker_news._add_to_blocked_domains(new_domains)
 
@@ -936,9 +844,7 @@ class TestStoreSummaries:
     """Tests for HackerNewsRetriever._store_summaries method."""
 
     @pytest.mark.asyncio
-    async def test_returns_empty_when_no_stories(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_returns_empty_when_no_stories(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: Empty stories list.
         When: _store_summaries is called.
@@ -948,9 +854,7 @@ class TestStoreSummaries:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_saves_stories_and_returns_paths(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_saves_stories_and_returns_paths(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: List of stories.
         When: _store_summaries is called.
@@ -1012,21 +916,15 @@ class TestLoadExistingStories:
         """
         existing_data = [{"title": "Old Story", "score": 50}]
 
-        with patch.object(
-            hacker_news, "load_json", new_callable=AsyncMock
-        ) as mock_load:
+        with patch.object(hacker_news, "load_json", new_callable=AsyncMock) as mock_load:
             mock_load.return_value = existing_data
-            result = await hacker_news._load_existing_stories(
-                datetime(2024, 1, 15, tzinfo=timezone.utc)
-            )
+            result = await hacker_news._load_existing_stories(datetime(2024, 1, 15, tzinfo=timezone.utc))
 
         assert len(result) == 1
         assert result[0]["title"] == "Old Story"
 
     @pytest.mark.asyncio
-    async def test_falls_back_to_markdown(
-        self, hacker_news: HackerNewsRetriever
-    ) -> None:
+    async def test_falls_back_to_markdown(self, hacker_news: HackerNewsRetriever) -> None:
         """
         Given: JSON file doesn't exist but markdown does.
         When: _load_existing_stories is called.
@@ -1041,17 +939,11 @@ Test summary
 
 ---
 """
-        with patch.object(
-            hacker_news, "load_json", new_callable=AsyncMock
-        ) as mock_load:
+        with patch.object(hacker_news, "load_json", new_callable=AsyncMock) as mock_load:
             mock_load.return_value = None
-            with patch.object(
-                hacker_news.storage, "load", new_callable=AsyncMock
-            ) as mock_md:
+            with patch.object(hacker_news.storage, "load", new_callable=AsyncMock) as mock_md:
                 mock_md.return_value = markdown_content
-                result = await hacker_news._load_existing_stories(
-                    datetime(2024, 1, 15, tzinfo=timezone.utc)
-                )
+                result = await hacker_news._load_existing_stories(datetime(2024, 1, 15, tzinfo=timezone.utc))
 
         assert len(result) == 1
         assert result[0]["title"] == "Test Story"
@@ -1077,9 +969,7 @@ class TestRunSyncWrapper:
 class TestLoadBlockedDomains:
     """Tests for HackerNewsRetriever._load_blocked_domains method."""
 
-    def test_loads_blocked_domains_from_file(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_loads_blocked_domains_from_file(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Given: blocked_domains.json exists.
         When: _load_blocked_domains is called during init.

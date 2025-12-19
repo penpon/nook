@@ -92,9 +92,7 @@ class TestRepositoryDataclass:
 class TestRepositorySortKey:
     """Tests for GithubTrending._repository_sort_key method."""
 
-    def test_sort_key_returns_stars_and_published(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_sort_key_returns_stars_and_published(self, trending: GithubTrending) -> None:
         """
         Given: A repository record with stars and published_at.
         When: _repository_sort_key is called.
@@ -151,9 +149,7 @@ class TestRepositorySortKey:
         # 確認
         assert result[0] == 0
 
-    def test_sort_key_handles_missing_published_at(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_sort_key_handles_missing_published_at(self, trending: GithubTrending) -> None:
         """
         Given: A repository record without published_at.
         When: _repository_sort_key is called.
@@ -171,9 +167,7 @@ class TestRepositorySortKey:
         # 確認
         assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
 
-    def test_sort_key_handles_invalid_published_at(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_sort_key_handles_invalid_published_at(self, trending: GithubTrending) -> None:
         """
         Given: A repository record with invalid published_at format.
         When: _repository_sort_key is called.
@@ -192,9 +186,7 @@ class TestRepositorySortKey:
         # 確認
         assert result[1] == datetime.min.replace(tzinfo=timezone.utc)
 
-    def test_sort_key_orders_multiple_repositories(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_sort_key_orders_multiple_repositories(self, trending: GithubTrending) -> None:
         """
         Given: Multiple repository records with various stars/published_at.
         When: Records are sorted using _repository_sort_key.
@@ -235,9 +227,7 @@ class TestRepositorySortKey:
             "owner/repo-low-stars",
         ]
 
-    def test_sort_key_with_equal_stars_compares_published_at(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_sort_key_with_equal_stars_compares_published_at(self, trending: GithubTrending) -> None:
         """
         Given: Records with identical stars but different published_at values.
         When: Sorting by _repository_sort_key.
@@ -261,9 +251,7 @@ class TestRepositorySortKey:
         # 確認
         assert [record["name"] for record in sorted_records] == ["newer", "older"]
 
-    def test_sort_key_with_different_stars_prioritizes_stars(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_sort_key_with_different_stars_prioritizes_stars(self, trending: GithubTrending) -> None:
         """
         Given: Records with different stars counts.
         When: Sorting by _repository_sort_key.
@@ -354,9 +342,7 @@ class TestRenderMarkdown:
         assert "## Python" in result
         assert "## Javascript" in result
 
-    def test_render_markdown_all_language_display(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_all_language_display(self, trending: GithubTrending) -> None:
         """
         Given: Records with language='all'.
         When: _render_markdown is called.
@@ -405,9 +391,7 @@ class TestRenderMarkdown:
         assert "### [owner/repo]" in result
         assert "⭐ スター数: 100" in result
 
-    def test_render_markdown_empty_records_returns_header_only(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_empty_records_returns_header_only(self, trending: GithubTrending) -> None:
         """
         Given: No records.
         When: _render_markdown is called.
@@ -424,9 +408,7 @@ class TestRenderMarkdown:
         assert "# GitHub トレンドリポジトリ (2024-01-15)" in result
         assert "##" not in result  # 言語セクションなし
 
-    def test_render_markdown_missing_name_field_raises_key_error(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_missing_name_field_raises_key_error(self, trending: GithubTrending) -> None:
         """
         Given: Record missing the 'name' field.
         When: _render_markdown is called.
@@ -447,9 +429,7 @@ class TestRenderMarkdown:
         with pytest.raises(KeyError, match="name"):
             trending._render_markdown(records, today)
 
-    def test_render_markdown_missing_link_field_raises_key_error(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_missing_link_field_raises_key_error(self, trending: GithubTrending) -> None:
         """
         Given: Record missing the 'link' field.
         When: _render_markdown is called.
@@ -468,9 +448,7 @@ class TestRenderMarkdown:
         with pytest.raises(KeyError, match="link"):
             trending._render_markdown(records, today)
 
-    def test_render_markdown_missing_stars_field_raises_key_error(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_missing_stars_field_raises_key_error(self, trending: GithubTrending) -> None:
         """
         Given: Record missing the 'stars' field.
         When: _render_markdown is called.
@@ -489,9 +467,7 @@ class TestRenderMarkdown:
         with pytest.raises(KeyError, match="stars"):
             trending._render_markdown(records, today)
 
-    def test_render_markdown_string_stars_raises_type_error(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_string_stars_raises_type_error(self, trending: GithubTrending) -> None:
         """
         Given: Record with string stars (invalid type).
         When: _render_markdown is called.
@@ -511,9 +487,7 @@ class TestRenderMarkdown:
         with pytest.raises(TypeError, match="must be numeric"):
             trending._render_markdown(records, today)
 
-    def test_render_markdown_language_none_raises_value_error(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_language_none_raises_value_error(self, trending: GithubTrending) -> None:
         """
         Given: Record with language=None.
         When: _render_markdown is called.
@@ -533,9 +507,7 @@ class TestRenderMarkdown:
         with pytest.raises(ValueError, match="must not be None"):
             trending._render_markdown(records, today)
 
-    def test_render_markdown_language_non_string_raises_type_error(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_render_markdown_language_non_string_raises_type_error(self, trending: GithubTrending) -> None:
         """
         Given: Record with non-string language value.
         When: _render_markdown is called.
@@ -677,9 +649,7 @@ class TestSerializeRepositories:
         default_date = date(2024, 1, 15)
 
         # 操作
-        result = trending._serialize_repositories(
-            repositories_by_language, default_date
-        )
+        result = trending._serialize_repositories(repositories_by_language, default_date)
 
         # 確認
         assert len(result) == 1
@@ -690,9 +660,7 @@ class TestSerializeRepositories:
         assert result[0]["stars"] == 1000
         assert "published_at" in result[0]
 
-    def test_serialize_repositories_multiple_languages(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_serialize_repositories_multiple_languages(self, trending: GithubTrending) -> None:
         """
         Given: Repositories from multiple languages.
         When: _serialize_repositories is called.
@@ -718,9 +686,7 @@ class TestSerializeRepositories:
         default_date = date(2024, 1, 15)
 
         # 操作
-        result = trending._serialize_repositories(
-            repositories_by_language, default_date
-        )
+        result = trending._serialize_repositories(repositories_by_language, default_date)
 
         # 確認
         assert len(result) == 2
@@ -729,9 +695,7 @@ class TestSerializeRepositories:
         assert python_record["name"] == "owner/python-repo"
         assert js_record["name"] == "owner/js-repo"
 
-    def test_serialize_repositories_published_at_format(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_serialize_repositories_published_at_format(self, trending: GithubTrending) -> None:
         """
         Given: A repository to serialize.
         When: _serialize_repositories is called.
@@ -748,9 +712,7 @@ class TestSerializeRepositories:
         default_date = date(2024, 1, 15)
 
         # 操作
-        result = trending._serialize_repositories(
-            repositories_by_language, default_date
-        )
+        result = trending._serialize_repositories(repositories_by_language, default_date)
 
         # 確認
         published_at = result[0]["published_at"]
@@ -768,16 +730,12 @@ class TestSerializeRepositories:
         default_date = date(2024, 1, 15)
 
         # 操作
-        result = trending._serialize_repositories(
-            repositories_by_language, default_date
-        )
+        result = trending._serialize_repositories(repositories_by_language, default_date)
 
         # 確認
         assert result == []
 
-    def test_serialize_repositories_with_none_description(
-        self, trending: GithubTrending
-    ) -> None:
+    def test_serialize_repositories_with_none_description(self, trending: GithubTrending) -> None:
         """
         Given: A repository with None description.
         When: _serialize_repositories is called.
@@ -794,9 +752,7 @@ class TestSerializeRepositories:
         default_date = date(2024, 1, 15)
 
         # 操作
-        result = trending._serialize_repositories(
-            repositories_by_language, default_date
-        )
+        result = trending._serialize_repositories(repositories_by_language, default_date)
 
         # 確認
         assert result[0]["description"] is None

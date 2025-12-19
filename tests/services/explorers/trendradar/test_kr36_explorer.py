@@ -11,9 +11,7 @@ from nook.services.explorers.trendradar.kr36_explorer import Kr36Explorer
 
 @pytest.fixture
 def mock_trendradar_client():
-    with patch(
-        "nook.services.explorers.trendradar.base.TrendRadarClient"
-    ) as MockClient:
+    with patch("nook.services.explorers.trendradar.base.TrendRadarClient") as MockClient:
         client_instance = AsyncMock()
         MockClient.return_value = client_instance
         yield client_instance
@@ -80,20 +78,14 @@ async def test_collect_success(explorer, mock_trendradar_client):
     ]
 
     # Mocking _summarize_article to avoid GPT calls and complexity
-    with patch.object(
-        explorer, "_summarize_article", new_callable=AsyncMock
-    ) as mock_summarize:
-        with patch.object(
-            explorer, "_store_articles", new_callable=AsyncMock
-        ) as mock_store:
+    with patch.object(explorer, "_summarize_article", new_callable=AsyncMock) as mock_summarize:
+        with patch.object(explorer, "_store_articles", new_callable=AsyncMock) as mock_store:
             mock_store.return_value = [("path/to.json", "path/to.md")]
 
             result = await explorer.collect(days=1, limit=5)
 
             assert len(result) == 1
-            mock_trendradar_client.get_latest_news.assert_called_once_with(
-                platform="36kr", limit=5
-            )
+            mock_trendradar_client.get_latest_news.assert_called_once_with(platform="36kr", limit=5)
             mock_summarize.assert_called_once()
             mock_store.assert_called_once()
 

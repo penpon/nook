@@ -34,9 +34,7 @@ def log_article_counts(logger, existing_count: int, new_count: int) -> None:
     logger.info(f"   📊 既存: {existing_count}件（保持） | 新規: {new_count}件")
 
 
-def log_summary_candidates(
-    logger, candidates: List[Any], score_attr: str = "popularity_score"
-) -> None:
+def log_summary_candidates(logger, candidates: List[Any], score_attr: str = "popularity_score") -> None:
     """
     要約対象記事のリストを出力します。
 

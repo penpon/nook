@@ -95,9 +95,7 @@ async def test_setup_http_client_called_once(monkeypatch):
         calls["count"] += 1
         return sentinel_client
 
-    monkeypatch.setattr(
-        "nook.core.clients.http_client.get_http_client", fake_get_http_client
-    )
+    monkeypatch.setattr("nook.core.clients.http_client.get_http_client", fake_get_http_client)
 
     # When
     await service.setup_http_client()
@@ -268,9 +266,7 @@ async def test_save_with_backup_creates_backups(monkeypatch, tmp_path: Path):
         calls.append(("save", data, filename))
         return tmp_path / filename
 
-    service.storage = types.SimpleNamespace(
-        exists=fake_exists, rename=fake_rename, save=fake_save
-    )
+    service.storage = types.SimpleNamespace(exists=fake_exists, rename=fake_rename, save=fake_save)
 
     # When
     await service.save_with_backup({"new": "data"}, "test.json", keep_backups=3)
@@ -298,9 +294,7 @@ async def test_save_with_backup_multiple_backups(monkeypatch, tmp_path: Path):
         calls.append(("save", data, filename))
         return tmp_path / filename
 
-    service.storage = types.SimpleNamespace(
-        exists=fake_exists, rename=fake_rename, save=fake_save
-    )
+    service.storage = types.SimpleNamespace(exists=fake_exists, rename=fake_rename, save=fake_save)
 
     # When
     await service.save_with_backup({"new": "data"}, "test.json", keep_backups=3)
@@ -374,9 +368,7 @@ async def test_setup_http_client_logs_debug_message(monkeypatch, caplog):
     async def fake_get_http_client():
         return MagicMock()
 
-    monkeypatch.setattr(
-        "nook.core.clients.http_client.get_http_client", fake_get_http_client
-    )
+    monkeypatch.setattr("nook.core.clients.http_client.get_http_client", fake_get_http_client)
     caplog.set_level("DEBUG", logger="dummy")
 
     # When
@@ -386,8 +378,7 @@ async def test_setup_http_client_logs_debug_message(monkeypatch, caplog):
     debug_records = [
         record
         for record in caplog.records
-        if record.levelname == "DEBUG"
-        and "HTTP client setup completed" in record.message
+        if record.levelname == "DEBUG" and "HTTP client setup completed" in record.message
     ]
     assert len(debug_records) == 1
 

@@ -17,9 +17,7 @@ class TestJuejinExplorerInitialization:
     """JuejinExplorerの初期化テスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> JuejinExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> JuejinExplorer:
         """テスト用のJuejinExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return JuejinExplorer(storage_dir=str(tmp_path))
@@ -33,9 +31,7 @@ class TestJuejinExplorerInitialization:
         assert explorer.service_name == "trendradar-juejin"
         assert explorer.client is not None
 
-    def test_explorer_with_custom_storage_dir(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_explorer_with_custom_storage_dir(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """
         Given: カスタムストレージディレクトリ。
         When: JuejinExplorer がインスタンス化されたとき。
@@ -50,9 +46,7 @@ class TestJuejinExplorerTransform:
     """TrendRadarからArticleへの変換テスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> JuejinExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> JuejinExplorer:
         """テスト用のJuejinExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return JuejinExplorer(storage_dir=str(tmp_path))
@@ -136,9 +130,7 @@ class TestJuejinExplorerCollect:
     """JuejinExplorer.collectメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> JuejinExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> JuejinExplorer:
         """テスト用のJuejinExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = JuejinExplorer(storage_dir=str(tmp_path))
@@ -172,9 +164,7 @@ class TestJuejinExplorerCollect:
             },
         ]
 
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             # Mock GPT client to avoid actual API calls
             explorer.gpt_client = MagicMock()
@@ -195,9 +185,7 @@ class TestJuejinExplorerCollect:
             assert all(p[0].endswith(".json") and p[1].endswith(".md") for p in result)
 
     @pytest.mark.asyncio
-    async def test_collect_handles_null_fields_from_trendradar(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_collect_handles_null_fields_from_trendradar(self, explorer: JuejinExplorer) -> None:
         """
         Given: TrendRadar が null フィールド (例: desc/title/url) を含む項目を返す。
         When: collect が呼ばれたとき。
@@ -212,9 +200,7 @@ class TestJuejinExplorerCollect:
             }
         ]
 
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
@@ -231,18 +217,14 @@ class TestJuejinExplorerCollect:
         When: collect が呼ばれたとき。
         Then: 例外が伝播される。
         """
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = Exception("API Error")
 
             with pytest.raises(Exception, match="API Error"):
                 await explorer.collect(days=1, limit=10)
 
     @pytest.mark.asyncio
-    async def test_collect_raises_error_for_multi_day_with_days_param(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_collect_raises_error_for_multi_day_with_days_param(self, explorer: JuejinExplorer) -> None:
         """
         Given: days パラメータ != 1 かつ target_dates が None。
         When: collect が呼ばれたとき。
@@ -278,18 +260,14 @@ class TestJuejinExplorerCollect:
             await explorer.collect(days=1, limit=False)
 
     @pytest.mark.asyncio
-    async def test_collect_with_single_target_date(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_collect_with_single_target_date(self, explorer: JuejinExplorer) -> None:
         """
         Given: target_dates パラメータ内の単一の日付。
         When: collect が呼ばれたとき。
         Then: 日付を受け入れ、ファイル名に使用する。
         """
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             explorer.gpt_client = MagicMock()
             explorer.gpt_client.generate_async = AsyncMock(return_value="要約テキスト")
@@ -303,9 +281,7 @@ class TestJuejinExplorerCollect:
             assert "2024-01-15" in md_path
 
     @pytest.mark.asyncio
-    async def test_collect_rejects_empty_target_dates(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_collect_rejects_empty_target_dates(self, explorer: JuejinExplorer) -> None:
         """
         Given: 空の target_dates リスト。
         When: collect が呼ばれたとき。
@@ -315,9 +291,7 @@ class TestJuejinExplorerCollect:
             await explorer.collect(target_dates=[])
 
     @pytest.mark.asyncio
-    async def test_collect_with_multiple_target_dates(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_collect_with_multiple_target_dates(self, explorer: JuejinExplorer) -> None:
         """
         Given: target_dates パラメータ内の複数の日付。
         When: collect が呼ばれたとき。
@@ -328,17 +302,13 @@ class TestJuejinExplorerCollect:
             await explorer.collect(target_dates=target_dates)
 
     @pytest.mark.asyncio
-    async def test_collect_returns_empty_for_no_news(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_collect_returns_empty_for_no_news(self, explorer: JuejinExplorer) -> None:
         """
         Given: TrendRadarClient が空のリストを返す。
         When: collect が呼ばれたとき。
         Then: 空のリストを返す。
         """
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = []
 
             result = await explorer.collect(days=1, limit=10)
@@ -353,15 +323,11 @@ class TestJuejinExplorerCollect:
         Then: 記事の要約にエラーメッセージが含まれ、collect が正常に完了する。
         """
         mock_news = [{"title": "Test", "url": "http://test", "hot": 100}]
-        with patch.object(
-            explorer.client, "get_latest_news", new_callable=AsyncMock
-        ) as mock_get:
+        with patch.object(explorer.client, "get_latest_news", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_news
             # Mock gpt_client.generate_async to raise exception
             explorer.gpt_client = MagicMock()
-            explorer.gpt_client.generate_async = AsyncMock(
-                side_effect=Exception("GPT Error")
-            )
+            explorer.gpt_client.generate_async = AsyncMock(side_effect=Exception("GPT Error"))
 
             # Patch _store_articles to capture articles without real I/O
             captured_articles = []
@@ -378,10 +344,7 @@ class TestJuejinExplorerCollect:
             assert isinstance(result, list)
             # Verify error message is set in article summary (fixed message, no exception details)
             assert len(captured_articles) == 1
-            assert (
-                captured_articles[0].summary
-                == JuejinExplorer.ERROR_MSG_GENERATION_FAILED
-            )
+            assert captured_articles[0].summary == JuejinExplorer.ERROR_MSG_GENERATION_FAILED
             # Ensure no exception details are leaked
             assert "GPT Error" not in captured_articles[0].summary
 
@@ -390,9 +353,7 @@ class TestJuejinExplorerRun:
     """JuejinExplorer.runメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> JuejinExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> JuejinExplorer:
         """テスト用のJuejinExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = JuejinExplorer(storage_dir=str(tmp_path))
@@ -406,17 +367,13 @@ class TestJuejinExplorerRun:
         When: run が呼ばれたとき。
         Then: asyncio.run 経由で _run_with_cleanup が呼び出される。
         """
-        with patch.object(
-            explorer, "_run_with_cleanup", new_callable=AsyncMock
-        ) as mock_cleanup:
+        with patch.object(explorer, "_run_with_cleanup", new_callable=AsyncMock) as mock_cleanup:
             explorer.run(days=1, limit=20)
 
             mock_cleanup.assert_called_once_with(days=1, limit=20)
 
     @pytest.mark.asyncio
-    async def test_run_with_cleanup_calls_collect_and_close(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_run_with_cleanup_calls_collect_and_close(self, explorer: JuejinExplorer) -> None:
         """
         Given: JuejinExplorer インスタンス。
         When: _run_with_cleanup が呼ばれたとき。
@@ -424,45 +381,33 @@ class TestJuejinExplorerRun:
         """
         with patch.object(explorer, "collect", new_callable=AsyncMock) as mock_collect:
             mock_collect.return_value = []
-            with patch.object(
-                explorer.client, "close", new_callable=AsyncMock
-            ) as mock_close:
+            with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
                 await explorer._run_with_cleanup(days=1, limit=20)
 
                 mock_collect.assert_called_once_with(days=1, limit=20)
                 mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_base_service_cleanup_on_error(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_base_service_cleanup_on_error(self, explorer: JuejinExplorer) -> None:
         """
         Given: collect が例外を発生させる。
         When: _run_with_cleanup が呼ばれたとき。
         Then: close がそれでも呼ばれる。
         """
-        with patch.object(
-            explorer, "collect", new_callable=AsyncMock, side_effect=ValueError("Test")
-        ):
-            with patch.object(
-                explorer.client, "close", new_callable=AsyncMock
-            ) as mock_close:
+        with patch.object(explorer, "collect", new_callable=AsyncMock, side_effect=ValueError("Test")):
+            with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
                 with pytest.raises(ValueError):
                     await explorer._run_with_cleanup()
                 mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_run_raises_error_from_running_loop(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_run_raises_error_from_running_loop(self, explorer: JuejinExplorer) -> None:
         """
         Given: アクティブな asyncio イベントループ。
         When: ループ内から run() が呼ばれたとき。
         Then: RuntimeError を発生させる。
         """
-        with pytest.raises(
-            RuntimeError, match="イベントループ実行中には使用できません"
-        ):
+        with pytest.raises(RuntimeError, match="イベントループ実行中には使用できません"):
             explorer.run(days=1, limit=10)
 
 
@@ -470,9 +415,7 @@ class TestJuejinExplorerContextManager:
     """JuejinExplorerのコンテキストマネージャーメソッドのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> JuejinExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> JuejinExplorer:
         """テスト用のJuejinExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return JuejinExplorer(storage_dir=str(tmp_path))
@@ -484,25 +427,19 @@ class TestJuejinExplorerContextManager:
         When: ブロックに入り、出るとき。
         Then: 終了時に close() が呼ばれる。
         """
-        with patch.object(
-            explorer.client, "close", new_callable=AsyncMock
-        ) as mock_close:
+        with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
             async with explorer as e:
                 assert e is explorer
             mock_close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_context_manager_cleanup_on_error(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    async def test_context_manager_cleanup_on_error(self, explorer: JuejinExplorer) -> None:
         """
         Given: async with ブロック内で例外が発生する。
         When: ブロックが終了するとき。
         Then: close() がそれでも呼ばれる。
         """
-        with patch.object(
-            explorer.client, "close", new_callable=AsyncMock
-        ) as mock_close:
+        with patch.object(explorer.client, "close", new_callable=AsyncMock) as mock_close:
             with pytest.raises(ValueError):
                 async with explorer:
                     raise ValueError("Test Error")
@@ -513,9 +450,7 @@ class TestJuejinExplorerMarkdownRendering:
     """Markdownレンダリングのテスト。"""
 
     @pytest.fixture
-    def explorer(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> JuejinExplorer:
+    def explorer(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> JuejinExplorer:
         """テスト用のJuejinExplorerインスタンスを作成。"""
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return JuejinExplorer(storage_dir=str(tmp_path))
@@ -542,9 +477,7 @@ class TestJuejinExplorerMarkdownRendering:
         assert "**人気度**: 10,000" in result
         assert "Vue 3.4の新機能について解説" in result
 
-    def test_render_markdown_escapes_special_characters(
-        self, explorer: JuejinExplorer
-    ) -> None:
+    def test_render_markdown_escapes_special_characters(self, explorer: JuejinExplorer) -> None:
         """
         Given: 特殊文字を含む記録。
         When: _render_markdown が呼ばれたとき。
@@ -612,15 +545,9 @@ class TestJuejinExplorerUtils:
         # 角括弧
         assert explorer._escape_markdown_text("[link]") == "\\[link\\]"
         # 複合
-        assert (
-            explorer._escape_markdown_text("<b>[B]</b>") == "&lt;b&gt;\\[B\\]&lt;/b&gt;"
-        )
+        assert explorer._escape_markdown_text("<b>[B]</b>") == "&lt;b&gt;\\[B\\]&lt;/b&gt;"
 
     def test_escape_markdown_url(self, explorer: JuejinExplorer) -> None:
         """_escape_markdown_url のテスト。"""
-        assert (
-            explorer._escape_markdown_url("http://e.com/(1)") == "http://e.com/\\(1\\)"
-        )
-        assert (
-            explorer._escape_markdown_url("http://e.com/[1]") == "http://e.com/\\[1\\]"
-        )
+        assert explorer._escape_markdown_url("http://e.com/(1)") == "http://e.com/\\(1\\)"
+        assert explorer._escape_markdown_url("http://e.com/[1]") == "http://e.com/\\[1\\]"

@@ -33,9 +33,7 @@ class TestExtractPopularity:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return TechFeed()
 
-    def test_extracts_popularity_from_meta_tag_article_reaction_count(
-        self, tech_feed: TechFeed
-    ) -> None:
+    def test_extracts_popularity_from_meta_tag_article_reaction_count(self, tech_feed: TechFeed) -> None:
         """
         Given: HTML with meta tag containing article:reaction_count property.
         When: _extract_popularity is called.
@@ -56,9 +54,7 @@ class TestExtractPopularity:
 
         assert result == 42.0
 
-    def test_extracts_popularity_from_meta_tag_reaction_count(
-        self, tech_feed: TechFeed
-    ) -> None:
+    def test_extracts_popularity_from_meta_tag_reaction_count(self, tech_feed: TechFeed) -> None:
         """
         Given: HTML with meta tag containing reaction-count name.
         When: _extract_popularity is called.
@@ -99,9 +95,7 @@ class TestExtractPopularity:
 
         assert result == 25.0
 
-    def test_extracts_popularity_from_like_count_attribute(
-        self, tech_feed: TechFeed
-    ) -> None:
+    def test_extracts_popularity_from_like_count_attribute(self, tech_feed: TechFeed) -> None:
         """
         Given: HTML with element containing data-like-count attribute.
         When: _extract_popularity is called.
@@ -121,9 +115,7 @@ class TestExtractPopularity:
 
         assert result == 50.0
 
-    def test_extracts_popularity_from_button_text_with_keyword(
-        self, tech_feed: TechFeed
-    ) -> None:
+    def test_extracts_popularity_from_button_text_with_keyword(self, tech_feed: TechFeed) -> None:
         """
         Given: HTML with button containing 'いいね' keyword and a number.
         When: _extract_popularity is called.
@@ -248,17 +240,13 @@ class TestSelectTopArticles:
         When: _select_top_articles is called with limit=2.
         Then: Only 2 articles are returned.
         """
-        articles = [
-            self._create_article(f"Article {i}", float(i * 10)) for i in range(5)
-        ]
+        articles = [self._create_article(f"Article {i}", float(i * 10)) for i in range(5)]
 
         result = tech_feed._select_top_articles(articles, limit=2)
 
         assert len(result) == 2
 
-    def test_uses_summary_limit_when_no_limit_specified(
-        self, tech_feed: TechFeed
-    ) -> None:
+    def test_uses_summary_limit_when_no_limit_specified(self, tech_feed: TechFeed) -> None:
         """
         Given: A list of 20 articles.
         When: _select_top_articles is called without limit.

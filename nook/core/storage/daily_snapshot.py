@@ -31,9 +31,7 @@ def _parse_record_date(value: object) -> date | None:
     return None
 
 
-def group_records_by_date(
-    records: Iterable[Record], *, default_date: date
-) -> Mapping[date, list[Record]]:
+def group_records_by_date(records: Iterable[Record], *, default_date: date) -> Mapping[date, list[Record]]:
     """Group serialized article records by their published date."""
 
     grouped: dict[date, list[Record]] = defaultdict(list)

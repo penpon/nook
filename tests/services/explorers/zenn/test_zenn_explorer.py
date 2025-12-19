@@ -28,9 +28,7 @@ class TestExtractPopularity:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return ZennExplorer()
 
-    def test_extracts_popularity_from_zenn_meta_tag(
-        self, zenn_explorer: ZennExplorer
-    ) -> None:
+    def test_extracts_popularity_from_zenn_meta_tag(self, zenn_explorer: ZennExplorer) -> None:
         """
         Given: HTML with meta tag containing zenn:likes_count property.
         When: _extract_popularity is called.
@@ -51,9 +49,7 @@ class TestExtractPopularity:
 
         assert result == 150.0
 
-    def test_extracts_popularity_from_data_like_count(
-        self, zenn_explorer: ZennExplorer
-    ) -> None:
+    def test_extracts_popularity_from_data_like_count(self, zenn_explorer: ZennExplorer) -> None:
         """
         Given: HTML with element containing data-like-count attribute.
         When: _extract_popularity is called.
@@ -73,9 +69,7 @@ class TestExtractPopularity:
 
         assert result == 75.0
 
-    def test_extracts_popularity_from_button_with_iine_text(
-        self, zenn_explorer: ZennExplorer
-    ) -> None:
+    def test_extracts_popularity_from_button_with_iine_text(self, zenn_explorer: ZennExplorer) -> None:
         """
         Given: HTML with button containing 'いいね' keyword and a number.
         When: _extract_popularity is called.
@@ -95,9 +89,7 @@ class TestExtractPopularity:
 
         assert result == 25.0
 
-    def test_extracts_popularity_from_entry_likes_attribute(
-        self, zenn_explorer: ZennExplorer
-    ) -> None:
+    def test_extracts_popularity_from_entry_likes_attribute(self, zenn_explorer: ZennExplorer) -> None:
         """
         Given: Entry object with likes attribute.
         When: _extract_popularity is called with empty HTML.
@@ -113,9 +105,7 @@ class TestExtractPopularity:
 
         assert result == 200.0
 
-    def test_returns_zero_when_no_popularity_found(
-        self, zenn_explorer: ZennExplorer
-    ) -> None:
+    def test_returns_zero_when_no_popularity_found(self, zenn_explorer: ZennExplorer) -> None:
         """
         Given: HTML with no popularity indicators.
         When: _extract_popularity is called.
@@ -131,9 +121,7 @@ class TestExtractPopularity:
 
         assert result == 0.0
 
-    def test_prioritizes_likes_over_likes_count_attribute(
-        self, zenn_explorer: ZennExplorer
-    ) -> None:
+    def test_prioritizes_likes_over_likes_count_attribute(self, zenn_explorer: ZennExplorer) -> None:
         """
         Given: Entry with both likes and likes_count attributes.
         When: _extract_popularity is called.
@@ -149,9 +137,7 @@ class TestExtractPopularity:
 
         assert result == 100.0
 
-    def test_falls_back_to_likes_when_likes_count_missing(
-        self, zenn_explorer: ZennExplorer
-    ) -> None:
+    def test_falls_back_to_likes_when_likes_count_missing(self, zenn_explorer: ZennExplorer) -> None:
         """
         Given: Entry with only likes attribute, likes_count is None.
         When: _extract_popularity is called.

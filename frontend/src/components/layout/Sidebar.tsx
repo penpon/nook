@@ -64,6 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         'trendradar-sspai',
         'trendradar-producthunt',
         'trendradar-freebuf',
+        'trendradar-wallstreetcn',
       ],
       defaultExpanded: true,
     },

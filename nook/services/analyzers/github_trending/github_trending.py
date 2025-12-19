@@ -102,9 +102,7 @@ class GithubTrending(BaseService):
         if self.http_client is None:
             await self.setup_http_client()
 
-        effective_target_dates = (
-            target_dates if target_dates is not None else target_dates_set(1)
-        )
+        effective_target_dates = target_dates if target_dates is not None else target_dates_set(1)
 
         # 日付ごとに処理
         saved_files: list[tuple[str, str]] = []
@@ -114,16 +112,10 @@ class GithubTrending(BaseService):
             # その日の既存リポジトリ名を取得
             existing_names_for_date = set()
             try:
-                existing_repos = await self._load_existing_repositories_by_date(
-                    datetime.combine(target_date, time.min)
-                )
-                existing_names_for_date = {
-                    repo.get("name", "") for repo in existing_repos
-                }
+                existing_repos = await self._load_existing_repositories_by_date(datetime.combine(target_date, time.min))
+                existing_names_for_date = {repo.get("name", "") for repo in existing_repos}
             except Exception as e:
-                self.logger.debug(
-                    f"既存リポジトリファイル {date_str}.json の読み込みに失敗しました: {e}"
-                )
+                self.logger.debug(f"既存リポジトリファイル {date_str}.json の読み込みに失敗しました: {e}")
 
             # 重複トラッカーを初期化
             dedup_tracker = DedupTracker()
@@ -133,25 +125,19 @@ class GithubTrending(BaseService):
             all_repositories = []
 
             # 言語指定なしのリポジトリを取得
-            repositories = await self._retrieve_repositories(
-                "any", limit, dedup_tracker
-            )
+            repositories = await self._retrieve_repositories("any", limit, dedup_tracker)
             all_repositories.append(("all", repositories))
             await self.rate_limit()  # レート制限を遵守
 
             # 一般的な言語のリポジトリを取得
             for language in self.languages_config["general"]:
-                repositories = await self._retrieve_repositories(
-                    language, limit, dedup_tracker
-                )
+                repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
                 all_repositories.append((language, repositories))
                 await self.rate_limit()  # レート制限を遵守
 
             # 特定の言語のリポジトリを取得
             for language in self.languages_config["specific"]:
-                repositories = await self._retrieve_repositories(
-                    language, limit, dedup_tracker
-                )
+                repositories = await self._retrieve_repositories(language, limit, dedup_tracker)
                 all_repositories.append((language, repositories))
                 await self.rate_limit()  # レート制限を遵守
 
@@ -165,11 +151,7 @@ class GithubTrending(BaseService):
             existing_count = len(existing_names_for_date)
 
             # 真に新規のリポジトリを確認
-            truly_new_repositories = [
-                repo
-                for repo in all_repos_flat
-                if repo.name not in existing_names_for_date
-            ]
+            truly_new_repositories = [repo for repo in all_repos_flat if repo.name not in existing_names_for_date]
 
             # 日付情報を先頭に表示
             log_processing_start(self.logger, date_str)
@@ -177,9 +159,7 @@ class GithubTrending(BaseService):
 
             if truly_new_repositories:
                 # 上位15件を選択して表示
-                selected_repos = sorted(
-                    truly_new_repositories, key=lambda x: x.stars, reverse=True
-                )[:15]
+                selected_repos = sorted(truly_new_repositories, key=lambda x: x.stars, reverse=True)[:15]
 
                 log_summary_candidates(self.logger, selected_repos, "stars")
 
@@ -189,25 +169,19 @@ class GithubTrending(BaseService):
                 # 言語ごとに再グループ化して翻訳
                 repos_by_language = {}
                 for language, repositories in all_repositories:
-                    repos_by_language[language] = [
-                        repo for repo in repositories if repo in truly_new_repositories
-                    ]
+                    repos_by_language[language] = [repo for repo in repositories if repo in truly_new_repositories]
 
-                repos_for_translation = [
-                    (lang, repos) for lang, repos in repos_by_language.items() if repos
-                ]
+                repos_for_translation = [(lang, repos) for lang, repos in repos_by_language.items() if repos]
 
                 translated_repos = await self._translate_repositories(
                     repos_for_translation,
-                    progress_callback=lambda idx,
-                    total,
-                    name: log_summarization_progress(self.logger, idx, total, name),
+                    progress_callback=lambda idx, total, name: log_summarization_progress(
+                        self.logger, idx, total, name
+                    ),
                 )
 
                 # 保存処理
-                json_path, md_path = await self._store_summaries_for_date(
-                    translated_repos, target_date
-                )
+                json_path, md_path = await self._store_summaries_for_date(translated_repos, target_date)
                 self.logger.info(f"\n   💾 保存完了: {json_path}, {md_path}")
                 saved_files.append((json_path, md_path))
             else:
@@ -224,9 +198,7 @@ class GithubTrending(BaseService):
         return saved_files
 
     @handle_errors(retries=3)
-    async def _retrieve_repositories(
-        self, language: str, limit: int, dedup_tracker: DedupTracker
-    ) -> list[Repository]:
+    async def _retrieve_repositories(self, language: str, limit: int, dedup_tracker: DedupTracker) -> list[Repository]:
         """
         特定の言語のトレンドリポジトリを取得します。
 
@@ -274,22 +246,14 @@ class GithubTrending(BaseService):
 
                 # 説明を取得
                 description_element = repo_element.select_one("p")
-                description = (
-                    description_element.text.strip() if description_element else None
-                )
+                description = description_element.text.strip() if description_element else None
 
                 # スター数を取得
                 stars_element = repo_element.select_one("a.Link--muted")
                 stars_text = stars_element.text.strip() if stars_element else "0"
-                stars = (
-                    int(stars_text.replace(",", ""))
-                    if stars_text.replace(",", "").isdigit()
-                    else 0
-                )
+                stars = int(stars_text.replace(",", "")) if stars_text.replace(",", "").isdigit() else 0
 
-                repository = Repository(
-                    name=name, description=description, link=link, stars=stars
-                )
+                repository = Repository(name=name, description=description, link=link, stars=stars)
 
                 repositories.append(repository)
                 dedup_tracker.add(name)
@@ -300,9 +264,7 @@ class GithubTrending(BaseService):
             return repositories
 
         except Exception as e:
-            self.logger.error(
-                f"Error retrieving repositories for language {language}: {str(e)}"
-            )
+            self.logger.error(f"Error retrieving repositories for language {language}: {str(e)}")
             raise APIException(f"Failed to retrieve repositories for {language}") from e
 
     def _load_existing_repositories(self) -> DedupTracker:
@@ -380,9 +342,7 @@ class GithubTrending(BaseService):
                                 progress_callback(current_idx, total_repos, repo.name)
 
                         except Exception as e:
-                            self.logger.error(
-                                f"Error translating description for {repo.name}: {str(e)}"
-                            )
+                            self.logger.error(f"Error translating description for {repo.name}: {str(e)}")
 
         except Exception as e:
             self.logger.error(f"Error in translation process: {str(e)}")
@@ -497,9 +457,7 @@ class GithubTrending(BaseService):
                 )
         return serialized
 
-    async def _load_existing_repositories_by_date(
-        self, target_date: datetime
-    ) -> list[dict[str, Any]]:
+    async def _load_existing_repositories_by_date(self, target_date: datetime) -> list[dict[str, Any]]:
         date_str = target_date.strftime("%Y-%m-%d")
         filename_json = f"{date_str}.json"
         existing_json = await self.load_json(filename_json)
@@ -594,11 +552,7 @@ class GithubTrending(BaseService):
             section_content = content[start:end]
 
             language_header = match.group(1).strip()
-            language_key = (
-                "all"
-                if language_header.lower().startswith("すべて")
-                else language_header.lower()
-            )
+            language_key = "all" if language_header.lower().startswith("すべて") else language_header.lower()
 
             for repo_match in repo_pattern.finditer(section_content):
                 name = repo_match.group("name").strip()

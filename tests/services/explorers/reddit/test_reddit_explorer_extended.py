@@ -70,9 +70,7 @@ async def test_collect_flow(mock_reddit_explorer):
     mock_subreddit.hot.side_effect = async_iter
 
     # Mock translate and summarize
-    mock_reddit_explorer._translate_to_japanese = AsyncMock(
-        side_effect=lambda x: f"Translated: {x}"
-    )
+    mock_reddit_explorer._translate_to_japanese = AsyncMock(side_effect=lambda x: f"Translated: {x}")
     mock_reddit_explorer._summarize_reddit_post = AsyncMock()
     mock_reddit_explorer._retrieve_top_comments_of_post = AsyncMock(return_value=[])
 
@@ -84,9 +82,7 @@ async def test_collect_flow(mock_reddit_explorer):
 
     mock_reddit_explorer._load_existing_titles = AsyncMock(return_value=mock_tracker)
     mock_reddit_explorer._load_existing_posts = AsyncMock(return_value=[])
-    mock_reddit_explorer._store_summaries = AsyncMock(
-        return_value=[("path/to.json", "path/to.md")]
-    )
+    mock_reddit_explorer._store_summaries = AsyncMock(return_value=[("path/to.json", "path/to.md")])
 
     with patch(
         "asyncpraw.Reddit", return_value=mock_reddit_instance
@@ -143,9 +139,7 @@ async def test_store_summaries(mock_reddit_explorer):
 @pytest.mark.asyncio
 async def test_load_existing_posts_json(mock_reddit_explorer):
     """Test loading existing posts from JSON."""
-    mock_reddit_explorer.load_json = AsyncMock(
-        return_value={"python": [{"id": "1", "title": "Existing"}]}
-    )
+    mock_reddit_explorer.load_json = AsyncMock(return_value={"python": [{"id": "1", "title": "Existing"}]})
 
     result = await mock_reddit_explorer._load_existing_posts(datetime(2023, 1, 1))
 
@@ -203,29 +197,16 @@ async def test_load_existing_titles(mock_reddit_explorer):
 def test_extract_post_id(mock_reddit_explorer):
     """Test permalink parsing logic."""
     # Standard format
-    assert (
-        mock_reddit_explorer._extract_post_id_from_permalink(
-            "/r/sub/comments/123id/title/"
-        )
-        == "123id"
-    )
+    assert mock_reddit_explorer._extract_post_id_from_permalink("/r/sub/comments/123id/title/") == "123id"
     # No title part
-    assert (
-        mock_reddit_explorer._extract_post_id_from_permalink("/r/sub/comments/123id/")
-        == "123id"
-    )
+    assert mock_reddit_explorer._extract_post_id_from_permalink("/r/sub/comments/123id/") == "123id"
     # Full URL
     assert (
-        mock_reddit_explorer._extract_post_id_from_permalink(
-            "https://reddit.com/r/sub/comments/123id/title/"
-        )
+        mock_reddit_explorer._extract_post_id_from_permalink("https://reddit.com/r/sub/comments/123id/title/")
         == "123id"
     )
     # Fallback
-    assert (
-        mock_reddit_explorer._extract_post_id_from_permalink("/simple/path/123id")
-        == "123id"
-    )
+    assert mock_reddit_explorer._extract_post_id_from_permalink("/simple/path/123id") == "123id"
     # Empty
     assert mock_reddit_explorer._extract_post_id_from_permalink("") == ""
 
@@ -257,9 +238,7 @@ async def test_retrieve_top_comments(mock_reddit_explorer):
         return_value=mock_submission
     )  # submission(id=...) is now a coroutine
 
-    mock_reddit_explorer._translate_to_japanese = AsyncMock(
-        return_value="Japanese Comment"
-    )
+    mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="Japanese Comment")
 
     comments = await mock_reddit_explorer._retrieve_top_comments_of_post(post)
 
@@ -292,9 +271,7 @@ async def test_retrieve_top_comments_missing_created_at(mock_reddit_explorer):
     mock_reddit_explorer.reddit = MagicMock()
     mock_reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
 
-    mock_reddit_explorer._translate_to_japanese = AsyncMock(
-        return_value="Japanese Comment"
-    )
+    mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="Japanese Comment")
 
     comments = await mock_reddit_explorer._retrieve_top_comments_of_post(post)
 
@@ -335,9 +312,7 @@ async def test_collect_flow_missing_created_at(mock_reddit_explorer):
 
     # Mock dependencies to avoid errors if code proceeds
     mock_reddit_explorer._load_existing_titles = AsyncMock(
-        return_value=MagicMock(
-            count=lambda: 0, is_duplicate=lambda x: (False, x), add=lambda x: None
-        )
+        return_value=MagicMock(count=lambda: 0, is_duplicate=lambda x: (False, x), add=lambda x: None)
     )
     mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="Translated")
 

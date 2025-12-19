@@ -111,9 +111,7 @@ class TestAIKeywords:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_ai_keywords_contains_english_terms(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_ai_keywords_contains_english_terms(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: Checking the ai_keywords list.
@@ -131,9 +129,7 @@ class TestAIKeywords:
         for keyword in expected_keywords:
             assert keyword in fivechan_explorer.ai_keywords
 
-    def test_ai_keywords_contains_japanese_terms(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_ai_keywords_contains_japanese_terms(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: Checking the ai_keywords list.
@@ -162,9 +158,7 @@ class TestGetRandomUserAgent:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_returns_valid_user_agent(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_returns_valid_user_agent(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: _get_random_user_agent is called.
@@ -175,13 +169,9 @@ class TestGetRandomUserAgent:
         assert isinstance(user_agent, str)
         assert len(user_agent) > 0
         # User agents typically contain browser identifiers
-        assert any(
-            browser in user_agent for browser in ["Mozilla", "Chrome", "Firefox"]
-        )
+        assert any(browser in user_agent for browser in ["Mozilla", "Chrome", "Firefox"])
 
-    def test_returns_user_agent_from_list(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_returns_user_agent_from_list(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: _get_random_user_agent is called.
@@ -201,9 +191,7 @@ class TestCalculateBackoffDelay:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_first_retry_has_short_delay(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_first_retry_has_short_delay(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Retry count of 0.
         When: _calculate_backoff_delay is called.
@@ -243,9 +231,7 @@ class TestLoadBoards:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_load_boards_returns_dict(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_load_boards_returns_dict(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: Checking the target_boards attribute.
@@ -273,9 +259,7 @@ class TestSubdomains:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_subdomains_are_configured(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_subdomains_are_configured(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: Checking the subdomains list.
@@ -285,9 +269,7 @@ class TestSubdomains:
         assert len(fivechan_explorer.subdomains) > 0
         assert all("5ch.net" in subdomain for subdomain in fivechan_explorer.subdomains)
 
-    def test_subdomains_include_common_servers(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_subdomains_include_common_servers(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: Checking the subdomains list.
@@ -308,9 +290,7 @@ class TestBrowserHeaders:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_browser_headers_are_configured(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_browser_headers_are_configured(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: Checking the browser_headers dict.
@@ -333,9 +313,7 @@ class TestBuildBoardUrl:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_build_board_url_formats_correctly(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_build_board_url_formats_correctly(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A board_id and server.
         When: _build_board_url is called.
@@ -357,9 +335,7 @@ class TestGetBoardServer:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_get_existing_board_server(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_get_existing_board_server(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: _get_board_server is called with existing board.
@@ -369,9 +345,7 @@ class TestGetBoardServer:
         assert isinstance(server, str)
         assert "5ch.net" in server
 
-    def test_get_nonexistent_board_server(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_get_nonexistent_board_server(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: _get_board_server is called with nonexistent board.
@@ -393,9 +367,7 @@ class TestGetWithRetry:
         explorer.http_client = AsyncMock()
         return explorer
 
-    async def test_success_on_first_try(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_success_on_first_try(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A successful HTTP response.
         When: _get_with_retry is called.
@@ -410,9 +382,7 @@ class TestGetWithRetry:
         assert result == mock_response
         fivechan_explorer.http_client.get.assert_called_once()
 
-    async def test_retry_on_rate_limit(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_retry_on_rate_limit(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A rate limit response followed by success.
         When: _get_with_retry is called.
@@ -437,9 +407,7 @@ class TestGetWithRetry:
             assert fivechan_explorer.http_client.get.call_count == 2
             mock_sleep.assert_called_once()
 
-    async def test_retry_on_server_error(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_retry_on_server_error(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A server error response followed by success.
         When: _get_with_retry is called.
@@ -474,9 +442,7 @@ class TestGetSubjectTxtData:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    async def test_successful_subject_txt_parsing(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_successful_subject_txt_parsing(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A valid subject.txt response.
         When: _get_subject_txt_data is called.
@@ -501,9 +467,7 @@ class TestGetSubjectTxtData:
             assert result[1]["title"] == "もう一つのスレッド"
             assert result[1]["post_count"] == 5
 
-    async def test_network_error_returns_empty_list(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_network_error_returns_empty_list(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A network error occurs.
         When: _get_subject_txt_data is called.
@@ -532,9 +496,7 @@ class TestCollect:
         explorer.gpt_client = MagicMock()
         return explorer
 
-    async def test_collect_no_threads_returns_empty(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_collect_no_threads_returns_empty(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: No threads found.
         When: collect is called.
@@ -548,18 +510,12 @@ class TestCollect:
         fivechan_explorer.min_request_delay = 0
         fivechan_explorer.max_request_delay = 0
 
-        with patch(
-            "nook.services.explorers.fivechan.fivechan_explorer.log_processing_start"
-        ):
-            with patch(
-                "nook.services.explorers.fivechan.fivechan_explorer.log_no_new_articles"
-            ):
+        with patch("nook.services.explorers.fivechan.fivechan_explorer.log_processing_start"):
+            with patch("nook.services.explorers.fivechan.fivechan_explorer.log_no_new_articles"):
                 result = await fivechan_explorer.collect()
                 assert result == []
 
-    async def test_collect_with_threads_processes_successfully(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_collect_with_threads_processes_successfully(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Threads are found.
         When: collect is called.
@@ -593,37 +549,19 @@ class TestCollect:
         store_summaries_mock = AsyncMock(return_value=[("test.json", "test.md")])
         fivechan_explorer._store_summaries = store_summaries_mock
 
-        with patch(
-            "nook.services.explorers.fivechan.fivechan_explorer.log_processing_start"
-        ):
-            with patch(
-                "nook.services.explorers.fivechan.fivechan_explorer.log_article_counts"
-            ):
-                with patch(
-                    "nook.services.explorers.fivechan.fivechan_explorer.log_summary_candidates"
-                ):
-                    with patch(
-                        "nook.services.explorers.fivechan.fivechan_explorer.log_summarization_start"
-                    ):
-                        with patch(
-                            "nook.services.explorers.fivechan.fivechan_explorer.log_summarization_progress"
-                        ):
-                            with patch(
-                                "nook.services.explorers.fivechan.fivechan_explorer.log_storage_complete"
-                            ):
+        with patch("nook.services.explorers.fivechan.fivechan_explorer.log_processing_start"):
+            with patch("nook.services.explorers.fivechan.fivechan_explorer.log_article_counts"):
+                with patch("nook.services.explorers.fivechan.fivechan_explorer.log_summary_candidates"):
+                    with patch("nook.services.explorers.fivechan.fivechan_explorer.log_summarization_start"):
+                        with patch("nook.services.explorers.fivechan.fivechan_explorer.log_summarization_progress"):
+                            with patch("nook.services.explorers.fivechan.fivechan_explorer.log_storage_complete"):
                                 # Pass explicit target_dates to ensure filtering logic matches the thread's date
                                 # regardless of timezone differences between JST (default in collect) and execution environment
-                                expected_date = datetime.fromtimestamp(
-                                    current_timestamp
-                                ).date()
-                                result = await fivechan_explorer.collect(
-                                    target_dates=[expected_date]
-                                )
+                                expected_date = datetime.fromtimestamp(current_timestamp).date()
+                                result = await fivechan_explorer.collect(target_dates=[expected_date])
                                 assert result == [("test.json", "test.md")]
                                 # _summarize_thread is called for each thread (4 boards x 1 thread each)
-                                assert (
-                                    fivechan_explorer._summarize_thread.call_count == 4
-                                )
+                                assert fivechan_explorer._summarize_thread.call_count == 4
 
 
 class TestRun:
@@ -635,9 +573,7 @@ class TestRun:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_run_calls_collect_via_asyncio_run(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_run_calls_collect_via_asyncio_run(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A FiveChanExplorer instance.
         When: run is called.
@@ -662,9 +598,7 @@ class TestSummarizeThread:
         explorer.gpt_client = AsyncMock()
         return explorer
 
-    async def test_summarize_thread_sets_summary(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_summarize_thread_sets_summary(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A thread and GPT client.
         When: _summarize_thread is called.
@@ -697,9 +631,7 @@ class TestGetThreadPostsFromDat:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    async def test_successful_dat_parsing(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_successful_dat_parsing(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A valid dat response.
         When: _get_thread_posts_from_dat is called.
@@ -729,9 +661,7 @@ class TestGetThreadPostsFromDat:
                 (
                     posts,
                     latest_post_at,
-                ) = await fivechan_explorer._get_thread_posts_from_dat(
-                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
-                )
+                ) = await fivechan_explorer._get_thread_posts_from_dat("https://mevius.5ch.net/ai/dat/1234567890.dat")
 
                 assert len(posts) == 3
                 assert posts[0]["com"] == "テスト投稿1"
@@ -761,16 +691,12 @@ class TestGetThreadPostsFromDat:
                 (
                     posts,
                     latest_post_at,
-                ) = await fivechan_explorer._get_thread_posts_from_dat(
-                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
-                )
+                ) = await fivechan_explorer._get_thread_posts_from_dat("https://mevius.5ch.net/ai/dat/1234567890.dat")
 
                 assert posts == []
                 assert latest_post_at is None
 
-    async def test_dat_cloudflare_detection(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_dat_cloudflare_detection(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A Cloudflare challenge response.
         When: _get_thread_posts_from_dat is called.
@@ -779,9 +705,7 @@ class TestGetThreadPostsFromDat:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.content = b""
-        mock_response.text = (
-            "Just a moment... Please wait while we verify your browser."
-        )
+        mock_response.text = "Just a moment... Please wait while we verify your browser."
 
         with patch("cloudscraper.create_scraper") as mock_scraper_class:
             mock_scraper = MagicMock()
@@ -794,17 +718,13 @@ class TestGetThreadPostsFromDat:
                 (
                     posts,
                     latest_post_at,
-                ) = await fivechan_explorer._get_thread_posts_from_dat(
-                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
-                )
+                ) = await fivechan_explorer._get_thread_posts_from_dat("https://mevius.5ch.net/ai/dat/1234567890.dat")
 
                 # Content has "Just a moment" so it's logged as Cloudflare
                 assert posts == []
                 assert latest_post_at is None
 
-    async def test_dat_exception_handling(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_dat_exception_handling(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: An exception occurs during request.
         When: _get_thread_posts_from_dat is called.
@@ -820,9 +740,7 @@ class TestGetThreadPostsFromDat:
                 (
                     posts,
                     latest_post_at,
-                ) = await fivechan_explorer._get_thread_posts_from_dat(
-                    "https://mevius.5ch.net/ai/dat/1234567890.dat"
-                )
+                ) = await fivechan_explorer._get_thread_posts_from_dat("https://mevius.5ch.net/ai/dat/1234567890.dat")
 
                 assert posts == []
                 assert latest_post_at is None
@@ -837,9 +755,7 @@ class TestLoadExistingTitles:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_load_existing_titles_no_content(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_load_existing_titles_no_content(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: No existing markdown content.
         When: _load_existing_titles is called.
@@ -851,9 +767,7 @@ class TestLoadExistingTitles:
 
         assert not tracker.is_duplicate("新しいスレッド")[0]
 
-    def test_load_existing_titles_with_content(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_load_existing_titles_with_content(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Existing markdown content with titles.
         When: _load_existing_titles is called.
@@ -865,9 +779,7 @@ class TestLoadExistingTitles:
 
 ### [AI技術について語るスレ](https://example.com/2)
 """
-        fivechan_explorer.storage.load_markdown = MagicMock(
-            return_value=markdown_content
-        )
+        fivechan_explorer.storage.load_markdown = MagicMock(return_value=markdown_content)
 
         tracker = fivechan_explorer._load_existing_titles()
 
@@ -875,17 +787,13 @@ class TestLoadExistingTitles:
         assert tracker.is_duplicate("AI技術について語るスレ")[0]
         assert not tracker.is_duplicate("新しいスレッド")[0]
 
-    def test_load_existing_titles_exception_handling(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_load_existing_titles_exception_handling(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: An exception occurs during loading.
         When: _load_existing_titles is called.
         Then: Empty tracker is returned.
         """
-        fivechan_explorer.storage.load_markdown = MagicMock(
-            side_effect=Exception("Storage error")
-        )
+        fivechan_explorer.storage.load_markdown = MagicMock(side_effect=Exception("Storage error"))
 
         tracker = fivechan_explorer._load_existing_titles()
 
@@ -901,9 +809,7 @@ class TestCalculatePopularity:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_calculate_popularity_basic(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_calculate_popularity_basic(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Post count, sample count, and timestamp.
         When: _calculate_popularity is called.
@@ -921,9 +827,7 @@ class TestCalculatePopularity:
         # Should be at least post_count + sample_count
         assert score >= 110.0
 
-    def test_calculate_popularity_old_thread(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_calculate_popularity_old_thread(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: An old thread timestamp.
         When: _calculate_popularity is called.
@@ -951,9 +855,7 @@ class TestSelectTopThreads:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_select_top_threads_empty_list(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_select_top_threads_empty_list(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Empty thread list.
         When: _select_top_threads is called.
@@ -962,9 +864,7 @@ class TestSelectTopThreads:
         result = fivechan_explorer._select_top_threads([], 10)
         assert result == []
 
-    def test_select_top_threads_under_limit(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_select_top_threads_under_limit(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Thread list smaller than limit.
         When: _select_top_threads is called.
@@ -994,9 +894,7 @@ class TestSelectTopThreads:
         result = fivechan_explorer._select_top_threads(threads, 10)
         assert len(result) == 2
 
-    def test_select_top_threads_over_limit(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_select_top_threads_over_limit(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Thread list larger than limit.
         When: _select_top_threads is called.
@@ -1087,9 +985,7 @@ class TestThreadSortKey:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    def test_thread_sort_key_with_published_at(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_thread_sort_key_with_published_at(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A record with published_at.
         When: _thread_sort_key is called.
@@ -1105,9 +1001,7 @@ class TestThreadSortKey:
         assert key[0] == 100.0
         assert isinstance(key[1], datetime)
 
-    def test_thread_sort_key_with_timestamp(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_thread_sort_key_with_timestamp(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A record with only timestamp.
         When: _thread_sort_key is called.
@@ -1138,9 +1032,7 @@ class TestThreadSortKey:
         assert key[0] == 25.0
         assert key[1] == datetime.min.replace(tzinfo=timezone.utc)
 
-    def test_thread_sort_key_invalid_published_at(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_thread_sort_key_invalid_published_at(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A record with invalid published_at.
         When: _thread_sort_key is called.
@@ -1191,9 +1083,7 @@ class TestRenderMarkdown:
         assert "### [AIスレッド](https://example.com/1)" in content
         assert "テスト要約" in content
 
-    def test_render_markdown_with_timestamp(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_render_markdown_with_timestamp(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A record with only timestamp (no published_at).
         When: _render_markdown is called.
@@ -1237,9 +1127,7 @@ class TestRenderMarkdown:
 
         assert "作成日時: N/A" in content
 
-    def test_render_markdown_no_title(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_render_markdown_no_title(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: A record without title.
         When: _render_markdown is called.
@@ -1297,9 +1185,7 @@ class TestParseMarkdown:
         assert records[0]["board"] == "ai"
         assert records[0]["summary"] == "テスト要約です。"
 
-    def test_parse_markdown_multiple_boards(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    def test_parse_markdown_multiple_boards(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Markdown with multiple boards.
         When: _parse_markdown is called.
@@ -1356,9 +1242,7 @@ class TestRetrieveAIThreads:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    async def test_retrieve_ai_threads_empty_subject(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_retrieve_ai_threads_empty_subject(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Empty subject.txt data.
         When: _retrieve_ai_threads is called.
@@ -1378,9 +1262,7 @@ class TestRetrieveAIThreads:
 
         assert result == []
 
-    async def test_retrieve_ai_threads_exception_handling(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_retrieve_ai_threads_exception_handling(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: An exception occurs during processing.
         When: _retrieve_ai_threads is called.
@@ -1388,9 +1270,7 @@ class TestRetrieveAIThreads:
         """
         from nook.core.utils.dedup import DedupTracker
 
-        fivechan_explorer._get_subject_txt_data = AsyncMock(
-            side_effect=Exception("Network error")
-        )
+        fivechan_explorer._get_subject_txt_data = AsyncMock(side_effect=Exception("Network error"))
 
         dedup_tracker = DedupTracker()
         result = await fivechan_explorer._retrieve_ai_threads(
@@ -1402,9 +1282,7 @@ class TestRetrieveAIThreads:
 
         assert result == []
 
-    async def test_retrieve_ai_threads_filters_by_keywords(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_retrieve_ai_threads_filters_by_keywords(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Subject data with AI and non-AI threads.
         When: _retrieve_ai_threads is called.
@@ -1463,9 +1341,7 @@ class TestStoreSummaries:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    async def test_store_summaries_empty_threads(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_store_summaries_empty_threads(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Empty thread list.
         When: _store_summaries is called.
@@ -1474,9 +1350,7 @@ class TestStoreSummaries:
         result = await fivechan_explorer._store_summaries([], [_jst_date_now()])
         assert result == []
 
-    async def test_store_summaries_with_threads(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_store_summaries_with_threads(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: Non-empty thread list.
         When: _store_summaries is called.
@@ -1512,27 +1386,19 @@ class TestLoadExistingThreads:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return FiveChanExplorer()
 
-    async def test_load_existing_threads_json_list(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_load_existing_threads_json_list(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: JSON list format.
         When: _load_existing_threads is called.
         Then: Direct list is returned.
         """
-        fivechan_explorer.load_json = AsyncMock(
-            return_value=[{"thread_id": 1, "title": "Test"}]
-        )
+        fivechan_explorer.load_json = AsyncMock(return_value=[{"thread_id": 1, "title": "Test"}])
 
-        result = await fivechan_explorer._load_existing_threads(
-            datetime.now(timezone.utc)
-        )
+        result = await fivechan_explorer._load_existing_threads(datetime.now(timezone.utc))
         assert len(result) == 1
         assert result[0]["thread_id"] == 1
 
-    async def test_load_existing_threads_json_dict(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_load_existing_threads_json_dict(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: JSON dict format (grouped by board).
         When: _load_existing_threads is called.
@@ -1545,16 +1411,12 @@ class TestLoadExistingThreads:
             }
         )
 
-        result = await fivechan_explorer._load_existing_threads(
-            datetime.now(timezone.utc)
-        )
+        result = await fivechan_explorer._load_existing_threads(datetime.now(timezone.utc))
         assert len(result) == 2
         assert result[0]["board"] == "ai"
         assert result[1]["board"] == "prog"
 
-    async def test_load_existing_threads_markdown_fallback(
-        self, fivechan_explorer: FiveChanExplorer
-    ) -> None:
+    async def test_load_existing_threads_markdown_fallback(self, fivechan_explorer: FiveChanExplorer) -> None:
         """
         Given: No JSON but markdown exists.
         When: _load_existing_threads is called.
@@ -1563,7 +1425,5 @@ class TestLoadExistingThreads:
         fivechan_explorer.load_json = AsyncMock(return_value=None)
         fivechan_explorer.storage.load = AsyncMock(return_value=None)
 
-        result = await fivechan_explorer._load_existing_threads(
-            datetime.now(timezone.utc)
-        )
+        result = await fivechan_explorer._load_existing_threads(datetime.now(timezone.utc))
         assert result == []

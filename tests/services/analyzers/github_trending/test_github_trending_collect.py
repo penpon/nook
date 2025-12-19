@@ -61,9 +61,7 @@ class TestRetrieveRepositories:
         </html>
         """
 
-    async def test_retrieve_success(
-        self, trending: GithubTrending, mock_html: str
-    ) -> None:
+    async def test_retrieve_success(self, trending: GithubTrending, mock_html: str) -> None:
         """Should retrieve and parse repositories successfully."""
         trending.http_client.get.return_value = MagicMock(text=mock_html)
         dedup_tracker = DedupTracker()
@@ -82,13 +80,9 @@ class TestRetrieveRepositories:
         assert repos[1].stars == 500
 
         # URL構築の検証
-        trending.http_client.get.assert_called_with(
-            "https://github.com/trending/python"
-        )
+        trending.http_client.get.assert_called_with("https://github.com/trending/python")
 
-    async def test_retrieve_any_language(
-        self, trending: GithubTrending, mock_html: str
-    ) -> None:
+    async def test_retrieve_any_language(self, trending: GithubTrending, mock_html: str) -> None:
         """Should handle retrieval for 'any' language (empty string in logic)."""
         trending.http_client.get.return_value = MagicMock(text=mock_html)
         dedup_tracker = DedupTracker()
@@ -98,9 +92,7 @@ class TestRetrieveRepositories:
         await trending._retrieve_repositories("any", 5, dedup_tracker)
         trending.http_client.get.assert_called_with("https://github.com/trending")
 
-    async def test_skips_duplicates(
-        self, trending: GithubTrending, mock_html: str
-    ) -> None:
+    async def test_skips_duplicates(self, trending: GithubTrending, mock_html: str) -> None:
         """Should skip repositories already in dedup_tracker."""
         trending.http_client.get.return_value = MagicMock(text=mock_html)
         dedup_tracker = DedupTracker()
@@ -158,16 +150,12 @@ class TestStoreSummaries:
                 "nook.services.analyzers.github_trending.github_trending.store_daily_snapshots",
                 new_callable=AsyncMock,
             ) as mock_store_snapshots,
-            patch(
-                "nook.services.analyzers.github_trending.github_trending.group_records_by_date"
-            ) as mock_group,
+            patch("nook.services.analyzers.github_trending.github_trending.group_records_by_date") as mock_group,
         ):
             mock_group.return_value = {target_date: [{"name": "o/r"}]}
             mock_store_snapshots.return_value = [("json", "md")]
 
-            json_path, md_path = await trending._store_summaries_for_date(
-                repos_by_lang, target_date
-            )
+            json_path, md_path = await trending._store_summaries_for_date(repos_by_lang, target_date)
 
             assert json_path == "json"
             assert md_path == "md"
@@ -188,16 +176,12 @@ class TestStoreSummaries:
                 "nook.services.analyzers.github_trending.github_trending.store_daily_snapshots",
                 new_callable=AsyncMock,
             ) as mock_store_snapshots,
-            patch(
-                "nook.services.analyzers.github_trending.github_trending.group_records_by_date"
-            ),
+            patch("nook.services.analyzers.github_trending.github_trending.group_records_by_date"),
         ):
             mock_store_snapshots.return_value = []  # ファイルが保存されなかった
 
             with pytest.raises(ValueError, match="保存に失敗しました"):
-                await trending._store_summaries_for_date(
-                    repos_by_lang, date(2024, 1, 1)
-                )
+                await trending._store_summaries_for_date(repos_by_lang, date(2024, 1, 1))
 
 
 @pytest.mark.asyncio
@@ -215,9 +199,7 @@ class TestLoadExistingRepositoriesByDate:
         assert result == expected
         trending.load_json.assert_called_with("2024-01-01.json")
 
-    async def test_loads_from_json_dict_and_flattens(
-        self, trending: GithubTrending
-    ) -> None:
+    async def test_loads_from_json_dict_and_flattens(self, trending: GithubTrending) -> None:
         """Should flatten dict structure from JSON."""
         target_date = datetime(2024, 1, 1)
         json_data = {"python": [{"name": "py_repo"}], "rust": [{"name": "rs_repo"}]}
@@ -234,27 +216,21 @@ class TestLoadExistingRepositoriesByDate:
         py_repo = next(r for r in result if r["name"] == "py_repo")
         assert py_repo["language"] == "python"
 
-    async def test_loads_from_markdown_if_json_missing(
-        self, trending: GithubTrending
-    ) -> None:
+    async def test_loads_from_markdown_if_json_missing(self, trending: GithubTrending) -> None:
         """Should fallback to markdown if JSON is missing."""
         target_date = datetime(2024, 1, 1)
         trending.load_json = AsyncMock(return_value=None)
         trending.storage.load.return_value = "# Markdown Content"
 
         # _parse_markdownが呼ばれることを検証するためモック化
-        with patch.object(
-            trending, "_parse_markdown", return_value=[{"name": "md_repo"}]
-        ) as mock_parse:
+        with patch.object(trending, "_parse_markdown", return_value=[{"name": "md_repo"}]) as mock_parse:
             result = await trending._load_existing_repositories_by_date(target_date)
 
             assert result == [{"name": "md_repo"}]
             trending.storage.load.assert_called_with("2024-01-01.md")
             mock_parse.assert_called_with("# Markdown Content")
 
-    async def test_returns_empty_if_nothing_found(
-        self, trending: GithubTrending
-    ) -> None:
+    async def test_returns_empty_if_nothing_found(self, trending: GithubTrending) -> None:
         """Should return empty list if neither JSON nor MD exists."""
         target_date = datetime(2024, 1, 1)
         trending.load_json = AsyncMock(return_value=None)
@@ -346,9 +322,7 @@ class TestCollect:
             ]
             mock_store.return_value = ("path/json", "path/md")
 
-            results = await mock_trending_configured.collect(
-                limit=1, target_dates=[date(2024, 1, 1)]
-            )
+            results = await mock_trending_configured.collect(limit=1, target_dates=[date(2024, 1, 1)])
 
             assert len(results) == 1
             assert results[0] == ("path/json", "path/md")
@@ -360,9 +334,7 @@ class TestCollect:
 
     async def test_no_new_repositories(self, mock_trending_configured: GithubTrending):
         """Test flow when no new repositories are found."""
-        repo_existing = Repository(
-            name="o/exist", description="desc", link="l", stars=100
-        )
+        repo_existing = Repository(name="o/exist", description="desc", link="l", stars=100)
 
         with (
             patch.object(
@@ -384,9 +356,7 @@ class TestCollect:
             # 取得したものと一致するように既存のものをセットアップ
             mock_load.return_value = [{"name": "o/exist"}]
 
-            results = await mock_trending_configured.collect(
-                limit=1, target_dates=[date(2024, 1, 1)]
-            )
+            results = await mock_trending_configured.collect(limit=1, target_dates=[date(2024, 1, 1)])
 
             assert len(results) == 0
             mock_translate.assert_not_called()  # 翻訳はスキップされるべき

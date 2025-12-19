@@ -40,7 +40,9 @@ jobs:
     - name: Workflow Telemetry
       uses: catchpoint/workflow-telemetry-action@v2.0.0
       with:
-        comment_on_pr: false
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        comment_on_pr: true
+
         proc_trace_sys_enable: true
 
     - name: Node.js のセットアップ

@@ -136,9 +136,7 @@ class BaseFeedService(BaseService):
 
         return recent_entries[:limit]
 
-    def _group_articles_by_date(
-        self, articles: list[Article]
-    ) -> dict[str, list[Article]]:
+    def _group_articles_by_date(self, articles: list[Article]) -> dict[str, list[Article]]:
         """
         記事を日付ごとにグループ化します。
 
@@ -190,11 +188,7 @@ class BaseFeedService(BaseService):
                     "feed_name": article.feed_name,
                     "summary": article.summary,
                     "popularity_score": article.popularity_score,
-                    "published_at": (
-                        article.published_at.isoformat()
-                        if article.published_at
-                        else None
-                    ),
+                    "published_at": (article.published_at.isoformat() if article.published_at else None),
                     "category": category,
                 }
             )
@@ -306,9 +300,7 @@ class BaseFeedService(BaseService):
         sections = list(category_pattern.finditer(markdown))
         for idx, match in enumerate(sections):
             start = match.end()
-            end = (
-                sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
-            )
+            end = sections[idx + 1].start() if idx + 1 < len(sections) else len(markdown)
             block = markdown[start:end]
             category = match.group(1).strip().lower().replace(" ", "_")
 
@@ -369,9 +361,7 @@ class BaseFeedService(BaseService):
 
         return selected_articles
 
-    async def _store_summaries_for_date(
-        self, articles: list[Article], date_str: str
-    ) -> tuple[str, str]:
+    async def _store_summaries_for_date(self, articles: list[Article], date_str: str) -> tuple[str, str]:
         """
         単一日付の記事をJSONとMarkdownファイルに保存します（ログ改善版）。
 
@@ -596,11 +586,7 @@ class BaseFeedService(BaseService):
         japanese_chars_count = 0
         for char in title:
             code = ord(char)
-            if (
-                code in hiragana_pattern
-                or code in katakana_pattern
-                or code in kanji_pattern
-            ):
+            if code in hiragana_pattern or code in katakana_pattern or code in kanji_pattern:
                 japanese_chars_count += 1
 
         if japanese_chars_count > 2:  # 複数の日本語文字があれば日本語とみなす
@@ -624,11 +610,7 @@ class BaseFeedService(BaseService):
         japanese_chars_count = 0
         for char in text_to_check[:100]:  # 最初の100文字だけチェック
             code = ord(char)
-            if (
-                code in hiragana_pattern
-                or code in katakana_pattern
-                or code in kanji_pattern
-            ):
+            if code in hiragana_pattern or code in katakana_pattern or code in kanji_pattern:
                 japanese_chars_count += 1
 
         if japanese_chars_count > 5:  # 複数の日本語文字があれば日本語とみなす

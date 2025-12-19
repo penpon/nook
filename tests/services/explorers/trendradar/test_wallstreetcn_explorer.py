@@ -1,4 +1,4 @@
-"""FreebufExplorerのテストモジュール."""
+"""WallstreetcnExplorerのテストモジュール."""
 
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
@@ -7,8 +7,10 @@ import pytest
 
 from nook.services.base.base_feed_service import Article
 from nook.services.explorers.trendradar.base import create_empty_soup
-from nook.services.explorers.trendradar.freebuf_explorer import FreebufExplorer
 from nook.services.explorers.trendradar.trendradar_client import TrendRadarClient
+from nook.services.explorers.trendradar.wallstreetcn_explorer import (
+    WallstreetcnExplorer,
+)
 
 
 @pytest.fixture
@@ -21,39 +23,38 @@ def mock_trendradar_client():
 
 @pytest.fixture
 def explorer(mock_trendradar_client):
-    return FreebufExplorer(storage_dir="test_data")
+    return WallstreetcnExplorer(storage_dir="test_data")
 
 
 @pytest.mark.asyncio
 async def test_initialization(explorer):
     """初期化のテスト."""
-    assert explorer.service_name == "trendradar-freebuf"
-    assert explorer.PLATFORM_NAME == "freebuf"
-    assert explorer.FEED_NAME == "freebuf"
-    assert explorer.MARKDOWN_HEADER == "Freebufセキュリティトレンド"
+    assert explorer.service_name == "trendradar-wallstreetcn"
+    assert explorer.PLATFORM_NAME == "wallstreetcn-hot"
+    assert explorer.FEED_NAME == "wallstreetcn"
+    assert explorer.MARKDOWN_HEADER == "华尔街见闻金融トレンド"
 
 
 @pytest.mark.asyncio
 async def test_get_summary_prompt(explorer):
     """プロンプト生成のテスト."""
     article = Article(
-        feed_name="freebuf",
-        title="Test Security Title",
+        feed_name="wallstreetcn",
+        title="Test Finance Title",
         url="http://example.com",
-        text="Test Security Description",
+        text="Test Finance Description",
         soup=create_empty_soup(),
         published_at=datetime.now(timezone.utc),
     )
 
     prompt = explorer._get_summary_prompt(article)
-
-    assert "Freebufセキュリティトレンド" in prompt
-    assert "Test Security Title" in prompt
-    assert "Test Security Description" in prompt
-    assert "セキュリティトピックの概要" in prompt
-    assert "技術的詳細" in prompt
-    assert "3. 業界への影響" in prompt
-    assert "4. 日本での対策・関連事例" in prompt
+    assert "华尔街见闻金融トレンド" in prompt
+    assert "Test Finance Title" in prompt
+    assert "Test Finance Description" in prompt
+    assert "金融ニュースの概要" in prompt
+    assert "投資ポイント" in prompt
+    assert "3. 市場の反応・見通し" in prompt
+    assert "4. 日本市場への影響" in prompt
 
 
 @pytest.mark.asyncio
@@ -61,15 +62,16 @@ async def test_get_system_instruction(explorer):
     """システム指示取得のテスト."""
     instruction = explorer._get_system_instruction()
 
-    assert "Freebuf" in instruction
-    assert "サイバーセキュリティ" in instruction
-    assert "日本のセキュリティエンジニア" in instruction
-    assert "攻撃手法" in instruction
+    assert "华尔街见闻" in instruction
+    assert "Wallstreetcn" in instruction
+    assert "金融メディア" in instruction
+    assert "投資家" in instruction
+    assert "市場動向" in instruction
 
 
-def test_freebuf_is_supported_platform_in_client():
-    """freebufがTrendRadarでサポートされているかを確認."""
-    assert "freebuf" in TrendRadarClient.SUPPORTED_PLATFORMS
+def test_wallstreetcn_is_supported_platform_in_client():
+    """wallstreetcn-hotがTrendRadarでサポートされているかを確認."""
+    assert "wallstreetcn-hot" in TrendRadarClient.SUPPORTED_PLATFORMS
 
 
 @pytest.mark.asyncio
@@ -78,9 +80,9 @@ async def test_collect_success(explorer, mock_trendradar_client):
     # Mock data
     mock_trendradar_client.get_latest_news.return_value = [
         {
-            "title": "Security Article 1",
+            "title": "Finance Article 1",
             "url": "http://example.com/1",
-            "desc": "Security Desc 1",
+            "desc": "Finance Desc 1",
             "hot": "100",
             "time": "2024-03-20 10:00:00",
         }
@@ -94,7 +96,7 @@ async def test_collect_success(explorer, mock_trendradar_client):
             result = await explorer.collect(days=1, limit=5)
 
             assert len(result) == 1
-            mock_trendradar_client.get_latest_news.assert_called_once_with(platform="freebuf", limit=5)
+            mock_trendradar_client.get_latest_news.assert_called_once_with(platform="wallstreetcn-hot", limit=5)
             mock_summarize.assert_called_once()
             mock_store.assert_called_once()
 
@@ -103,18 +105,18 @@ async def test_collect_success(explorer, mock_trendradar_client):
 async def test_transform_to_article_valid(explorer):
     """_transform_to_article: 正常な変換のテスト."""
     item = {
-        "title": "Valid Security Title",
+        "title": "Valid Finance Title",
         "url": "http://example.com/valid",
-        "desc": "Valid Security Description",
+        "desc": "Valid Finance Description",
         "hot": "150",
         "time": "2024-03-20 10:30:00",
     }
 
     article = explorer._transform_to_article(item)
 
-    assert article.title == "Valid Security Title"
+    assert article.title == "Valid Finance Title"
     assert article.url == "http://example.com/valid"
-    assert article.text == "Valid Security Description"
+    assert article.text == "Valid Finance Description"
     assert article.published_at.year == 2024
     assert article.published_at.month == 3
     assert article.published_at.day == 20

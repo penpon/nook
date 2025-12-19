@@ -113,13 +113,8 @@ def test_messages_to_responses_input(client):
 def test_supports_and_gpt5_detection(dummy_openai):
     # Given/When/Then: モデル名に応じてmax_completion_tokensとgpt5判定を確認
     assert GPTClient(api_key="k", model="gpt-5-abc")._supports_max_completion_tokens()
-    assert GPTClient(
-        api_key="k", model="gpt-4.1-mini"
-    )._supports_max_completion_tokens()
-    assert (
-        GPTClient(api_key="k", model="gpt-3.5-turbo")._supports_max_completion_tokens()
-        is False
-    )
+    assert GPTClient(api_key="k", model="gpt-4.1-mini")._supports_max_completion_tokens()
+    assert GPTClient(api_key="k", model="gpt-3.5-turbo")._supports_max_completion_tokens() is False
     assert GPTClient(api_key="k", model="gpt-5-xyz")._is_gpt5_model() is True
     assert GPTClient(api_key="k", model="gpt-4.1-mini")._is_gpt5_model() is False
 
@@ -128,18 +123,14 @@ def test_get_calling_service(monkeypatch, client):
     # Given: services配下から呼ばれたスタックフレームを用意
     service_frame = types.SimpleNamespace(
         f_back=None,
-        f_code=types.SimpleNamespace(
-            co_filename="/home/bob/nook/services/my_service/run.py"
-        ),
+        f_code=types.SimpleNamespace(co_filename="/home/bob/nook/services/my_service/run.py"),
     )
     caller_frame = types.SimpleNamespace(
         f_back=service_frame,
         f_code=types.SimpleNamespace(co_filename="/home/bob/nook/worker.py"),
     )
 
-    monkeypatch.setattr(
-        "nook.core.clients.gpt_client.inspect.currentframe", lambda: caller_frame
-    )
+    monkeypatch.setattr("nook.core.clients.gpt_client.inspect.currentframe", lambda: caller_frame)
 
     # When/Then: サービス名を抽出できる
     assert client._get_calling_service() == "my_service"
@@ -147,9 +138,7 @@ def test_get_calling_service(monkeypatch, client):
 
 def test_generate_content_uses_chat_completions_params(client):
     # Given: chat completionsに差し込むパラメータ
-    result = client.generate_content(
-        prompt="hello", system_instruction="sys", temperature=0.5, max_tokens=50
-    )
+    result = client.generate_content(prompt="hello", system_instruction="sys", temperature=0.5, max_tokens=50)
 
     params = client.client.chat.completions.last_params
     # Then: SDK呼び出しのパラメータが期待通り
@@ -273,12 +262,8 @@ def test_tiktoken_keyerror_fallback(monkeypatch):
         fallback_called.append(name)
         return DummyEncoding()
 
-    monkeypatch.setattr(
-        "nook.core.clients.gpt_client.tiktoken.encoding_for_model", raise_key_error
-    )
-    monkeypatch.setattr(
-        "nook.core.clients.gpt_client.tiktoken.get_encoding", get_encoding_mock
-    )
+    monkeypatch.setattr("nook.core.clients.gpt_client.tiktoken.encoding_for_model", raise_key_error)
+    monkeypatch.setattr("nook.core.clients.gpt_client.tiktoken.get_encoding", get_encoding_mock)
     monkeypatch.setattr(
         openai,
         "OpenAI",
@@ -312,9 +297,7 @@ def test_extract_text_from_response_with_model_dump(client):
     # Given: output_textがなく、model_dumpで辞書を返すレスポンス
     resp = types.SimpleNamespace(
         output_text=None,
-        model_dump=lambda: {
-            "output": [{"type": "output_text", "text": "from model_dump"}]
-        },
+        model_dump=lambda: {"output": [{"type": "output_text", "text": "from model_dump"}]},
     )
 
     # When: テキストを抽出
@@ -488,9 +471,7 @@ def test_get_calling_service_returns_unknown_for_non_services(monkeypatch, clien
         f_code=types.SimpleNamespace(co_filename="/home/bob/nook/main.py"),
     )
 
-    monkeypatch.setattr(
-        "nook.core.clients.gpt_client.inspect.currentframe", lambda: non_service_frame
-    )
+    monkeypatch.setattr("nook.core.clients.gpt_client.inspect.currentframe", lambda: non_service_frame)
 
     # When/Then: unknownが返される
     assert client._get_calling_service() == "unknown"
@@ -501,24 +482,18 @@ def test_get_calling_service_skips_run_services_files(monkeypatch, client):
     # Given: run_services.pyからの呼び出しスタック
     actual_service_frame = types.SimpleNamespace(
         f_back=None,
-        f_code=types.SimpleNamespace(
-            co_filename="/home/bob/nook/services/actual_service/main.py"
-        ),
+        f_code=types.SimpleNamespace(co_filename="/home/bob/nook/services/actual_service/main.py"),
     )
     run_services_frame = types.SimpleNamespace(
         f_back=actual_service_frame,
-        f_code=types.SimpleNamespace(
-            co_filename="/home/bob/nook/services/runner/run_services.py"
-        ),
+        f_code=types.SimpleNamespace(co_filename="/home/bob/nook/services/runner/run_services.py"),
     )
     caller_frame = types.SimpleNamespace(
         f_back=run_services_frame,
         f_code=types.SimpleNamespace(co_filename="/home/bob/nook/worker.py"),
     )
 
-    monkeypatch.setattr(
-        "nook.core.clients.gpt_client.inspect.currentframe", lambda: caller_frame
-    )
+    monkeypatch.setattr("nook.core.clients.gpt_client.inspect.currentframe", lambda: caller_frame)
 
     # When/Then: actual_serviceが返される
     assert client._get_calling_service() == "actual_service"
@@ -531,9 +506,7 @@ def test_get_calling_service_handles_exception(monkeypatch, client):
     def raise_error():
         raise RuntimeError("frame error")
 
-    monkeypatch.setattr(
-        "nook.core.clients.gpt_client.inspect.currentframe", raise_error
-    )
+    monkeypatch.setattr("nook.core.clients.gpt_client.inspect.currentframe", raise_error)
 
     # When/Then: unknownが返される
     assert client._get_calling_service() == "unknown"

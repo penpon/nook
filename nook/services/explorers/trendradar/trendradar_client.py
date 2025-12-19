@@ -55,6 +55,7 @@ class TrendRadarClient:
         "sspai",
         "producthunt",
         "freebuf",
+        "wallstreetcn-hot",
     ]
 
     def __init__(self, base_url: str | None = None):
@@ -126,8 +127,7 @@ class TrendRadarClient:
                 # news exists but is unexpected type, return empty list to avoid
                 # passing malformed data downstream
                 logger.warning(
-                    f"'news' key has unexpected type {type(news).__name__}, "
-                    "expected list, returning empty result"
+                    f"'news' key has unexpected type {type(news).__name__}, expected list, returning empty result"
                 )
                 return []
 
@@ -137,17 +137,14 @@ class TrendRadarClient:
                     return items
                 # items exists but is unexpected type, return empty list
                 logger.warning(
-                    f"'items' key has unexpected type {type(items).__name__}, "
-                    "expected list, returning empty result"
+                    f"'items' key has unexpected type {type(items).__name__}, expected list, returning empty result"
                 )
                 return []
 
             # Unknown dict shape: return a single record if non-empty
             if not payload:
                 return []
-            logger.warning(
-                f"Unknown dict structure from TrendRadar: {list(payload.keys())}"
-            )
+            logger.warning(f"Unknown dict structure from TrendRadar: {list(payload.keys())}")
             return [payload]
 
         if isinstance(payload, list):
@@ -192,21 +189,13 @@ class TrendRadarClient:
         # Validate platform parameter
         if not platform or platform not in self.SUPPORTED_PLATFORMS:
             raise ValueError(
-                f"Invalid platform '{platform}'. "
-                f"Supported platforms: {', '.join(self.SUPPORTED_PLATFORMS)}"
+                f"Invalid platform '{platform}'. Supported platforms: {', '.join(self.SUPPORTED_PLATFORMS)}"
             )
 
         # Validate limit parameter
         # Note: bool is subclass of int, so explicitly exclude it
-        if (
-            not isinstance(limit, int)
-            or isinstance(limit, bool)
-            or limit < 1
-            or limit > 100
-        ):
-            raise ValueError(
-                f"Invalid limit {limit}. Must be an integer between 1 and 100."
-            )
+        if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1 or limit > 100:
+            raise ValueError(f"Invalid limit {limit}. Must be an integer between 1 and 100.")
 
         # TrendRadar uses get_latest_news with platforms parameter
         tool_name = "get_latest_news"
@@ -263,9 +252,7 @@ class TrendRadarClient:
                     return [{"text": fallback_text_content}]
 
             logger.error(f"Invalid result type from TrendRadar: {type(result)}")
-            raise TrendRadarError(
-                f"Invalid response: unexpected result type {type(result).__name__}"
-            )
+            raise TrendRadarError(f"Invalid response: unexpected result type {type(result).__name__}")
 
         except TrendRadarError:
             raise

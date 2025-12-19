@@ -34,9 +34,7 @@ def convert_paper_summary_titles(content: str) -> str:
         # 質問文の全体または一部にマッチするよう調整
         # "4. 制限や問題点は何ですか。"のような質問文に対応
         if original_title in result:
-            result = result.replace(
-                original_title, PAPER_SUMMARY_TITLE_MAPPING[original_title]
-            )
+            result = result.replace(original_title, PAPER_SUMMARY_TITLE_MAPPING[original_title])
 
     return result
 
@@ -62,12 +60,11 @@ SOURCE_MAPPING = {
     "trendradar-sspai": "trendradar-sspai",
     "trendradar-producthunt": "trendradar-producthunt",
     "trendradar-freebuf": "trendradar-freebuf",
+    "trendradar-wallstreetcn": "trendradar-wallstreetcn",
 }
 
 
-def _create_content_item(
-    title: str, content: str, source: str, url: str | None = None
-) -> ContentItem:
+def _create_content_item(title: str, content: str, source: str, url: str | None = None) -> ContentItem:
     """ContentItemを作成するヘルパー関数"""
     return ContentItem(
         title=title,
@@ -77,9 +74,7 @@ def _create_content_item(
     )
 
 
-def _process_trendradar_articles(
-    articles_data: list[dict], source: str
-) -> list[ContentItem]:
+def _process_trendradar_articles(articles_data: list[dict], source: str) -> list[ContentItem]:
     """TrendRadar系記事をContentItemリストに変換する共通関数.
 
     Parameters
@@ -122,9 +117,7 @@ def _process_trendradar_articles(
 
 
 @router.get("/content/{source}", response_model=ContentResponse)
-async def get_content(
-    source: str, date: str | None = None, response: Response = None
-) -> ContentResponse:
+async def get_content(source: str, date: str | None = None, response: Response = None) -> ContentResponse:
     """
     特定のソースのコンテンツを取得します。
 
@@ -150,9 +143,7 @@ async def get_content(
 
     # キャッシュ制御ヘッダーを設定（キャッシュを無効化）
     if response:
-        response.headers["Cache-Control"] = (
-            "no-store, no-cache, must-revalidate, max-age=0"
-        )
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
 
@@ -163,9 +154,7 @@ async def get_content(
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
-            raise HTTPException(
-                status_code=400, detail=f"Invalid date format: {date}"
-            ) from None
+            raise HTTPException(status_code=400, detail=f"Invalid date format: {date}") from None
     else:
         target_date = datetime.now()
 
@@ -180,9 +169,7 @@ async def get_content(
             stories_data = storage.load_json(service_name, target_date)
             if stories_data:
                 # スコアで降順ソート
-                sorted_stories = sorted(
-                    stories_data, key=lambda x: x.get("score", 0), reverse=True
-                )
+                sorted_stories = sorted(stories_data, key=lambda x: x.get("score", 0), reverse=True)
                 for story in sorted_stories:
                     # 要約があれば要約を、なければ本文を使用
                     content = ""
@@ -215,6 +202,7 @@ async def get_content(
             "trendradar-sspai",
             "trendradar-producthunt",
             "trendradar-freebuf",
+            "trendradar-wallstreetcn",
         ):
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
@@ -234,8 +222,7 @@ async def get_content(
                         title=(
                             ""
                             if source == "github"
-                            else f"{_get_source_display_name(source)} - "
-                            f"{target_date.strftime('%Y-%m-%d')}"
+                            else f"{_get_source_display_name(source)} - {target_date.strftime('%Y-%m-%d')}"
                         ),
                         content=content,
                         source=source,
@@ -249,9 +236,7 @@ async def get_content(
                 stories_data = storage.load_json(service_name, target_date)
                 if stories_data:
                     # スコアで降順ソート
-                    sorted_stories = sorted(
-                        stories_data, key=lambda x: x.get("score", 0), reverse=True
-                    )
+                    sorted_stories = sorted(stories_data, key=lambda x: x.get("score", 0), reverse=True)
                     for story in sorted_stories:
                         # 要約があれば要約を、なければ本文を使用
                         content = ""
@@ -283,6 +268,7 @@ async def get_content(
                 "trendradar-sspai",
                 "trendradar-producthunt",
                 "trendradar-freebuf",
+                "trendradar-wallstreetcn",
             ):
                 # TrendRadar系はJSONから個別記事として追加
                 articles_data = storage.load_json(service_name, target_date)
@@ -301,8 +287,7 @@ async def get_content(
                             title=(
                                 ""
                                 if src == "github"
-                                else f"{_get_source_display_name(src)} - "
-                                f"{target_date.strftime('%Y-%m-%d')}"
+                                else f"{_get_source_display_name(src)} - {target_date.strftime('%Y-%m-%d')}"
                             ),
                             content=content,
                             source=src,
@@ -371,5 +356,6 @@ def _get_source_display_name(source: str) -> str:
         "trendradar-sspai": "少数派 (SSPai)",
         "trendradar-producthunt": "Product Hunt",
         "trendradar-freebuf": "FreeBuf (FreeBuf)",
+        "trendradar-wallstreetcn": "华尔街见闻 (Wallstreetcn)",
     }
     return source_names.get(source, source)

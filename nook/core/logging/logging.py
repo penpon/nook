@@ -55,9 +55,7 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_obj, ensure_ascii=False)
 
 
-def setup_logger(
-    name: str, level: str = "INFO", log_dir: str = "var/logs", use_json: bool = True
-) -> logging.Logger:
+def setup_logger(name: str, level: str = "INFO", log_dir: str = "var/logs", use_json: bool = True) -> logging.Logger:
     """
     ロガーのセットアップ
 
@@ -106,9 +104,7 @@ def setup_logger(
         encoding="utf-8",
     )
     file_handler.setFormatter(
-        JSONFormatter()
-        if use_json
-        else logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        JSONFormatter() if use_json else logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
     logger.addHandler(file_handler)
 

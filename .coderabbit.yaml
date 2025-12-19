@@ -18,6 +18,6 @@ reviews:
   review_status: true
   path_instructions:
     - path: "**/*.py"
-      instructions: "行の長さが88文字以内であれば指摘しない。プロジェクトはRuffで88文字の行長制限を使用している。"
+      instructions: "行の長さが120文字以内であれば指摘しない。プロジェクトはRuffで120文字の行長制限を使用している。"
 chat:
   auto_reply: true

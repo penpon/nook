@@ -57,14 +57,10 @@ class TestGetWithRetryRateLimiting:
         mock_response_200 = MagicMock()
         mock_response_200.status_code = 200
 
-        mock_fivechan_explorer.http_client.get = AsyncMock(
-            side_effect=[mock_response_429, mock_response_200]
-        )
+        mock_fivechan_explorer.http_client.get = AsyncMock(side_effect=[mock_response_429, mock_response_200])
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            result = await mock_fivechan_explorer._get_with_retry(
-                "https://test.com", max_retries=1
-            )
+            result = await mock_fivechan_explorer._get_with_retry("https://test.com", max_retries=1)
 
         assert result.status_code == 200
         mock_sleep.assert_called()
@@ -83,14 +79,10 @@ class TestGetWithRetryRateLimiting:
         mock_response_200 = MagicMock()
         mock_response_200.status_code = 200
 
-        mock_fivechan_explorer.http_client.get = AsyncMock(
-            side_effect=[mock_response_429, mock_response_200]
-        )
+        mock_fivechan_explorer.http_client.get = AsyncMock(side_effect=[mock_response_429, mock_response_200])
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            result = await mock_fivechan_explorer._get_with_retry(
-                "https://test.com", max_retries=1
-            )
+            result = await mock_fivechan_explorer._get_with_retry("https://test.com", max_retries=1)
 
         assert result.status_code == 200
         mock_sleep.assert_called()
@@ -112,21 +104,15 @@ class TestGetWithRetryServerError:
         mock_response_200 = MagicMock()
         mock_response_200.status_code = 200
 
-        mock_fivechan_explorer.http_client.get = AsyncMock(
-            side_effect=[mock_response_503, mock_response_200]
-        )
+        mock_fivechan_explorer.http_client.get = AsyncMock(side_effect=[mock_response_503, mock_response_200])
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._get_with_retry(
-                "https://test.com", max_retries=1
-            )
+            result = await mock_fivechan_explorer._get_with_retry("https://test.com", max_retries=1)
 
         assert result.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_server_error_returns_response_after_max_retries(
-        self, mock_fivechan_explorer
-    ):
+    async def test_server_error_returns_response_after_max_retries(self, mock_fivechan_explorer):
         """
         Given: Persistent 503 errors
         When: _get_with_retry exhausts retries
@@ -135,14 +121,10 @@ class TestGetWithRetryServerError:
         mock_response_503 = MagicMock()
         mock_response_503.status_code = 503
 
-        mock_fivechan_explorer.http_client.get = AsyncMock(
-            return_value=mock_response_503
-        )
+        mock_fivechan_explorer.http_client.get = AsyncMock(return_value=mock_response_503)
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._get_with_retry(
-                "https://test.com", max_retries=0
-            )
+            result = await mock_fivechan_explorer._get_with_retry("https://test.com", max_retries=0)
 
         assert result.status_code == 503
 
@@ -160,14 +142,10 @@ class TestGetWithRetryException:
         mock_response_200 = MagicMock()
         mock_response_200.status_code = 200
 
-        mock_fivechan_explorer.http_client.get = AsyncMock(
-            side_effect=[Exception("Network error"), mock_response_200]
-        )
+        mock_fivechan_explorer.http_client.get = AsyncMock(side_effect=[Exception("Network error"), mock_response_200])
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._get_with_retry(
-                "https://test.com", max_retries=1
-            )
+            result = await mock_fivechan_explorer._get_with_retry("https://test.com", max_retries=1)
 
         assert result.status_code == 200
 
@@ -178,24 +156,18 @@ class TestGetWithRetryException:
         When: _get_with_retry exhausts retries
         Then: It raises the exception
         """
-        mock_fivechan_explorer.http_client.get = AsyncMock(
-            side_effect=Exception("Network error")
-        )
+        mock_fivechan_explorer.http_client.get = AsyncMock(side_effect=Exception("Network error"))
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             with pytest.raises(Exception, match="Network error"):
-                await mock_fivechan_explorer._get_with_retry(
-                    "https://test.com", max_retries=0
-                )
+                await mock_fivechan_explorer._get_with_retry("https://test.com", max_retries=0)
 
 
 class TestCollectThreadSorting:
     """Tests for collect method thread sorting (lines 405-412)."""
 
     @pytest.mark.asyncio
-    async def test_collect_sorts_threads_when_exceeds_limit(
-        self, mock_fivechan_explorer
-    ):
+    async def test_collect_sorts_threads_when_exceeds_limit(self, mock_fivechan_explorer):
         """
         Given: More threads than the limit
         When: collect is called
@@ -253,9 +225,7 @@ class TestCollectNoSavedFiles:
         mock_fivechan_explorer.target_boards = {"ai": "人工知能"}
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer.collect(
-                target_dates=[_jst_date_now()]
-            )
+            result = await mock_fivechan_explorer.collect(target_dates=[_jst_date_now()])
 
         assert result == []
 
@@ -271,9 +241,7 @@ class TestBoardError:
         Then: Processing continues with other boards
         """
         mock_fivechan_explorer.target_boards = {"ai": "AI", "tech": "Tech"}
-        mock_fivechan_explorer._retrieve_ai_threads = AsyncMock(
-            side_effect=[Exception("Board error"), []]
-        )
+        mock_fivechan_explorer._retrieve_ai_threads = AsyncMock(side_effect=[Exception("Board error"), []])
         mock_fivechan_explorer._store_summaries = AsyncMock(return_value=[])
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
@@ -343,12 +311,8 @@ class TestRenderMarkdownDateFallback:
         When: _render_markdown is called
         Then: Uses raw published_at string
         """
-        records = [
-            {"board": "ai", "title": "Test", "url": "url", "published_at": "bad"}
-        ]
-        result = mock_fivechan_explorer._render_markdown(
-            records, datetime(2023, 1, 1, tzinfo=timezone.utc)
-        )
+        records = [{"board": "ai", "title": "Test", "url": "url", "published_at": "bad"}]
+        result = mock_fivechan_explorer._render_markdown(records, datetime(2023, 1, 1, tzinfo=timezone.utc))
 
         assert "作成日時: bad" in result
 
@@ -359,12 +323,8 @@ class TestRenderMarkdownDateFallback:
         Then: Uses timestamp for date string
         """
         timestamp = int(datetime(2023, 6, 1, 12, 0, 0).timestamp())
-        records = [
-            {"board": "ai", "title": "Test", "url": "url", "timestamp": timestamp}
-        ]
-        result = mock_fivechan_explorer._render_markdown(
-            records, datetime(2023, 1, 1, tzinfo=timezone.utc)
-        )
+        records = [{"board": "ai", "title": "Test", "url": "url", "timestamp": timestamp}]
+        result = mock_fivechan_explorer._render_markdown(records, datetime(2023, 1, 1, tzinfo=timezone.utc))
 
         assert "2023-06-01" in result
 
@@ -375,9 +335,7 @@ class TestRenderMarkdownDateFallback:
         Then: Uses N/A for date string
         """
         records = [{"board": "ai", "title": "Test", "url": "url", "timestamp": "bad"}]
-        result = mock_fivechan_explorer._render_markdown(
-            records, datetime(2023, 1, 1, tzinfo=timezone.utc)
-        )
+        result = mock_fivechan_explorer._render_markdown(records, datetime(2023, 1, 1, tzinfo=timezone.utc))
 
         assert "作成日時: N/A" in result
 
@@ -388,9 +346,7 @@ class TestRenderMarkdownDateFallback:
         Then: Uses N/A for date string
         """
         records = [{"board": "ai", "title": "Test", "url": "url"}]
-        result = mock_fivechan_explorer._render_markdown(
-            records, datetime(2023, 1, 1, tzinfo=timezone.utc)
-        )
+        result = mock_fivechan_explorer._render_markdown(records, datetime(2023, 1, 1, tzinfo=timezone.utc))
 
         assert "作成日時: N/A" in result
 
@@ -409,38 +365,28 @@ class TestLoadExistingThreads:
             return_value={"ai": [{"thread_id": 1}], "tech": [{"thread_id": 2}]}
         )
 
-        result = await mock_fivechan_explorer._load_existing_threads(
-            datetime(2023, 1, 1)
-        )
+        result = await mock_fivechan_explorer._load_existing_threads(datetime(2023, 1, 1))
 
         assert len(result) == 2
         assert result[0]["board"] == "ai"
         assert result[1]["board"] == "tech"
 
     @pytest.mark.asyncio
-    async def test_load_existing_threads_returns_list_directly(
-        self, mock_fivechan_explorer
-    ):
+    async def test_load_existing_threads_returns_list_directly(self, mock_fivechan_explorer):
         """
         Given: JSON file with list structure
         When: _load_existing_threads is called
         Then: It returns the list directly
         """
-        mock_fivechan_explorer.load_json = AsyncMock(
-            return_value=[{"thread_id": 1, "board": "ai"}]
-        )
+        mock_fivechan_explorer.load_json = AsyncMock(return_value=[{"thread_id": 1, "board": "ai"}])
 
-        result = await mock_fivechan_explorer._load_existing_threads(
-            datetime(2023, 1, 1)
-        )
+        result = await mock_fivechan_explorer._load_existing_threads(datetime(2023, 1, 1))
 
         assert len(result) == 1
         assert result[0]["thread_id"] == 1
 
     @pytest.mark.asyncio
-    async def test_load_existing_threads_markdown_fallback(
-        self, mock_fivechan_explorer
-    ):
+    async def test_load_existing_threads_markdown_fallback(self, mock_fivechan_explorer):
         """
         Given: No JSON file but Markdown exists
         When: _load_existing_threads is called
@@ -461,9 +407,7 @@ Summary text
 ---"""
         )
 
-        result = await mock_fivechan_explorer._load_existing_threads(
-            datetime(2023, 1, 1)
-        )
+        result = await mock_fivechan_explorer._load_existing_threads(datetime(2023, 1, 1))
 
         assert len(result) == 1
         assert result[0]["title"] == "Test Thread"
@@ -478,9 +422,7 @@ Summary text
         mock_fivechan_explorer.load_json = AsyncMock(return_value=None)
         mock_fivechan_explorer.storage.load = AsyncMock(return_value=None)
 
-        result = await mock_fivechan_explorer._load_existing_threads(
-            datetime(2023, 1, 1)
-        )
+        result = await mock_fivechan_explorer._load_existing_threads(datetime(2023, 1, 1))
 
         assert result == []
 
@@ -495,9 +437,7 @@ class TestCalculatePopularityException:
         Then: Returns score without recency bonus
         """
         # Very large timestamp that might cause issues
-        result = mock_fivechan_explorer._calculate_popularity(
-            post_count=10, sample_count=5, timestamp=-1
-        )
+        result = mock_fivechan_explorer._calculate_popularity(post_count=10, sample_count=5, timestamp=-1)
 
         # Should still return a valid float
         assert isinstance(result, float)
@@ -513,9 +453,7 @@ class TestLoadExistingTitlesException:
         When: _load_existing_titles is called
         Then: Returns empty tracker without raising
         """
-        mock_fivechan_explorer.storage.load_markdown = MagicMock(
-            side_effect=Exception("Storage error")
-        )
+        mock_fivechan_explorer.storage.load_markdown = MagicMock(side_effect=Exception("Storage error"))
 
         tracker = mock_fivechan_explorer._load_existing_titles()
 
@@ -543,21 +481,15 @@ class TestRetrieveAiThreadsDuplicateSkip:
             }
         ]
 
-        mock_fivechan_explorer._get_subject_txt_data = AsyncMock(
-            return_value=thread_data
-        )
+        mock_fivechan_explorer._get_subject_txt_data = AsyncMock(return_value=thread_data)
 
         # Mock tracker that says everything is duplicate
         mock_tracker = MagicMock()
         mock_tracker.is_duplicate.return_value = (True, "normalized")
         mock_tracker.get_original_title.return_value = "Original AI Thread"
-        mock_fivechan_explorer._load_existing_titles = MagicMock(
-            return_value=mock_tracker
-        )
+        mock_fivechan_explorer._load_existing_titles = MagicMock(return_value=mock_tracker)
 
-        result = await mock_fivechan_explorer._retrieve_ai_threads(
-            "ai", None, mock_tracker, [_jst_date_now()]
-        )
+        result = await mock_fivechan_explorer._retrieve_ai_threads("ai", None, mock_tracker, [_jst_date_now()])
 
         assert len(result) == 0
 
@@ -585,9 +517,7 @@ class TestRetrieveAiThreadsLimit:
             for i in range(5)
         ]
 
-        mock_fivechan_explorer._get_subject_txt_data = AsyncMock(
-            return_value=thread_data
-        )
+        mock_fivechan_explorer._get_subject_txt_data = AsyncMock(return_value=thread_data)
         mock_fivechan_explorer._get_thread_posts_from_dat = AsyncMock(
             return_value=([{"no": 1, "com": "text"}], datetime.now(timezone.utc))
         )
@@ -597,9 +527,7 @@ class TestRetrieveAiThreadsLimit:
         mock_tracker.add = MagicMock()
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._retrieve_ai_threads(
-                "ai", 2, mock_tracker, [_jst_date_now()]
-            )
+            result = await mock_fivechan_explorer._retrieve_ai_threads("ai", 2, mock_tracker, [_jst_date_now()])
 
         assert len(result) == 2
 
@@ -626,19 +554,13 @@ class TestRetrieveAiThreadsNoPostsWarning:
             }
         ]
 
-        mock_fivechan_explorer._get_subject_txt_data = AsyncMock(
-            return_value=thread_data
-        )
-        mock_fivechan_explorer._get_thread_posts_from_dat = AsyncMock(
-            return_value=([], None)
-        )
+        mock_fivechan_explorer._get_subject_txt_data = AsyncMock(return_value=thread_data)
+        mock_fivechan_explorer._get_thread_posts_from_dat = AsyncMock(return_value=([], None))
 
         mock_tracker = MagicMock()
         mock_tracker.is_duplicate.return_value = (False, "norm")
 
-        result = await mock_fivechan_explorer._retrieve_ai_threads(
-            "ai", None, mock_tracker, [_jst_date_now()]
-        )
+        result = await mock_fivechan_explorer._retrieve_ai_threads("ai", None, mock_tracker, [_jst_date_now()])
 
         assert len(result) == 0
 
@@ -647,9 +569,7 @@ class TestGetWith403Tolerance:
     """Tests for _get_with_403_tolerance (lines 513-607)."""
 
     @pytest.mark.asyncio
-    async def test_403_tolerance_success_on_first_strategy(
-        self, mock_fivechan_explorer
-    ):
+    async def test_403_tolerance_success_on_first_strategy(self, mock_fivechan_explorer):
         """
         Given: First strategy succeeds with valid content
         When: _get_with_403_tolerance is called
@@ -664,9 +584,7 @@ class TestGetWith403Tolerance:
         mock_fivechan_explorer.http_client._client = mock_client
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._get_with_403_tolerance(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._get_with_403_tolerance("https://test.5ch.net/board/", "board")
 
         assert result.status_code == 200
 
@@ -690,9 +608,7 @@ class TestGetWith403Tolerance:
         mock_fivechan_explorer.http_client._client = mock_client
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            _ = await mock_fivechan_explorer._get_with_403_tolerance(
-                "https://test.5ch.net/board/", "board"
-            )
+            _ = await mock_fivechan_explorer._get_with_403_tolerance("https://test.5ch.net/board/", "board")
 
         # Should have tried multiple times
         assert mock_client.get.call_count >= 2
@@ -714,9 +630,7 @@ class TestGetWith403Tolerance:
         mock_fivechan_explorer._try_alternative_endpoints = AsyncMock(return_value=None)
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._get_with_403_tolerance(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._get_with_403_tolerance("https://test.5ch.net/board/", "board")
 
         # Should accept 403 with long content (treated as valid, not Cloudflare)
         assert result is not None
@@ -739,9 +653,7 @@ class TestGetWith403Tolerance:
         mock_fivechan_explorer._try_alternative_endpoints = AsyncMock(return_value=None)
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._get_with_403_tolerance(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._get_with_403_tolerance("https://test.5ch.net/board/", "board")
 
         assert result is None
 
@@ -758,9 +670,7 @@ class TestGetWith403Tolerance:
         mock_fivechan_explorer._try_alternative_endpoints = AsyncMock(return_value=None)
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._get_with_403_tolerance(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._get_with_403_tolerance("https://test.5ch.net/board/", "board")
 
         assert result is None
 
@@ -784,16 +694,12 @@ class TestTryAlternativeEndpoints:
         mock_fivechan_explorer.http_client._client = mock_client
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._try_alternative_endpoints(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._try_alternative_endpoints("https://test.5ch.net/board/", "board")
 
         assert result.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_alternative_endpoint_403_with_valid_content(
-        self, mock_fivechan_explorer
-    ):
+    async def test_alternative_endpoint_403_with_valid_content(self, mock_fivechan_explorer):
         """
         Given: Alternative endpoint returns 403 but with valid content
         When: _try_alternative_endpoints is called
@@ -808,17 +714,13 @@ class TestTryAlternativeEndpoints:
         mock_fivechan_explorer.http_client._client = mock_client
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._try_alternative_endpoints(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._try_alternative_endpoints("https://test.5ch.net/board/", "board")
 
         assert result is not None
         assert result.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_alternative_endpoint_cloudflare_content(
-        self, mock_fivechan_explorer
-    ):
+    async def test_alternative_endpoint_cloudflare_content(self, mock_fivechan_explorer):
         """
         Given: Alternative endpoint returns Cloudflare challenge
         When: _try_alternative_endpoints is called
@@ -837,9 +739,7 @@ class TestTryAlternativeEndpoints:
         mock_fivechan_explorer.http_client._client = mock_client
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            _ = await mock_fivechan_explorer._try_alternative_endpoints(
-                "https://test.5ch.net/board/", "board"
-            )
+            _ = await mock_fivechan_explorer._try_alternative_endpoints("https://test.5ch.net/board/", "board")
 
         # Should have tried multiple alternatives
         assert mock_client.get.call_count >= 2
@@ -860,9 +760,7 @@ class TestTryAlternativeEndpoints:
         mock_fivechan_explorer.http_client._client = mock_client
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._try_alternative_endpoints(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._try_alternative_endpoints("https://test.5ch.net/board/", "board")
 
         assert result is None
 
@@ -878,9 +776,7 @@ class TestTryAlternativeEndpoints:
         mock_fivechan_explorer.http_client._client = mock_client
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await mock_fivechan_explorer._try_alternative_endpoints(
-                "https://test.5ch.net/board/", "board"
-            )
+            result = await mock_fivechan_explorer._try_alternative_endpoints("https://test.5ch.net/board/", "board")
 
         assert result is None
 

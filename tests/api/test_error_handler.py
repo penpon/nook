@@ -118,9 +118,7 @@ def test_handle_exception_configuration_exception() -> None:
     response = handle_exception(exc, request)
 
     # Then
-    assert_error_response(
-        response, status.HTTP_500_INTERNAL_SERVER_ERROR, "configuration_error"
-    )
+    assert_error_response(response, status.HTTP_500_INTERNAL_SERVER_ERROR, "configuration_error")
 
 
 def test_handle_exception_data_exception() -> None:
@@ -158,9 +156,7 @@ def test_handle_exception_service_exception() -> None:
     response = handle_exception(exc, request)
 
     # Then
-    assert_error_response(
-        response, status.HTTP_503_SERVICE_UNAVAILABLE, "service_error"
-    )
+    assert_error_response(response, status.HTTP_503_SERVICE_UNAVAILABLE, "service_error")
 
 
 def test_handle_exception_nook_exception() -> None:
@@ -179,9 +175,7 @@ def test_handle_exception_nook_exception() -> None:
     response = handle_exception(exc, request)
 
     # Then
-    assert_error_response(
-        response, status.HTTP_500_INTERNAL_SERVER_ERROR, "application_error"
-    )
+    assert_error_response(response, status.HTTP_500_INTERNAL_SERVER_ERROR, "application_error")
 
 
 def test_handle_exception_request_validation_error() -> None:
@@ -194,17 +188,13 @@ def test_handle_exception_request_validation_error() -> None:
 
     # Given
     request = make_request()
-    exc = RequestValidationError(
-        [{"loc": ("body", "field"), "msg": "bad", "type": "value_error"}]
-    )
+    exc = RequestValidationError([{"loc": ("body", "field"), "msg": "bad", "type": "value_error"}])
 
     # When
     response = handle_exception(exc, request)
 
     # Then
-    assert_error_response(
-        response, status.HTTP_422_UNPROCESSABLE_CONTENT, "validation_error"
-    )
+    assert_error_response(response, status.HTTP_422_UNPROCESSABLE_CONTENT, "validation_error")
     data = _get_json(response)
     assert "errors" in data["error"]["details"]
 
@@ -244,9 +234,7 @@ def test_handle_exception_unexpected_exception() -> None:
     response = handle_exception(exc, request)
 
     # Then
-    assert_error_response(
-        response, status.HTTP_500_INTERNAL_SERVER_ERROR, "internal_error"
-    )
+    assert_error_response(response, status.HTTP_500_INTERNAL_SERVER_ERROR, "internal_error")
 
 
 @pytest.mark.asyncio

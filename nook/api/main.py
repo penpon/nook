@@ -44,9 +44,7 @@ app.add_middleware(
 # エラーハンドラーの登録
 @app.exception_handler(NookHTTPException)
 async def nook_exception_handler(request: Request, exc: NookHTTPException):
-    error_metrics.record_error(
-        exc.error_type, {"status_code": exc.status_code, "detail": exc.detail}
-    )
+    error_metrics.record_error(exc.error_type, {"status_code": exc.status_code, "detail": exc.detail})
 
     return handle_exception(exc, request)
 

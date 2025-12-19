@@ -28,9 +28,7 @@ class TestExtractPopularity:
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         return QiitaExplorer()
 
-    def test_extracts_popularity_from_entry_lgtm_count(
-        self, qiita_explorer: QiitaExplorer
-    ) -> None:
+    def test_extracts_popularity_from_entry_lgtm_count(self, qiita_explorer: QiitaExplorer) -> None:
         """
         Given: Entry object with lgtm_count attribute.
         When: _extract_popularity is called.
@@ -48,9 +46,7 @@ class TestExtractPopularity:
 
         assert result == 88.0
 
-    def test_extracts_popularity_from_entry_qiita_likes_count(
-        self, qiita_explorer: QiitaExplorer
-    ) -> None:
+    def test_extracts_popularity_from_entry_qiita_likes_count(self, qiita_explorer: QiitaExplorer) -> None:
         """
         Given: Entry object with qiita_likes_count attribute (highest priority).
         When: _extract_popularity is called.
@@ -65,9 +61,7 @@ class TestExtractPopularity:
 
         assert result == 120.0
 
-    def test_extracts_popularity_from_twitter_meta_tag(
-        self, qiita_explorer: QiitaExplorer
-    ) -> None:
+    def test_extracts_popularity_from_twitter_meta_tag(self, qiita_explorer: QiitaExplorer) -> None:
         """
         Given: HTML with meta tag containing twitter:data1.
         When: _extract_popularity is called with entry having no LGTM attribute.
@@ -92,9 +86,7 @@ class TestExtractPopularity:
 
         assert result == 55.0
 
-    def test_extracts_popularity_from_data_lgtm_count(
-        self, qiita_explorer: QiitaExplorer
-    ) -> None:
+    def test_extracts_popularity_from_data_lgtm_count(self, qiita_explorer: QiitaExplorer) -> None:
         """
         Given: HTML with element containing data-lgtm-count attribute.
         When: _extract_popularity is called.
@@ -118,9 +110,7 @@ class TestExtractPopularity:
 
         assert result == 200.0
 
-    def test_extracts_popularity_from_lgtm_class_element(
-        self, qiita_explorer: QiitaExplorer
-    ) -> None:
+    def test_extracts_popularity_from_lgtm_class_element(self, qiita_explorer: QiitaExplorer) -> None:
         """
         Given: HTML with LGTM keyword in text.
         When: _extract_popularity is called.
@@ -144,9 +134,7 @@ class TestExtractPopularity:
 
         assert result == 45.0
 
-    def test_returns_zero_when_no_popularity_found(
-        self, qiita_explorer: QiitaExplorer
-    ) -> None:
+    def test_returns_zero_when_no_popularity_found(self, qiita_explorer: QiitaExplorer) -> None:
         """
         Given: HTML with no popularity indicators.
         When: _extract_popularity is called.

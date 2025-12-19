@@ -323,9 +323,7 @@ def test_detect_japanese_content():
     def build_mock_soup(lang=None, meta_lang=None, meta_desc=None, paragraph_text=None):
         def find(name, attrs=None):
             if name == "html":
-                return MockTag(
-                    get=lambda k: lang if k == "lang" else None, get_text=lambda: ""
-                )
+                return MockTag(get=lambda k: lang if k == "lang" else None, get_text=lambda: "")
             if name == "meta":
                 if attrs == {"http-equiv": "content-language"}:
                     return MockTag(
@@ -360,9 +358,7 @@ def test_detect_japanese_content():
     assert service._detect_japanese_content(soup3, "English Title", {}) is False
 
     # Case 4: Content (Summary/Description/Paragraph)
-    soup4 = build_mock_soup(
-        paragraph_text="これは本文のサンプルです。日本語が含まれています。"
-    )
+    soup4 = build_mock_soup(paragraph_text="これは本文のサンプルです。日本語が含まれています。")
     entry4 = types.SimpleNamespace(summary="English Summary")
     assert service._detect_japanese_content(soup4, "English Title", entry4) is True
 

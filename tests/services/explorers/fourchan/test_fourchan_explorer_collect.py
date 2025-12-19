@@ -19,24 +19,9 @@ def fourchan_explorer(monkeypatch):
 
 class TestHelpers:
     def test_extract_thread_id_from_url(self, fourchan_explorer):
-        assert (
-            fourchan_explorer._extract_thread_id_from_url(
-                "https://boards.4chan.org/g/thread/12345"
-            )
-            == 12345
-        )
-        assert (
-            fourchan_explorer._extract_thread_id_from_url(
-                "https://boards.4chan.org/g/thread/12345#p123"
-            )
-            == 12345
-        )
-        assert (
-            fourchan_explorer._extract_thread_id_from_url(
-                "https://boards.4chan.org/g/thread/12345/"
-            )
-            == 12345
-        )
+        assert fourchan_explorer._extract_thread_id_from_url("https://boards.4chan.org/g/thread/12345") == 12345
+        assert fourchan_explorer._extract_thread_id_from_url("https://boards.4chan.org/g/thread/12345#p123") == 12345
+        assert fourchan_explorer._extract_thread_id_from_url("https://boards.4chan.org/g/thread/12345/") == 12345
         assert fourchan_explorer._extract_thread_id_from_url("invalid") == 0
 
     def test_calculate_popularity(self, fourchan_explorer):
@@ -86,9 +71,7 @@ class TestRetrieveAIThreads:
             "nook.services.explorers.fourchan.fourchan_explorer.is_within_target_dates",
             return_value=True,
         ):
-            threads = await fourchan_explorer._retrieve_ai_threads(
-                "g", None, mock_dedup, [date(2023, 1, 1)]
-            )
+            threads = await fourchan_explorer._retrieve_ai_threads("g", None, mock_dedup, [date(2023, 1, 1)])
 
             assert len(threads) == 1
             assert threads[0].thread_id == 1
@@ -118,18 +101,14 @@ class TestRetrieveAIThreads:
         mock_dedup.is_duplicate.side_effect = is_dup
         mock_dedup.get_original_title.return_value = "orig"
 
-        with patch(
-            "nook.services.explorers.fourchan.fourchan_explorer.is_within_target_dates"
-        ) as mock_date:
+        with patch("nook.services.explorers.fourchan.fourchan_explorer.is_within_target_dates") as mock_date:
             # 1 (Dup) -> skipped before date check?
             # Logic: is_dup checked first.
             # 2 (Date skip) -> last_modified checked -> returns False
             # 3 (No posts) -> last_modified checked -> returns True -> _retrieve_thread_posts (empty) -> skipped
             mock_date.side_effect = [False, True]
 
-            threads = await fourchan_explorer._retrieve_ai_threads(
-                "g", None, mock_dedup, [date(2023, 1, 1)]
-            )
+            threads = await fourchan_explorer._retrieve_ai_threads("g", None, mock_dedup, [date(2023, 1, 1)])
 
             assert len(threads) == 0
 
@@ -139,9 +118,7 @@ class TestCollect:
     async def test_collect_flow(self, fourchan_explorer):
         fourchan_explorer.setup_http_client = AsyncMock()
         fourchan_explorer._load_existing_titles = MagicMock()
-        fourchan_explorer._store_summaries = AsyncMock(
-            return_value=[("path.json", "path.md")]
-        )
+        fourchan_explorer._store_summaries = AsyncMock(return_value=[("path.json", "path.md")])
         fourchan_explorer._summarize_thread = AsyncMock()
 
         # Timestamp must match target date (today/yesterday usually)
@@ -159,9 +136,7 @@ class TestCollect:
 
         fourchan_explorer._retrieve_ai_threads = AsyncMock(return_value=[t1])
 
-        saved = await fourchan_explorer.collect(
-            thread_limit=1, target_dates=[datetime.now().date()]
-        )
+        saved = await fourchan_explorer.collect(thread_limit=1, target_dates=[datetime.now().date()])
 
         assert len(saved) == 1
         assert saved[0] == ("path.json", "path.md")
@@ -185,9 +160,7 @@ class TestStoreSummaries:
 
     @pytest.mark.asyncio
     async def test_store_summaries_success(self, fourchan_explorer):
-        t1 = Thread(
-            thread_id=1, title="AI", url="u", board="g", posts=[], timestamp=100
-        )
+        t1 = Thread(thread_id=1, title="AI", url="u", board="g", posts=[], timestamp=100)
 
         with (
             patch(
@@ -208,9 +181,7 @@ class TestStoreSummaries:
 class TestComponents:
     @pytest.mark.asyncio
     async def test_summarize_thread(self, fourchan_explorer):
-        fourchan_explorer.gpt_client.generate_content = MagicMock(
-            return_value="Summary"
-        )
+        fourchan_explorer.gpt_client.generate_content = MagicMock(return_value="Summary")
         t = Thread(
             thread_id=1,
             title="T",
@@ -223,15 +194,11 @@ class TestComponents:
         await fourchan_explorer._summarize_thread(t)
 
         assert t.summary == "Summary"
-        assert (
-            "OP" in fourchan_explorer.gpt_client.generate_content.call_args[1]["prompt"]
-        )
+        assert "OP" in fourchan_explorer.gpt_client.generate_content.call_args[1]["prompt"]
 
     @pytest.mark.asyncio
     async def test_summarize_thread_error(self, fourchan_explorer):
-        fourchan_explorer.gpt_client.generate_content = MagicMock(
-            side_effect=Exception("Error")
-        )
+        fourchan_explorer.gpt_client.generate_content = MagicMock(side_effect=Exception("Error"))
         t = Thread(thread_id=1, title="T", url="u", board="g", posts=[], timestamp=100)
 
         await fourchan_explorer._summarize_thread(t)
@@ -245,9 +212,7 @@ class TestComponents:
                 "url": "http://u",
                 "timestamp": 1234567890,
                 "summary": "Sum",
-                "published_at": datetime(
-                    2009, 2, 13, 23, 31, 30, tzinfo=timezone.utc
-                ).isoformat(),
+                "published_at": datetime(2009, 2, 13, 23, 31, 30, tzinfo=timezone.utc).isoformat(),
             }
         ]
         md = fourchan_explorer._render_markdown(records, datetime(2023, 1, 1))
@@ -297,9 +262,7 @@ Sum
         assert res[0]["title"] == "T"
 
     def test_load_existing_titles(self, fourchan_explorer):
-        fourchan_explorer.storage.load_markdown = MagicMock(
-            return_value="### [Title](u)"
-        )
+        fourchan_explorer.storage.load_markdown = MagicMock(return_value="### [Title](u)")
         tracker = fourchan_explorer._load_existing_titles()
         assert tracker.is_duplicate("Title")[0] is True
 

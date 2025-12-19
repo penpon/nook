@@ -168,10 +168,7 @@ async def bot_protection_middleware(request: Request, call_next: Callable):
 
         # 許可IPかチェック
         if not is_allowed_ip(client_ip, allowed_ips):
-            logger.warning(
-                f"Bot access denied: IP={client_ip}, User-Agent={user_agent}, "
-                f"Path={request.url.path}"
-            )
+            logger.warning(f"Bot access denied: IP={client_ip}, User-Agent={user_agent}, Path={request.url.path}")
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content={
@@ -183,10 +180,7 @@ async def bot_protection_middleware(request: Request, call_next: Callable):
                 },
             )
 
-        logger.info(
-            f"Bot access allowed: IP={client_ip}, User-Agent={user_agent}, "
-            f"Path={request.url.path}"
-        )
+        logger.info(f"Bot access allowed: IP={client_ip}, User-Agent={user_agent}, Path={request.url.path}")
 
     # 通常のアクセスまたは許可されたbotアクセス
     response = await call_next(request)

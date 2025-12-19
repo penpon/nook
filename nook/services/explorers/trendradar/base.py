@@ -79,8 +79,7 @@ class BaseTrendRadarExplorer(BaseService):
         super().__init__(service_name, config=config)
         if not self.PLATFORM_NAME or not self.FEED_NAME or not self.MARKDOWN_HEADER:
             raise ValueError(
-                f"{self.__class__.__name__}でPLATFORM_NAME、FEED_NAME、"
-                "MARKDOWN_HEADERを設定する必要があります"
+                f"{self.__class__.__name__}でPLATFORM_NAME、FEED_NAME、MARKDOWN_HEADERを設定する必要があります"
             )
         self.client = TrendRadarClient()
 
@@ -114,9 +113,7 @@ class BaseTrendRadarExplorer(BaseService):
                 "asyncコンテキストでは await collect(...) を使用してください。"
             )
 
-    async def _run_with_cleanup(
-        self, days: int = 1, limit: int | None = None
-    ) -> list[tuple[str, str]]:
+    async def _run_with_cleanup(self, days: int = 1, limit: int | None = None) -> list[tuple[str, str]]:
         """collect実行後にクライアントをクリーンアップするラッパー."""
         try:
             return await self.collect(days=days, limit=limit)
@@ -148,15 +145,12 @@ class BaseTrendRadarExplorer(BaseService):
         """
         if days != 1:
             raise ValueError(
-                "複数日の収集 (days > 1) はまだ実装されていません。"
-                "days=1 を指定するか、パラメータを省略してください。"
+                "複数日の収集 (days > 1) はまだ実装されていません。days=1 を指定するか、パラメータを省略してください。"
             )
 
         if target_dates is not None:
             if len(target_dates) == 0:
-                raise ValueError(
-                    "target_dates には少なくとも1つの日付を指定してください"
-                )
+                raise ValueError("target_dates には少なくとも1つの日付を指定してください")
             if len(target_dates) > 1:
                 raise NotImplementedError(
                     "複数日の収集 (len(target_dates) > 1) はまだ実装されていません。"
@@ -167,22 +161,13 @@ class BaseTrendRadarExplorer(BaseService):
             target_date = datetime.now(timezone.utc).date()
 
         if limit is not None:
-            if (
-                not isinstance(limit, int)
-                or isinstance(limit, bool)
-                or limit < 1
-                or limit > 100
-            ):
-                raise ValueError(
-                    f"limit は 1 から 100 の整数である必要があります。指定値: {limit}"
-                )
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1 or limit > 100:
+                raise ValueError(f"limit は 1 から 100 の整数である必要があります。指定値: {limit}")
             effective_limit = limit
         else:
             effective_limit = self.TOTAL_LIMIT
 
-        news_items = await self.client.get_latest_news(
-            platform=self.PLATFORM_NAME, limit=effective_limit
-        )
+        news_items = await self.client.get_latest_news(platform=self.PLATFORM_NAME, limit=effective_limit)
 
         if not news_items:
             self.logger.info("TrendRadarから取得したニュース項目がありません")
@@ -202,12 +187,9 @@ class BaseTrendRadarExplorer(BaseService):
         )
 
         for i, result in enumerate(results):
-            if isinstance(result, BaseException) and not isinstance(
-                result, asyncio.CancelledError
-            ):
+            if isinstance(result, BaseException) and not isinstance(result, asyncio.CancelledError):
                 self.logger.error(
-                    f"Unexpected error in summary generation for article "
-                    f"'{articles[i].title}': {result}",
+                    f"Unexpected error in summary generation for article '{articles[i].title}': {result}",
                     exc_info=(type(result), result, result.__traceback__),
                 )
                 if not articles[i].summary:
@@ -337,9 +319,7 @@ class BaseTrendRadarExplorer(BaseService):
             if summary and summary.strip():
                 article.summary = summary
             else:
-                self.logger.warning(
-                    f"GPT returned empty summary for article: {article.title}"
-                )
+                self.logger.warning(f"GPT returned empty summary for article: {article.title}")
                 article.summary = self.ERROR_MSG_EMPTY_SUMMARY
         except asyncio.CancelledError:
             raise
@@ -347,9 +327,7 @@ class BaseTrendRadarExplorer(BaseService):
             self.logger.exception(f"要約生成に失敗 (article: {article.title})")
             article.summary = self.ERROR_MSG_GENERATION_FAILED
 
-    async def _store_articles(
-        self, articles: list[Article], date_str: str
-    ) -> list[tuple[str, str]]:
+    async def _store_articles(self, articles: list[Article], date_str: str) -> list[tuple[str, str]]:
         """記事をJSON/Markdown形式で保存."""
         if not articles:
             return []
@@ -363,11 +341,7 @@ class BaseTrendRadarExplorer(BaseService):
                     "feed_name": article.feed_name,
                     "summary": article.summary,
                     "popularity_score": article.popularity_score,
-                    "published_at": (
-                        article.published_at.isoformat()
-                        if article.published_at
-                        else None
-                    ),
+                    "published_at": (article.published_at.isoformat() if article.published_at else None),
                     "category": article.category,
                 }
             )

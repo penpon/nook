@@ -38,9 +38,7 @@ class ContentItem(BaseModel):
     title: str = Field(..., description="タイトル")
     content: str = Field(..., description="コンテンツ本文")
     url: str | None = Field(None, description="関連URL")
-    source: str = Field(
-        ..., description="ソース（reddit, hackernews, github, techfeed, paper）"
-    )
+    source: str = Field(..., description="ソース（reddit, hackernews, github, techfeed, paper）")
 
 
 class ContentResponse(BaseModel):
@@ -106,9 +104,7 @@ class ChatRequest(BaseModel):
 
     topic_id: str = Field(..., description="トピックID")
     message: str = Field(..., description="ユーザーメッセージ")
-    chat_history: list[dict[str, str]] = Field(
-        default_factory=list, description="チャット履歴"
-    )
+    chat_history: list[dict[str, str]] = Field(default_factory=list, description="チャット履歴")
     markdown: str | None = Field("", description="関連するマークダウンコンテキスト")
 
 
