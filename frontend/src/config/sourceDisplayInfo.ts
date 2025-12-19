@@ -161,7 +161,7 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     borderColor: 'border-orange-200',
   },
   'trendradar-freebuf': {
-    title: 'Freebuf',
+    title: 'FreeBuf (FreeBuf)',
     subtitle: '中国最大のセキュリティメディア',
     dateFormat: 'yyyy年MM月dd日',
     gradientFrom: 'from-slate-50',

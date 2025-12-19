@@ -370,6 +370,6 @@ def _get_source_display_name(source: str) -> str:
         "trendradar-toutiao": "今日头条 (Toutiao)",
         "trendradar-sspai": "少数派 (SSPai)",
         "trendradar-producthunt": "Product Hunt",
-        "trendradar-freebuf": "Freebuf",
+        "trendradar-freebuf": "FreeBuf (FreeBuf)",
     }
     return source_names.get(source, source)
