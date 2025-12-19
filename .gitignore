@@ -11,6 +11,7 @@ uv.lock
 
 task_boundary
 external
+review_threads.json
 
 # CodeRabbit review logs
 .coderabbit_review_*
