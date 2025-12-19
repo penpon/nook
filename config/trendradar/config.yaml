@@ -198,3 +198,7 @@ platforms:
     name: "Product Hunt"
   - id: "freebuf"
     name: "FreeBuf"
+  - id: "tencent-hot"
+    name: "腾讯新闻"
+  - id: "v2ex"
+    name: "V2EX"

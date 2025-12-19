@@ -34,6 +34,7 @@ const sources = [
   'trendradar-freebuf',
   'trendradar-wallstreetcn',
   'trendradar-tencent',
+  'trendradar-v2ex',
 ];
 
 function App() {
