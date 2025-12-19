@@ -28,7 +28,8 @@ def explorer(mock_trendradar_client):
     return WallstreetcnExplorer(storage_dir="test_data")
 
 
-def test_initialization(explorer):
+@pytest.mark.asyncio
+async def test_initialization(explorer):
     """初期化のテスト."""
     assert explorer.service_name == "trendradar-wallstreetcn"
     assert explorer.PLATFORM_NAME == "wallstreetcn-hot"
@@ -36,7 +37,8 @@ def test_initialization(explorer):
     assert explorer.MARKDOWN_HEADER == "华尔街见闻金融トレンド"
 
 
-def test_get_summary_prompt(explorer):
+@pytest.mark.asyncio
+async def test_get_summary_prompt(explorer):
     """プロンプト生成のテスト."""
     article = Article(
         feed_name="wallstreetcn",
@@ -57,7 +59,8 @@ def test_get_summary_prompt(explorer):
     assert "7. 日本市場への影響" in prompt
 
 
-def test_get_system_instruction(explorer):
+@pytest.mark.asyncio
+async def test_get_system_instruction(explorer):
     """システム指示取得のテスト."""
     instruction = explorer._get_system_instruction()
 
@@ -68,7 +71,8 @@ def test_get_system_instruction(explorer):
     assert "市場動向" in instruction
 
 
-def test_wallstreetcn_is_supported_platform_in_client():
+@pytest.mark.asyncio
+async def test_wallstreetcn_is_supported_platform_in_client():
     """wallstreetcn-hotがTrendRadarでサポートされているかを確認."""
     assert "wallstreetcn-hot" in TrendRadarClient.SUPPORTED_PLATFORMS
 
@@ -106,7 +110,8 @@ async def test_collect_success(explorer, mock_trendradar_client):
             mock_store.assert_called_once()
 
 
-def test_transform_to_article_valid(explorer):
+@pytest.mark.asyncio
+async def test_transform_to_article_valid(explorer):
     """_transform_to_article: 正常な変換のテスト."""
     item = {
         "title": "Valid Finance Title",
@@ -127,7 +132,8 @@ def test_transform_to_article_valid(explorer):
     assert article.popularity_score == 150
 
 
-def test_transform_to_article_null_fields(explorer):
+@pytest.mark.asyncio
+async def test_transform_to_article_null_fields(explorer):
     """_transform_to_article: 必須フィールド欠落やnullのハンドリング."""
     # desc is None
     item = {
@@ -144,7 +150,8 @@ def test_transform_to_article_null_fields(explorer):
     assert article.popularity_score == 0
 
 
-def test_transform_to_article_time_parsing(explorer):
+@pytest.mark.asyncio
+async def test_transform_to_article_time_parsing(explorer):
     """_transform_to_article: timeフィールドのパーステスト."""
 
     # specific format YYYY-MM-DD HH:MM
