@@ -82,6 +82,23 @@ TrendRadarプラットフォームの表示名は、以下のルールに従っ�
 ### 概要
 中国最大のサイバーセキュリティ専門メディア。AIセキュリティ、脅威検知、脆弱性スキャン等の情報を扱う。
 
+### チェックリスト
+
+#### 命名規則
+- [x] `sourceDisplayInfo.ts` の `title` に「FreeBuf (FreeBuf)」形式で記載
+- [x] `content.py` の `_get_source_display_name()` に追加
+
+#### 作業ルール
+- [x] Git Worktree で作業
+- [x] Explorer クラス実装（`BaseTrendRadarExplorer` 継承）
+- [x] TDD テスト作成
+- [x] `runner_impl.py` 登録（TRENDRADAR_SERVICES, trendradar_mapping）
+- [x] `content.py` 登録（SOURCE_MAPPING, elif条件2箇所, _get_source_display_name）
+- [x] `sourceDisplayInfo.ts` 追加
+- [x] `Sidebar.tsx` グループ追加
+- [x] `App.tsx` sources 追加
+- [x] `config/trendradar/config.yaml` 追加
+
 ### 対象ファイル
 - `nook/services/explorers/trendradar/freebuf_explorer.py` [NEW]
 - `tests/services/explorers/trendradar/test_freebuf_explorer.py` [NEW]
@@ -136,6 +153,23 @@ TrendRadarプラットフォームの表示名は、以下のルールに従っ�
 
 ### 概要
 中国の金融・投資ニュースメディア。「硬AI」専門セクションを持ち、AI関連企業の投資・株価動向に強い。
+
+### チェックリスト
+
+#### 命名規則
+- [ ] `sourceDisplayInfo.ts` の `title` に「华尔街见闻 (Wallstreetcn)」形式で記載
+- [ ] `content.py` の `_get_source_display_name()` に追加
+
+#### 作業ルール
+- [ ] Git Worktree で作業
+- [ ] Explorer クラス実装（`BaseTrendRadarExplorer` 継承）
+- [ ] TDD テスト作成
+- [ ] `runner_impl.py` 登録（TRENDRADAR_SERVICES, trendradar_mapping）
+- [ ] `content.py` 登録（SOURCE_MAPPING, elif条件2箇所, _get_source_display_name）
+- [ ] `sourceDisplayInfo.ts` 追加
+- [ ] `Sidebar.tsx` グループ追加
+- [ ] `App.tsx` sources 追加
+- [ ] `config/trendradar/config.yaml` 追加
 
 ### 対象ファイル
 - `nook/services/explorers/trendradar/wallstreetcn_explorer.py` [NEW]
@@ -192,6 +226,23 @@ TrendRadarプラットフォームの表示名は、以下のルールに従っ�
 ### 概要
 中国最大のテック企業Tencentが運営する総合ニュースメディア。Hunyuan大模型を活用したAI関連報道に強み。
 
+### チェックリスト
+
+#### 命名規則
+- [ ] `sourceDisplayInfo.ts` の `title` に「腾讯新闻 (Tencent News)」形式で記載
+- [ ] `content.py` の `_get_source_display_name()` に追加
+
+#### 作業ルール
+- [ ] Git Worktree で作業
+- [ ] Explorer クラス実装（`BaseTrendRadarExplorer` 継承）
+- [ ] TDD テスト作成
+- [ ] `runner_impl.py` 登録（TRENDRADAR_SERVICES, trendradar_mapping）
+- [ ] `content.py` 登録（SOURCE_MAPPING, elif条件2箇所, _get_source_display_name）
+- [ ] `sourceDisplayInfo.ts` 追加
+- [ ] `Sidebar.tsx` グループ追加
+- [ ] `App.tsx` sources 追加
+- [ ] `config/trendradar/config.yaml` 追加
+
 ### 対象ファイル
 - `nook/services/explorers/trendradar/tencent_explorer.py` [NEW]
 - `tests/services/explorers/trendradar/test_tencent_explorer.py` [NEW]
@@ -246,6 +297,23 @@ TrendRadarプラットフォームの表示名は、以下のルールに従っ�
 
 ### 概要
 中国の開発者・テック愛好者向けコミュニティ。プログラミング、キャリア、テクノロジーに関する議論が活発。Hacker News の中国版とも言われる。
+
+### チェックリスト
+
+#### 命名規則
+- [ ] `sourceDisplayInfo.ts` の `title` に「V2EX」形式で記載
+- [ ] `content.py` の `_get_source_display_name()` に追加
+
+#### 作業ルール
+- [ ] Git Worktree で作業
+- [ ] Explorer クラス実装（`BaseTrendRadarExplorer` 継承）
+- [ ] TDD テスト作成
+- [ ] `runner_impl.py` 登録（TRENDRADAR_SERVICES, trendradar_mapping）
+- [ ] `content.py` 登録（SOURCE_MAPPING, elif条件2箇所, _get_source_display_name）
+- [ ] `sourceDisplayInfo.ts` 追加
+- [ ] `Sidebar.tsx` グループ追加
+- [ ] `App.tsx` sources 追加
+- [ ] `config/trendradar/config.yaml` 追加
 
 ### 対象ファイル
 - `nook/services/explorers/trendradar/v2ex_explorer.py` [NEW]

@@ -194,3 +194,5 @@ platforms:
     name: "少数派"
   - id: "producthunt"
     name: "Product Hunt"
+  - id: "freebuf"
+    name: "FreeBuf"
