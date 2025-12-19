@@ -37,12 +37,14 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         ref: ${{ github.head_ref || github.ref_name }}  # PRブランチまたは現在のブランチ
 
-    - name: Workflow Telemetry
-      uses: catchpoint/workflow-telemetry-action@v2.0.0
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        comment_on_pr: true
-        proc_trace_sys_enable: true
+    # NOTE: workflow-telemetry-action は Globadge API 認証問題により一時的に無効化
+    # See: https://github.com/catchpoint/workflow-telemetry-action/issues/97
+    # - name: Workflow Telemetry
+    #   uses: catchpoint/workflow-telemetry-action@v2.0.0
+    #   with:
+    #     github_token: ${{ secrets.GITHUB_TOKEN }}
+    #     comment_on_pr: true
+    #     proc_trace_sys_enable: true
 
     - name: uv のセットアップ
       uses: astral-sh/setup-uv@v3.0.0
