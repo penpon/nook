@@ -176,6 +176,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-teal-50',
     borderColor: 'border-emerald-200',
   },
+  'trendradar-tencent': {
+    title: '腾讯新闻 (Tencent News)',
+    subtitle: 'Tencentの総合ニュースメディア',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-blue-50',
+    gradientTo: 'to-indigo-50',
+    borderColor: 'border-blue-300',
+  },
 };
 
 // デフォルト設定

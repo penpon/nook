@@ -33,6 +33,7 @@ const sources = [
   'trendradar-producthunt',
   'trendradar-freebuf',
   'trendradar-wallstreetcn',
+  'trendradar-tencent',
 ];
 
 function App() {

@@ -6,6 +6,7 @@ from nook.services.explorers.trendradar.ithome_explorer import IthomeExplorer
 from nook.services.explorers.trendradar.juejin_explorer import JuejinExplorer
 from nook.services.explorers.trendradar.kr36_explorer import Kr36Explorer
 from nook.services.explorers.trendradar.sspai_explorer import SspaiExplorer
+from nook.services.explorers.trendradar.tencent_explorer import TencentExplorer
 from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
 from nook.services.explorers.trendradar.trendradar_client import (
     TrendRadarClient,
@@ -30,4 +31,5 @@ __all__ = [
     "SspaiExplorer",
     "FreebufExplorer",
     "WallstreetcnExplorer",
+    "TencentExplorer",
 ]
