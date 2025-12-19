@@ -168,6 +168,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-gray-50',
     borderColor: 'border-slate-300',
   },
+  'trendradar-wallstreetcn': {
+    title: '华尔街见闻 (Wallstreetcn)',
+    subtitle: '中国の金融・投資メディア',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-emerald-50',
+    gradientTo: 'to-teal-50',
+    borderColor: 'border-emerald-200',
+  },
 };
 
 // デフォルト設定

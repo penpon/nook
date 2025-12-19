@@ -55,6 +55,7 @@ class TrendRadarClient:
         "sspai",
         "producthunt",
         "freebuf",
+        "wallstreetcn-hot",
     ]
 
     def __init__(self, base_url: str | None = None):

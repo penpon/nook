@@ -62,6 +62,7 @@ SOURCE_MAPPING = {
     "trendradar-sspai": "trendradar-sspai",
     "trendradar-producthunt": "trendradar-producthunt",
     "trendradar-freebuf": "trendradar-freebuf",
+    "trendradar-wallstreetcn": "trendradar-wallstreetcn",
 }
 
 
@@ -215,6 +216,7 @@ async def get_content(
             "trendradar-sspai",
             "trendradar-producthunt",
             "trendradar-freebuf",
+            "trendradar-wallstreetcn",
         ):
             articles_data = storage.load_json(service_name, target_date)
             if articles_data:
@@ -283,6 +285,7 @@ async def get_content(
                 "trendradar-sspai",
                 "trendradar-producthunt",
                 "trendradar-freebuf",
+                "trendradar-wallstreetcn",
             ):
                 # TrendRadar系はJSONから個別記事として追加
                 articles_data = storage.load_json(service_name, target_date)
@@ -371,5 +374,6 @@ def _get_source_display_name(source: str) -> str:
         "trendradar-sspai": "少数派 (SSPai)",
         "trendradar-producthunt": "Product Hunt",
         "trendradar-freebuf": "FreeBuf (FreeBuf)",
+        "trendradar-wallstreetcn": "华尔街见闻 (Wallstreetcn)",
     }
     return source_names.get(source, source)

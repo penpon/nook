@@ -32,6 +32,7 @@ const sources = [
   'trendradar-sspai',
   'trendradar-producthunt',
   'trendradar-freebuf',
+  'trendradar-wallstreetcn',
 ];
 
 function App() {
