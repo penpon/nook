@@ -184,6 +184,14 @@ export const sourceDisplayInfo: Record<string, SourceDisplayInfo> = {
     gradientTo: 'to-indigo-50',
     borderColor: 'border-blue-300',
   },
+  'trendradar-v2ex': {
+    title: 'V2EX',
+    subtitle: '中国の開発者コミュニティ',
+    dateFormat: 'yyyy年MM月dd日',
+    gradientFrom: 'from-gray-50',
+    gradientTo: 'to-zinc-50',
+    borderColor: 'border-gray-300',
+  },
 };
 
 // デフォルト設定

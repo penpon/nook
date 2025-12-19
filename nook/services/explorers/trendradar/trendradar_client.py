@@ -57,6 +57,7 @@ class TrendRadarClient:
         "freebuf",
         "wallstreetcn-hot",
         "tencent-hot",
+        "v2ex",
     ]
 
     def __init__(self, base_url: str | None = None):

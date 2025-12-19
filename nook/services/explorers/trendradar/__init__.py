@@ -12,6 +12,7 @@ from nook.services.explorers.trendradar.trendradar_client import (
     TrendRadarClient,
     TrendRadarError,
 )
+from nook.services.explorers.trendradar.v2ex_explorer import V2exExplorer
 from nook.services.explorers.trendradar.wallstreetcn_explorer import (
     WallstreetcnExplorer,
 )
@@ -32,4 +33,5 @@ __all__ = [
     "FreebufExplorer",
     "WallstreetcnExplorer",
     "TencentExplorer",
+    "V2exExplorer",
 ]
