@@ -48,14 +48,13 @@ def test_get_summary_prompt(explorer):
     )
 
     prompt = explorer._get_summary_prompt(article)
-
     assert "华尔街见闻金融トレンド" in prompt
     assert "Test Finance Title" in prompt
     assert "Test Finance Description" in prompt
     assert "金融ニュースの概要" in prompt
     assert "投資ポイント" in prompt
-    assert "3. 市場の反応・見通し" in prompt
-    assert "4. 日本市場への影響" in prompt
+    assert "6. 市場の反応・見通し" in prompt
+    assert "7. 日本市場への影響" in prompt
 
 
 def test_get_system_instruction(explorer):
