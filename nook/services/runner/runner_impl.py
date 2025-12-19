@@ -43,6 +43,7 @@ TRENDRADAR_SERVICES = {
     "trendradar-producthunt",
     "trendradar-freebuf",
     "trendradar-wallstreetcn",
+    "trendradar-tencent",
 }
 
 
@@ -70,6 +71,9 @@ class ServiceRunner:
             ProductHuntExplorer,
         )
         from nook.services.explorers.trendradar.sspai_explorer import SspaiExplorer
+        from nook.services.explorers.trendradar.tencent_explorer import (
+            TencentExplorer,
+        )
         from nook.services.explorers.trendradar.toutiao_explorer import ToutiaoExplorer
         from nook.services.explorers.trendradar.wallstreetcn_explorer import (
             WallstreetcnExplorer,
@@ -108,6 +112,7 @@ class ServiceRunner:
             "trendradar-producthunt": ProductHuntExplorer,
             "trendradar-freebuf": FreebufExplorer,
             "trendradar-wallstreetcn": WallstreetcnExplorer,
+            "trendradar-tencent": TencentExplorer,
         }
         for service_name in TRENDRADAR_SERVICES:
             if service_name in trendradar_mapping:
