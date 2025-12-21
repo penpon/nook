@@ -183,11 +183,17 @@ class QiitaExplorer(BaseFeedService):
                 if selected:
                     log_summary_candidates(self.logger, selected)
 
-                    # 要約生成
+                    # 要約生成（並列化）
                     log_summarization_start(self.logger)
-                    for idx, article in enumerate(selected, 1):
+                    total_count = len(selected)
+
+                    async def summarize_with_progress(idx: int, article: Article, total: int) -> None:
                         await self._summarize_article(article)
-                        log_summarization_progress(self.logger, idx, len(selected), article.title)
+                        log_summarization_progress(self.logger, idx, total, article.title)
+
+                    await asyncio.gather(
+                        *[summarize_with_progress(idx, article, total_count) for idx, article in enumerate(selected, 1)]
+                    )
 
                     # ログ改善：保存完了の前に改行
                     json_path, md_path = await self._store_summaries_for_date(selected, date_str)

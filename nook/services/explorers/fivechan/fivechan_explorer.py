@@ -406,11 +406,20 @@ class FiveChanExplorer(BaseService):
             if selected_threads:
                 log_summary_candidates(self.logger, selected_threads, "popularity_score")
 
-                # 要約生成
+                # 要約生成（並列化）
                 log_summarization_start(self.logger)
-                for idx, thread in enumerate(selected_threads, 1):
+                total_count = len(selected_threads)
+
+                async def summarize_with_progress(idx: int, thread: Thread, total: int) -> None:
                     await self._summarize_thread(thread)
-                    log_summarization_progress(self.logger, idx, len(selected_threads), thread.title)
+                    log_summarization_progress(self.logger, idx, total, thread.title)
+
+                await asyncio.gather(
+                    *[
+                        summarize_with_progress(idx, thread, total_count)
+                        for idx, thread in enumerate(selected_threads, 1)
+                    ]
+                )
 
             # 要約を保存
             saved_files: list[tuple[str, str]] = []

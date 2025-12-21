@@ -116,9 +116,9 @@ class FourChanExplorer(BaseService):
             "midjourney",
         ]
 
-        # APIリクエスト間の遅延（4chanのAPI利用規約を遵守するため）
-        # テストモードでは遅延を短縮
-        self.request_delay = 0.1 if test_mode else 1  # 秒
+        # APIリクエスト間の遅延を無効化（速度優先）
+        # テストモードでは元々短い遅延を使用
+        self.request_delay = 0.1 if test_mode else 0  # 秒
 
     def _load_boards(self) -> list[str]:
         """

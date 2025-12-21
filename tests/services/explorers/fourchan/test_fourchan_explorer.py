@@ -159,13 +159,13 @@ class TestRequestDelay:
 
         assert explorer.request_delay == 0.1
 
-    def test_normal_mode_has_standard_delay(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_normal_mode_has_no_delay(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Given: FourChanExplorer created with test_mode=False.
         When: Checking request_delay.
-        Then: It should be the standard delay (1 second).
+        Then: It should have no delay (0 seconds) for speed optimization.
         """
         monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-for-testing")
         explorer = FourChanExplorer(test_mode=False)
 
-        assert explorer.request_delay == 1
+        assert explorer.request_delay == 0
