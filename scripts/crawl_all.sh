@@ -167,6 +167,8 @@ main() {
         "trendradar-weibo" \
         "trendradar-toutiao" \
         "trendradar-36kr" \
+        "trendradar-wallstreetcn" \
+        "trendradar-tencent" \
     || ((total_failed+=$?))
     
     # ==========================================================================
@@ -177,6 +179,8 @@ main() {
         "trendradar-ithome" \
         "trendradar-sspai" \
         "trendradar-producthunt" \
+        "trendradar-freebuf" \
+        "trendradar-v2ex" \
     || ((total_failed+=$?))
     
     # 完了サマリー
