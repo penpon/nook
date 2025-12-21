@@ -181,7 +181,7 @@ class TestStoreSummaries:
 class TestComponents:
     @pytest.mark.asyncio
     async def test_summarize_thread(self, fourchan_explorer):
-        fourchan_explorer.gpt_client.generate_content = MagicMock(return_value="Summary")
+        fourchan_explorer.gpt_client.generate_async = AsyncMock(return_value="Summary")
         t = Thread(
             thread_id=1,
             title="T",
@@ -194,11 +194,12 @@ class TestComponents:
         await fourchan_explorer._summarize_thread(t)
 
         assert t.summary == "Summary"
-        assert "OP" in fourchan_explorer.gpt_client.generate_content.call_args[1]["prompt"]
+        call_kwargs = fourchan_explorer.gpt_client.generate_async.call_args[1]
+        assert "OP" in call_kwargs["prompt"]
 
     @pytest.mark.asyncio
     async def test_summarize_thread_error(self, fourchan_explorer):
-        fourchan_explorer.gpt_client.generate_content = MagicMock(side_effect=Exception("Error"))
+        fourchan_explorer.gpt_client.generate_async = AsyncMock(side_effect=Exception("Error"))
         t = Thread(thread_id=1, title="T", url="u", board="g", posts=[], timestamp=100)
 
         await fourchan_explorer._summarize_thread(t)

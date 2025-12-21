@@ -203,48 +203,11 @@ class TestRedditExplorer:
         assert explorer.user_agent == "direct-agent"
 
     @pytest.mark.asyncio
-    async def test_translate_to_japanese_empty_text(self, reddit_explorer: RedditExplorer) -> None:
-        """
-        Given: Empty text.
-        When: _translate_to_japanese is called.
-        Then: Empty string is returned.
-        """
-        result = await reddit_explorer._translate_to_japanese("")
-        assert result == ""
-
-    @pytest.mark.asyncio
-    async def test_translate_to_japanese_success(self, reddit_explorer: RedditExplorer) -> None:
-        """
-        Given: English text and GPT client.
-        When: _translate_to_japanese is called.
-        Then: Translated text is returned.
-        """
-        reddit_explorer.gpt_client.generate_async.return_value = "翻訳されたテキスト"
-
-        result = await reddit_explorer._translate_to_japanese("Hello world")
-
-        assert result == "翻訳されたテキスト"
-        reddit_explorer.gpt_client.generate_async.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_translate_to_japanese_error_returns_original(self, reddit_explorer: RedditExplorer) -> None:
-        """
-        Given: GPT client raises an exception.
-        When: _translate_to_japanese is called.
-        Then: Original text is returned.
-        """
-        reddit_explorer.gpt_client.generate_async.side_effect = Exception("API Error")
-
-        result = await reddit_explorer._translate_to_japanese("Original text")
-
-        assert result == "Original text"
-
-    @pytest.mark.asyncio
     async def test_retrieve_top_comments_of_post(self, reddit_explorer: RedditExplorer) -> None:
         """
         Given: A Reddit post and mocked comments.
         When: _retrieve_top_comments_of_post is called.
-        Then: Translated comments are returned.
+        Then: Comments are returned without translation (English text as-is).
         """
         # Mock Reddit submission and comments
         mock_submission = MagicMock()
@@ -256,14 +219,13 @@ class TestRedditExplorer:
         mock_submission.comments.list.return_value = [mock_comment]
 
         reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
-        reddit_explorer._translate_to_japanese = AsyncMock(return_value="テストコメント")
 
         result = await reddit_explorer._retrieve_top_comments_of_post(
             RedditPost(id="test123", type="text", title="Test", url=None, upvotes=0, text="")
         )
 
         assert len(result) == 1
-        assert result[0]["text"] == "テストコメント"
+        assert result[0]["text"] == "Test comment"  # No translation, English as-is
         assert result[0]["score"] == 10
 
     @pytest.mark.asyncio

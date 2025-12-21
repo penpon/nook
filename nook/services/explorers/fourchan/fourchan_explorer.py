@@ -249,11 +249,16 @@ class FourChanExplorer(BaseService):
             if selected_threads:
                 log_summary_candidates(self.logger, selected_threads, "popularity_score")
 
-                # 要約生成
+                # 要約生成（並列化）
                 log_summarization_start(self.logger)
-                for idx, thread in enumerate(selected_threads, 1):
+
+                async def summarize_with_progress(idx: int, thread: Thread) -> None:
                     await self._summarize_thread(thread)
                     log_summarization_progress(self.logger, idx, len(selected_threads), thread.title)
+
+                await asyncio.gather(
+                    *[summarize_with_progress(idx, thread) for idx, thread in enumerate(selected_threads, 1)]
+                )
 
             # 要約を保存
             saved_files: list[tuple[str, str]] = []
@@ -504,7 +509,7 @@ class FourChanExplorer(BaseService):
 
     async def _summarize_thread(self, thread: Thread) -> None:
         """
-        スレッドを要約します。
+        スレッドを要約します（並列化対応の非同期版）。
 
         Parameters
         ----------
@@ -515,7 +520,7 @@ class FourChanExplorer(BaseService):
         thread_content = ""
 
         # スレッドのタイトルを追加
-        thread_content += f"タイトル: {thread.title}\n\n"
+        thread_content += f"Title: {thread.title}\n\n"
 
         # オリジナルポスト（OP）を追加
         if thread.posts and len(thread.posts) > 0:
@@ -533,35 +538,36 @@ class FourChanExplorer(BaseService):
             if reply_text:
                 # HTMLタグを除去
                 reply_text = re.sub(r"<[^>]*>", " ", reply_text)
-                thread_content += f"返信 {i + 1}: {reply_text}\n\n"
+                thread_content += f"Reply {i + 1}: {reply_text}\n\n"
 
         prompt = f"""
-        以下の4chanスレッドを要約してください。
+        Summarize the following 4chan thread in Japanese.
 
-        ボード: /{thread.board}/
+        Board: /{thread.board}/
         {thread_content}
 
-        要約は以下の形式で行い、日本語で回答してください:
+        Please provide the summary in the following format (in Japanese):
         1. スレッドの主な内容（1-2文）
         2. 議論の主要ポイント（箇条書き3-5点）
         3. スレッドの全体的な論調
 
-        注意：攻撃的な内容やヘイトスピーチは緩和し、主要な技術的議論に焦点を当ててください。
+        Note: Mitigate offensive content and hate speech, and focus on the main technical discussions.
         """
 
         system_instruction = """
-        あなたは4chanスレッドの要約を行うアシスタントです。
-        投稿された内容を客観的に分析し、技術的議論や情報に焦点を当てた要約を提供してください。
-        過度な攻撃性、ヘイトスピーチ、差別的内容は中和して表現し、有益な情報のみを抽出してください。
-        回答は日本語で行い、AIやテクノロジーに関連する情報を優先的に含めてください。
+        You are an assistant that summarizes 4chan threads.
+        Objectively analyze the posted content and provide a summary focused on technical discussions and information.
+        Neutralize excessive aggression, hate speech, and discriminatory content, and extract only beneficial information.
+        IMPORTANT: Always respond in Japanese. Prioritize AI and technology-related information.
         """
 
         try:
-            summary = self.gpt_client.generate_content(
+            summary = await self.gpt_client.generate_async(
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=0.3,
                 max_tokens=1000,
+                service_name=self.service_name,
             )
             thread.summary = summary
         except Exception as e:

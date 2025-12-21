@@ -213,7 +213,7 @@ def test_extract_post_id(mock_reddit_explorer):
 
 @pytest.mark.asyncio
 async def test_retrieve_top_comments(mock_reddit_explorer):
-    """Test comment retrieval and translation."""
+    """Test comment retrieval without translation (English as-is)."""
     post = RedditPost(
         type="text",
         id="1",
@@ -238,12 +238,10 @@ async def test_retrieve_top_comments(mock_reddit_explorer):
         return_value=mock_submission
     )  # submission(id=...) is now a coroutine
 
-    mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="Japanese Comment")
-
     comments = await mock_reddit_explorer._retrieve_top_comments_of_post(post)
 
     assert len(comments) == 1
-    assert comments[0]["text"] == "Japanese Comment"
+    assert comments[0]["text"] == "English Comment"  # No translation
     assert comments[0]["score"] == 10
 
 
@@ -271,12 +269,10 @@ async def test_retrieve_top_comments_missing_created_at(mock_reddit_explorer):
     mock_reddit_explorer.reddit = MagicMock()
     mock_reddit_explorer.reddit.submission = AsyncMock(return_value=mock_submission)
 
-    mock_reddit_explorer._translate_to_japanese = AsyncMock(return_value="Japanese Comment")
-
     comments = await mock_reddit_explorer._retrieve_top_comments_of_post(post)
 
     assert len(comments) == 1
-    assert comments[0]["text"] == "Japanese Comment"
+    assert comments[0]["text"] == "English Comment"  # No translation
 
 
 @pytest.mark.asyncio

@@ -256,12 +256,25 @@ class RedditExplorer(BaseService):
                     post_candidates = [post for _, _, post in selected_posts]
                     log_summary_candidates(self.logger, post_candidates)
 
-                    # 要約生成
-                    log_summarization_start(self.logger)
-                    for idx, (_category, _subreddit_name, post) in enumerate(selected_posts, 1):
+                    # コメント取得（並列化）
+                    async def fetch_comments(item: tuple[str, str, RedditPost]) -> None:
+                        _category, _subreddit_name, post = item
                         post.comments = await self._retrieve_top_comments_of_post(post, limit=5)
+
+                    await asyncio.gather(*[fetch_comments(item) for item in selected_posts])
+
+                    # 要約生成（並列化）
+                    log_summarization_start(self.logger)
+                    total_count = len(selected_posts)
+
+                    async def summarize_with_progress(idx: int, item: tuple[str, str, RedditPost], total: int) -> None:
+                        _category, _subreddit_name, post = item
                         await self._summarize_reddit_post(post)
-                        log_summarization_progress(self.logger, idx, len(selected_posts), post.title)
+                        log_summarization_progress(self.logger, idx, total, post.title)
+
+                    await asyncio.gather(
+                        *[summarize_with_progress(idx, item, total_count) for idx, item in enumerate(selected_posts, 1)]
+                    )
 
                     # 保存
                     day_saved_files = await self._store_summaries(selected_posts, [target_date])
@@ -329,7 +342,7 @@ class RedditExplorer(BaseService):
             else:
                 post_type = "link"
 
-            # タイトルと本文を日本語に翻訳
+            # タイトルと本文（翻訳せずに英語のまま保存）
             title = submission.title
 
             is_dup, normalized = dedup_tracker.is_duplicate(title)
@@ -341,7 +354,8 @@ class RedditExplorer(BaseService):
                     original,
                 )
                 continue
-            text_ja = await self._translate_to_japanese(submission.selftext) if submission.selftext else ""
+            # 英語テキストをそのまま保存（翻訳は要約時に行う）
+            text = submission.selftext if submission.selftext else ""
 
             created_at = (
                 datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
@@ -355,7 +369,7 @@ class RedditExplorer(BaseService):
                 title=title,
                 url=submission.url if not submission.is_self else None,
                 upvotes=submission.score,
-                text=text_ja,
+                text=text,
                 permalink=f"https://www.reddit.com{submission.permalink}",
                 thumbnail=(submission.thumbnail if hasattr(submission, "thumbnail") else "self"),
                 popularity_score=float(submission.score),
@@ -369,38 +383,6 @@ class RedditExplorer(BaseService):
             dedup_tracker.add(post.title)
 
         return posts, total_found
-
-    async def _translate_to_japanese(self, text: str) -> str:
-        """
-        テキストを日本語に翻訳します。
-
-        Parameters
-        ----------
-        text : str
-            翻訳するテキスト。
-
-        Returns
-        -------
-        str
-            翻訳されたテキスト。
-        """
-        if not text:
-            return ""
-
-        try:
-            prompt = f"以下の英語のテキストを自然な日本語に翻訳してください。専門用語や固有名詞は適切に翻訳し、必要に応じて英語の原語を括弧内に残してください。\n\n{text}"
-
-            translated_text = await self.gpt_client.generate_async(
-                prompt=prompt,
-                temperature=0.3,
-                max_tokens=1000,
-                service_name=self.service_name,
-            )
-
-            return translated_text
-        except Exception as e:
-            self.logger.error(f"Error translating text: {str(e)}")
-            return text  # 翻訳に失敗した場合は原文を返す
 
     async def _retrieve_top_comments_of_post(self, post: RedditPost, limit: int = 5) -> list[dict[str, str | int]]:
         """
@@ -427,12 +409,10 @@ class RedditExplorer(BaseService):
         comments = []
         for comment in comments_list:
             if hasattr(comment, "body"):
-                # コメントを日本語に翻訳
-                comment_text_ja = await self._translate_to_japanese(comment.body)
-
+                # 英語コメントをそのまま保存（翻訳は要約時に行う）
                 comments.append(
                     {
-                        "text": comment_text_ja,
+                        "text": comment.body,
                         "score": comment.score if hasattr(comment, "score") else 0,
                     }
                 )
@@ -441,7 +421,7 @@ class RedditExplorer(BaseService):
 
     async def _summarize_reddit_post(self, post: RedditPost) -> None:
         """
-        Reddit投稿を要約します。
+        Reddit投稿を要約します（英語入力から日本語要約を直接生成）。
 
         Parameters
         ----------
@@ -449,26 +429,26 @@ class RedditExplorer(BaseService):
             要約する投稿。
         """
         prompt = f"""
-        以下のReddit投稿を要約してください。
+        Summarize the following Reddit post in Japanese.
 
-        タイトル: {post.title}
-        本文: {post.text if post.text else "(本文なし)"}
-        URL: {post.url if post.url else "(URLなし)"}
+        Title: {post.title}
+        Body: {post.text if post.text else "(No body text)"}
+        URL: {post.url if post.url else "(No URL)"}
 
-        トップコメント:
+        Top comments:
         {chr(10).join([f"- {comment['text']}" for comment in post.comments])}
 
-        要約は以下の形式で行い、日本語で回答してください:
+        Please provide the summary in the following format (in Japanese):
         1. 投稿の主な内容（1-2文）
         2. 重要なポイント（箇条書き3-5点）
         3. 議論の傾向（コメントから）
         """
 
         system_instruction = """
-        あなたはReddit投稿の要約を行うアシスタントです。
-        与えられた投稿とコメントを分析し、簡潔で情報量の多い要約を作成してください。
-        技術的な内容は正確に、一般的な内容は分かりやすく要約してください。
-        回答は必ず日本語で行ってください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。
+        You are an assistant that summarizes Reddit posts.
+        Analyze the given post and comments, and create a concise and informative summary.
+        Summarize technical content accurately and general content in an easy-to-understand manner.
+        IMPORTANT: Always respond in Japanese. Translate technical terms appropriately, and keep English technical terms in parentheses when necessary.
         """
 
         try:
