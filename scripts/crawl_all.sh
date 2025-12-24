@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# cron用に ~/.local/bin をPATHに追加
+export PATH="$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+
 set -euo pipefail
 
 # スクリプトのディレクトリを基準にプロジェクトルートに移動
